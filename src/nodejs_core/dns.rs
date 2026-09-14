@@ -14,7 +14,7 @@ fn check_dns_network_permission(hostname: &str) -> Result<(), String> {
     .map_err(|error| error.to_string())
 }
 
-fn throw_dns_permission_error(scope: &mut v8::HandleScope, message: &str) {
+fn throw_dns_permission_error(scope: &mut v8::PinScope, message: &str) {
     let error_message = v8::String::new(scope, message).unwrap();
     let error = v8::Exception::type_error(scope, error_message);
     scope.throw_exception(error);
@@ -81,7 +81,7 @@ pub fn setup_dns_api(
 
 /// dns.lookup(hostname, options, callback) 回调
 fn dns_lookup_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut _retval: v8::ReturnValue,
 ) {
@@ -180,7 +180,7 @@ fn dns_lookup_callback(
 
 /// dns.resolve4(hostname, callback) 回调
 fn dns_resolve4_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut _retval: v8::ReturnValue,
 ) {
@@ -236,7 +236,7 @@ fn dns_resolve4_callback(
 
 /// dns.resolve6(hostname, callback) 回调
 fn dns_resolve6_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut _retval: v8::ReturnValue,
 ) {
@@ -292,7 +292,7 @@ fn dns_resolve6_callback(
 
 /// dns.resolve(hostname, rrtype, callback) 回调
 fn dns_resolve_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut _retval: v8::ReturnValue,
 ) {
@@ -382,7 +382,7 @@ fn dns_resolve_callback(
 
 /// dns.reverse(ip, callback) 回调
 fn dns_reverse_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut _retval: v8::ReturnValue,
 ) {
@@ -473,7 +473,7 @@ fn perform_dns_reverse(ip: &str) -> Result<Vec<String>, String> {
 
 /// 从选项对象中提取 DNS 选项
 fn extract_dns_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     options: &v8::Local<v8::Value>,
     key: &str,
     default: i32,

@@ -75,8 +75,8 @@ fn test_snapshot_corrupted_file_self_heals() {
 
     let content = fs::read(&path).expect("Read healed file");
     assert!(
-        content.starts_with(b"BEEJS_V2"),
-        "Healed snapshot file must have valid BEEJS_V2 magic header"
+        content.starts_with(SNAPSHOT_MAGIC),
+        "Healed snapshot file must have valid SNAPSHOT_MAGIC header"
     );
 
     // Clean up

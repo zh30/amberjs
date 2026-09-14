@@ -33,7 +33,7 @@ pub fn setup_encoding_api(
 }
 /// TextEncoder constructor callback
 fn text_encoder_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -56,7 +56,7 @@ fn text_encoder_constructor(
 }
 /// TextEncoder.encode() method
 fn text_encoder_encode(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -75,10 +75,9 @@ fn text_encoder_encode(
     let array_buffer: _ = v8::ArrayBuffer::new(scope, bytes.len());
     let backing_store: _ = array_buffer.get_backing_store();
     // Copy bytes to backing store
-    unsafe {
-        let data: _ = backing_store.data();
-        if !data.is_null() {
-            std::ptr::copy_nonoverlapping(bytes.as_ptr(), data as *mut u8, bytes.len());
+    if let Some(data) = backing_store.data() {
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), data.as_ptr() as *mut u8, bytes.len());
         }
     }
     let uint8_array: _ = v8::Uint8Array::new(scope, array_buffer, 0, bytes.len()).unwrap();
@@ -86,7 +85,7 @@ fn text_encoder_encode(
 }
 /// TextEncoder.encodeInto() method
 fn text_encoder_encode_into(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -141,7 +140,7 @@ fn text_encoder_encode_into(
 }
 /// TextDecoder constructor callback
 fn text_decoder_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -209,7 +208,7 @@ fn text_decoder_constructor(
 }
 /// TextDecoder.decode() method
 fn text_decoder_decode(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -240,9 +239,11 @@ fn text_decoder_decode(
         let array_buffer = array.buffer(scope).unwrap();
         let backing_store = array_buffer.get_backing_store();
         let mut buffer = vec![0u8; len];
-        unsafe {
-            let src_ptr = backing_store.data().add(byte_offset) as *const u8;
-            std::ptr::copy_nonoverlapping(src_ptr, buffer.as_mut_ptr(), len);
+        if let Some(data) = backing_store.data() {
+            unsafe {
+                let src_ptr = (data.as_ptr() as *const u8).add(byte_offset);
+                std::ptr::copy_nonoverlapping(src_ptr, buffer.as_mut_ptr(), len);
+            }
         }
         buffer
     } else if input.is_array_buffer() {
@@ -250,10 +251,9 @@ fn text_decoder_decode(
         let backing_store: _ = array_buffer.get_backing_store();
         let len: _ = backing_store.byte_length();
         let mut buffer = vec![0u8; len];
-        unsafe {
-            let ptr: _ = backing_store.data();
-            if !ptr.is_null() {
-                std::ptr::copy_nonoverlapping(ptr as *const u8, buffer.as_mut_ptr(), len);
+        if let Some(ptr) = backing_store.data() {
+            unsafe {
+                std::ptr::copy_nonoverlapping(ptr.as_ptr() as *const u8, buffer.as_mut_ptr(), len);
             }
         }
         buffer
@@ -302,7 +302,7 @@ fn text_decoder_decode(
 }
 /// atob - decode base64 string
 fn atob_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -335,7 +335,7 @@ fn atob_callback(
 }
 /// btoa - encode to base64 string
 fn btoa_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

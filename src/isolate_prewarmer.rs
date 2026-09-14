@@ -142,7 +142,7 @@ impl IsolatePrewarmer {
                 // Create a context for this isolate
                 let scope: _ = &mut v8::HandleScope::new(&mut isolate);
                 // Create context with template
-                let context: _ = v8::Context::new(scope);
+                let context: _ = v8::Context::new(scope, Default::default());
                 let _context_scope: _ = &mut v8::ContextScope::new(scope, context);
                 // Note: Console and Node.js API setup would require Runtime struct
                 // For now, we focus on core pre-warming with pre-compilation
@@ -196,7 +196,7 @@ impl IsolatePrewarmer {
         ];
         let mut isolate = v8::Isolate::new(Default::default());
         let scope: _ = &mut v8::HandleScope::new(&mut isolate);
-        let context: _ = v8::Context::new(scope);
+        let context: _ = v8::Context::new(scope, Default::default());
         let context_scope: _ = &mut v8::ContextScope::new(scope, context);
         for (name, code) in common_codes {
             let code_handle: _ = v8::String::new(context_scope, code)

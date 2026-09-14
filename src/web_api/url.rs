@@ -219,7 +219,7 @@ pub fn setup_url_api(
 }
 /// URL constructor callback
 fn url_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -267,7 +267,7 @@ fn url_constructor_callback(
 }
 /// URLSearchParams constructor callback
 fn url_search_params_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -278,7 +278,7 @@ fn url_search_params_constructor_callback(
     let get_key: _ = v8::String::new(scope, "get").unwrap();
     let get_func: _ = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut _rv: v8::ReturnValue| {
             let _name: _ = args
@@ -294,9 +294,7 @@ fn url_search_params_constructor_callback(
     let set_key: _ = v8::String::new(scope, "set").unwrap();
     let set_func: _ = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
-         _args: v8::FunctionCallbackArguments,
-         _rv: v8::ReturnValue| {},
+        |_scope: &mut v8::PinScope, _args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {},
     );
     let set_func_instance: _ = set_func.get_function(scope).unwrap();
     proto.set(scope, set_key.into(), set_func_instance.into());

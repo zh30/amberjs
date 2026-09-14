@@ -50,7 +50,7 @@ impl Runtime {
             .ok_or_else(|| anyhow!("Failed to create V8 isolate"))?;
         // Create a context for script execution
         let scope: _ = &mut v8::HandleScope::new(&mut isolate);
-        let context: _ = v8::Context::new(scope);
+        let context: _ = v8::Context::new(scope, Default::default());
         let context: _ = v8::Global::new(scope, context);
         Ok(Self {
             stack_size,
@@ -120,7 +120,7 @@ impl Runtime {
         let source: _ = v8::String::new(scope, &code_to_execute)
             .ok_or_else(|| anyhow!("Failed to create V8 string"))?;
         // Use try-catch for error handling
-        let scope: _ = &mut v8::TryCatch::new(scope);
+        v8::tc_scope!(let scope, scope);
         let script: _ = match v8::Script::compile(scope, source, None) {
             Some(script) => script,
             None => {
@@ -189,7 +189,7 @@ impl Runtime {
     fn setup_console(&self, scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
         let console: _ = v8::Object::new(scope);
         // console.log - standard output
-        let console_log: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+        let console_log: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
             let mut output = String::new();
             for i in 0..args.length() {
                 if i > 0 {
@@ -229,7 +229,7 @@ impl Runtime {
             retval.set_undefined();
         });
         // console.error - error output (stderr)
-        let console_error: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+        let console_error: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
             let mut output = String::new();
             for i in 0..args.length() {
                 if i > 0 {
@@ -267,7 +267,7 @@ impl Runtime {
             retval.set_undefined();
         });
         // console.warn - warning output (stderr)
-        let console_warn: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+        let console_warn: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
             let mut output = String::new();
             for i in 0..args.length() {
                 if i > 0 {
@@ -305,7 +305,7 @@ impl Runtime {
             retval.set_undefined();
         });
         // console.info - info output (stdout, same as log)
-        let console_info: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+        let console_info: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
             let mut output = String::new();
             for i in 0..args.length() {
                 if i > 0 {
@@ -343,7 +343,7 @@ impl Runtime {
             retval.set_undefined();
         });
         // console.debug - debug output
-        let console_debug: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+        let console_debug: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
             let mut output = String::new();
             for i in 0..args.length() {
                 if i > 0 {

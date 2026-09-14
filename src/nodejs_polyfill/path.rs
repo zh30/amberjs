@@ -2,7 +2,7 @@
 use rusty_v8 as v8;
 use std::collections::{HashMap, BTreeMap};
 use std::path::Path;
-pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
+pub fn register(scope: &mut v8::PinScope, global: &v8::Local<v8::Object>) {
     let path_key: _ = v8::String::new(scope, "path").unwrap();
     let path_obj: _ = v8::Object::new(scope);
     // Join paths
@@ -19,7 +19,7 @@ pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
     path_obj.set(scope, basename_key, basename_fn.into());
     global.set(scope, path_key.into(), path_obj.into());
 }
-fn join(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn join(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let mut result = String::new();
     for i in 0..args.length() {
         let arg: _ = args.get(i).to_string(scope).unwrap().to_rust_string_lossy(scope);
@@ -30,7 +30,7 @@ fn join(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut re
     }
     retval.set(v8::String::new(scope, &result).unwrap().into());
 }
-fn resolve(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn resolve(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let mut paths = Vec::new();
     for i in 0..args.length() {
         paths.push(args.get(i).to_string(scope).unwrap().to_rust_string_lossy(scope));
@@ -40,7 +40,7 @@ fn resolve(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut
         .unwrap_or_else(|_| std::path::Path::new(&paths.join("/")).to_path_buf());
     retval.set(v8::String::new(scope, &result.to_string_lossy()).unwrap().into());
 }
-fn basename(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn basename(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let path_arg: _ = args.get(0);
     let path_str: _ = path_arg.to_string(scope).unwrap().to_rust_string_lossy(scope);
     let path: _ = std::path::Path::new(&path_str);

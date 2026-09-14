@@ -61,7 +61,7 @@ impl CoreRuntime {
         let scope = &mut v8::HandleScope::new(isolate);
 
         // 创建上下文
-        let context = v8::Context::new(scope);
+        let context = v8::Context::new(scope, Default::default());
         let context_global = v8::Global::new(scope, context);
 
         // 设置全局对象（console.log 等）
@@ -76,7 +76,7 @@ impl CoreRuntime {
     }
 
     /// 设置全局对象（console, setTimeout 等）
-    fn setup_globals(scope: &mut v8::HandleScope, context: v8::Local<v8::Context>) {
+    fn setup_globals(scope: &mut v8::PinScope, context: v8::Local<v8::Context>) {
         let global = context.global(scope);
 
         // 设置 console 对象

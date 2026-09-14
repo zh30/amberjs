@@ -2,7 +2,7 @@
 /// Registers test() / describe() / expect() functions in V8 context
 use rusty_v8 as v8;
 /// Register all testing functions in the V8 global scope
-pub fn register_testing_api(_scope: &mut v8::HandleScope, _global: v8::Local<v8::Object>) {
+pub fn register_testing_api(_scope: &mut v8::PinScope, _global: v8::Local<v8::Object>) {
     // Temporarily disabled due to V8 API complexity
     // Will be re-enabled in future stages
     if cfg!(feature = "verbose_logging") {
@@ -13,7 +13,7 @@ pub fn register_testing_api(_scope: &mut v8::HandleScope, _global: v8::Local<v8:
 #[allow(dead_code)]
 /// test() callback - registers a test case
 fn test_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -38,7 +38,7 @@ fn test_callback(
 #[allow(dead_code)]
 /// describe() callback - creates a test suite
 fn describe_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -51,7 +51,7 @@ fn describe_callback(
 #[allow(dead_code)]
 /// it() callback - alias for test()
 fn it_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     retval: v8::ReturnValue,
 ) {
@@ -61,7 +61,7 @@ fn it_callback(
 #[allow(dead_code)]
 /// expect() callback - creates an expectation object
 fn expect_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -74,7 +74,7 @@ fn expect_callback(
 #[allow(dead_code)]
 /// beforeEach() callback
 fn before_each_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -88,7 +88,7 @@ fn before_each_callback(
 #[allow(dead_code)]
 /// afterEach() callback
 fn after_each_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -101,7 +101,7 @@ fn after_each_callback(
 #[allow(dead_code)]
 /// beforeAll() callback
 fn before_all_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -114,7 +114,7 @@ fn before_all_callback(
 #[allow(dead_code)]
 /// afterAll() callback
 fn after_all_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -127,7 +127,7 @@ fn after_all_callback(
 #[allow(dead_code)]
 /// skip() callback
 fn skip_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -137,7 +137,7 @@ fn skip_callback(
 #[allow(dead_code)]
 /// only() callback
 fn only_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -146,7 +146,7 @@ fn only_callback(
 /// toBe matcher - strict equality
 #[allow(dead_code)]
 fn to_be_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -157,7 +157,7 @@ fn to_be_matcher(
 /// toEqual matcher - deep equality
 #[allow(dead_code)]
 fn to_equal_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -168,7 +168,7 @@ fn to_equal_matcher(
 /// toBeTruthy matcher
 #[allow(dead_code)]
 fn to_be_truthy_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -177,7 +177,7 @@ fn to_be_truthy_matcher(
 /// toBeFalsy matcher
 #[allow(dead_code)]
 fn to_be_falsy_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -186,7 +186,7 @@ fn to_be_falsy_matcher(
 /// toContain matcher
 #[allow(dead_code)]
 fn to_contain_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

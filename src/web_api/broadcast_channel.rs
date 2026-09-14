@@ -7,7 +7,7 @@ use rusty_v8 as v8;
 
 const REGISTRY_PRIVATE_KEY: &str = "BeeJS.BroadcastChannel#registry";
 
-fn get_broadcast_registry<'s>(scope: &mut v8::HandleScope<'s>) -> v8::Local<'s, v8::Array> {
+fn get_broadcast_registry<'s>(scope: &mut v8::PinScope<'s, '_>) -> v8::Local<'s, v8::Array> {
     let global = scope.get_current_context().global(scope);
     let key_name = v8::String::new(scope, REGISTRY_PRIVATE_KEY).unwrap();
     let key = v8::Private::for_api(scope, Some(key_name));
@@ -26,7 +26,7 @@ fn get_broadcast_registry<'s>(scope: &mut v8::HandleScope<'s>) -> v8::Local<'s, 
 }
 
 fn get_string_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     object: v8::Local<v8::Object>,
     name: &str,
 ) -> Option<String> {
@@ -36,7 +36,7 @@ fn get_string_property(
         .map(|value| value.to_rust_string_lossy(scope))
 }
 
-fn is_channel_closed(scope: &mut v8::HandleScope, channel: v8::Local<v8::Object>) -> bool {
+fn is_channel_closed(scope: &mut v8::PinScope, channel: v8::Local<v8::Object>) -> bool {
     let closed_key = v8::String::new(scope, "_closed").unwrap();
     channel
         .get(scope, closed_key.into())
@@ -44,7 +44,7 @@ fn is_channel_closed(scope: &mut v8::HandleScope, channel: v8::Local<v8::Object>
 }
 
 fn dispatch_message_event(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     target: v8::Local<v8::Object>,
     message: v8::Local<v8::Value>,
 ) {
@@ -103,7 +103,7 @@ pub fn setup_broadcast_channel_api(
     // Create BroadcastChannel constructor template
     let broadcast_channel_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Get channel name from first argument
@@ -140,7 +140,7 @@ pub fn setup_broadcast_channel_api(
             // Create postMessage function
             let post_message_fn = v8::FunctionTemplate::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     if args.length() == 0 {
@@ -239,7 +239,7 @@ pub fn setup_broadcast_channel_api(
             // Create close function
             let close_fn = v8::FunctionTemplate::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     let this_obj = args.this();
@@ -255,7 +255,7 @@ pub fn setup_broadcast_channel_api(
             // Create addEventListener function
             let add_event_listener_fn = v8::FunctionTemplate::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     if args.length() < 2 {
@@ -302,7 +302,7 @@ pub fn setup_broadcast_channel_api(
             // Create removeEventListener function
             let remove_event_listener_fn = v8::FunctionTemplate::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     if args.length() < 2 {
@@ -362,7 +362,7 @@ pub fn setup_broadcast_channel_api(
             // Create dispatchEvent function
             let dispatch_event_fn = v8::FunctionTemplate::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     let this_obj = args.this();

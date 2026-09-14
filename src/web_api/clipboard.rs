@@ -69,7 +69,7 @@ pub fn setup_clipboard_api(
 
 /// writeText callback - writes text to clipboard
 fn write_text_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -84,7 +84,7 @@ fn write_text_callback(
 
 /// readText callback - reads text from clipboard
 fn read_text_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -99,7 +99,7 @@ fn read_text_callback(
 
 /// read callback - modern read API (returns ClipboardItem array)
 fn read_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -114,7 +114,7 @@ fn read_callback(
 
 /// write callback - modern write API (takes ClipboardItem array)
 fn write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

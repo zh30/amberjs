@@ -8,10 +8,7 @@ use anyhow::Result;
 use rusty_v8 as v8;
 
 /// Sets up the `bee:tools` API inside V8 Context
-pub fn setup_tools_api(
-    scope: &mut v8::HandleScope,
-    _context: &v8::Local<v8::Context>,
-) -> Result<()> {
+pub fn setup_tools_api(scope: &mut v8::PinScope, _context: &v8::Local<v8::Context>) -> Result<()> {
     let tools_js_bootstrap = r#"
     (function() {
         // --- 1. Schema Validator & Coercer ---

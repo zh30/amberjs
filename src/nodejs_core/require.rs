@@ -44,7 +44,7 @@ pub fn setup_require_api(
     module_obj.set(scope, module_exports_key, exports_obj.clone().into());
 
     // Create require function
-    let require_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let require_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         if args.length() >= 1 {
             let module_id = args.get(0);
             let requested_module_id_str = if let Some(s) = module_id.to_string(scope) {
@@ -88,7 +88,7 @@ pub fn setup_require_api(
             match module_id_str.as_str() {
                 "buffer" => {
                     // Create Buffer function template first
-                    let buffer_fn_template = v8::FunctionTemplate::new(scope, |_scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let buffer_fn_template = v8::FunctionTemplate::new(scope, |_scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         let buffer_obj = v8::Object::new(_scope);
 
                         if args.length() >= 1 {
@@ -108,7 +108,7 @@ pub fn setup_require_api(
                             buffer_obj.set(_scope, length_key, length_val.into());
 
                             // Add toString method
-                            let to_string_fn = v8::Function::new(_scope, |scope: &mut v8::HandleScope, _args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                            let to_string_fn = v8::Function::new(_scope, |scope: &mut v8::PinScope, _args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                                 let result_str = v8::String::new(scope, "[Buffer]").unwrap();
                                 retval.set(result_str.into());
                             }).unwrap();
@@ -128,7 +128,7 @@ pub fn setup_require_api(
                     let buffer_fn = buffer_fn_template.get_function(scope).unwrap();
 
                     // Add Buffer.from as a static method
-                    let from_fn = v8::Function::new(scope, |_scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let from_fn = v8::Function::new(scope, |_scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         let buffer_obj = v8::Object::new(_scope);
 
                         if args.length() >= 1 {
@@ -178,7 +178,7 @@ pub fn setup_require_api(
                 }
                 "path" => {
                     // Return path module with join function
-                    let join_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let join_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         let parts: Vec<String> = (0..args.length())
                             .filter_map(|i| args.get(i).to_string(scope).map(|s| s.to_rust_string_lossy(scope)))
                             .collect();
@@ -196,7 +196,7 @@ pub fn setup_require_api(
                     result_obj.set(scope, join_key, join_fn.into());
 
                     // Add dirname function
-                    let dirname_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let dirname_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         let path_str = if let Some(s) = args.get(0).to_string(scope) {
                             s.to_rust_string_lossy(scope)
                         } else {
@@ -212,7 +212,7 @@ pub fn setup_require_api(
                     result_obj.set(scope, dirname_key, dirname_fn.into());
 
                     // Add basename function
-                    let basename_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let basename_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         let path_str = if let Some(s) = args.get(0).to_string(scope) {
                             s.to_rust_string_lossy(scope)
                         } else {
@@ -228,7 +228,7 @@ pub fn setup_require_api(
                     result_obj.set(scope, basename_key, basename_fn.into());
 
                     // Add extname function
-                    let extname_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let extname_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         let path_str = if let Some(s) = args.get(0).to_string(scope) {
                             s.to_rust_string_lossy(scope)
                         } else {
@@ -244,7 +244,7 @@ pub fn setup_require_api(
                     result_obj.set(scope, extname_key, extname_fn.into());
 
                     // Add resolve function
-                    let resolve_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let resolve_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         // Collect all path segments
                         let paths: Vec<String> = (0..args.length())
                             .filter_map(|i| args.get(i).to_string(scope).map(|s| s.to_rust_string_lossy(scope)))
@@ -323,7 +323,7 @@ pub fn setup_require_api(
                     let fs_obj = v8::Object::new(scope);
 
                     // Add readFileSync function
-                    let readfile_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let readfile_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         if args.length() >= 1 {
                             if let Some(path_val) = args.get(0).to_string(scope) {
                                 let path = path_val.to_rust_string_lossy(scope);
@@ -345,7 +345,7 @@ pub fn setup_require_api(
                     fs_obj.set(scope, readfile_key, readfile_fn.into());
 
                     // Add writeFileSync function
-                    let writefile_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let writefile_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         if args.length() >= 2 {
                             if let (Some(path_val), Some(data_val)) = (args.get(0).to_string(scope), args.get(1).to_string(scope)) {
                                 let path = path_val.to_rust_string_lossy(scope);
@@ -368,7 +368,7 @@ pub fn setup_require_api(
                     fs_obj.set(scope, writefile_key, writefile_fn.into());
 
                     // Add existsSync function
-                    let exists_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let exists_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         if args.length() >= 1 {
                             if let Some(path_val) = args.get(0).to_string(scope) {
                                 let path = path_val.to_rust_string_lossy(scope);
@@ -382,7 +382,7 @@ pub fn setup_require_api(
                     fs_obj.set(scope, exists_key, exists_fn.into());
 
                     // Add mkdirSync function
-                    let mkdir_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let mkdir_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         if args.length() >= 1 {
                             if let Some(path_val) = args.get(0).to_string(scope) {
                                 let path = path_val.to_rust_string_lossy(scope);
@@ -403,7 +403,7 @@ pub fn setup_require_api(
                     fs_obj.set(scope, mkdir_key, mkdir_fn.into());
 
                     // Add readdirSync function
-                    let readdir_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let readdir_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         if args.length() >= 1 {
                             if let Some(path_val) = args.get(0).to_string(scope) {
                                 let path = path_val.to_rust_string_lossy(scope);
@@ -437,7 +437,7 @@ pub fn setup_require_api(
                     fs_obj.set(scope, readdir_key, readdir_fn.into());
 
                     // Add unlinkSync function
-                    let unlink_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let unlink_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         if args.length() >= 1 {
                             if let Some(path_val) = args.get(0).to_string(scope) {
                                 let path = path_val.to_rust_string_lossy(scope);
@@ -459,7 +459,7 @@ pub fn setup_require_api(
                     fs_obj.set(scope, unlink_key, unlink_fn.into());
 
                     // Add statSync function
-                    let stat_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                    let stat_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                         if args.length() >= 1 {
                             if let Some(path_val) = args.get(0).to_string(scope) {
                                 let path = path_val.to_rust_string_lossy(scope);

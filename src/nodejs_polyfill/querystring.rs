@@ -1,7 +1,7 @@
 /// querystring polyfill
 use rusty_v8 as v8;
 use std::collections::{HashMap, BTreeMap};
-pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
+pub fn register(scope: &mut v8::PinScope, global: &v8::Local<v8::Object>) {
     let qs_key: _ = v8::String::new(scope, "querystring").unwrap();
     let qs_obj: _ = v8::Object::new(scope);
     // Parse query string
@@ -14,7 +14,7 @@ pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
     qs_obj.set(scope, stringify_key, stringify_fn.into());
     global.set(scope, qs_key.into(), qs_obj.into());
 }
-fn parse(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn parse(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let query_arg: _ = args.get(0);
     let query_str: _ = query_arg.to_string(scope).unwrap().to_rust_string_lossy(scope);
     let obj: _ = v8::Object::new(scope);
@@ -27,10 +27,10 @@ fn parse(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut r
     }
     retval.set(obj.into());
 }
-fn stringify(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn stringify(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let obj_arg: _ = args.get(0);
     let obj: _ = obj_arg.to_object(scope).unwrap();
-    let keys: _ = obj.get_own_property_names(scope).unwrap();
+    let keys: _ = obj.get_own_property_names(scope, Default::default()).unwrap();
     let mut parts = Vec::new();
     for i in 0..keys.length() {
         let key_v8: _ = keys.get_index(scope, i).unwrap();

@@ -293,7 +293,7 @@ pub fn remove_timer_metadata(timer_id: u64) {
     metadata.remove(&timer_id);
 }
 
-fn throw_timer_schedule_error(scope: &mut v8::HandleScope, err: TimerScheduleError) {
+fn throw_timer_schedule_error(scope: &mut v8::PinScope, err: TimerScheduleError) {
     let message = v8::String::new(scope, &format!("timer scheduling failed: {}", err)).unwrap();
     let error = v8::Exception::error(scope, message);
     scope.throw_exception(error.into());
@@ -324,7 +324,7 @@ fn clone_timer_callback(
 /// v0.3.271: Create a Timer object with ref/unref/refresh methods
 /// Timer objects are returned by setTimeout, setInterval, setImmediate
 fn create_timer_object<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     timer_id: u64,
     timer_type: TimerType,
 ) -> v8::Local<'a, v8::Object> {
@@ -351,7 +351,7 @@ fn create_timer_object<'a>(
     // Create unref method
     let unref_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -375,7 +375,7 @@ fn create_timer_object<'a>(
     // Create ref method
     let ref_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -399,7 +399,7 @@ fn create_timer_object<'a>(
     // Create refresh method (Node.js compatibility)
     let refresh_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -432,7 +432,7 @@ fn create_timer_object<'a>(
     // Create hasRef method (Node.js compatibility)
     let has_ref_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -455,7 +455,7 @@ fn create_timer_object<'a>(
     // Add valueOf for numeric conversion (allows Number(timer))
     let value_of_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -472,7 +472,7 @@ fn create_timer_object<'a>(
     // v0.3.273: Add delay() method - get delay when no args, set delay when args provided
     let delay_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -547,7 +547,7 @@ pub fn setup_timers_api(
     // setTimeout - for delay = 0 executes immediately, delay > 0 uses async scheduling
     let set_timeout_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -633,7 +633,7 @@ pub fn setup_timers_api(
     // setInterval
     let set_interval_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -715,7 +715,7 @@ pub fn setup_timers_api(
     // setImmediate - v0.3.250: executes callback in next event loop iteration
     let set_immediate_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -776,7 +776,7 @@ pub fn setup_timers_api(
     // clearTimeout / clearInterval / clearImmediate
     let clear_timer_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -829,7 +829,7 @@ pub fn setup_timers_api(
     // v0.3.250: timer.unref() - allow event loop to exit if this is the only timer
     let unref_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -856,7 +856,7 @@ pub fn setup_timers_api(
     // v0.3.250: timer.ref() - ensure event loop stays alive for this timer
     let ref_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -884,7 +884,7 @@ pub fn setup_timers_api(
     // This is similar to Promise.resolve().then() but without creating a Promise
     let queue_microtask_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -1030,7 +1030,7 @@ pub fn take_timer_callback(
 
 /// v0.3.249: Execute a fired timer callback
 /// Must be called from V8 main thread with valid isolate scope
-pub fn execute_timer_callback(scope: &mut v8::HandleScope, timer_id: u64) -> bool {
+pub fn execute_timer_callback(scope: &mut v8::PinScope, timer_id: u64) -> bool {
     let timer_type = {
         let metadata = TIMER_METADATA.lock().unwrap();
         metadata.get(&timer_id).map(|meta| meta.timer_type)
@@ -1072,7 +1072,7 @@ pub fn execute_timer_callback(scope: &mut v8::HandleScope, timer_id: u64) -> boo
 /// v0.3.249: Execute all fired timer callbacks
 /// Called from V8 main thread event loop
 /// v0.3.261: Timer IDs now include epoch offset, so no epoch check needed
-pub fn execute_fired_timers(scope: &mut v8::HandleScope) {
+pub fn execute_fired_timers(scope: &mut v8::PinScope) {
     let timer_manager = get_async_timer_manager();
     let fired_timers = timer_manager.poll_fired_timers();
 
@@ -1113,7 +1113,7 @@ pub fn execute_fired_timers(scope: &mut v8::HandleScope) {
 /// v0.3.261: Modified to only execute non-deferred callbacks
 /// This ensures setImmediate callbacks registered during sync code run in same iteration,
 /// while callbacks registered from within other callbacks run in the next iteration
-pub fn execute_immediate_callbacks(scope: &mut v8::HandleScope) {
+pub fn execute_immediate_callbacks(scope: &mut v8::PinScope) {
     // Drain under the lock, then release it before invoking JS. Callbacks may
     // re-enter setImmediate (chained immediates) or clearImmediate; holding the
     // mutex across callback.call would deadlock on that re-entry.

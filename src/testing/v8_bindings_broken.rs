@@ -6,7 +6,7 @@ use crate::testing::test_context::{TestSuite, TestCase};
 use std::collections::{HashMap, BTreeMap};
 use std::time::Duration;
 /// Register all testing functions in the V8 global scope
-pub fn register_testing_api(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>) {
+pub fn register_testing_api(scope: &mut v8::PinScope, global: v8::Local<v8::Object>) {
     // Register test() function
     let test_func: _ = v8::FunctionTemplate::new(scope, test_callback);
     let test_key: _ = v8::String::new(scope, "test").unwrap();
@@ -49,7 +49,7 @@ pub fn register_testing_api(scope: &mut v8::HandleScope, global: v8::Local<v8::O
 }
 /// test() callback - registers a test case
 fn test_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -77,7 +77,7 @@ fn test_callback(
 }
 /// describe() callback - creates a test suite
 fn describe_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -103,7 +103,7 @@ fn describe_callback(
 }
 /// it() callback - alias for test()
 fn it_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -111,7 +111,7 @@ fn it_callback(
 }
 /// expect() callback - creates an expectation
 fn expect_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -137,7 +137,7 @@ fn expect_callback(
 }
 /// beforeEach() callback
 fn before_each_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -149,7 +149,7 @@ fn before_each_callback(
 }
 /// afterEach() callback
 fn after_each_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -161,7 +161,7 @@ fn after_each_callback(
 }
 /// beforeAll() callback
 fn before_all_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -173,7 +173,7 @@ fn before_all_callback(
 }
 /// afterAll() callback
 fn after_all_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -185,7 +185,7 @@ fn after_all_callback(
 }
 /// skip() modifier
 fn skip_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -197,7 +197,7 @@ fn skip_callback(
 }
 /// only() modifier
 fn only_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -209,7 +209,7 @@ fn only_callback(
 }
 /// toBe matcher implementation
 fn to_be_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -224,7 +224,7 @@ fn to_be_matcher(
 }
 /// toEqual matcher implementation
 fn to_equal_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -235,7 +235,7 @@ fn to_equal_matcher(
 }
 /// toBeTruthy matcher implementation
 fn to_be_truthy_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -245,7 +245,7 @@ fn to_be_truthy_matcher(
 }
 /// toBeFalsy matcher implementation
 fn to_be_falsy_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -255,7 +255,7 @@ fn to_be_falsy_matcher(
 }
 /// toContain matcher implementation
 fn to_contain_matcher(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

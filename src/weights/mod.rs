@@ -400,7 +400,7 @@ pub fn parse_safetensors_file(path: &Path) -> Result<SafeTensorsMetadata, String
 
 /// Sets up the `bee:weights` API in V8 Context
 pub fn setup_weights_api(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> anyhow::Result<()> {
     let weights_obj = v8::Object::new(scope);
@@ -408,9 +408,7 @@ pub fn setup_weights_api(
     // 1. weights.readGGUFMetadata(filePath)
     let read_gguf_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() == 0 || !args.get(0).is_string() {
                 let msg =
                     v8::String::new(scope, "readGGUFMetadata requires a file path string").unwrap();
@@ -448,9 +446,7 @@ pub fn setup_weights_api(
     // 2. weights.readSafeTensorsMetadata(filePath)
     let read_st_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() == 0 || !args.get(0).is_string() {
                 let msg =
                     v8::String::new(scope, "readSafeTensorsMetadata requires a file path string")
@@ -491,9 +487,7 @@ pub fn setup_weights_api(
     // 3. weights.loadTensor(filePath, tensorName)
     let load_tensor_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() < 2 || !args.get(0).is_string() || !args.get(1).is_string() {
                 let msg =
                     v8::String::new(scope, "loadTensor requires (filePath, tensorName)").unwrap();

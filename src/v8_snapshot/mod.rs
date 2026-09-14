@@ -10,7 +10,7 @@ pub use snapshot::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 
-const SNAPSHOT_MAGIC: &[u8; 8] = b"BEEJS_V2";
+pub const SNAPSHOT_MAGIC: &[u8; 8] = b"BEEJS_V3";
 static CLI_STARTUP_SNAPSHOT: AtomicBool = AtomicBool::new(false);
 
 /// Enable startup snapshot for `bee run` (no-op when disabled via env).
@@ -25,10 +25,12 @@ pub fn startup_snapshot_name() -> String {
     } else {
         "release"
     };
+    let v8_version = rusty_v8::V8::get_version();
     format!(
-        "beejs-startup-v{}-{}-rusty_v8-0.22-warmup-v2.bin",
+        "beejs-startup-v{}-{}-v8-{}-warmup-v3.bin",
         env!("CARGO_PKG_VERSION"),
-        mode
+        mode,
+        v8_version
     )
 }
 

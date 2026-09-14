@@ -55,7 +55,7 @@ pub fn push_next_tick_callback(callback: v8::Global<v8::Value>, args: Vec<v8::Gl
 /// 必须在 V8 主线程调用，在 perform_microtask_checkpoint 之前执行
 /// 这样 nextTick 回调会在 Promise microtasks 之前执行（符合 Node.js 行为）
 /// 关键：使用 while 循环确保所有链式添加的 nextTick 都能执行
-pub fn execute_next_tick_callbacks(scope: &mut v8::HandleScope) {
+pub fn execute_next_tick_callbacks(scope: &mut v8::PinScope) {
     NEXT_TICK_QUEUE.with(|q| {
         let mut queue_ref = q.lock().unwrap();
 
@@ -333,7 +333,7 @@ pub fn setup_process_api(
 
 /// process.cwd() 回调
 fn process_cwd_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -346,7 +346,7 @@ fn process_cwd_callback(
 
 /// process.dlopen(module, filename, [flags]) - 原生扩展模块动态链接加载
 pub fn process_dlopen_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -403,7 +403,7 @@ pub fn process_dlopen_callback(
 /// v0.3.261: 重构 - 只将回调添加到队列，由事件循环在正确时机执行
 /// 正确的执行顺序: nextTick -> microtasks (Promises) -> timers -> setImmediate
 fn process_next_tick_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -438,13 +438,13 @@ fn process_next_tick_callback(
 
 // 获取 context 的辅助函数 - v0.3.265: 预留用于未来使用
 #[allow(dead_code)]
-fn _context<'s>(scope: &mut v8::HandleScope<'s>) -> v8::Local<'s, v8::Context> {
+fn _context<'s>(scope: &mut v8::PinScope<'s, '_>) -> v8::Local<'s, v8::Context> {
     scope.get_current_context()
 }
 
 /// v0.3.239: stdout.write() 回调
 fn stdout_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -471,7 +471,7 @@ fn stdout_write_callback(
 
 /// v0.3.239: stderr.write() 回调
 fn stderr_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -499,7 +499,7 @@ fn stderr_write_callback(
 /// v0.3.240: stdin.read() 回调
 /// 同步读取不支持，返回 null（需要异步运行时支持）
 fn stdin_read_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -510,7 +510,7 @@ fn stdin_read_callback(
 
 /// v0.3.240: process.hrtime() 回调 - 高精度时间
 fn process_hrtime_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -564,16 +564,13 @@ fn process_hrtime_callback(
 /// v0.3.241: process.memory() 回调 - 真实的 V8 堆内存统计
 /// 使用 V8 HeapStatistics API 获取真实的堆内存使用情况
 fn process_memory_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
     // 使用 V8 API 获取真实的堆统计信息
-    let mut heap_stats = std::mem::MaybeUninit::<v8::HeapStatistics>::uninit();
-    unsafe {
-        scope.get_heap_statistics(&mut *heap_stats.as_mut_ptr());
-        let heap_stats = heap_stats.assume_init();
-
+    let heap_stats = scope.get_heap_statistics();
+    {
         let result = v8::Object::new(scope);
 
         // heapUsed - 已使用的堆内存（字节）
@@ -608,7 +605,7 @@ fn process_memory_callback(
 
 /// v0.3.240: process.uptime() 回调 - 进程运行时间
 fn process_uptime_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -625,7 +622,7 @@ thread_local! {
 }
 
 fn process_cpu_usage_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -822,7 +819,7 @@ fn get_cpu_times() -> (u64, u64) {
 
 /// process.exit() 回调
 fn process_exit_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -845,7 +842,7 @@ fn process_exit_callback(
 
 /// process.on() 回调
 fn process_on_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -890,7 +887,7 @@ fn process_on_callback(
 
 /// process.off() 回调
 fn process_off_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -925,7 +922,7 @@ fn process_off_callback(
 
 /// process.removeListener() 回调
 fn process_remove_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -940,7 +937,7 @@ fn process_remove_listener_callback(
 /// n 为 0 表示无限制
 /// v0.3.243: Fix - process.setMaxListeners(n) with single arg sets global default
 fn process_set_max_listeners_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -989,7 +986,7 @@ fn process_set_max_listeners_callback(
 /// v0.3.242: process.getMaxListeners() 回调
 /// 获取指定事件的最大监听器数量
 fn process_get_max_listeners_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1017,7 +1014,7 @@ fn process_get_max_listeners_callback(
 /// v0.3.243: process.kill(pid, signal) 回调
 /// 向指定进程发送信号
 fn process_kill_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1111,7 +1108,7 @@ fn send_signal_to_process(pid: u32, signal: u32) -> bool {
 }
 
 /// 触发未捕获异常事件
-pub fn emit_uncaught_exception(scope: &mut v8::HandleScope, error: &v8::Local<v8::Value>) {
+pub fn emit_uncaught_exception(scope: &mut v8::PinScope, error: &v8::Local<v8::Value>) {
     UNCAUGHT_EXCEPTION_HANDLERS.with(|handlers| {
         let handlers = handlers.lock().unwrap();
         for handler in handlers.iter() {
@@ -1132,7 +1129,7 @@ pub fn emit_uncaught_exception(scope: &mut v8::HandleScope, error: &v8::Local<v8
 
 /// 触发未处理的 Promise rejection 事件
 pub fn emit_unhandled_rejection(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     reason: &v8::Local<v8::Value>,
     promise: &v8::Local<v8::Value>,
 ) {

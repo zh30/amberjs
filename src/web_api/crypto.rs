@@ -25,10 +25,7 @@ use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 /// Get bytes from an ArrayBuffer or TypedArray.
-fn get_array_buffer_data(
-    scope: &mut v8::HandleScope,
-    value: v8::Local<v8::Value>,
-) -> Option<Vec<u8>> {
+fn get_array_buffer_data(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> Option<Vec<u8>> {
     if value.is_array_buffer() {
         let buffer = v8::Local::<v8::ArrayBuffer>::try_from(value).ok()?;
         let len = buffer.byte_length();
@@ -37,7 +34,10 @@ fn get_array_buffer_data(
         }
 
         let backing_store = buffer.get_backing_store();
-        let ptr = backing_store.data() as *const u8;
+        let ptr = backing_store
+            .data()
+            .map(|p| p.as_ptr() as *const u8)
+            .unwrap_or(std::ptr::null());
         if ptr.is_null() {
             return None;
         }
@@ -57,7 +57,10 @@ fn get_array_buffer_data(
     }
 
     let backing_store = buffer.get_backing_store();
-    let ptr = backing_store.data() as *const u8;
+    let ptr = backing_store
+        .data()
+        .map(|p| p.as_ptr() as *const u8)
+        .unwrap_or(std::ptr::null());
     if ptr.is_null() {
         return None;
     }
@@ -145,7 +148,7 @@ fn aes_kw_unwrap_key_data(
 }
 
 fn get_required_algorithm_bytes_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     operation: &str,
     algorithm_name: &str,
     algo_obj: Option<&v8::Local<v8::Object>>,
@@ -214,7 +217,7 @@ fn get_required_algorithm_bytes_property(
 }
 
 fn get_required_algorithm_iv(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     operation: &str,
     algorithm_name: &str,
     algo_obj: Option<&v8::Local<v8::Object>>,
@@ -231,7 +234,7 @@ fn get_required_algorithm_iv(
 }
 
 fn get_optional_algorithm_label(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     operation: &str,
     algo_obj: Option<&v8::Local<v8::Object>>,
 ) -> Option<Option<Vec<u8>>> {
@@ -266,7 +269,7 @@ fn get_optional_algorithm_label(
 }
 
 fn get_aes_ctr_length_bits(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     operation: &str,
     algo_obj: Option<&v8::Local<v8::Object>>,
 ) -> Option<u8> {
@@ -355,10 +358,7 @@ fn aes_ctr_transform(
 }
 
 /// Get algorithm hash name
-fn get_algorithm_hash_name(
-    scope: &mut v8::HandleScope,
-    algo_value: v8::Local<v8::Value>,
-) -> String {
+fn get_algorithm_hash_name(scope: &mut v8::PinScope, algo_value: v8::Local<v8::Value>) -> String {
     if algo_value.is_string() {
         return algo_value
             .to_string(scope)
@@ -417,7 +417,7 @@ fn normalize_hmac_hash_name(hash_name: &str) -> Option<&'static str> {
 }
 
 fn hmac_hash_name_for_algorithm(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     algorithm_value: v8::Local<v8::Value>,
     algorithm_name: &str,
 ) -> Result<&'static str, String> {
@@ -487,7 +487,7 @@ fn openssl_message_digest(hash_name: &str) -> Result<MessageDigest, String> {
     }
 }
 
-fn get_key_hash_name(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>) -> String {
+fn get_key_hash_name(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> String {
     get_key_hmac_hash_name(scope, crypto_key)
 }
 
@@ -496,7 +496,7 @@ fn is_rsassa_algorithm_name(algorithm_name: &str) -> bool {
 }
 
 fn rsa_hash_name_for_operation(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     algo_value: v8::Local<v8::Value>,
     crypto_key: v8::Local<v8::Object>,
 ) -> String {
@@ -686,7 +686,7 @@ fn is_integer_typed_array(value: v8::Local<v8::Value>) -> bool {
 
 /// getRandomValues callback
 fn get_random_values_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -783,7 +783,7 @@ fn get_random_values_callback(
 
 /// Parse algorithm name from algorithm object.
 fn get_algorithm_name_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     algo_value: v8::Local<v8::Value>,
 ) -> Option<String> {
     if algo_value.is_string() {
@@ -811,11 +811,11 @@ fn get_algorithm_name_option(
     None
 }
 
-fn get_algorithm_name(scope: &mut v8::HandleScope, algo_value: v8::Local<v8::Value>) -> String {
+fn get_algorithm_name(scope: &mut v8::PinScope, algo_value: v8::Local<v8::Value>) -> String {
     get_algorithm_name_option(scope, algo_value).unwrap_or_default()
 }
 
-fn throw_missing_algorithm_name(scope: &mut v8::HandleScope, operation: &str) {
+fn throw_missing_algorithm_name(scope: &mut v8::PinScope, operation: &str) {
     let error =
         v8::String::new(scope, &format!("{}: algorithm.name is required", operation)).unwrap();
     let error_obj = v8::Exception::type_error(scope, error);
@@ -824,7 +824,7 @@ fn throw_missing_algorithm_name(scope: &mut v8::HandleScope, operation: &str) {
 
 /// Create a CryptoKey object with proper structure
 fn create_crypto_key<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     key_type: &str, // "secret", "public", "private"
     extractable: bool,
     algorithm_name: &str,
@@ -881,7 +881,7 @@ fn create_crypto_key<'a>(
 }
 
 fn set_crypto_key_hmac_hash(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     crypto_key: v8::Local<v8::Object>,
     hash_name: &str,
 ) {
@@ -900,10 +900,7 @@ fn set_crypto_key_hmac_hash(
     crypto_key.set(scope, algorithm_key.into(), algorithm_obj.into());
 }
 
-fn get_key_hmac_hash_name(
-    scope: &mut v8::HandleScope,
-    crypto_key: v8::Local<v8::Object>,
-) -> String {
+fn get_key_hmac_hash_name(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> String {
     let algorithm_key = v8::String::new(scope, "algorithm").unwrap();
     let Some(algo_val) = crypto_key.get(scope, algorithm_key.into()) else {
         return "SHA-256".to_string();
@@ -951,7 +948,7 @@ fn get_key_hmac_hash_name(
 }
 
 /// Get string value from V8 value
-fn get_string_value(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> Option<String> {
+fn get_string_value(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> Option<String> {
     if value.is_string() {
         Some(value.to_string(scope).unwrap().to_rust_string_lossy(scope))
     } else {
@@ -960,7 +957,7 @@ fn get_string_value(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) ->
 }
 
 /// Get boolean value from V8 value
-fn get_bool_value(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> bool {
+fn get_bool_value(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> bool {
     if value.is_boolean() {
         value.to_boolean(scope).boolean_value(scope)
     } else {
@@ -969,7 +966,7 @@ fn get_bool_value(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> b
 }
 
 /// Parse key usages from V8 array
-fn get_key_usages(scope: &mut v8::HandleScope, usages_value: v8::Local<v8::Value>) -> Vec<String> {
+fn get_key_usages(scope: &mut v8::PinScope, usages_value: v8::Local<v8::Value>) -> Vec<String> {
     let mut usages = Vec::new();
 
     if usages_value.is_array() {
@@ -988,7 +985,7 @@ fn get_key_usages(scope: &mut v8::HandleScope, usages_value: v8::Local<v8::Value
 }
 
 fn get_object_string_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     object: v8::Local<v8::Object>,
     name: &str,
 ) -> Option<String> {
@@ -999,7 +996,7 @@ fn get_object_string_property(
 }
 
 fn get_object_bool_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     object: v8::Local<v8::Object>,
     name: &str,
 ) -> Result<Option<bool>, String> {
@@ -1013,7 +1010,7 @@ fn get_object_bool_property(
 }
 
 fn get_object_string_array_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     object: v8::Local<v8::Object>,
     name: &str,
 ) -> Result<Option<Vec<String>>, String> {
@@ -1066,7 +1063,7 @@ struct JwkOctKeyData {
 }
 
 fn get_jwk_oct_key_data(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     key_data_value: v8::Local<v8::Value>,
 ) -> Result<JwkOctKeyData, String> {
     if !key_data_value.is_object() {
@@ -1102,7 +1099,7 @@ struct JwkOkpKeyData {
 }
 
 fn get_jwk_okp_key_data(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     key_data_value: v8::Local<v8::Value>,
 ) -> Result<JwkOkpKeyData, String> {
     if !key_data_value.is_object() {
@@ -1322,7 +1319,7 @@ fn validate_jwk_okp_import(
 }
 
 fn validate_eddsa_import_key_type_usages(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     key_type: &str,
     usages: &[String],
 ) -> bool {
@@ -1351,7 +1348,7 @@ fn validate_eddsa_import_key_type_usages(
 
 /// Setup crypto.subtle.importKey
 fn import_key_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1676,7 +1673,7 @@ fn import_key_callback(
 }
 
 /// Get key type from CryptoKey object
-fn get_key_type(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>) -> String {
+fn get_key_type(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> String {
     let type_key = v8::String::new(scope, "type").unwrap();
     if let Some(type_val) = crypto_key.get(scope, type_key.into()) {
         if type_val.is_string() {
@@ -1690,7 +1687,7 @@ fn get_key_type(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>) 
 }
 
 /// Get curve name from CryptoKey object for ECDSA/ECDH
-fn get_curve_name(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>) -> String {
+fn get_curve_name(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> String {
     // First check __beejs_curve__ property
     let curve_key = v8::String::new(scope, "__beejs_curve__").unwrap();
     if let Some(curve_val) = crypto_key.get(scope, curve_key.into()) {
@@ -1717,7 +1714,7 @@ fn get_curve_name(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>
 
 /// Get key data from CryptoKey object
 #[allow(dead_code)]
-fn get_key_data(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>) -> Option<Vec<u8>> {
+fn get_key_data(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> Option<Vec<u8>> {
     let key_data_key_name = v8::String::new(scope, "BeeJS.CryptoKey#keyData").unwrap();
     let key_data_key = v8::Private::for_api(scope, Some(key_data_key_name));
     if let Some(key_data_value) = crypto_key.get_private(scope, key_data_key) {
@@ -1731,7 +1728,7 @@ fn get_key_data(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>) 
     }
 }
 
-fn set_key_data(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>, key_data: &[u8]) {
+fn set_key_data(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>, key_data: &[u8]) {
     let key_data_key_name = v8::String::new(scope, "BeeJS.CryptoKey#keyData").unwrap();
     let key_data_key = v8::Private::for_api(scope, Some(key_data_key_name));
     let key_data_array = v8::ArrayBuffer::new(scope, key_data.len());
@@ -1743,7 +1740,7 @@ fn set_key_data(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>, 
 }
 
 fn get_required_key_data(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     operation: &str,
     crypto_key: v8::Local<v8::Object>,
 ) -> Option<Vec<u8>> {
@@ -1760,7 +1757,7 @@ fn get_required_key_data(
 }
 
 fn resolve_unwrapped_secret_key_promise(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     retval: &mut v8::ReturnValue,
     format_str: &str,
     key_algo_value: v8::Local<v8::Value>,
@@ -2299,7 +2296,7 @@ fn eddsa_private_raw_from_pkcs8_der(
 }
 
 fn crypto_key_has_usage(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     crypto_key: v8::Local<v8::Object>,
     usage: &str,
 ) -> bool {
@@ -2341,7 +2338,7 @@ fn is_key_usage_allowed_for_algorithm(algorithm_name: &str, usage: &str) -> bool
 }
 
 fn validate_key_usages(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     operation: &str,
     algorithm_name: &str,
     usages: &[String],
@@ -2366,7 +2363,7 @@ fn validate_key_usages(
 }
 
 fn ensure_key_algorithm_matches(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     operation: &str,
     requested_algorithm: &str,
     crypto_key: v8::Local<v8::Object>,
@@ -2390,7 +2387,7 @@ fn ensure_key_algorithm_matches(
 }
 
 fn ensure_crypto_key_usage(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     operation: &str,
     crypto_key: v8::Local<v8::Object>,
     usage: &str,
@@ -2411,7 +2408,7 @@ fn ensure_crypto_key_usage(
 
 /// HMAC sign callback
 fn hmac_sign_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2610,7 +2607,7 @@ fn hmac_sign_callback(
 
 /// HMAC verify callback - now supports both HMAC and RSA verification
 fn hmac_verify_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2802,7 +2799,7 @@ fn hmac_verify_callback(
 
 /// AES-GCM encrypt callback - real cryptographic encryption using ring
 fn aes_encrypt_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -3088,7 +3085,7 @@ fn aes_encrypt_callback(
 
 /// AES-GCM decrypt callback - real cryptographic decryption using ring
 fn aes_decrypt_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -3371,7 +3368,7 @@ fn aes_decrypt_callback(
 
 /// wrapKey callback - wraps (encrypts) a key for secure storage/transport
 fn wrap_key_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -3604,7 +3601,7 @@ fn wrap_key_callback(
 
 /// unwrapKey callback - unwraps (decrypts) a wrapped key
 fn unwrap_key_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -3856,12 +3853,12 @@ fn unwrap_key_callback(
 }
 
 /// Setup crypto.subtle API
-fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object) {
+fn setup_crypto_subtle_api(scope: &mut v8::PinScope, subtle_obj: &v8::Object) {
     // digest method
     let digest_key = v8::String::new(scope, "digest").unwrap();
     let digest_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Inline digest implementation to avoid lifetime issues
@@ -3936,7 +3933,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let import_key_key = v8::String::new(scope, "importKey").unwrap();
     let import_key_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             import_key_callback(scope, args, rv);
         },
     );
@@ -3947,7 +3944,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let encrypt_key = v8::String::new(scope, "encrypt").unwrap();
     let encrypt_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             aes_encrypt_callback(scope, args, rv);
         },
     );
@@ -3958,7 +3955,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let decrypt_key = v8::String::new(scope, "decrypt").unwrap();
     let decrypt_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             aes_decrypt_callback(scope, args, rv);
         },
     );
@@ -3969,7 +3966,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let sign_key = v8::String::new(scope, "sign").unwrap();
     let sign_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             hmac_sign_callback(scope, args, rv);
         },
     );
@@ -3980,7 +3977,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let verify_key = v8::String::new(scope, "verify").unwrap();
     let verify_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             hmac_verify_callback(scope, args, rv);
         },
     );
@@ -3991,7 +3988,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let generate_key_key = v8::String::new(scope, "generateKey").unwrap();
     let generate_key_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             generate_key_callback(scope, args, rv);
         },
     );
@@ -4006,7 +4003,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let derive_key_key = v8::String::new(scope, "deriveKey").unwrap();
     let derive_key_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             derive_key_callback(scope, args, rv);
         },
     );
@@ -4017,7 +4014,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let export_key_key = v8::String::new(scope, "exportKey").unwrap();
     let export_key_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             export_key_callback(scope, args, rv);
         },
     );
@@ -4028,7 +4025,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let wrap_key_key = v8::String::new(scope, "wrapKey").unwrap();
     let wrap_key_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             wrap_key_callback(scope, args, rv);
         },
     );
@@ -4039,7 +4036,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let unwrap_key_key = v8::String::new(scope, "unwrapKey").unwrap();
     let unwrap_key_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             unwrap_key_callback(scope, args, rv);
         },
     );
@@ -4050,7 +4047,7 @@ fn setup_crypto_subtle_api(scope: &mut v8::HandleScope, subtle_obj: &v8::Object)
     let derive_bits_key = v8::String::new(scope, "deriveBits").unwrap();
     let derive_bits_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             derive_bits_callback(scope, args, rv);
         },
     );
@@ -4073,7 +4070,7 @@ fn generate_random_bytes(length: usize) -> Vec<u8> {
 
 /// Get algorithm length from algorithm object
 fn get_algorithm_length(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     algo_value: v8::Local<v8::Value>,
     default_length: i32,
 ) -> i32 {
@@ -4110,7 +4107,7 @@ fn aes_key_len_bits_from_bytes(length_bytes: usize) -> Option<i32> {
 }
 
 fn get_required_aes_generate_key_length(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     algorithm_value: v8::Local<v8::Value>,
 ) -> Option<i32> {
     if !algorithm_value.is_object() {
@@ -4153,7 +4150,7 @@ fn get_required_aes_generate_key_length(
 
 /// GenerateKey callback - generates cryptographic keys
 fn generate_key_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -4735,7 +4732,7 @@ fn generate_key_callback(
 
 /// Parse PBKDF2 algorithm parameters
 fn parse_pbkdf2_params(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     algo_value: v8::Local<v8::Value>,
 ) -> Option<(Vec<u8>, String, u32)> {
     if !algo_value.is_object() {
@@ -4796,7 +4793,7 @@ fn derive_pbkdf2_bits(
 
 /// deriveKey callback - derives a cryptographic key from a base key
 fn derive_key_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -5042,7 +5039,7 @@ fn derive_key_callback(
 
 /// deriveBits callback - derives bits from a base key
 fn derive_bits_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -5262,10 +5259,7 @@ fn derive_bits_callback(
 }
 
 /// Get algorithm name from CryptoKey
-fn get_key_algorithm_name(
-    scope: &mut v8::HandleScope,
-    crypto_key: v8::Local<v8::Object>,
-) -> String {
+fn get_key_algorithm_name(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> String {
     let algorithm_key = v8::String::new(scope, "algorithm").unwrap();
     if let Some(algo_val) = crypto_key.get(scope, algorithm_key.into()) {
         if algo_val.is_object() {
@@ -5285,7 +5279,7 @@ fn get_key_algorithm_name(
 }
 
 /// Check if key is extractable
-fn is_key_extractable(scope: &mut v8::HandleScope, crypto_key: v8::Local<v8::Object>) -> bool {
+fn is_key_extractable(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> bool {
     let extractable_key = v8::String::new(scope, "extractable").unwrap();
     if let Some(extractable_val) = crypto_key.get(scope, extractable_key.into()) {
         return extractable_val.boolean_value(scope);
@@ -5336,7 +5330,7 @@ fn base64url_encode(data: &[u8]) -> String {
     result
 }
 
-fn crypto_key_usages(scope: &mut v8::HandleScope, key_obj: v8::Local<v8::Object>) -> Vec<String> {
+fn crypto_key_usages(scope: &mut v8::PinScope, key_obj: v8::Local<v8::Object>) -> Vec<String> {
     let usages_key = v8::String::new(scope, "usages").unwrap();
     key_obj
         .get(scope, usages_key.into())
@@ -5345,7 +5339,7 @@ fn crypto_key_usages(scope: &mut v8::HandleScope, key_obj: v8::Local<v8::Object>
 }
 
 fn export_key_payload_for_wrap(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     format_str: &str,
     key_obj: v8::Local<v8::Object>,
     key_data: &[u8],
@@ -5456,7 +5450,7 @@ fn export_key_payload_for_wrap(
 
 /// ExportKey callback - exports cryptographic keys
 fn export_key_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -5748,11 +5742,11 @@ fn export_key_callback(
 }
 
 /// Setup crypto.randomUUID (for convenience)
-fn setup_crypto_random_uuid_api(scope: &mut v8::HandleScope, crypto_obj: &v8::Object) {
+fn setup_crypto_random_uuid_api(scope: &mut v8::PinScope, crypto_obj: &v8::Object) {
     let uuid_key = v8::String::new(scope, "randomUUID").unwrap();
     let uuid_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut rv: v8::ReturnValue| {
             let uuid = uuid::Uuid::new_v4();
@@ -5784,7 +5778,7 @@ pub fn setup_crypto_api(
     let get_random_key: v8::Local<v8::String> = v8::String::new(scope, "getRandomValues").unwrap();
     let get_random_func: v8::Local<v8::FunctionTemplate> = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
             get_random_values_callback(scope, args, rv);
         },
     );

@@ -142,11 +142,12 @@ fn test_generate_snapshot_produces_a_loadable_v8_startup_blob() {
     );
 
     beejs::initialize_v8().unwrap();
-    let params = v8::Isolate::create_params().snapshot_blob(snapshot.snapshot_data.clone());
+    let startup_data = v8::StartupData::from(snapshot.snapshot_data.clone());
+    let params = v8::Isolate::create_params().snapshot_blob(startup_data);
     let mut isolate = v8::Isolate::new(params);
     {
-        let scope = &mut v8::HandleScope::new(&mut isolate);
-        let context = v8::Context::new(scope);
+        v8::scope!(let scope, &mut isolate);
+        let context = v8::Context::new(scope, Default::default());
         let scope = &mut v8::ContextScope::new(scope, context);
         let source = v8::String::new(scope, "1 + 1").unwrap();
         let script = v8::Script::compile(scope, source, None)

@@ -316,7 +316,7 @@ pub fn initialize_v8() -> Result<()> {
         let v8_flags_str: _ = v8_flags.join(" ");
         v8::V8::set_flags_from_string(&v8_flags_str);
         // Create platform
-        let platform: _ = v8::new_default_platform().unwrap();
+        let platform = v8::new_default_platform(0, false).make_shared();
         // Initialize V8
         v8::V8::initialize_platform(platform);
         v8::V8::initialize();
@@ -517,7 +517,7 @@ pub fn generate_performance_report(
 }
 /// Console callback functions for V8 integration
 pub fn console_log_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -535,10 +535,7 @@ pub fn console_log_callback(
     }
     println!("{}", output);
 }
-fn format_console_args(
-    scope: &mut v8::HandleScope,
-    args: &v8::FunctionCallbackArguments,
-) -> String {
+fn format_console_args(scope: &mut v8::PinScope, args: &v8::FunctionCallbackArguments) -> String {
     let mut output = String::new();
     for i in 0..args.length() {
         if i > 0 {
@@ -565,7 +562,7 @@ fn format_console_args(
 }
 
 pub fn console_error_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -573,7 +570,7 @@ pub fn console_error_callback(
 }
 
 pub fn console_warn_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -581,7 +578,7 @@ pub fn console_warn_callback(
 }
 
 pub fn console_info_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -589,7 +586,7 @@ pub fn console_info_callback(
 }
 
 pub fn console_debug_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -599,7 +596,7 @@ pub fn console_debug_callback(
 /// Console table callback - formats data as a table
 /// Supports optional columns parameter for column filtering
 pub fn console_table_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -686,7 +683,9 @@ pub fn console_table_callback(
                 for i in 0..length {
                     if let Some(item) = arr.get_index(scope, i) {
                         let obj = v8::Local::<v8::Object>::try_from(item).unwrap();
-                        let keys = obj.get_own_property_names(scope).unwrap();
+                        let keys = obj
+                            .get_own_property_names(scope, Default::default())
+                            .unwrap();
                         let key_count = keys.length();
 
                         let mut row = String::new();
@@ -722,7 +721,9 @@ pub fn console_table_callback(
     } else if data.is_object() {
         // Plain object - display as key-value pairs
         let obj = v8::Local::<v8::Object>::try_from(data).unwrap();
-        let keys = obj.get_own_property_names(scope).unwrap();
+        let keys = obj
+            .get_own_property_names(scope, Default::default())
+            .unwrap();
         let length = keys.length();
 
         println!("┌──────────────────┬───────────────┐");
@@ -765,7 +766,7 @@ fn get_counter_storage() -> &'static Mutex<HashMap<String, u32>> {
 
 /// Console time callback - starts a timer
 pub fn console_time_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -786,7 +787,7 @@ pub fn console_time_callback(
 
 /// Console timeEnd callback - ends a timer and prints elapsed time
 pub fn console_time_end_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -812,7 +813,7 @@ pub fn console_time_end_callback(
 
 /// Console count callback - increments and prints a count (v0.3.259)
 pub fn console_count_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -833,7 +834,7 @@ pub fn console_count_callback(
 
 /// Console countReset callback - resets a count (v0.3.259)
 pub fn console_count_reset_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -853,7 +854,7 @@ pub fn console_count_reset_callback(
 
 /// Console group callback - starts a new group
 pub fn console_group_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -868,7 +869,7 @@ pub fn console_group_callback(
 
 /// Console groupEnd callback - ends a group
 pub fn console_group_end_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -877,7 +878,7 @@ pub fn console_group_end_callback(
 
 /// Console trace callback - prints a stack trace
 pub fn console_trace_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -893,7 +894,7 @@ pub fn console_trace_callback(
 
 /// Console assert callback - asserts a condition
 pub fn console_assert_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -918,7 +919,7 @@ pub fn console_assert_callback(
 
 /// Console dir callback - prints object representation
 pub fn console_dir_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -930,7 +931,9 @@ pub fn console_dir_callback(
     let obj = args.get(0);
     if obj.is_object() {
         let obj_local = v8::Local::<v8::Object>::try_from(obj).unwrap();
-        let keys = obj_local.get_own_property_names(scope).unwrap();
+        let keys = obj_local
+            .get_own_property_names(scope, Default::default())
+            .unwrap();
         let length = keys.length();
 
         println!("{{");

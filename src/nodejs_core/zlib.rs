@@ -38,19 +38,19 @@ pub fn setup_zlib_api(
     Ok(())
 }
 
-fn throw_type(scope: &mut v8::HandleScope, message: &str) {
+fn throw_type(scope: &mut v8::PinScope, message: &str) {
     let msg = v8::String::new(scope, message).unwrap();
     let exc = v8::Exception::type_error(scope, msg);
     scope.throw_exception(exc);
 }
 
-fn throw_err(scope: &mut v8::HandleScope, message: &str) {
+fn throw_err(scope: &mut v8::PinScope, message: &str) {
     let msg = v8::String::new(scope, message).unwrap();
     let exc = v8::Exception::error(scope, msg);
     scope.throw_exception(exc);
 }
 
-fn bytes_from_arg(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> Option<Vec<u8>> {
+fn bytes_from_arg(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> Option<Vec<u8>> {
     if value.is_array_buffer() {
         let buf = v8::Local::<v8::ArrayBuffer>::try_from(value).ok()?;
         let len = buf.byte_length();
@@ -98,7 +98,7 @@ fn bytes_from_arg(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> O
     None
 }
 
-fn return_buffer(scope: &mut v8::HandleScope, bytes: &[u8], rv: &mut v8::ReturnValue) {
+fn return_buffer(scope: &mut v8::PinScope, bytes: &[u8], rv: &mut v8::ReturnValue) {
     let buffer = v8::ArrayBuffer::new(scope, bytes.len());
     if !bytes.is_empty() {
         let store = buffer.get_backing_store();
@@ -126,7 +126,7 @@ fn return_buffer(scope: &mut v8::HandleScope, bytes: &[u8], rv: &mut v8::ReturnV
 }
 
 fn gzip_sync_cb(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -146,7 +146,7 @@ fn gzip_sync_cb(
 }
 
 fn gunzip_sync_cb(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -164,7 +164,7 @@ fn gunzip_sync_cb(
 }
 
 fn deflate_sync_cb(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -179,7 +179,7 @@ fn deflate_sync_cb(
 }
 
 fn inflate_sync_cb(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -194,7 +194,7 @@ fn inflate_sync_cb(
 }
 
 fn deflate_raw_sync_cb(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -209,7 +209,7 @@ fn deflate_raw_sync_cb(
 }
 
 fn inflate_raw_sync_cb(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {

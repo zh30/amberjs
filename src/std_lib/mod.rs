@@ -20,7 +20,7 @@ pub fn setup_std_api(
     // 1. Native callbacks for std_lib
     let dotenv_parse_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let content = if args.length() > 0 {
@@ -40,7 +40,7 @@ pub fn setup_std_api(
 
     let cli_table_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let headers_json = if args.length() > 0 {
@@ -67,7 +67,7 @@ pub fn setup_std_api(
 
     let fs_walk_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let dir_str = if args.length() > 0 {
@@ -120,7 +120,7 @@ pub fn setup_std_api(
 
     let fs_copy_dir_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let src = if args.length() > 0 {
@@ -151,7 +151,7 @@ pub fn setup_std_api(
 
     let fs_empty_dir_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let dir = if args.length() > 0 {
@@ -178,7 +178,7 @@ pub fn setup_std_api(
 
     let crypto_uuid_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let uuid_str = crypto::generate_uuid_v4();
@@ -191,7 +191,7 @@ pub fn setup_std_api(
 
     let crypto_uuidv7_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let uuid_str = crypto::generate_uuid_v7();

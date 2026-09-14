@@ -75,7 +75,7 @@ pub fn setup_net_api(
 
 /// net.connect() 和 net.createConnection() 回调
 fn net_connect_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -268,7 +268,7 @@ fn net_connect_callback(
 
 /// net.createServer() 回调
 fn net_create_server_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -344,7 +344,7 @@ fn net_create_server_callback(
 
 /// net.Server 构造函数
 fn net_server_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -378,7 +378,7 @@ fn net_server_constructor_callback(
 
 /// net.isIP() 回调 - 检测字符串是否为 IP 地址
 fn net_is_ip_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -400,7 +400,7 @@ fn net_is_ip_callback(
 
 /// net.isIPv4() 回调
 fn net_is_ipv4_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -414,7 +414,7 @@ fn net_is_ipv4_callback(
 
 /// net.isIPv6() 回调
 fn net_is_ipv6_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -448,7 +448,7 @@ fn is_valid_ipv6(ip: &str) -> bool {
 
 /// 提取整数选项
 fn extract_integer_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     options: &v8::Local<v8::Value>,
     key: &str,
     default: i32,
@@ -469,7 +469,7 @@ fn extract_integer_option(
 
 /// 提取字符串选项
 fn extract_string_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     options: &v8::Local<v8::Value>,
     key: &str,
     default: &str,
@@ -491,7 +491,7 @@ fn extract_string_option(
 // ==================== Socket 回调 ====================
 
 fn socket_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -535,7 +535,7 @@ fn socket_write_callback(
 }
 
 fn socket_end_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -544,7 +544,7 @@ fn socket_end_callback(
 }
 
 fn socket_on_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -608,7 +608,7 @@ fn socket_on_callback(
 }
 
 fn socket_once_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -617,7 +617,7 @@ fn socket_once_callback(
 }
 
 fn socket_emit_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -626,7 +626,7 @@ fn socket_emit_callback(
 }
 
 fn socket_destroy_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -657,7 +657,7 @@ fn socket_destroy_callback(
 }
 
 fn socket_set_timeout_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -673,7 +673,7 @@ fn socket_set_timeout_callback(
 }
 
 fn socket_set_encoding_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -682,7 +682,7 @@ fn socket_set_encoding_callback(
 }
 
 fn socket_pause_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -691,7 +691,7 @@ fn socket_pause_callback(
 }
 
 fn socket_resume_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -700,7 +700,7 @@ fn socket_resume_callback(
 }
 
 fn socket_read_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -730,7 +730,7 @@ fn socket_read_callback(
 // ==================== Server 回调 ====================
 
 fn server_listen_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -776,7 +776,7 @@ fn server_listen_callback(
 }
 
 fn server_close_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -788,7 +788,7 @@ fn server_close_callback(
 }
 
 fn server_on_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -797,7 +797,7 @@ fn server_on_callback(
 }
 
 fn server_once_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -806,7 +806,7 @@ fn server_once_callback(
 }
 
 fn server_emit_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -815,7 +815,7 @@ fn server_emit_callback(
 }
 
 fn server_address_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -828,7 +828,7 @@ fn server_address_callback(
 }
 
 fn server_get_connections_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -836,7 +836,7 @@ fn server_get_connections_callback(
 }
 
 fn server_ref_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -845,7 +845,7 @@ fn server_ref_callback(
 }
 
 fn server_unref_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

@@ -41,7 +41,7 @@ pub fn setup_events_api(
     Ok(())
 }
 fn event_emitter_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -121,7 +121,7 @@ fn event_emitter_constructor_callback(
     retval.set(emitter_obj.into());
 }
 fn event_emitter_on_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -196,7 +196,7 @@ fn event_emitter_on_callback(
 /// v0.3.257: prependListener 回调
 /// 与 on 类似，但将监听器添加到事件队列的开头（优先执行）
 fn event_emitter_prepend_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -246,7 +246,7 @@ fn event_emitter_prepend_listener_callback(
 }
 
 fn event_emitter_once_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -300,7 +300,7 @@ fn event_emitter_once_callback(
 /// v0.3.258: prependOnceListener 回调
 /// 与 once 类似，但将一次性监听器添加到队列的开头（优先执行）
 fn event_emitter_prepend_once_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -349,7 +349,7 @@ fn event_emitter_prepend_once_listener_callback(
 }
 
 fn event_emitter_emit_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -393,7 +393,7 @@ fn event_emitter_emit_callback(
     retval.set(v8::Boolean::new(scope, emitted).into());
 }
 fn event_emitter_remove_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -414,7 +414,7 @@ fn event_emitter_remove_listener_callback(
     retval.set(this.into());
 }
 fn event_emitter_remove_all_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -448,7 +448,7 @@ fn event_emitter_remove_all_callback(
     retval.set(this.into());
 }
 fn event_emitter_listeners_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -470,7 +470,7 @@ fn event_emitter_listeners_callback(
     retval.set(listeners_array.into());
 }
 fn event_emitter_event_names_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -485,7 +485,7 @@ fn event_emitter_event_names_callback(
     retval.set(names_array.into());
 }
 fn event_emitter_listener_count_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -505,7 +505,7 @@ fn event_emitter_listener_count_callback(
     retval.set(v8::Integer::new(scope, count as i32).into());
 }
 fn event_emitter_get_max_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -517,7 +517,7 @@ fn event_emitter_get_max_callback(
     retval.set(max);
 }
 fn event_emitter_set_max_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -536,7 +536,7 @@ fn event_emitter_set_max_callback(
 /// v0.3.243: 发出 MaxListenersExceededWarning 警告
 /// 当添加的监听器数量超过 maxListeners 时调用 console.warn
 fn emit_max_listeners_warning(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _emitter: &v8::Local<v8::Object>,
     event_name: &str,
     current_count: usize,

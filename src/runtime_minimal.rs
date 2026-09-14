@@ -40,18 +40,16 @@ pub fn set_active_source_map(map_json: String) {
     });
 }
 
-fn active_source_map_url<'s>(scope: &mut v8::HandleScope<'s>) -> v8::Local<'s, v8::Value> {
+fn active_source_map_url<'s>(scope: &mut v8::PinScope<'s, '_>) -> Option<v8::Local<'s, v8::Value>> {
     ACTIVE_SOURCE_MAP.with(|slot| {
         if let Some(map) = slot.borrow().as_ref() {
             let url = format!(
                 "data:application/json;base64,{}",
                 base64::engine::general_purpose::STANDARD.encode(map.as_bytes())
             );
-            v8::String::new(scope, &url)
-                .map(|s| s.into())
-                .unwrap_or_else(|| v8::undefined(scope).into())
+            v8::String::new(scope, &url).map(|s| s.into())
         } else {
-            v8::undefined(scope).into()
+            None
         }
     })
 }
@@ -246,7 +244,7 @@ extern "C" fn promise_reject_callback(message: v8::PromiseRejectMessage) {
     if message.get_event() != v8::PromiseRejectEvent::PromiseRejectWithNoHandler {
         return;
     }
-    let scope = &mut unsafe { v8::CallbackScope::new(&message) };
+    v8::callback_scope!(unsafe let scope, &message);
     let context = scope.get_current_context();
     let scope = &mut v8::ContextScope::new(scope, context);
     let global = context.global(scope);
@@ -266,7 +264,7 @@ extern "C" fn promise_reject_callback(message: v8::PromiseRejectMessage) {
 }
 
 #[inline]
-pub fn set_buffer_prototype_fast(scope: &mut v8::HandleScope, u8_array: v8::Local<v8::Uint8Array>) {
+pub fn set_buffer_prototype_fast(scope: &mut v8::PinScope, u8_array: v8::Local<v8::Uint8Array>) {
     CACHED_BUFFER_PROTOTYPE.with(|p| {
         if let Some(proto) = p.borrow().as_ref() {
             let proto_local = v8::Local::new(scope, proto);
@@ -315,7 +313,7 @@ fn remaining_timer_drain_ms(start: std::time::Instant, limit_ms: u64) -> u64 {
 }
 
 fn serde_json_value_to_v8<'scope>(
-    scope: &mut v8::HandleScope<'scope>,
+    scope: &mut v8::PinScope<'scope, '_>,
     value: &serde_json::Value,
 ) -> v8::Local<'scope, v8::Value> {
     match value {
@@ -346,7 +344,7 @@ fn serde_json_value_to_v8<'scope>(
 }
 
 fn env_permission_check_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -367,7 +365,7 @@ fn env_permission_check_callback(
 }
 
 fn env_is_allowed_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -386,7 +384,7 @@ fn env_is_allowed_callback(
 }
 
 fn wrap_process_env_proxy<'scope>(
-    scope: &mut v8::HandleScope<'scope>,
+    scope: &mut v8::PinScope<'scope, '_>,
     env_obj: v8::Local<'scope, v8::Object>,
     is_sandbox: bool,
 ) -> v8::Local<'scope, v8::Object> {
@@ -485,7 +483,7 @@ fn wrap_process_env_proxy<'scope>(
 }
 
 fn create_process_env_object<'scope>(
-    scope: &mut v8::HandleScope<'scope>,
+    scope: &mut v8::PinScope<'scope, '_>,
 ) -> v8::Local<'scope, v8::Object> {
     let env_obj = v8::Object::new(scope);
 
@@ -619,7 +617,7 @@ fn get_rss_memory() -> u64 {
 /// v0.3.36: Create a timer object with unref, ref, and refresh methods
 /// Returns an object that can be used to control the timer's reference count
 fn create_timer_object<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     timer_id: u64,
     _timer_type: TimerType,
 ) -> v8::Local<'a, v8::Object> {
@@ -633,7 +631,7 @@ fn create_timer_object<'a>(
     // Create unref method - reads timer_id from this object
     let unref_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Get timer_id from this object
@@ -660,7 +658,7 @@ fn create_timer_object<'a>(
     // Create ref method
     let ref_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Get timer_id from this object
@@ -686,7 +684,7 @@ fn create_timer_object<'a>(
     // Create refresh method (Node.js compatibility)
     let refresh_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -707,7 +705,7 @@ fn create_timer_object<'a>(
     // Add valueOf for numeric conversion (allows Number(timer))
     let value_of_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -782,7 +780,7 @@ fn encode_string_to_bytes(s: &str, encoding: &str) -> Vec<u8> {
 }
 
 fn create_buffer_wrapper<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     bytes: &[u8],
 ) -> v8::Local<'s, v8::Object> {
     let buffer = v8::ArrayBuffer::new(scope, bytes.len());
@@ -812,7 +810,7 @@ fn create_buffer_wrapper<'s>(
 }
 
 fn get_string_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: v8::Local<v8::Object>,
     name: &str,
 ) -> Option<String> {
@@ -828,7 +826,7 @@ fn get_string_property(
     })
 }
 
-fn string_from_v8_value(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> String {
+fn string_from_v8_value(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
     value
         .to_string(scope)
         .map(|value| value.to_rust_string_lossy(scope))
@@ -836,7 +834,7 @@ fn string_from_v8_value(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>
 }
 
 fn string_vec_from_v8_array_value(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     value: v8::Local<v8::Value>,
 ) -> Vec<String> {
     if !value.is_array() {
@@ -892,7 +890,7 @@ fn child_process_output_from_result(
 }
 
 fn child_process_output_object<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     output: &ChildProcessOutput,
 ) -> v8::Local<'s, v8::Object> {
     let child_obj = v8::Object::new(scope);
@@ -930,7 +928,7 @@ fn child_process_output_object<'s>(
 }
 
 fn child_process_error_value<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     exit_code: i32,
 ) -> v8::Local<'s, v8::Value> {
     if exit_code == 0 {
@@ -949,7 +947,7 @@ fn child_process_error_value<'s>(
 }
 
 fn call_child_process_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     callback_value: v8::Local<v8::Value>,
     output: &ChildProcessOutput,
 ) {
@@ -970,7 +968,7 @@ fn call_child_process_callback(
 }
 
 fn child_process_on_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1001,7 +999,7 @@ fn child_process_on_callback(
 }
 
 fn child_process_bytes_to_v8_value<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     bytes: &[u8],
     encoding: Option<&str>,
 ) -> v8::Local<'s, v8::Value> {
@@ -1039,7 +1037,7 @@ fn child_process_bytes_to_v8_value<'s>(
 }
 
 fn get_i64_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: v8::Local<v8::Object>,
     name: &str,
 ) -> Option<i64> {
@@ -1049,7 +1047,7 @@ fn get_i64_property(
 }
 
 fn key_export_options_from_arg(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     arg: v8::Local<v8::Value>,
 ) -> (String, Option<String>, bool) {
     if arg.is_undefined() || arg.is_null() {
@@ -1111,7 +1109,7 @@ fn is_crypto_incompatible_key_options_error(error_message: &str) -> bool {
 }
 
 fn crypto_incompatible_key_options_error<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
 ) -> v8::Local<'s, v8::Value> {
     let message = v8::String::new(scope, CRYPTO_INCOMPATIBLE_KEY_OPTIONS_MESSAGE).unwrap();
     let error = v8::Exception::error(scope, message);
@@ -1126,7 +1124,7 @@ fn crypto_incompatible_key_options_error<'s>(
 }
 
 fn private_key_encoding_options_from_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     encoding_obj: v8::Local<v8::Object>,
 ) -> Result<PrivateKeyEncodingOptions, String> {
     let key_type = get_string_property(scope, encoding_obj, "type")
@@ -1156,7 +1154,7 @@ fn private_key_encoding_options_from_object(
 }
 
 fn private_key_encoding_options_from_options(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     options: v8::Local<v8::Value>,
 ) -> Result<Option<PrivateKeyEncodingOptions>, String> {
     if !options.is_object() {
@@ -1183,7 +1181,7 @@ fn private_key_encoding_options_from_options(
 }
 
 fn public_key_encoding_options_from_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     encoding_obj: v8::Local<v8::Object>,
 ) -> Result<PublicKeyEncodingOptions, String> {
     let key_type = get_string_property(scope, encoding_obj, "type")
@@ -1197,7 +1195,7 @@ fn public_key_encoding_options_from_object(
 }
 
 fn public_key_encoding_options_from_options(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     options: v8::Local<v8::Value>,
 ) -> Result<Option<PublicKeyEncodingOptions>, String> {
     if !options.is_object() {
@@ -1237,7 +1235,7 @@ fn base64url_uint_from_bignum(value: &BigNumRef) -> String {
 }
 
 fn jwk_field_string(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
     field: &str,
 ) -> Result<String, String> {
@@ -1245,7 +1243,7 @@ fn jwk_field_string(
 }
 
 fn jwk_bignum_from_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
     field: &str,
 ) -> Result<BigNum, String> {
@@ -1350,7 +1348,7 @@ fn rsa_private_jwk_from_pem(private_key_pem: &str) -> Result<serde_json::Value, 
 }
 
 fn rsa_public_pem_from_jwk_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
 ) -> Result<String, String> {
     let kty = jwk_field_string(scope, jwk_obj, "kty")?;
@@ -1369,7 +1367,7 @@ fn rsa_public_pem_from_jwk_object(
 }
 
 fn rsa_private_pem_from_jwk_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
 ) -> Result<String, String> {
     let kty = jwk_field_string(scope, jwk_obj, "kty")?;
@@ -1526,7 +1524,7 @@ fn ec_private_jwk_from_pem(private_key_pem: &str) -> Result<serde_json::Value, S
 }
 
 fn ec_jwk_bignum_from_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
     field: &str,
     size: usize,
@@ -1546,7 +1544,7 @@ fn ec_jwk_bignum_from_object(
 }
 
 fn ec_public_pem_from_jwk_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
 ) -> Result<String, String> {
     let kty = jwk_field_string(scope, jwk_obj, "kty")?;
@@ -1571,7 +1569,7 @@ fn ec_public_pem_from_jwk_object(
 }
 
 fn ec_private_pem_from_jwk_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
 ) -> Result<String, String> {
     let kty = jwk_field_string(scope, jwk_obj, "kty")?;
@@ -1619,7 +1617,7 @@ fn okp_jwk_id_from_curve(crv: &str) -> Result<(Id, usize), String> {
 }
 
 fn okp_jwk_bytes_from_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
     field: &str,
     size: usize,
@@ -1719,7 +1717,7 @@ fn okp_private_jwk_from_pem(private_key_pem: &str) -> Result<serde_json::Value, 
 }
 
 fn okp_public_pem_from_jwk_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
 ) -> Result<String, String> {
     let kty = jwk_field_string(scope, jwk_obj, "kty")?;
@@ -1739,7 +1737,7 @@ fn okp_public_pem_from_jwk_object(
 }
 
 fn okp_private_pem_from_jwk_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
 ) -> Result<String, String> {
     let kty = jwk_field_string(scope, jwk_obj, "kty")?;
@@ -1787,7 +1785,7 @@ fn private_jwk_from_pem(private_key_pem: &str) -> Result<serde_json::Value, Stri
 }
 
 fn public_pem_from_jwk_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
 ) -> Result<String, String> {
     match jwk_field_string(scope, jwk_obj, "kty")?.as_str() {
@@ -1802,7 +1800,7 @@ fn public_pem_from_jwk_object(
 }
 
 fn private_pem_from_jwk_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     jwk_obj: v8::Local<v8::Object>,
 ) -> Result<String, String> {
     match jwk_field_string(scope, jwk_obj, "kty")?.as_str() {
@@ -1847,7 +1845,7 @@ fn format_generated_public_key(
 }
 
 fn generated_public_key_to_v8<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     public_key: GeneratedPublicKey,
 ) -> v8::Local<'s, v8::Value> {
     match public_key {
@@ -1908,7 +1906,7 @@ fn format_generated_private_key_for_generate(
 }
 
 fn generated_private_key_to_v8<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     private_key: GeneratedPrivateKey,
 ) -> v8::Local<'s, v8::Value> {
     match private_key {
@@ -1987,7 +1985,7 @@ fn format_generated_private_key(
 }
 
 fn value_to_string_after_microtasks<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     mut value: v8::Local<'s, v8::Value>,
 ) -> Result<String> {
     for _ in 0..64 {
@@ -2039,11 +2037,11 @@ fn value_to_string_after_microtasks<'s>(
 
 /// Helper function to set up Buffer module with all static and prototype methods
 /// This avoids closure capture issues by defining everything fresh
-fn setup_buffer_module(scope: &mut v8::HandleScope) {
+fn setup_buffer_module(scope: &mut v8::PinScope) {
     // Buffer constructor
     let buffer_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() >= 1 {
@@ -2124,12 +2122,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                             let ptr = store.as_ref().as_ptr() as *mut u8;
                             if !ptr.is_null() {
                                 let slice = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
-                                str_val.write_utf8(
-                                    scope,
-                                    slice,
-                                    None,
-                                    v8::WriteOptions::NO_NULL_TERMINATION,
-                                );
+                                str_val.write_utf8_v2(scope, slice, v8::WriteFlags::empty(), None);
                             }
                         }
                         if let Some(u8_array) = v8::Uint8Array::new(scope, buffer, 0, len) {
@@ -2170,7 +2163,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.prototype.toString
     let buffer_to_string_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -2283,7 +2276,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     #[allow(irrefutable_let_patterns)]
     let buffer_slice_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -2361,7 +2354,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.prototype.write
     let buffer_write_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -2428,7 +2421,10 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
             let bytes_to_write =
                 std::cmp::min(bytes.len(), std::cmp::min(max_len, target_len - offset));
             let store = target_buffer.get_backing_store();
-            let ptr = store.data() as *mut u8;
+            let ptr = store
+                .data()
+                .map(|p| p.as_ptr() as *mut u8)
+                .unwrap_or(std::ptr::null_mut());
             if ptr.is_null() {
                 retval.set(v8::Integer::new(scope, 0).into());
                 return;
@@ -2445,7 +2441,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.prototype.copy
     let buffer_copy_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -2464,7 +2460,10 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                     let offset = view.byte_offset();
                     if let Some(buf) = view.buffer(scope) {
                         let store = buf.get_backing_store();
-                        let ptr = store.data() as *const u8;
+                        let ptr = store
+                            .data()
+                            .map(|p| p.as_ptr() as *const u8)
+                            .unwrap_or(std::ptr::null());
                         if ptr.is_null() {
                             (std::ptr::null(), 0)
                         } else {
@@ -2483,7 +2482,10 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                     if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(buf) {
                         let len = ab.byte_length();
                         let store = ab.get_backing_store();
-                        let ptr = store.data() as *const u8;
+                        let ptr = store
+                            .data()
+                            .map(|p| p.as_ptr() as *const u8)
+                            .unwrap_or(std::ptr::null());
                         (ptr, len)
                     } else {
                         (std::ptr::null(), 0)
@@ -2505,7 +2507,10 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                         let offset = view.byte_offset();
                         if let Some(buf) = view.buffer(scope) {
                             let store = buf.get_backing_store();
-                            let ptr = store.data() as *mut u8;
+                            let ptr = store
+                                .data()
+                                .map(|p| p.as_ptr() as *mut u8)
+                                .unwrap_or(std::ptr::null_mut());
                             if ptr.is_null() {
                                 (std::ptr::null_mut(), 0)
                             } else {
@@ -2524,7 +2529,10 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                             if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(buf) {
                                 let len = ab.byte_length();
                                 let store = ab.get_backing_store();
-                                let ptr = store.data() as *mut u8;
+                                let ptr = store
+                                    .data()
+                                    .map(|p| p.as_ptr() as *mut u8)
+                                    .unwrap_or(std::ptr::null_mut());
                                 (ptr, len)
                             } else {
                                 (std::ptr::null_mut(), 0)
@@ -2588,7 +2596,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     #[allow(irrefutable_let_patterns)]
     let buffer_index_of_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -2703,7 +2711,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.prototype.fill
     let buffer_fill_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -2817,7 +2825,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.from
     let buffer_from_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -2847,12 +2855,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                         let ptr = store.as_ref().as_ptr() as *mut u8;
                         if !ptr.is_null() {
                             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
-                            str_val.write_utf8(
-                                scope,
-                                slice,
-                                None,
-                                v8::WriteOptions::NO_NULL_TERMINATION,
-                            );
+                            str_val.write_utf8_v2(scope, slice, v8::WriteFlags::empty(), None);
                         }
                     }
                     if let Some(u8_array) = v8::Uint8Array::new(scope, buffer, 0, len) {
@@ -2971,7 +2974,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.alloc
     let buffer_alloc_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let size = if args.length() >= 1 {
@@ -3036,7 +3039,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.concat
     let buffer_concat_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let total_length = if args.length() >= 2 {
@@ -3094,7 +3097,10 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                     let buffer = v8::ArrayBuffer::new(scope, calculated_length);
                     let store = buffer.get_backing_store();
                     let dst_ptr = if calculated_length > 0 {
-                        store.data() as *mut u8
+                        store
+                            .data()
+                            .map(|p| p.as_ptr() as *mut u8)
+                            .unwrap_or(std::ptr::null_mut())
                     } else {
                         std::ptr::null_mut()
                     };
@@ -3117,7 +3123,9 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                                         if let Some(b) = view.buffer(scope) {
                                             let st = b.get_backing_store();
                                             let p = if l > 0 {
-                                                st.data() as *const u8
+                                                st.data()
+                                                    .map(|p| p.as_ptr() as *const u8)
+                                                    .unwrap_or(std::ptr::null())
                                             } else {
                                                 std::ptr::null()
                                             };
@@ -3143,7 +3151,9 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                                                 let l = ab.byte_length();
                                                 let st = ab.get_backing_store();
                                                 let p = if l > 0 {
-                                                    st.data() as *const u8
+                                                    st.data()
+                                                        .map(|p| p.as_ptr() as *const u8)
+                                                        .unwrap_or(std::ptr::null())
                                                 } else {
                                                     std::ptr::null()
                                                 };
@@ -3162,7 +3172,9 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
                                         let l = ab.byte_length();
                                         let st = ab.get_backing_store();
                                         let p = if l > 0 {
-                                            st.data() as *const u8
+                                            st.data()
+                                                .map(|p| p.as_ptr() as *const u8)
+                                                .unwrap_or(std::ptr::null())
                                         } else {
                                             std::ptr::null()
                                         };
@@ -3218,7 +3230,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.isBuffer
     let buffer_is_buffer_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let is_buffer = if args.length() >= 1 {
@@ -3262,7 +3274,7 @@ fn setup_buffer_module(scope: &mut v8::HandleScope) {
     // Buffer.byteLength
     let buffer_byte_length_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let byte_length = if args.length() >= 1 {
@@ -3627,7 +3639,7 @@ fn rsa_pss_saltlen(value: i64) -> Result<RsaPssSaltlen, String> {
 }
 
 fn get_signature_key_options(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     key_value: v8::Local<v8::Value>,
 ) -> Result<(String, RsaSignatureOptions), String> {
     if key_value.is_string() {
@@ -3992,7 +4004,7 @@ fn rsa_padding_from_node_constant(value: Option<i64>, default_padding: Padding) 
 }
 
 fn get_rsa_key_and_padding(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     key_value: v8::Local<v8::Value>,
     default_padding: Padding,
 ) -> Result<(String, Padding), String> {
@@ -4043,7 +4055,10 @@ fn array_buffer_bytes(
     }
 
     let backing_store = value.get_backing_store();
-    let ptr = backing_store.data() as *const u8;
+    let ptr = backing_store
+        .data()
+        .map(|p| p.as_ptr() as *const u8)
+        .unwrap_or(std::ptr::null());
     if ptr.is_null() {
         return Err("buffer data is unavailable".to_string());
     }
@@ -4052,7 +4067,7 @@ fn array_buffer_bytes(
 }
 
 fn get_bytes_from_value(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     value: v8::Local<v8::Value>,
     string_encoding: Option<&str>,
 ) -> Result<Vec<u8>, String> {
@@ -4277,7 +4292,7 @@ fn ecdh_validate_public_key(curve: &str, public_key: &[u8]) -> Result<(), String
 }
 
 fn get_ecdh_public_key_bytes(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     value: v8::Local<v8::Value>,
 ) -> Result<Vec<u8>, String> {
     if value.is_string() {
@@ -4730,7 +4745,7 @@ impl std::error::Error for RuntimeError {}
 /// Convert V8 exception to RuntimeError
 /// v0.3.235: Extract structured error information from V8 exceptions
 pub fn v8_exception_to_runtime_error(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     exception: v8::Local<v8::Value>,
 ) -> RuntimeError {
     // Try to extract error type from the exception
@@ -4870,7 +4885,7 @@ impl MinimalRuntime {
     fn isolate_create_params(initial: usize, maximum: usize) -> v8::CreateParams {
         let params = v8::CreateParams::default().heap_limits(initial, maximum);
         match crate::v8_snapshot::cached_startup_blob() {
-            Some(blob) => params.snapshot_blob(blob.to_vec()),
+            Some(blob) => params.snapshot_blob(v8::StartupData::from(blob.to_vec())),
             None => params,
         }
     }
@@ -5054,12 +5069,12 @@ impl MinimalRuntime {
     /// 通过预先执行常见的 JavaScript 操作，触发 V8 的 JIT 编译优化
     /// 后续代码执行时可以直接使用优化后的机器码
     pub fn warmup(&mut self) -> Result<()> {
-        let scope = &mut v8::HandleScope::new(&mut self.isolate);
-        let context = v8::Context::new(scope);
-        let context_scope = &mut v8::ContextScope::new(scope, context);
+        v8::scope!(let scope, &mut self.isolate);
+        let context = v8::Context::new(scope, Default::default());
+        let scope = &mut v8::ContextScope::new(scope, context);
 
         // 辅助闭包：执行预热代码
-        let run_warmup = |scope: &mut v8::ContextScope<'_, v8::HandleScope<'_>>, code: &str| {
+        let run_warmup = |scope: &mut v8::PinScope, code: &str| {
             let source = v8::String::new(scope, code).unwrap();
             if let Some(script) = v8::Script::compile(scope, source, None) {
                 let _ = script.run(scope);
@@ -5068,7 +5083,7 @@ impl MinimalRuntime {
 
         // 预热 Object.prototype
         run_warmup(
-            context_scope,
+            scope,
             r#"
             (function() {
                 const obj = {};
@@ -5084,7 +5099,7 @@ impl MinimalRuntime {
 
         // 预热 Array.prototype
         run_warmup(
-            context_scope,
+            scope,
             r#"
             (function() {
                 const arr = [1, 2, 3, 4, 5];
@@ -5100,7 +5115,7 @@ impl MinimalRuntime {
 
         // 预热 Function.prototype
         run_warmup(
-            context_scope,
+            scope,
             r#"
             (function() {
                 function testFn() {}
@@ -5114,7 +5129,7 @@ impl MinimalRuntime {
 
         // 预热 String.prototype
         run_warmup(
-            context_scope,
+            scope,
             r#"
             (function() {
                 const str = "hello world";
@@ -5128,7 +5143,7 @@ impl MinimalRuntime {
 
         // 预热 Symbol 和 BigInt
         run_warmup(
-            context_scope,
+            scope,
             r#"
             (function() {
                 const sym = Symbol('test');
@@ -5140,7 +5155,7 @@ impl MinimalRuntime {
 
         // 预热 Promise
         run_warmup(
-            context_scope,
+            scope,
             r#"
             (function() {
                 const p = Promise.resolve(42);
@@ -5153,7 +5168,7 @@ impl MinimalRuntime {
 
         // 预热 Map 和 Set
         run_warmup(
-            context_scope,
+            scope,
             r#"
             (function() {
                 const map = new Map([['a', 1]]);
@@ -5169,7 +5184,7 @@ impl MinimalRuntime {
 
         // 预热 JSON
         run_warmup(
-            context_scope,
+            scope,
             r#"
             (function() {
                 JSON.parse('{"test": 123}');
@@ -5189,8 +5204,8 @@ impl MinimalRuntime {
         }
 
         // 如果没有 Context，创建一个
-        let scope = &mut v8::HandleScope::new(&mut self.isolate);
-        let context = v8::Context::new(scope);
+        v8::scope!(let scope, &mut self.isolate);
+        let context = v8::Context::new(scope, Default::default());
         let global_context = v8::Global::new(scope, context);
         self.context = Some(global_context.clone());
         global_context
@@ -5199,8 +5214,8 @@ impl MinimalRuntime {
     /// 强制重新创建 Context
     /// v0.3.93: 用于需要全新上下文的情况
     pub fn recreate_context(&mut self) {
-        let scope = &mut v8::HandleScope::new(&mut self.isolate);
-        let context = v8::Context::new(scope);
+        v8::scope!(let scope, &mut self.isolate);
+        let context = v8::Context::new(scope, Default::default());
         let global_context = v8::Global::new(scope, context);
         self.context = Some(global_context);
         self.esm_module_cache.clear();
@@ -5479,7 +5494,7 @@ impl MinimalRuntime {
     }
 
     fn create_esm_source<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         path: &Path,
         code: &str,
     ) -> Result<v8::script_compiler::Source, String> {
@@ -5499,18 +5514,19 @@ impl MinimalRuntime {
             false,
             false,
             true,
+            None,
         );
 
         Ok(v8::script_compiler::Source::new(source, Some(&origin)))
     }
 
     fn compile_esm_module_source<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         path: &Path,
         code: &str,
     ) -> Result<v8::Local<'scope, v8::Module>, String> {
-        let source = Self::create_esm_source(scope, path, code)?;
-        v8::script_compiler::compile_module(scope, source)
+        let mut source = Self::create_esm_source(scope, path, code)?;
+        v8::script_compiler::compile_module(scope, &mut source)
             .ok_or_else(|| format!("Failed to compile ES module '{}'", path.display()))
     }
 
@@ -5532,10 +5548,12 @@ impl MinimalRuntime {
     }
 
     fn cached_esm_namespace_graph_is_fresh(
-        scope: &mut v8::HandleScope,
+        scope: &mut v8::PinScope,
         graph_fingerprints: v8::Local<v8::Object>,
     ) -> Result<bool, String> {
-        let Some(property_names) = graph_fingerprints.get_own_property_names(scope) else {
+        let Some(property_names) =
+            graph_fingerprints.get_own_property_names(scope, Default::default())
+        else {
             return Ok(false);
         };
         if property_names.length() == 0 {
@@ -5570,7 +5588,7 @@ impl MinimalRuntime {
     }
 
     fn create_esm_namespace_graph_fingerprint_object<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         source_fingerprints: &[(PathBuf, [u8; 32])],
     ) -> v8::Local<'scope, v8::Object> {
         let graph_fingerprints = v8::Object::new(scope);
@@ -5627,7 +5645,7 @@ impl MinimalRuntime {
     }
 
     fn remember_esm_module(
-        scope: &mut v8::HandleScope,
+        scope: &mut v8::PinScope,
         path: &Path,
         module: v8::Local<v8::Module>,
         source_fingerprint: [u8; 32],
@@ -5652,7 +5670,7 @@ impl MinimalRuntime {
     }
 
     fn seed_esm_module_cache(
-        scope: &mut v8::HandleScope,
+        scope: &mut v8::PinScope,
         module_cache: &HashMap<PathBuf, v8::Global<v8::Module>>,
         module_cache_fingerprints: &HashMap<PathBuf, [u8; 32]>,
     ) {
@@ -5720,7 +5738,7 @@ impl MinimalRuntime {
     }
 
     fn ensure_esm_evaluation_settled(
-        scope: &mut v8::HandleScope,
+        scope: &mut v8::PinScope,
         value: v8::Local<v8::Value>,
         module_path: &Path,
         timer_drain_limit_ms: u64,
@@ -5800,7 +5818,7 @@ impl MinimalRuntime {
         ))
     }
 
-    fn throw_esm_loader_error(scope: &mut v8::HandleScope, message: String) {
+    fn throw_esm_loader_error(scope: &mut v8::PinScope, message: String) {
         Self::set_esm_pending_error(message.clone());
         let error_message = v8::String::new(scope, &message).unwrap_or_else(|| {
             v8::String::new(scope, "ES module loader error").expect("static V8 string")
@@ -5810,7 +5828,7 @@ impl MinimalRuntime {
     }
 
     fn esm_module_exception_value<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         module: v8::Local<v8::Module>,
     ) -> v8::Local<'scope, v8::Value> {
         let exception = module.get_exception();
@@ -5819,7 +5837,7 @@ impl MinimalRuntime {
     }
 
     fn ensure_dynamic_import_evaluation_settled<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         value: v8::Local<'scope, v8::Value>,
         module_path: &Path,
     ) -> Result<(), EsmDynamicImportError<'scope>> {
@@ -5852,7 +5870,7 @@ impl MinimalRuntime {
     }
 
     fn instantiate_and_evaluate_esm_module_for_dynamic_import<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         module: v8::Local<'scope, v8::Module>,
         module_path: &Path,
     ) -> Result<(), EsmDynamicImportError<'scope>> {
@@ -5897,10 +5915,9 @@ impl MinimalRuntime {
     }
 
     fn dynamic_import_referrer_path(
-        scope: &mut v8::HandleScope,
-        referrer: v8::Local<v8::ScriptOrModule>,
+        scope: &mut v8::PinScope,
+        resource_name: v8::Local<v8::Value>,
     ) -> Result<PathBuf, String> {
-        let resource_name = referrer.get_resource_name();
         if resource_name.is_undefined() || resource_name.is_null() {
             return Err("Cannot resolve dynamic import from anonymous referrer".to_string());
         }
@@ -5915,7 +5932,7 @@ impl MinimalRuntime {
     }
 
     fn load_dynamic_import_module<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         specifier: &str,
         referrer_path: &Path,
     ) -> Result<(v8::Local<'scope, v8::Module>, PathBuf), String> {
@@ -5995,8 +6012,8 @@ impl MinimalRuntime {
     }
 
     fn resolve_dynamic_import_namespace<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
-        referrer: v8::Local<v8::ScriptOrModule>,
+        scope: &mut v8::PinScope<'scope, '_>,
+        referrer: v8::Local<v8::Value>,
         specifier: &str,
     ) -> Result<v8::Local<'scope, v8::Value>, EsmDynamicImportError<'scope>> {
         let referrer_path = Self::dynamic_import_referrer_path(scope, referrer)
@@ -6011,7 +6028,7 @@ impl MinimalRuntime {
     }
 
     fn reject_dynamic_import(
-        scope: &mut v8::HandleScope,
+        scope: &mut v8::PinScope,
         resolver: v8::Local<v8::PromiseResolver>,
         message: String,
     ) {
@@ -6023,7 +6040,7 @@ impl MinimalRuntime {
     }
 
     fn reject_dynamic_import_error<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         resolver: v8::Local<v8::PromiseResolver>,
         error: EsmDynamicImportError<'scope>,
     ) {
@@ -6037,45 +6054,41 @@ impl MinimalRuntime {
         }
     }
 
-    extern "C" fn esm_dynamic_import_callback(
-        context: v8::Local<v8::Context>,
-        referrer: v8::Local<v8::ScriptOrModule>,
-        specifier: v8::Local<v8::String>,
-        _import_assertions: v8::Local<v8::FixedArray>,
-    ) -> *mut v8::Promise {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
-        let scope = &mut v8::EscapableHandleScope::new(scope);
-        let resolver = match v8::PromiseResolver::new(scope) {
-            Some(resolver) => resolver,
-            None => return std::ptr::null_mut(),
-        };
+    fn esm_dynamic_import_callback<'s, 'i>(
+        scope: &mut v8::PinScope<'s, 'i>,
+        _referrer_info: v8::Local<'s, v8::Data>,
+        referrer: v8::Local<'s, v8::Value>,
+        specifier: v8::Local<'s, v8::String>,
+        _import_assertions: v8::Local<'s, v8::FixedArray>,
+    ) -> Option<v8::Local<'s, v8::Promise>> {
+        let resolver = v8::PromiseResolver::new(scope)?;
         let promise = resolver.get_promise(scope);
-        let specifier = specifier.to_rust_string_lossy(scope);
+        let specifier_str = specifier.to_rust_string_lossy(scope);
 
         {
-            let scope = &mut v8::TryCatch::new(scope);
-            let import_result = Self::resolve_dynamic_import_namespace(scope, referrer, &specifier);
-            if scope.has_caught() {
-                let exception = scope.exception().unwrap_or_else(|| {
+            v8::tc_scope!(let tc, scope);
+            let import_result =
+                Self::resolve_dynamic_import_namespace(tc, referrer, &specifier_str);
+            if tc.has_caught() {
+                let exception = tc.exception().unwrap_or_else(|| {
                     let message =
-                        v8::String::new(scope, "Dynamic import failed").expect("static V8 string");
-                    v8::Exception::error(scope, message)
+                        v8::String::new(tc, "Dynamic import failed").expect("static V8 string");
+                    v8::Exception::error(tc, message)
                 });
-                resolver.reject(scope, exception);
+                resolver.reject(tc, exception);
             } else {
                 match import_result {
                     Ok(namespace) => {
-                        resolver.resolve(scope, namespace);
+                        resolver.resolve(tc, namespace);
                     }
                     Err(error) => {
-                        Self::reject_dynamic_import_error(scope, resolver, error);
+                        Self::reject_dynamic_import_error(tc, resolver, error);
                     }
                 }
             }
         }
 
-        let promise = scope.escape(promise);
-        &*promise as *const v8::Promise as *mut v8::Promise
+        Some(promise)
     }
 
     fn normalized_esm_builtin_name(specifier: &str) -> Option<&str> {
@@ -6088,7 +6101,7 @@ impl MinimalRuntime {
     }
 
     fn create_esm_builtin_module<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         specifier: &str,
     ) -> Option<v8::Local<'scope, v8::Module>> {
         let builtin_name = Self::normalized_esm_builtin_name(specifier)?;
@@ -6323,7 +6336,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let cp_key = v8::String::new(scope, "child_process").unwrap();
         let cp_value = global
@@ -6349,7 +6362,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let path_key = v8::String::new(scope, "path").unwrap();
         let path_value = global
@@ -6382,7 +6395,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let fs_key = v8::String::new(scope, "fs").unwrap();
         let fs_value = global
@@ -6418,7 +6431,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let url_module = v8::Object::new(scope);
 
@@ -6441,7 +6454,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let events_key = v8::String::new(scope, "events").unwrap();
         let events_value = global
@@ -6464,7 +6477,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let os_key = v8::String::new(scope, "os").unwrap();
         let os_value = global
@@ -6493,7 +6506,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let stream_key = v8::String::new(scope, "stream").unwrap();
         let stream_value = global
@@ -6527,7 +6540,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let crypto_key = v8::String::new(scope, "crypto").unwrap();
         let crypto_value = global
@@ -6591,7 +6604,7 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let global = context.global(scope);
         let process_key = v8::String::new(scope, "process").unwrap();
         let process_value = global
@@ -6652,7 +6665,7 @@ impl MinimalRuntime {
     }
 
     fn require_commonjs_for_esm<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         module_path: &Path,
     ) -> Result<v8::Local<'scope, v8::Value>, String> {
         let context = scope.get_current_context();
@@ -6683,7 +6696,7 @@ impl MinimalRuntime {
     }
 
     fn commonjs_named_export_names(
-        scope: &mut v8::HandleScope,
+        scope: &mut v8::PinScope,
         exports: v8::Local<v8::Value>,
     ) -> Vec<String> {
         if !exports.is_object() {
@@ -6693,7 +6706,8 @@ impl MinimalRuntime {
         let Some(exports_object) = exports.to_object(scope) else {
             return Vec::new();
         };
-        let Some(property_names) = exports_object.get_own_property_names(scope) else {
+        let Some(property_names) = exports_object.get_own_property_names(scope, Default::default())
+        else {
             return Vec::new();
         };
 
@@ -6716,7 +6730,7 @@ impl MinimalRuntime {
     }
 
     fn create_esm_commonjs_module<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         module_path: &Path,
     ) -> Result<v8::Local<'scope, v8::Module>, String> {
         let exports = Self::require_commonjs_for_esm(scope, module_path)?;
@@ -6748,7 +6762,7 @@ impl MinimalRuntime {
             &export_names,
             Self::evaluate_commonjs_synthetic_module,
         );
-        let module_identity = module.get_identity_hash();
+        let module_identity = module.get_identity_hash().get();
         let exports_global = v8::Global::new(scope, exports);
         ESM_MODULE_LOAD_STATE.with(|state| {
             if let Some(state) = state.borrow_mut().as_mut() {
@@ -6767,8 +6781,8 @@ impl MinimalRuntime {
         context: v8::Local<'scope, v8::Context>,
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
-        let module_identity = module.get_identity_hash();
+        v8::callback_scope!(unsafe let scope, context);
+        let module_identity = module.get_identity_hash().get();
         let exports = ESM_MODULE_LOAD_STATE.with(|state| {
             state.borrow().as_ref().and_then(|state| {
                 state
@@ -6819,7 +6833,7 @@ impl MinimalRuntime {
         _import_assertions: v8::Local<'scope, v8::FixedArray>,
         referrer: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Module>> {
-        let scope = &mut unsafe { v8::CallbackScope::new(context) };
+        v8::callback_scope!(unsafe let scope, context);
         let specifier = specifier.to_rust_string_lossy(scope);
         let referrer_script_id = match referrer.script_id() {
             Some(script_id) => script_id,
@@ -6936,7 +6950,7 @@ impl MinimalRuntime {
     }
 
     fn execute_esm_module<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         code: &str,
         main_module_filename: &str,
         module_cache: &mut HashMap<PathBuf, v8::Global<v8::Module>>,
@@ -7013,7 +7027,7 @@ impl MinimalRuntime {
     }
 
     fn execute_esm_module_namespace<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         code: &str,
         main_module_filename: &str,
         timer_drain_limit_ms: u64,
@@ -8927,12 +8941,12 @@ impl MinimalRuntime {
         let needs_extended_setup = !self.extended_apis_initialized;
 
         // 创建 HandleScope（整个函数只创建一次）
-        let scope = &mut v8::HandleScope::new(&mut self.isolate);
+        v8::scope!(let scope, &mut self.isolate);
 
         // 获取或创建 Context
         let context = if self.context.is_none() {
             // 第一次调用，创建 Context 并设置所有 API
-            let context = v8::Context::new(scope);
+            let context = v8::Context::new(scope, Default::default());
             let global_context = v8::Global::new(scope, context);
             self.context = Some(global_context);
             context
@@ -9046,7 +9060,7 @@ impl MinimalRuntime {
         }
 
         // Use TryCatch for proper error handling
-        let scope = &mut v8::TryCatch::new(scope);
+        v8::tc_scope!(let scope, scope);
 
         // Compile and run the user's code exactly once. The returned value below
         // is the V8 completion value from this execution.
@@ -9098,6 +9112,7 @@ impl MinimalRuntime {
                 false,
                 false,
                 false,
+                None,
             );
 
             // Compile the code
@@ -9486,18 +9501,17 @@ impl MinimalRuntime {
             let mut last_trim_time = std::time::Instant::now();
             loop {
                 let pumped = {
-                    let iter_scope = &mut v8::HandleScope::new(scope);
                     let p = crate::nodejs_core::http::pump_pending_http_requests_in_scope(
-                        iter_scope, &context,
+                        scope, &context,
                     );
-                    execute_next_tick_callbacks(iter_scope);
-                    iter_scope.perform_microtask_checkpoint();
-                    execute_fired_timers(iter_scope);
+                    execute_next_tick_callbacks(scope);
+                    scope.perform_microtask_checkpoint();
+                    execute_fired_timers(scope);
                     unmark_immediate_callbacks_deferred();
-                    execute_immediate_callbacks(iter_scope);
+                    execute_immediate_callbacks(scope);
                     mark_immediate_callbacks_deferred();
-                    execute_next_tick_callbacks(iter_scope);
-                    iter_scope.perform_microtask_checkpoint();
+                    execute_next_tick_callbacks(scope);
+                    scope.perform_microtask_checkpoint();
                     p
                 };
 
@@ -9559,7 +9573,7 @@ impl MinimalRuntime {
     }
 
     fn publish_tool_exports<'scope>(
-        scope: &mut v8::HandleScope<'scope>,
+        scope: &mut v8::PinScope<'scope, '_>,
         namespace: v8::Local<'scope, v8::Value>,
     ) {
         let context = scope.get_current_context();
@@ -9569,7 +9583,7 @@ impl MinimalRuntime {
         }
     }
 
-    fn publish_cjs_tool_exports(scope: &mut v8::HandleScope, context: &v8::Local<v8::Context>) {
+    fn publish_cjs_tool_exports(scope: &mut v8::PinScope, context: &v8::Local<v8::Context>) {
         let global = context.global(scope);
         if let Some(existing_key) = v8::String::new(scope, "__beeToolExports") {
             if let Some(existing) = global.get(scope, existing_key.into()) {
@@ -9795,7 +9809,7 @@ impl MinimalRuntime {
         // Create a hex encoding function
         let _to_hex_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let this = args.this();
@@ -9848,7 +9862,7 @@ impl MinimalRuntime {
         // Create a base64 encoding function
         let _to_base64_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let this = args.this();
@@ -9902,7 +9916,7 @@ impl MinimalRuntime {
         // Create a custom toString function that handles encoding parameter
         let to_string_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let encoding = args
@@ -10429,7 +10443,7 @@ impl MinimalRuntime {
         // Set up global setTimeout with improved async support (v0.3.18: returns timer ID)
         let set_timeout_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -10495,7 +10509,7 @@ impl MinimalRuntime {
         // Set up global setInterval with improved tracking (v0.3.18: returns timer object with unref/ref)
         let set_interval_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -10551,7 +10565,7 @@ impl MinimalRuntime {
         // Set up global clearTimeout (v0.3.18: also removes from registry)
         let clear_timeout_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              _rv: v8::ReturnValue| {
                 let timer_id_val = args.get(0);
@@ -10576,7 +10590,7 @@ impl MinimalRuntime {
         // Set up global clearInterval (v0.3.18: also removes from registry)
         let clear_interval_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              _rv: v8::ReturnValue| {
                 let timer_id_val = args.get(0);
@@ -10604,7 +10618,7 @@ impl MinimalRuntime {
         // Set up global setImmediate (v0.2.5, enhanced in v0.3.18: returns timer object with unref/ref)
         let set_immediate_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Get callback function
@@ -10652,7 +10666,7 @@ impl MinimalRuntime {
         // Set up global clearImmediate (v0.2.5, enhanced in v0.3.18: also removes from registry)
         let clear_immediate_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              _rv: v8::ReturnValue| {
                 let timer_id_val = args.get(0);
@@ -10683,7 +10697,7 @@ impl MinimalRuntime {
         // Set up global fetch API (v0.3.1: Real HTTP support with json/text methods)
         let fetch_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -10714,7 +10728,7 @@ impl MinimalRuntime {
                                     if headers_val.is_object() {
                                         if let Some(headers_obj) = headers_val.to_object(scope) {
                                             if let Some(keys) =
-                                                headers_obj.get_own_property_names(scope)
+                                                headers_obj.get_own_property_names(scope, Default::default())
                                             {
                                                 for index in 0..keys.length() {
                                                     if let Some(key) = keys.get_index(scope, index)
@@ -10819,11 +10833,11 @@ impl MinimalRuntime {
                     // Add json method (v0.3.1: returns real data)
                     let json_fn = v8::Function::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          mut retval: v8::ReturnValue| {
                             let this_obj: v8::Local<v8::Object> = args.this();
-                            if let Some(body_val) = this_obj.get_internal_field(_scope, 0) {
+                            if let Some(body_val) = this_obj.get_internal_field(_scope, 0).and_then(|d| v8::Local::<v8::Value>::try_from(d).ok()) {
                                 let body_str = body_val
                                     .to_string(_scope)
                                     .unwrap()
@@ -10856,11 +10870,11 @@ impl MinimalRuntime {
                     // Add text method (v0.3.1: returns real data)
                     let text_fn = v8::Function::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          mut retval: v8::ReturnValue| {
                             let this_obj: v8::Local<v8::Object> = args.this();
-                            if let Some(body_val) = this_obj.get_internal_field(_scope, 0) {
+                            if let Some(body_val) = this_obj.get_internal_field(_scope, 0).and_then(|d| v8::Local::<v8::Value>::try_from(d).ok()) {
                                 let body_str = body_val
                                     .to_string(_scope)
                                     .unwrap()
@@ -10882,11 +10896,11 @@ impl MinimalRuntime {
                     // v0.3.344: Add arrayBuffer() method (Body mixin)
                     let array_buffer_fn = v8::Function::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          mut retval: v8::ReturnValue| {
                             let this_obj: v8::Local<v8::Object> = args.this();
-                            if let Some(body_val) = this_obj.get_internal_field(_scope, 0) {
+                            if let Some(body_val) = this_obj.get_internal_field(_scope, 0).and_then(|d| v8::Local::<v8::Value>::try_from(d).ok()) {
                                 let body_str = body_val
                                     .to_string(_scope)
                                     .unwrap()
@@ -10917,7 +10931,7 @@ impl MinimalRuntime {
                     // v0.3.344: Add blob() method (Body mixin)
                     let blob_fn = v8::Function::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          mut retval: v8::ReturnValue| {
                             let this_obj: v8::Local<v8::Object> = args.this();
@@ -10925,7 +10939,7 @@ impl MinimalRuntime {
 
                             // Get body from internal field
                             let body_len =
-                                if let Some(body_val) = this_obj.get_internal_field(_scope, 0) {
+                                if let Some(body_val) = this_obj.get_internal_field(_scope, 0).and_then(|d| v8::Local::<v8::Value>::try_from(d).ok()) {
                                     let body_str = body_val
                                         .to_string(_scope)
                                         .unwrap()
@@ -11012,7 +11026,7 @@ impl MinimalRuntime {
         // Add process.memoryUsage()
         let memory_usage_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Get memory stats from the system (unused but kept for future implementation)
@@ -11058,7 +11072,7 @@ impl MinimalRuntime {
         static START_TIME: Lazy<std::time::SystemTime> = Lazy::new(std::time::SystemTime::now);
         let uptime_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let uptime = START_TIME
@@ -11075,7 +11089,7 @@ impl MinimalRuntime {
         // Add process.hrtime() - returns [seconds, nanoseconds]
         let hrtime_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let elapsed = START_TIME
@@ -11112,7 +11126,7 @@ impl MinimalRuntime {
         // Set up global URL object (full implementation)
         let url_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let url_obj = v8::Object::new(scope);
@@ -11263,7 +11277,7 @@ impl MinimalRuntime {
         // Add Math.random (returns 0-1)
         let random_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let random_val = fastrand::f64();
@@ -11278,7 +11292,7 @@ impl MinimalRuntime {
         // Add Math.abs function
         let abs_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11295,7 +11309,7 @@ impl MinimalRuntime {
         // Add Math.floor function
         let floor_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11312,7 +11326,7 @@ impl MinimalRuntime {
         // Add Math.ceil function
         let ceil_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11329,7 +11343,7 @@ impl MinimalRuntime {
         // Add Math.round function
         let round_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11346,7 +11360,7 @@ impl MinimalRuntime {
         // Add Math.sqrt function
         let sqrt_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11363,7 +11377,7 @@ impl MinimalRuntime {
         // Add Math.max function
         let max_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11386,7 +11400,7 @@ impl MinimalRuntime {
         // Add Math.min function
         let min_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11415,7 +11429,7 @@ impl MinimalRuntime {
         // Add JSON.parse
         let parse_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11585,12 +11599,12 @@ impl MinimalRuntime {
         // Add JSON.stringify - recursive implementation with full object support
         let stringify_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Helper function to stringify a V8 value recursively
                 fn stringify_value(
-                    scope: &mut v8::HandleScope,
+                    scope: &mut v8::PinScope,
                     value: v8::Local<v8::Value>,
                     depth: usize,
                 ) -> String {
@@ -11657,7 +11671,7 @@ impl MinimalRuntime {
                     } else if value.is_object() {
                         if let Ok(obj) = v8::Local::<v8::Object>::try_from(value) {
                             // Get all own property names
-                            if let Some(prop_names) = obj.get_own_property_names(scope) {
+                            if let Some(prop_names) = obj.get_own_property_names(scope, Default::default()) {
                                 let len = prop_names.length();
                                 let mut pairs = Vec::new();
 
@@ -11715,7 +11729,7 @@ impl MinimalRuntime {
         // Set up global Date object (simplified for fast startup)
         let date_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let now_ms = if args.length() > 0 {
@@ -11749,7 +11763,7 @@ impl MinimalRuntime {
                 // Add getTime() method for structuredClone support
                 let get_time_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -11774,7 +11788,7 @@ impl MinimalRuntime {
                 // Add toISOString method
                 let to_iso_string_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -11813,7 +11827,7 @@ impl MinimalRuntime {
                 // Add getMonth method (0-indexed, like JavaScript Date)
                 let get_month_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -11845,7 +11859,7 @@ impl MinimalRuntime {
                 // Add getFullYear method
                 let get_full_year_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -11873,7 +11887,7 @@ impl MinimalRuntime {
                 // Add getDate method (1-indexed, like JavaScript Date)
                 let get_date_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -11910,7 +11924,7 @@ impl MinimalRuntime {
         let date_obj = v8::Object::new(scope);
         let now_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let now_ms = crate::permissions::get_frozen_time_ms()
@@ -11931,7 +11945,7 @@ impl MinimalRuntime {
         // Add fs.readFile
         let readfile_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -11959,7 +11973,7 @@ impl MinimalRuntime {
         // Add fs.writeFile
         let writefile_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 2 {
@@ -11991,7 +12005,7 @@ impl MinimalRuntime {
         // Add fs.exists
         let exists_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -12011,7 +12025,7 @@ impl MinimalRuntime {
         // Add fs.mkdir
         let mkdir_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -12040,7 +12054,7 @@ impl MinimalRuntime {
         // Add fs.readdir
         let readdir_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -12081,7 +12095,7 @@ impl MinimalRuntime {
         // Add fs.unlink
         let unlink_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -12109,7 +12123,7 @@ impl MinimalRuntime {
         // Add fs.stat
         let stat_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -12170,7 +12184,7 @@ impl MinimalRuntime {
         // Set up global btoa/atob for base64 encoding/decoding
         let btoa_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -12192,7 +12206,7 @@ impl MinimalRuntime {
 
         let atob_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -12226,7 +12240,7 @@ impl MinimalRuntime {
         // Add crypto.getRandomValues
         let get_random_values_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -12244,7 +12258,7 @@ impl MinimalRuntime {
         // Add crypto.randomUUID (v0.3.29 - fixed implementation)
         let random_uuid_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Generate a proper UUID v4
@@ -12265,7 +12279,7 @@ impl MinimalRuntime {
         // ----- subtle.digest(algorithm, data) -----
         let digest_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -12375,7 +12389,7 @@ impl MinimalRuntime {
         // ----- subtle.importKey(format, keyData, algorithm, extractable, usages) -----
         let import_key_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let _format = args
@@ -12503,7 +12517,7 @@ impl MinimalRuntime {
         // ----- subtle.sign(algorithm, key, data) -----
         let sign_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algo_arg = args.get(0);
@@ -12619,7 +12633,7 @@ impl MinimalRuntime {
         // ----- subtle.verify(algorithm, key, signature, data) -----
         let verify_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algo_arg = args.get(0);
@@ -12740,7 +12754,7 @@ impl MinimalRuntime {
         // ----- subtle.generateKey(algorithm, extractable, usages) -----
         let generate_key_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algo_arg = args.get(0);
@@ -12840,7 +12854,7 @@ impl MinimalRuntime {
         // ----- subtle.encrypt(algorithm, key, data) -----
         let encrypt_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algo_arg = args.get(0);
@@ -12983,7 +12997,7 @@ impl MinimalRuntime {
         // ----- subtle.decrypt(algorithm, key, data) -----
         let decrypt_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algo_arg = args.get(0);
@@ -13127,7 +13141,7 @@ impl MinimalRuntime {
         // ----- subtle.exportKey(format, key) -----
         let export_key_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let format = args
@@ -13227,7 +13241,7 @@ impl MinimalRuntime {
         // Add crypto.createHash (v0.3.8)
         let create_hash_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -13266,7 +13280,7 @@ impl MinimalRuntime {
                 // Add update method
                 let update_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -13304,7 +13318,7 @@ impl MinimalRuntime {
                 // Add digest method
                 let digest_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -13510,7 +13524,7 @@ impl MinimalRuntime {
         // Add crypto.createSign (v0.3.19) - Digital signature creation
         let create_sign_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -13571,7 +13585,7 @@ impl MinimalRuntime {
                 // Add update method
                 let update_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -13606,7 +13620,7 @@ impl MinimalRuntime {
                 // Add sign method
                 let sign_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -13730,7 +13744,7 @@ impl MinimalRuntime {
         // Add crypto.createVerify (v0.3.20) - Digital signature verification
         let create_verify_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -13780,7 +13794,7 @@ impl MinimalRuntime {
                 // Add update method
                 let update_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -13815,7 +13829,7 @@ impl MinimalRuntime {
                 // Add verify method
                 let verify_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -13949,7 +13963,7 @@ impl MinimalRuntime {
         // Add crypto.sign / crypto.verify one-shot APIs.
         let sign_one_shot_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() < 3 {
@@ -14023,7 +14037,7 @@ impl MinimalRuntime {
 
         let verify_one_shot_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() < 4 {
@@ -14111,7 +14125,7 @@ impl MinimalRuntime {
         // Add crypto.createHmac (v0.3.9)
         let create_hmac_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -14161,7 +14175,7 @@ impl MinimalRuntime {
                 // Add update method
                 let update_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -14198,7 +14212,7 @@ impl MinimalRuntime {
                 // Add digest method
                 let digest_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -14531,7 +14545,7 @@ impl MinimalRuntime {
         // Add crypto.randomBytes (v0.3.10) - with callback support
         let random_bytes_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let size = args.get(0).to_uint32(scope).map(|n| n.value()).unwrap_or(0);
@@ -14585,7 +14599,7 @@ impl MinimalRuntime {
         // Add crypto.randomBytesSync (v0.3.10)
         let random_bytes_sync_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let size = args.get(0).to_uint32(scope).map(|n| n.value()).unwrap_or(0);
@@ -14626,7 +14640,7 @@ impl MinimalRuntime {
         // Add crypto.randomFillSync (v0.3.16) - fill existing buffer with random data
         let random_fill_sync_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Get buffer (first argument)
@@ -14729,7 +14743,7 @@ impl MinimalRuntime {
         // Add crypto.randomFill (v0.3.16) - async fill with callback
         let random_fill_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Get buffer (first argument)
@@ -14821,7 +14835,7 @@ impl MinimalRuntime {
         // Timing-safe constant-time comparison to prevent timing attacks
         let timing_safe_equal_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() < 2 {
@@ -14835,7 +14849,7 @@ impl MinimalRuntime {
                 let buf_a = args.get(0);
                 let buf_b = args.get(1);
 
-                let extract_bytes = |val: v8::Local<v8::Value>, scope: &mut v8::HandleScope| -> Option<Vec<u8>> {
+                let extract_bytes = |val: v8::Local<v8::Value>, scope: &mut v8::PinScope| -> Option<Vec<u8>> {
                     if val.is_array_buffer() {
                         let ab = v8::Local::<v8::ArrayBuffer>::try_from(val).ok()?;
                         let len = ab.byte_length();
@@ -14916,7 +14930,7 @@ impl MinimalRuntime {
         // Add crypto.pbkdf2Sync (v0.3.12)
         let pbkdf2_sync_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let password = args
@@ -15184,7 +15198,7 @@ impl MinimalRuntime {
         // Add crypto.pbkdf2 (async version using Promise)
         let pbkdf2_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let password = args
@@ -15460,7 +15474,7 @@ impl MinimalRuntime {
         // Add crypto.getHashes (v0.3.13) - list supported hash algorithms
         let get_hashes_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Define supported hash algorithms (must match createHash/createHmac valid_algorithms)
@@ -15486,7 +15500,7 @@ impl MinimalRuntime {
         // Add crypto.createCipher (v0.3.14) - symmetric encryption
         let create_cipher_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -15539,7 +15553,7 @@ impl MinimalRuntime {
                 // Add update method
                 let update_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -15591,7 +15605,7 @@ impl MinimalRuntime {
                 // Add final method
                 let final_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         // Return empty buffer for final
@@ -15611,7 +15625,7 @@ impl MinimalRuntime {
                 // Add setAutoPadding method (for API compatibility)
                 let set_auto_padding_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         retval.set(v8::Boolean::new(scope, true).into());
@@ -15637,7 +15651,7 @@ impl MinimalRuntime {
         // Add crypto.createDecipher (v0.3.14) - symmetric decryption
         let create_decipher_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -15680,7 +15694,7 @@ impl MinimalRuntime {
                 // Add update method
                 let update_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -15735,7 +15749,7 @@ impl MinimalRuntime {
                 // Add final method
                 let final_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let ab = v8::ArrayBuffer::new(scope, 0);
@@ -15754,7 +15768,7 @@ impl MinimalRuntime {
                 // Add setAutoPadding method (for API compatibility)
                 let set_auto_padding_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         retval.set(v8::Boolean::new(scope, true).into());
@@ -15780,7 +15794,7 @@ impl MinimalRuntime {
         // Add crypto.createCipheriv (v0.3.15) - symmetric encryption with explicit key and IV
         let create_cipheriv_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -15900,7 +15914,7 @@ impl MinimalRuntime {
                 // Add update method
                 let update_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -15991,7 +16005,7 @@ impl MinimalRuntime {
                 // Add final method
                 let final_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let output_encoding = args
@@ -16024,7 +16038,7 @@ impl MinimalRuntime {
                 // Add setAutoPadding method
                 let set_auto_padding_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         retval.set(v8::Boolean::new(scope, true).into());
@@ -16051,7 +16065,7 @@ impl MinimalRuntime {
         // Add crypto.createDecipheriv (v0.3.15) - symmetric decryption with explicit key and IV
         let create_decipheriv_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let algorithm = args
@@ -16162,7 +16176,7 @@ impl MinimalRuntime {
                 // Add update method
                 let update_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -16280,7 +16294,7 @@ impl MinimalRuntime {
                 // Add final method
                 let final_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let output_encoding = args
@@ -16313,7 +16327,7 @@ impl MinimalRuntime {
                 // Add setAutoPadding method
                 let set_auto_padding_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         retval.set(v8::Boolean::new(scope, true).into());
@@ -16340,7 +16354,7 @@ impl MinimalRuntime {
         // Add crypto.publicEncrypt (v0.3.21) - Public key encryption
         let public_encrypt_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let (key_str, padding) =
@@ -16394,7 +16408,7 @@ impl MinimalRuntime {
         // Add crypto.privateDecrypt (v0.3.21) - Private key decryption
         let private_decrypt_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let (key_str, padding) =
@@ -16459,7 +16473,7 @@ impl MinimalRuntime {
         // Add crypto.privateEncrypt (v0.3.22) - Private key encryption
         let private_encrypt_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let (key_str, padding) =
@@ -16513,7 +16527,7 @@ impl MinimalRuntime {
         // Add crypto.publicDecrypt (v0.3.22) - Public key decryption
         let public_decrypt_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let (key_str, padding) =
@@ -16578,7 +16592,7 @@ impl MinimalRuntime {
         // Add crypto.generateKeyPairSync (v0.3.23) - RSA/EC key pair generation
         let generate_key_pair_sync_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Parse type argument (first parameter)
@@ -16779,7 +16793,7 @@ impl MinimalRuntime {
         // Add crypto.generateKeyPair (v0.3.24) - Async RSA/EC key pair generation with callback
         let generate_key_pair_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              _retval: v8::ReturnValue| {
                 // Parse type argument (first parameter)
@@ -17139,7 +17153,7 @@ impl MinimalRuntime {
         // scryptSync - synchronous version
         let scrypt_sync_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let password = args
@@ -17229,7 +17243,7 @@ impl MinimalRuntime {
         // scrypt - async version with Promise/callback support
         let scrypt_fn = v8::Function::new(
             scope,
-            move |scope: &mut v8::HandleScope,
+            move |scope: &mut v8::PinScope,
                   args: v8::FunctionCallbackArguments,
                   mut retval: v8::ReturnValue| {
                 let password = args
@@ -17407,7 +17421,7 @@ impl MinimalRuntime {
         // Create DiffieHellman constructor function
         let create_dh_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Parse arguments: createDiffieHellman(prime, [generator]) or createDiffieHellman({prime, generator})
@@ -17476,7 +17490,7 @@ impl MinimalRuntime {
                 // Add computeSecret method
                 let compute_secret_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let public_key_input = if args.length() >= 1 {
@@ -17575,7 +17589,7 @@ impl MinimalRuntime {
                 // Add generateKeys method
                 let generate_keys_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let new_private: Vec<u8> = (0..32).map(|_| rand::random::<u8>()).collect();
@@ -17607,7 +17621,7 @@ impl MinimalRuntime {
                 // Add getPrime method
                 let get_prime_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let prime_hex: String = (0..512)
@@ -17626,7 +17640,7 @@ impl MinimalRuntime {
                 // Add getGenerator method
                 let get_generator_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         retval.set(v8::Integer::new(scope, 2).into());
@@ -17658,7 +17672,7 @@ impl MinimalRuntime {
         // Create ECDH constructor function
         let create_ecdh_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let curve_name = if args.length() >= 1 {
@@ -17699,7 +17713,7 @@ impl MinimalRuntime {
                 // Add computeSecret method
                 let compute_secret_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -17795,7 +17809,7 @@ impl MinimalRuntime {
                 // Add generateKeys method
                 let generate_keys_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = _args.this();
@@ -17849,7 +17863,7 @@ impl MinimalRuntime {
                 // Add getPublicKey method
                 let get_public_key_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = _args.this();
@@ -17870,7 +17884,7 @@ impl MinimalRuntime {
                 // Add getPrivateKey method
                 let get_private_key_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = _args.this();
@@ -17891,7 +17905,7 @@ impl MinimalRuntime {
                 // Add setPublicKey method
                 let set_public_key_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -17938,7 +17952,7 @@ impl MinimalRuntime {
                 // Add setPrivateKey method
                 let set_private_key_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -18015,7 +18029,7 @@ impl MinimalRuntime {
         // Creates a PrivateKey object from key material (PEM format or KeyObject)
         let create_private_key_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let key_input = args.get(0);
@@ -18161,7 +18175,7 @@ impl MinimalRuntime {
                 // Create export method for PrivateKey
                 let export_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let (format, export_type, options_was_object) =
@@ -18271,7 +18285,7 @@ impl MinimalRuntime {
         // Creates a PublicKey object from key material
         let create_public_key_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let key_input = args.get(0);
@@ -18423,7 +18437,7 @@ impl MinimalRuntime {
                 // Export method
                 let export_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let (format, export_type, options_was_object) =
@@ -18541,7 +18555,7 @@ impl MinimalRuntime {
         // Creates a SecretKey object for symmetric cryptography
         let create_secret_key_fn_opt = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let key_input = args.get(0);
@@ -18628,7 +18642,7 @@ impl MinimalRuntime {
                 // Export method
                 let export_fn_opt = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let format = args
@@ -18686,7 +18700,7 @@ impl MinimalRuntime {
         // HMAC-based Key Derivation Function (RFC 5869)
         let hkdf_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Parse arguments: hkdf(digest, ikm, salt, info, keylen)
@@ -18758,7 +18772,7 @@ impl MinimalRuntime {
         // ==================== hkdfSync (v0.3.29) ====================
         let hkdf_sync_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Same as hkdf but synchronous
@@ -18843,7 +18857,7 @@ impl MinimalRuntime {
         // Create TextEncoder constructor
         let text_encoder_constructor = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Create TextEncoder instance object
@@ -18857,7 +18871,7 @@ impl MinimalRuntime {
                 // Create encode method
                 let encode_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         if args.length() >= 1 {
@@ -18905,7 +18919,7 @@ impl MinimalRuntime {
                 // Create encodeInto method
                 let encode_into_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         if args.length() < 2 || !args.get(1).is_uint8_array() {
@@ -18993,7 +19007,7 @@ impl MinimalRuntime {
         // Create TextDecoder constructor
         let text_decoder_constructor = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Get encoding (default: 'utf-8')
@@ -19048,7 +19062,7 @@ impl MinimalRuntime {
                 // Note: For simplicity, this implementation uses utf-8 encoding
                 let decode_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         if args.length() == 0 {
@@ -19081,14 +19095,16 @@ impl MinimalRuntime {
                                 let backing_store = array_buffer.get_backing_store();
                                 let mut bytes = vec![0u8; byte_len];
                                 if byte_len > 0 {
-                                    unsafe {
-                                        let src_ptr =
-                                            backing_store.data().add(byte_offset) as *const u8;
-                                        std::ptr::copy_nonoverlapping(
-                                            src_ptr,
-                                            bytes.as_mut_ptr(),
-                                            byte_len,
-                                        );
+                                    if let Some(data) = backing_store.data() {
+                                        unsafe {
+                                            let src_ptr =
+                                                (data.as_ptr() as *const u8).add(byte_offset);
+                                            std::ptr::copy_nonoverlapping(
+                                                src_ptr,
+                                                bytes.as_mut_ptr(),
+                                                byte_len,
+                                            );
+                                        }
                                     }
                                 }
                                 bytes_to_decode = Some(bytes);
@@ -19100,7 +19116,10 @@ impl MinimalRuntime {
                                 let mut bytes = vec![0u8; byte_len];
                                 if byte_len > 0 {
                                     unsafe {
-                                        let src_ptr = backing_store.data() as *const u8;
+                                        let src_ptr = backing_store
+                                            .data()
+                                            .map(|p| p.as_ptr() as *const u8)
+                                            .unwrap_or(std::ptr::null());
                                         if !src_ptr.is_null() {
                                             std::ptr::copy_nonoverlapping(
                                                 src_ptr,
@@ -19207,7 +19226,7 @@ impl MinimalRuntime {
         // Create WebSocket constructor function
         let websocket_constructor = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -19269,7 +19288,7 @@ impl MinimalRuntime {
                     // Create event handler properties (onopen, onmessage, onerror, onclose)
                     let noop_handler = v8::Function::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          _args: v8::FunctionCallbackArguments,
                          _rv: v8::ReturnValue| {},
                     )
@@ -19293,7 +19312,7 @@ impl MinimalRuntime {
 
                     let add_event_listener_fn = v8::Function::new(
                         scope,
-                        |scope: &mut v8::HandleScope,
+                        |scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          _rv: v8::ReturnValue| {
                             let event_type = args.get(0);
@@ -19343,7 +19362,7 @@ impl MinimalRuntime {
 
                     let remove_event_listener_fn = v8::Function::new(
                         scope,
-                        |scope: &mut v8::HandleScope,
+                        |scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          _rv: v8::ReturnValue| {
                             let event_type = args.get(0);
@@ -19404,7 +19423,7 @@ impl MinimalRuntime {
                     // Create send method
                     let send_fn = v8::Function::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          _rv: v8::ReturnValue| {
                             let _ = args.get(0);
@@ -19418,7 +19437,7 @@ impl MinimalRuntime {
                     // Create close method
                     let close_fn = v8::Function::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          _args: v8::FunctionCallbackArguments,
                          _rv: v8::ReturnValue| {
                             // Update readyState to CLOSING (2) then would be CLOSED (3)
@@ -19470,7 +19489,7 @@ impl MinimalRuntime {
         // Create Promise.resolve - uses native V8 Promise
         let promise_resolve_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let value = args.get(0);
@@ -19501,7 +19520,7 @@ impl MinimalRuntime {
                 // Create Promise.reject
                 let promise_reject_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let reason = args.get(0);
@@ -19524,7 +19543,7 @@ impl MinimalRuntime {
                 // Create Promise.all
                 let promise_all_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let iterable = args.get(0);
@@ -19576,7 +19595,7 @@ impl MinimalRuntime {
                 // Create Promise.allSettled
                 let promise_all_settled_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let iterable = args.get(0);
@@ -19666,7 +19685,7 @@ impl MinimalRuntime {
                 // Create Promise.race
                 let promise_race_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let iterable = args.get(0);
@@ -19728,7 +19747,7 @@ impl MinimalRuntime {
                 // Create Promise.any
                 let promise_any_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let iterable = args.get(0);
@@ -19794,7 +19813,7 @@ impl MinimalRuntime {
         // Set up global EventTarget constructor
         let eventtarget_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Create EventTarget object with event storage
@@ -19815,7 +19834,7 @@ impl MinimalRuntime {
         // Add EventTarget.prototype.addEventListener
         let add_event_listener_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut _retval: v8::ReturnValue| {
                 let this = args.this();
@@ -19894,7 +19913,7 @@ impl MinimalRuntime {
         // Add EventTarget.prototype.removeEventListener
         let remove_event_listener_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut _retval: v8::ReturnValue| {
                 let this = args.this();
@@ -19956,7 +19975,7 @@ impl MinimalRuntime {
         // Add EventTarget.prototype.dispatchEvent
         let dispatch_event_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut _retval: v8::ReturnValue| {
                 let this = args.this();
@@ -20027,7 +20046,7 @@ impl MinimalRuntime {
         // Set up global Event constructor
         let event_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let event_obj = v8::Object::new(scope);
@@ -20083,7 +20102,7 @@ impl MinimalRuntime {
                 // Add preventDefault method
                 let prevent_default_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -20109,7 +20128,7 @@ impl MinimalRuntime {
                 // Add stopPropagation method
                 let stop_propagation_fn = v8::Function::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         // Simple stopPropagation - sets a flag
@@ -20182,7 +20201,7 @@ impl MinimalRuntime {
         module_obj.set(scope, module_exports_key, exports_obj.clone().into());
 
         // Create require function
-        let require_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+        let require_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
             if args.length() >= 1 {
                 let module_id = args.get(0);
                 let requested_module_id_str = if let Some(s) = module_id.to_string(scope) {
@@ -20306,7 +20325,7 @@ impl MinimalRuntime {
                         let fs_obj = v8::Object::new(scope);
 
                         // Add readFile function
-                        let readfile_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let readfile_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() >= 1 {
                                 if let Some(path_val) = args.get(0).to_string(scope) {
                                     let path = path_val.to_rust_string_lossy(scope);
@@ -20328,7 +20347,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, readfile_key, readfile_fn.into());
 
                         // Add writeFile function
-                        let writefile_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let writefile_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() >= 2 {
                                 if let (Some(path_val), Some(data_val)) = (args.get(0).to_string(scope), args.get(1).to_string(scope)) {
                                     let path = path_val.to_rust_string_lossy(scope);
@@ -20351,7 +20370,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, writefile_key, writefile_fn.into());
 
                         // Add existsSync function
-                        let exists_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let exists_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() >= 1 {
                                 if let Some(path_val) = args.get(0).to_string(scope) {
                                     let path = path_val.to_rust_string_lossy(scope);
@@ -20365,7 +20384,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, exists_key, exists_fn.into());
 
                         // Add mkdirSync function
-                        let mkdir_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let mkdir_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() >= 1 {
                                 if let Some(path_val) = args.get(0).to_string(scope) {
                                     let path = path_val.to_rust_string_lossy(scope);
@@ -20386,7 +20405,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, mkdir_key, mkdir_fn.into());
 
                         // Add readdirSync function
-                        let readdir_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let readdir_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() >= 1 {
                                 if let Some(path_val) = args.get(0).to_string(scope) {
                                     let path = path_val.to_rust_string_lossy(scope);
@@ -20420,7 +20439,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, readdir_key, readdir_fn.into());
 
                         // Add unlinkSync function
-                        let unlink_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let unlink_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() >= 1 {
                                 if let Some(path_val) = args.get(0).to_string(scope) {
                                     let path = path_val.to_rust_string_lossy(scope);
@@ -20442,7 +20461,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, unlink_key, unlink_fn.into());
 
                         // Add rmdirSync function
-                        let rmdir_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let rmdir_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() >= 1 {
                                 if let Some(path_val) = args.get(0).to_string(scope) {
                                     let path = path_val.to_rust_string_lossy(scope);
@@ -20464,7 +20483,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, rmdir_key, rmdir_fn.into());
 
                         // Add readFile function (async with callback) - v0.3.6
-                        let readfile_async_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
+                        let readfile_async_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
                             if args.length() < 2 {
                                 let error = v8::String::new(scope, "readFile: missing arguments").unwrap();
                                 let error_obj = v8::Exception::type_error(scope, error);
@@ -20525,7 +20544,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, readfile_async_key, readfile_async_fn.into());
 
                         // Add writeFile function (async with callback) - v0.3.6
-                        let writefile_async_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
+                        let writefile_async_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
                             if args.length() >= 2 {
                                 let path_val = args.get(0);
                                 let data_val = args.get(1);
@@ -20573,7 +20592,7 @@ impl MinimalRuntime {
                         fs_obj.set(scope, writefile_async_key, writefile_async_fn.into());
 
                         // Add appendFile function (async with callback) - v0.3.6
-                        let appendfile_async_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
+                        let appendfile_async_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
                             if args.length() >= 3 {
                                 let path_val = args.get(0);
                                 let data_val = args.get(1);
@@ -20655,7 +20674,7 @@ impl MinimalRuntime {
                         let promises_obj = v8::Object::new(scope);
 
                         // Create Promise-based readFile
-                        let readfile_promise_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let readfile_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() < 1 {
                                 let error = v8::String::new(scope, "readFile: missing path argument").unwrap();
                                 let error_obj = v8::Exception::type_error(scope, error);
@@ -20710,7 +20729,7 @@ impl MinimalRuntime {
                         promises_obj.set(scope, readfile_promise_key, readfile_promise_fn.into());
 
                         // Create Promise-based writeFile
-                        let writefile_promise_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let writefile_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() < 2 {
                                 let error = v8::String::new(scope, "writeFile: missing arguments").unwrap();
                                 let error_obj = v8::Exception::type_error(scope, error);
@@ -20755,7 +20774,7 @@ impl MinimalRuntime {
                         promises_obj.set(scope, writefile_promise_key, writefile_promise_fn.into());
 
                         // Create Promise-based appendFile
-                        let appendfile_promise_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let appendfile_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() < 2 {
                                 let error = v8::String::new(scope, "appendFile: missing arguments").unwrap();
                                 let error_obj = v8::Exception::type_error(scope, error);
@@ -20803,7 +20822,7 @@ impl MinimalRuntime {
                         promises_obj.set(scope, appendfile_promise_key, appendfile_promise_fn.into());
 
                         // Create Promise-based unlink
-                        let unlink_promise_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let unlink_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() < 1 {
                                 let error = v8::String::new(scope, "unlink: missing path argument").unwrap();
                                 let error_obj = v8::Exception::type_error(scope, error);
@@ -20842,7 +20861,7 @@ impl MinimalRuntime {
                         promises_obj.set(scope, unlink_promise_key, unlink_promise_fn.into());
 
                         // Create Promise-based mkdir
-                        let mkdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let mkdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() < 1 {
                                 let error = v8::String::new(scope, "mkdir: missing path argument").unwrap();
                                 let error_obj = v8::Exception::type_error(scope, error);
@@ -20881,7 +20900,7 @@ impl MinimalRuntime {
                         promises_obj.set(scope, mkdir_promise_key, mkdir_promise_fn.into());
 
                         // Create Promise-based rmdir
-                        let rmdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let rmdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() < 1 {
                                 let error = v8::String::new(scope, "rmdir: missing path argument").unwrap();
                                 let error_obj = v8::Exception::type_error(scope, error);
@@ -20920,7 +20939,7 @@ impl MinimalRuntime {
                         promises_obj.set(scope, rmdir_promise_key, rmdir_promise_fn.into());
 
                         // Create Promise-based readdir
-                        let readdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                        let readdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                             if args.length() < 1 {
                                 let error = v8::String::new(scope, "readdir: missing path argument").unwrap();
                                 let error_obj = v8::Exception::type_error(scope, error);
@@ -21158,7 +21177,7 @@ impl MinimalRuntime {
                             // Legacy Node helpers
                             let file_url_to_path = v8::Function::new(
                                 scope,
-                                |scope: &mut v8::HandleScope,
+                                |scope: &mut v8::PinScope,
                                  args: v8::FunctionCallbackArguments,
                                  mut rv: v8::ReturnValue| {
                                     let input = args
@@ -21177,7 +21196,7 @@ impl MinimalRuntime {
                             .unwrap();
                             let path_to_file_url = v8::Function::new(
                                 scope,
-                                |scope: &mut v8::HandleScope,
+                                |scope: &mut v8::PinScope,
                                  args: v8::FunctionCallbackArguments,
                                  mut rv: v8::ReturnValue| {
                                     let path = args
@@ -21721,7 +21740,7 @@ require.resolve = function(specifier) {{
         // v0.3.329: Add resolve method to require function for CommonJS compatibility
         let resolve_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -21876,7 +21895,7 @@ require.resolve = function(specifier) {{
         // WinterTC import.meta.resolve — real ESM resolver (wintercg/wintertc conditions).
         let resolve_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 if args.length() >= 1 {
@@ -22065,7 +22084,7 @@ require.resolve = function(specifier) {{
         // Pre-create function templates
         let cwd_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let cwd = env::current_dir().unwrap_or_default();
@@ -22075,7 +22094,7 @@ require.resolve = function(specifier) {{
         );
         let chdir_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let directory = args
@@ -22112,7 +22131,7 @@ require.resolve = function(specifier) {{
         // umask() with no args returns current mask, with args sets new mask
         let umask_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 static CURRENT_UMASK: std::sync::atomic::AtomicU32 =
@@ -22143,7 +22162,7 @@ require.resolve = function(specifier) {{
         // v0.3.35: Add process.abort() - abort the process
         let abort_fn = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              _retval: v8::ReturnValue| {
                 std::process::abort();
@@ -22152,7 +22171,7 @@ require.resolve = function(specifier) {{
 
         let memory_usage_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // v0.3.39: Implement real memory usage tracking
@@ -22205,7 +22224,7 @@ require.resolve = function(specifier) {{
         // v0.3.240: Add process.memory() - alias for memoryUsage
         let memory_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Reuse the same logic as memoryUsage
@@ -22246,7 +22265,7 @@ require.resolve = function(specifier) {{
 
         let uptime_fn = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Returns seconds since Unix epoch (same as before)
@@ -22262,7 +22281,7 @@ require.resolve = function(specifier) {{
         // Create bigint function first
         let hrtime_bigint_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let now = std::time::SystemTime::now()
@@ -22278,7 +22297,7 @@ require.resolve = function(specifier) {{
         // Create hrtime function
         let hrtime_fn_template = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let now = std::time::SystemTime::now()
@@ -22302,7 +22321,7 @@ require.resolve = function(specifier) {{
         hrtime_func.set(scope, bigint_key.into(), hrtime_bigint_fn.into());
         let exit_fn = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              _retval: v8::ReturnValue| {
                 let code = args
@@ -22315,7 +22334,7 @@ require.resolve = function(specifier) {{
         );
         let next_tick_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              _retval: v8::ReturnValue| {
                 // v0.3.261: Use the same implementation as nodejs_core/process.rs
@@ -22457,7 +22476,7 @@ require.resolve = function(specifier) {{
         let on_key = v8::String::new(scope, "on").unwrap();
         let on_func = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Return the process object (this) for chaining
@@ -22472,7 +22491,7 @@ require.resolve = function(specifier) {{
         let off_key = v8::String::new(scope, "off").unwrap();
         let off_func = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(args.this().into());
@@ -22485,7 +22504,7 @@ require.resolve = function(specifier) {{
         let remove_listener_key = v8::String::new(scope, "removeListener").unwrap();
         let remove_listener_func = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Object::new(_scope).into());
@@ -22504,7 +22523,7 @@ require.resolve = function(specifier) {{
         let set_max_listeners_key = v8::String::new(scope, "setMaxListeners").unwrap();
         let set_max_listeners_func = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Determine event name and n value
@@ -22561,7 +22580,7 @@ require.resolve = function(specifier) {{
         let get_max_listeners_key = v8::String::new(scope, "getMaxListeners").unwrap();
         let get_max_listeners_func = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Get event name (defaults to "__default__")
@@ -22601,7 +22620,7 @@ require.resolve = function(specifier) {{
         let stdout_write_key = v8::String::new(scope, "write").unwrap();
         let stdout_write_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let data = args.get(0);
@@ -22679,7 +22698,7 @@ require.resolve = function(specifier) {{
         let stderr_write_key = v8::String::new(scope, "write").unwrap();
         let stderr_write_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let data = args.get(0);
@@ -22723,7 +22742,7 @@ require.resolve = function(specifier) {{
         // stdin.read() - returns null (sync mode can't read stdin)
         let stdin_read_fn = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let null_val = v8::null(_scope);
@@ -22739,7 +22758,7 @@ require.resolve = function(specifier) {{
         let cpu_usage_key = v8::String::new(scope, "cpuUsage").unwrap();
         let cpu_usage_fn = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let _args = args; // Suppress unused warning - cpuUsage() could accept previous value in future
@@ -22760,7 +22779,7 @@ require.resolve = function(specifier) {{
         let kill_key = v8::String::new(scope, "kill").unwrap();
         let kill_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Get PID
@@ -22862,7 +22881,7 @@ require.resolve = function(specifier) {{
         let platform_key = v8::String::new(scope, "platform").unwrap();
         let platform_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let platform = if cfg!(target_os = "macos") {
@@ -22884,7 +22903,7 @@ require.resolve = function(specifier) {{
         let arch_key = v8::String::new(scope, "arch").unwrap();
         let arch_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let arch = if cfg!(target_arch = "x86_64") {
@@ -22906,7 +22925,7 @@ require.resolve = function(specifier) {{
         // Create a static cpus array that we return (simplified implementation)
         let cpus_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let cpus_array = v8::Array::new(_scope, 0);
@@ -22958,7 +22977,7 @@ require.resolve = function(specifier) {{
         let freemem_key = v8::String::new(scope, "freemem").unwrap();
         let freemem_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Try to get actual free memory
@@ -22973,7 +22992,7 @@ require.resolve = function(specifier) {{
         let totalmem_key = v8::String::new(scope, "totalmem").unwrap();
         let totalmem_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Try to get actual total memory
@@ -22988,7 +23007,7 @@ require.resolve = function(specifier) {{
         let uptime_key = v8::String::new(scope, "uptime").unwrap();
         let uptime_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Use chrono for uptime calculation
@@ -23004,7 +23023,7 @@ require.resolve = function(specifier) {{
         let type_key = v8::String::new(scope, "type").unwrap();
         let type_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let os_type = if cfg!(target_os = "macos") {
@@ -23026,7 +23045,7 @@ require.resolve = function(specifier) {{
         let release_key = v8::String::new(scope, "release").unwrap();
         let release_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let release = if cfg!(target_os = "macos") {
@@ -23047,7 +23066,7 @@ require.resolve = function(specifier) {{
         let homedir_key = v8::String::new(scope, "homedir").unwrap();
         let homedir_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let homedir = dirs::home_dir()
@@ -23063,7 +23082,7 @@ require.resolve = function(specifier) {{
         let tmpdir_key = v8::String::new(scope, "tmpdir").unwrap();
         let tmpdir_fn = v8::Function::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let tmpdir = std::env::temp_dir().to_string_lossy().to_string();
@@ -23098,7 +23117,7 @@ require.resolve = function(specifier) {{
         // exec function - creates a ChildProcess object
         let exec_fn_template = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let command = args
@@ -23136,7 +23155,7 @@ require.resolve = function(specifier) {{
         // spawn function
         let spawn_fn_template = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let command = args
@@ -23170,7 +23189,7 @@ require.resolve = function(specifier) {{
         // execFile function
         let exec_file_fn_template = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let file = args
@@ -23213,7 +23232,7 @@ require.resolve = function(specifier) {{
         // execSync function
         let exec_sync_fn_template = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let command = args
@@ -23297,7 +23316,7 @@ require.resolve = function(specifier) {{
         // spawnSync function
         let spawn_sync_fn_template = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let command = args
@@ -23441,7 +23460,7 @@ require.resolve = function(specifier) {{
         // Readable Stream constructor
         let readable_constructor = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let this = args.this();
@@ -23481,7 +23500,7 @@ require.resolve = function(specifier) {{
                     // Default empty _read
                     let read_func = v8::FunctionTemplate::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          _args: v8::FunctionCallbackArguments,
                          mut _retval: v8::ReturnValue| {},
                     );
@@ -23492,7 +23511,7 @@ require.resolve = function(specifier) {{
                 // read method
                 let read_public_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -23524,7 +23543,7 @@ require.resolve = function(specifier) {{
                 // push method - v0.3.56: Push data to the stream
                 let push_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -23592,7 +23611,7 @@ require.resolve = function(specifier) {{
                 // on method (event listener)
                 let on_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -23670,7 +23689,7 @@ require.resolve = function(specifier) {{
                 // once method - v0.3.56: One-time event listener
                 let once_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -23722,7 +23741,7 @@ require.resolve = function(specifier) {{
                 // pause method - v0.3.56: Update flowing and paused state
                 let pause_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -23750,7 +23769,7 @@ require.resolve = function(specifier) {{
                 // resume method
                 let resume_func = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -23764,7 +23783,7 @@ require.resolve = function(specifier) {{
                 // pipe method - v0.3.59: Complete implementation with data and end callbacks
                 let pipe_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -23778,7 +23797,7 @@ require.resolve = function(specifier) {{
                         let end_key = v8::String::new(scope, "end").unwrap();
 
                         // v0.3.59: Create data callback that calls write() on destination
-                        let data_callback = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
+                        let data_callback = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
                     let chunk = args.get(0);
                     let encoding = v8::String::new(scope, "utf8").unwrap();
 
@@ -23795,7 +23814,7 @@ require.resolve = function(specifier) {{
                                     if write_func_val.is_function() {
                                         match v8::Local::<v8::Function>::try_from(write_func_val) {
                                             Ok(write_func) => {
-                                                let noop_callback = v8::Function::new(scope, |_scope: &mut v8::HandleScope, _args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {}).unwrap();
+                                                let noop_callback = v8::Function::new(scope, |_scope: &mut v8::PinScope, _args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {}).unwrap();
                                                 write_func.call(scope, dest.into(), &[chunk, encoding.into(), noop_callback.into()]);
                                             }
                                             Err(_) => {}
@@ -23811,7 +23830,7 @@ require.resolve = function(specifier) {{
                         // v0.3.59: Create end callback that calls end() on destination
                         let end_callback = v8::FunctionTemplate::new(
                             scope,
-                            |scope: &mut v8::HandleScope,
+                            |scope: &mut v8::PinScope,
                              args: v8::FunctionCallbackArguments,
                              _retval: v8::ReturnValue| {
                                 // Get the source readable from 'this'
@@ -23916,7 +23935,7 @@ require.resolve = function(specifier) {{
         // Writable Stream constructor
         let writable_constructor = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let this = args.this();
@@ -23967,7 +23986,7 @@ require.resolve = function(specifier) {{
                     // Default _write implementation
                     let write_func = v8::FunctionTemplate::new(
                         scope,
-                        |_scope: &mut v8::HandleScope,
+                        |_scope: &mut v8::PinScope,
                          _args: v8::FunctionCallbackArguments,
                          mut _retval: v8::ReturnValue| {
                             // Default empty implementation
@@ -23980,7 +23999,7 @@ require.resolve = function(specifier) {{
                 // write method
                 let write_public_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -23992,7 +24011,7 @@ require.resolve = function(specifier) {{
                         let effective_callback: v8::Local<v8::Value> = if callback.is_undefined() {
                             let noop_func = v8::Function::new(
                                 scope,
-                                |_scope: &mut v8::HandleScope,
+                                |_scope: &mut v8::PinScope,
                                  _args: v8::FunctionCallbackArguments,
                                  _retval: v8::ReturnValue| {
                                     // Noop callback - does nothing
@@ -24031,7 +24050,7 @@ require.resolve = function(specifier) {{
                 // end method - v0.3.57: Updated to properly set state and trigger 'finish' event
                 let end_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24078,7 +24097,7 @@ require.resolve = function(specifier) {{
                 // on method - v0.3.57: Event listener registration
                 let on_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24133,7 +24152,7 @@ require.resolve = function(specifier) {{
         // Transform Stream constructor - v0.3.58: Complete implementation with Readable + Writable methods
         let transform_constructor = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let this = args.this();
@@ -24166,7 +24185,7 @@ require.resolve = function(specifier) {{
                 // _read方法
                 let read_func = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {},
                 );
@@ -24177,7 +24196,7 @@ require.resolve = function(specifier) {{
                 // read方法
                 let read_public_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24201,7 +24220,7 @@ require.resolve = function(specifier) {{
                 // push方法
                 let push_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24239,7 +24258,7 @@ require.resolve = function(specifier) {{
                 // on方法
                 let on_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24274,7 +24293,7 @@ require.resolve = function(specifier) {{
                 // once方法
                 let once_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24310,7 +24329,7 @@ require.resolve = function(specifier) {{
                 // pause方法
                 let pause_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24337,7 +24356,7 @@ require.resolve = function(specifier) {{
                 // resume方法
                 let resume_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24364,7 +24383,7 @@ require.resolve = function(specifier) {{
                 // pipe方法
                 let pipe_func = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24379,7 +24398,7 @@ require.resolve = function(specifier) {{
                 // unpipe方法
                 let unpipe_func = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {},
                 );
@@ -24408,7 +24427,7 @@ require.resolve = function(specifier) {{
                 // _write方法 - 内部调用 _transform
                 let write_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24447,7 +24466,7 @@ require.resolve = function(specifier) {{
                 // write方法
                 let write_public_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24483,7 +24502,7 @@ require.resolve = function(specifier) {{
                 // end方法
                 let end_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24556,7 +24575,7 @@ require.resolve = function(specifier) {{
                 // _transform方法 - 从对象属性中获取并调用用户的 transform 函数
                 let transform_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24572,7 +24591,7 @@ require.resolve = function(specifier) {{
                         if !callback.is_function() {
                             let callback_fn = v8::Function::new(
                                 scope,
-                                |_scope: &mut v8::HandleScope,
+                                |_scope: &mut v8::PinScope,
                                  _args: v8::FunctionCallbackArguments,
                                  _retval: v8::ReturnValue| {},
                             )
@@ -24630,7 +24649,7 @@ require.resolve = function(specifier) {{
         // Duplex Stream constructor - v0.3.58: Complete implementation with Readable + Writable methods
         let duplex_constructor = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let this = args.this();
@@ -24655,7 +24674,7 @@ require.resolve = function(specifier) {{
                 // _read方法
                 let read_func = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {},
                 );
@@ -24666,7 +24685,7 @@ require.resolve = function(specifier) {{
                 // read方法
                 let read_public_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24690,7 +24709,7 @@ require.resolve = function(specifier) {{
                 // push方法
                 let push_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24726,7 +24745,7 @@ require.resolve = function(specifier) {{
                 // on方法
                 let on_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24761,7 +24780,7 @@ require.resolve = function(specifier) {{
                 // once方法
                 let once_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24797,7 +24816,7 @@ require.resolve = function(specifier) {{
                 // pause方法
                 let pause_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24824,7 +24843,7 @@ require.resolve = function(specifier) {{
                 // resume方法
                 let resume_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24851,7 +24870,7 @@ require.resolve = function(specifier) {{
                 // pipe方法
                 let pipe_func = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24866,7 +24885,7 @@ require.resolve = function(specifier) {{
                 // unpipe方法
                 let unpipe_func = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {},
                 );
@@ -24895,7 +24914,7 @@ require.resolve = function(specifier) {{
                 // _write方法 - 从对象属性中获取并调用用户的 _write 函数
                 let write_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24911,7 +24930,7 @@ require.resolve = function(specifier) {{
                         if !callback.is_function() {
                             let callback_fn = v8::Function::new(
                                 scope,
-                                |_scope: &mut v8::HandleScope,
+                                |_scope: &mut v8::PinScope,
                                  _args: v8::FunctionCallbackArguments,
                                  _retval: v8::ReturnValue| {},
                             )
@@ -24960,7 +24979,7 @@ require.resolve = function(specifier) {{
                 // write方法
                 let write_public_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -24996,7 +25015,7 @@ require.resolve = function(specifier) {{
                 // end方法
                 let end_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -25073,7 +25092,7 @@ require.resolve = function(specifier) {{
         // v0.3.59: pipeline function - connects multiple streams sequentially
         let pipeline_func = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Collect all stream arguments
@@ -25144,7 +25163,7 @@ require.resolve = function(specifier) {{
         // PassThrough is a Transform stream that passes data through without modification
         let passthrough_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let stream_obj = v8::Object::new(_scope);
@@ -25154,7 +25173,7 @@ require.resolve = function(specifier) {{
                 // _read method - default implementation
                 let read_func = v8::FunctionTemplate::new(
                     _scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -25190,7 +25209,7 @@ require.resolve = function(specifier) {{
                 // read method
                 let read_public_func = v8::FunctionTemplate::new(
                     _scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         // Return empty string to simulate reading
@@ -25208,7 +25227,7 @@ require.resolve = function(specifier) {{
                 // v0.3.81: Fix to check is_object before to_object to avoid "Cannot convert undefined or null to object"
                 let push_func = v8::FunctionTemplate::new(
                     _scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let chunk = args.get(0);
@@ -25270,7 +25289,7 @@ require.resolve = function(specifier) {{
                 // on method - event listener that stores callbacks
                 let on_func = v8::FunctionTemplate::new(
                     _scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         let event_name = args.get(0);
@@ -25314,7 +25333,7 @@ require.resolve = function(specifier) {{
                 // once method
                 let once_func = v8::FunctionTemplate::new(
                     _scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         // Same as on for now
@@ -25328,7 +25347,7 @@ require.resolve = function(specifier) {{
                 // pause method
                 let pause_func = v8::FunctionTemplate::new(
                     _scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -25351,7 +25370,7 @@ require.resolve = function(specifier) {{
                 // resume method
                 let resume_func = v8::FunctionTemplate::new(
                     _scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         let this = args.this();
@@ -25374,7 +25393,7 @@ require.resolve = function(specifier) {{
                 // pipe method - connects this (source) to destination
                 let pipe_func = v8::FunctionTemplate::new(
                     _scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -25407,7 +25426,7 @@ require.resolve = function(specifier) {{
                 // unpipe method
                 let unpipe_func = v8::FunctionTemplate::new(
                     _scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         // No-op for now
@@ -25439,7 +25458,7 @@ require.resolve = function(specifier) {{
 
                 // _write method - PassThrough implementation that calls push to pass data through
                 // Also forwards data to pipe destination if one exists
-                let write_func = v8::FunctionTemplate::new(_scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
+                let write_func = v8::FunctionTemplate::new(_scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
                 let chunk = args.get(0);
                 let _encoding = args.get(1);
                 let callback = args.get(2);
@@ -25476,7 +25495,7 @@ require.resolve = function(specifier) {{
                                         chunk
                                     };
                                     // Use a noop callback since we need to call our callback too
-                                    let noop_fn = v8::Function::new(scope, |_s: &mut v8::HandleScope, _a: v8::FunctionCallbackArguments, _r: v8::ReturnValue| {}).unwrap();
+                                    let noop_fn = v8::Function::new(scope, |_s: &mut v8::PinScope, _a: v8::FunctionCallbackArguments, _r: v8::ReturnValue| {}).unwrap();
                                     write_fn.call(scope, dest.into(), &[chunk_to_write, enc_str.into(), noop_fn.into()]);
                                 }
                             }
@@ -25495,7 +25514,7 @@ require.resolve = function(specifier) {{
                 stream_obj.set(_scope, _write_key.into(), write_func.into());
 
                 // write method
-                let write_public_func = v8::FunctionTemplate::new(_scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+                let write_public_func = v8::FunctionTemplate::new(_scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
                 let chunk = args.get(0);
                 let _encoding = args.get(1);
                 let callback = args.get(2);
@@ -25511,7 +25530,7 @@ require.resolve = function(specifier) {{
                             let cb = if callback.is_function() {
                                 callback
                             } else {
-                                let noop_fn = v8::Function::new(scope, |_s: &mut v8::HandleScope, _a: v8::FunctionCallbackArguments, _r: v8::ReturnValue| {}).unwrap();
+                                let noop_fn = v8::Function::new(scope, |_s: &mut v8::PinScope, _a: v8::FunctionCallbackArguments, _r: v8::ReturnValue| {}).unwrap();
                                 noop_fn.into()
                             };
                             let chunk_val = if chunk.is_undefined() || chunk.is_null() {
@@ -25534,7 +25553,7 @@ require.resolve = function(specifier) {{
                 // end method
                 let end_func = v8::FunctionTemplate::new(
                     _scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         let _chunk = args.get(0);
@@ -25815,7 +25834,7 @@ require.resolve = function(specifier) {{
         // inspect function
         let inspect_func = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let object = args.get(0);
@@ -25842,7 +25861,7 @@ require.resolve = function(specifier) {{
                     format!("Array({})", arr.length())
                 } else if object.is_object() {
                     let obj = object.to_object(scope).unwrap();
-                    if let Some(keys) = obj.get_own_property_names(scope) {
+                    if let Some(keys) = obj.get_own_property_names(scope, Default::default()) {
                         let mut entries = Vec::new();
                         for i in 0..keys.length() {
                             if let Some(key) = keys.get_index(scope, i) {
@@ -25884,7 +25903,7 @@ require.resolve = function(specifier) {{
         // format function
         let format_func = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let format_str = args
@@ -25969,7 +25988,7 @@ require.resolve = function(specifier) {{
         let is_array_buffer_key = v8::String::new(scope, "isArrayBuffer").unwrap();
         let is_array_buffer_value = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut _retval: v8::ReturnValue| {
                 _retval.set(v8::Boolean::new(_scope, false).into());
@@ -25986,7 +26005,7 @@ require.resolve = function(specifier) {{
         let is_date_key = v8::String::new(scope, "isDate").unwrap();
         let is_date_value = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Boolean::new(_scope, args.get(0).is_date()).into());
@@ -25999,7 +26018,7 @@ require.resolve = function(specifier) {{
         let is_regexp_key = v8::String::new(scope, "isRegExp").unwrap();
         let is_regexp_value = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut _retval: v8::ReturnValue| {
                 _retval.set(v8::Boolean::new(_scope, false).into());
@@ -26015,7 +26034,7 @@ require.resolve = function(specifier) {{
         // isArray function
         let is_array_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Boolean::new(_scope, args.get(0).is_array()).into());
@@ -26029,7 +26048,7 @@ require.resolve = function(specifier) {{
         // isBoolean function
         let is_bool_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Boolean::new(_scope, args.get(0).is_boolean()).into());
@@ -26043,7 +26062,7 @@ require.resolve = function(specifier) {{
         // isNull function
         let is_null_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Boolean::new(_scope, args.get(0).is_null()).into());
@@ -26057,7 +26076,7 @@ require.resolve = function(specifier) {{
         // isNumber function
         let is_number_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Boolean::new(_scope, args.get(0).is_number()).into());
@@ -26071,7 +26090,7 @@ require.resolve = function(specifier) {{
         // isString function
         let is_string_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Boolean::new(_scope, args.get(0).is_string()).into());
@@ -26085,7 +26104,7 @@ require.resolve = function(specifier) {{
         // is_undefined function
         let is_undefined_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Boolean::new(_scope, args.get(0).is_undefined()).into());
@@ -26099,7 +26118,7 @@ require.resolve = function(specifier) {{
         // isObject function
         let is_object_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let val = args.get(0);
@@ -26114,7 +26133,7 @@ require.resolve = function(specifier) {{
         // isFunction function
         let is_function_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::Boolean::new(_scope, args.get(0).is_function()).into());
@@ -26128,7 +26147,7 @@ require.resolve = function(specifier) {{
         // promisify function
         let promisify_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::undefined(_scope).into());
@@ -26142,7 +26161,7 @@ require.resolve = function(specifier) {{
         // debuglog function
         let debuglog_func = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 retval.set(v8::undefined(_scope).into());
@@ -26302,7 +26321,7 @@ require.resolve = function(specifier) {{
         // EventEmitter constructor
         let event_emitter_constructor = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let _ = args; // args not used in constructor
@@ -26314,7 +26333,7 @@ require.resolve = function(specifier) {{
                 // on(eventName, listener)
                 let on_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26398,7 +26417,7 @@ require.resolve = function(specifier) {{
                 // v0.3.257: prependListener(eventName, listener) - adds listener to the beginning of the listener array
                 let prepend_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26482,7 +26501,7 @@ require.resolve = function(specifier) {{
                 // once(eventName, listener)
                 let once_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26570,7 +26589,7 @@ require.resolve = function(specifier) {{
                 // emit(eventName, ...args)
                 let emit_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26644,7 +26663,7 @@ require.resolve = function(specifier) {{
                 // v0.3.258: prependOnceListener - one-time listener added to the front of the queue
                 let _prepend_once_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26734,7 +26753,7 @@ require.resolve = function(specifier) {{
                 // removeListener(eventName, listener)
                 let remove_listener_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26785,7 +26804,7 @@ require.resolve = function(specifier) {{
                 // removeAllListeners([eventName])
                 let remove_all_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26824,7 +26843,7 @@ require.resolve = function(specifier) {{
                 // listeners(eventName)
                 let listeners_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let event_name = args
@@ -26857,7 +26876,7 @@ require.resolve = function(specifier) {{
                 // eventNames()
                 let event_names_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let names_array = v8::Array::new(scope, 0);
@@ -26878,7 +26897,7 @@ require.resolve = function(specifier) {{
                 // getMaxListeners()
                 let get_max_func = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26896,7 +26915,7 @@ require.resolve = function(specifier) {{
                 // setMaxListeners(n)
                 let set_max_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let this = args.this();
@@ -26937,7 +26956,7 @@ require.resolve = function(specifier) {{
         // Add static method listenerCount(emitter, eventName)
         let listener_count_func = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let _emitter = args.get(0);
@@ -27269,7 +27288,7 @@ require.resolve = function(specifier) {{
         let lookup_key = v8::String::new(scope, "lookup").unwrap();
         let lookup_instance = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let hostname = args
@@ -27385,7 +27404,7 @@ require.resolve = function(specifier) {{
         let resolve_key = v8::String::new(scope, "resolve").unwrap();
         let resolve_instance = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let hostname = args
@@ -27453,7 +27472,7 @@ require.resolve = function(specifier) {{
         let resolve4_key = v8::String::new(scope, "resolve4").unwrap();
         let resolve4_instance = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let hostname = args
@@ -27512,7 +27531,7 @@ require.resolve = function(specifier) {{
         let resolve6_key = v8::String::new(scope, "resolve6").unwrap();
         let resolve6_instance = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let hostname = args
@@ -27571,7 +27590,7 @@ require.resolve = function(specifier) {{
         let reverse_key = v8::String::new(scope, "reverse").unwrap();
         let reverse_instance = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let ip = args
@@ -27610,7 +27629,7 @@ require.resolve = function(specifier) {{
         let get_servers_key = v8::String::new(scope, "getServers").unwrap();
         let get_servers_instance = v8::FunctionTemplate::new(
             scope,
-            |_scope: &mut v8::HandleScope,
+            |_scope: &mut v8::PinScope,
              _args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 let servers = v8::Array::new(_scope, 1);
@@ -27644,7 +27663,7 @@ require.resolve = function(specifier) {{
         // StringDecoder constructor
         let string_decoder_constructor = v8::FunctionTemplate::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              mut retval: v8::ReturnValue| {
                 // Get encoding from argument or default to utf8
@@ -27677,7 +27696,7 @@ require.resolve = function(specifier) {{
                 // write method
                 let write_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let chunk = args
@@ -27697,7 +27716,7 @@ require.resolve = function(specifier) {{
                 // end method
                 let end_func = v8::FunctionTemplate::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args: v8::FunctionCallbackArguments,
                      mut retval: v8::ReturnValue| {
                         let chunk = args
@@ -27745,7 +27764,7 @@ require.resolve = function(specifier) {{
         }
 
         let global_context = self.get_context();
-        let scope = &mut v8::HandleScope::new(&mut self.isolate);
+        v8::scope!(let scope, &mut self.isolate);
         let context_local = v8::Local::new(scope, &global_context);
         let scope = &mut v8::ContextScope::new(scope, context_local);
         pump_pending_http_requests_in_scope(scope, &context_local)
@@ -27765,7 +27784,7 @@ require.resolve = function(specifier) {{
         // v0.3.93: 先获取 Context
         let global_context = self.get_context();
 
-        let scope = &mut v8::HandleScope::new(&mut self.isolate);
+        v8::scope!(let scope, &mut self.isolate);
         let context = v8::Local::new(scope, &global_context);
         let scope = &mut v8::ContextScope::new(scope, context);
 

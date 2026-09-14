@@ -21,7 +21,7 @@ fn is_terminal_fd(fd: i32) -> bool {
 
 /// tty.isatty(fd) 回调
 fn tty_isatty_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -46,7 +46,7 @@ fn tty_isatty_callback(
 
 /// tty.ReadStream 构造函数
 fn tty_read_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -74,7 +74,7 @@ fn tty_read_stream_constructor(
     let set_raw_mode_key = v8::String::new(scope, "setRawMode").unwrap();
     let set_raw_mode_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -97,7 +97,7 @@ fn tty_read_stream_constructor(
 
 /// tty.WriteStream 构造函数
 fn tty_write_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -128,7 +128,7 @@ fn tty_write_stream_constructor(
     let get_color_depth_key = v8::String::new(scope, "getColorDepth").unwrap();
     let get_color_depth_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let depth = v8::Integer::new(scope, 8);
@@ -146,7 +146,7 @@ fn tty_write_stream_constructor(
     let has_colors_key = v8::String::new(scope, "hasColors").unwrap();
     let has_colors_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let res = v8::Boolean::new(scope, true);
@@ -160,7 +160,7 @@ fn tty_write_stream_constructor(
     let get_window_size_key = v8::String::new(scope, "getWindowSize").unwrap();
     let get_window_size_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let arr = v8::Array::new(scope, 2);

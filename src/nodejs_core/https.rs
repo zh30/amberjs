@@ -39,7 +39,7 @@ pub fn setup_https_api(
 }
 
 fn https_create_server_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

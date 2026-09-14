@@ -42,7 +42,7 @@ pub fn setup_url_api(
     Ok(())
 }
 fn url_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -103,7 +103,7 @@ fn url_constructor_callback(
     retval.set(url_obj.into());
 }
 fn url_to_string_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -116,7 +116,7 @@ fn url_to_string_callback(
     retval.set(v8::String::new(scope, &href).unwrap().into());
 }
 fn url_to_json_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -128,7 +128,7 @@ fn url_to_json_callback(
     retval.set(href);
 }
 fn search_params_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -201,7 +201,7 @@ fn search_params_constructor_callback(
     retval.set(params_obj.into());
 }
 fn search_params_get_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -238,7 +238,7 @@ fn search_params_get_callback(
     retval.set(result);
 }
 fn search_params_set_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -290,7 +290,7 @@ fn search_params_set_callback(
     retval.set(this.into());
 }
 fn search_params_append_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -321,7 +321,7 @@ fn search_params_append_callback(
     retval.set(this.into());
 }
 fn search_params_delete_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -359,7 +359,7 @@ fn search_params_delete_callback(
     retval.set(this.into());
 }
 fn search_params_has_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -395,7 +395,7 @@ fn search_params_has_callback(
     retval.set(v8::Boolean::new(scope, has).into());
 }
 fn search_params_keys_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -430,7 +430,7 @@ fn search_params_keys_callback(
     retval.set(keys_array.into());
 }
 fn search_params_values_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -460,7 +460,7 @@ fn search_params_values_callback(
     retval.set(values_array.into());
 }
 fn search_params_entries_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -470,7 +470,7 @@ fn search_params_entries_callback(
     retval.set(params_array);
 }
 fn search_params_to_string_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -506,7 +506,7 @@ fn search_params_to_string_callback(
 }
 // 旧版URL API兼容函数
 fn url_parse_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -546,7 +546,7 @@ fn url_parse_callback(
     retval.set(url_obj.into());
 }
 fn url_format_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -573,7 +573,7 @@ fn url_format_callback(
     retval.set(v8::String::new(scope, &href).unwrap().into());
 }
 fn url_resolve_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

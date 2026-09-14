@@ -4,7 +4,7 @@ use std::collections::{HashMap, BTreeMap};
 use std::path::Path;
 use std::io::Write;
 use std::io::Read;
-pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
+pub fn register(scope: &mut v8::PinScope, global: &v8::Local<v8::Object>) {
     let fs_key: _ = v8::String::new(scope, "fs").unwrap();
     let fs_obj: _ = v8::Object::new(scope);
     // Read file
@@ -21,7 +21,7 @@ pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
     fs_obj.set(scope, exists_key, exists_fn.into());
     global.set(scope, fs_key.into(), fs_obj.into());
 }
-fn read_file(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn read_file(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let path_arg: _ = args.get(0);
     let path: _ = path_arg.to_string(scope).unwrap().to_rust_string_lossy(scope);
     match std::fs::read_to_string(&path) {
@@ -34,7 +34,7 @@ fn read_file(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, m
         }
     }
 }
-fn write_file(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn write_file(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let path_arg: _ = args.get(0);
     let path: _ = path_arg.to_string(scope).unwrap().to_rust_string_lossy(scope);
     let content_arg: _ = args.get(1);
@@ -48,7 +48,7 @@ fn write_file(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, 
         }
     }
 }
-fn exists(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn exists(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let path_arg: _ = args.get(0);
     let path: _ = path_arg.to_string(scope).unwrap().to_rust_string_lossy(scope);
     let exists: _ = std::path::Path::new(&path).exists();

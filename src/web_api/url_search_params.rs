@@ -21,7 +21,7 @@ fn url_decode(value: &str) -> String {
         .to_string()
 }
 
-fn throw_type_error(scope: &mut v8::HandleScope, message: &str) {
+fn throw_type_error(scope: &mut v8::PinScope, message: &str) {
     let Some(message) = v8::String::new(scope, message) else {
         return;
     };
@@ -50,7 +50,7 @@ fn parse_query_string(query: &str) -> Vec<(String, String)> {
 }
 
 fn parse_sequence_pairs(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     sequence: v8::Local<v8::Array>,
 ) -> Result<Vec<(String, String)>, ()> {
     let mut pairs = Vec::new();
@@ -115,7 +115,7 @@ fn to_query_string(pairs: &[(String, String)]) -> String {
 
 /// Get the params data from a V8 object using External
 fn get_params_data(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     this_obj: &v8::Object,
 ) -> Option<Arc<Mutex<Vec<(String, String)>>>> {
     let data_key = v8::String::new(scope, "_paramsData").unwrap();
@@ -137,7 +137,7 @@ fn get_params_data(
 
 /// Set the params data on a V8 object using External
 fn set_params_data(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     this_obj: &v8::Object,
     data: &Arc<Mutex<Vec<(String, String)>>>,
 ) {
@@ -149,7 +149,7 @@ fn set_params_data(
     this_obj.set(scope, data_key.into(), external.into());
 }
 
-fn symbol_iterator_value<'a>(scope: &mut v8::HandleScope<'a>) -> Option<v8::Local<'a, v8::Value>> {
+fn symbol_iterator_value<'a>(scope: &mut v8::PinScope<'a, '_>) -> Option<v8::Local<'a, v8::Value>> {
     let context = scope.get_current_context();
     let global = context.global(scope);
     let symbol_key: v8::Local<v8::Value> = v8::String::new(scope, "Symbol")?.into();
@@ -159,7 +159,7 @@ fn symbol_iterator_value<'a>(scope: &mut v8::HandleScope<'a>) -> Option<v8::Loca
     symbol_object.get(scope, iterator_key)
 }
 
-fn object_has_iterator(scope: &mut v8::HandleScope, object: v8::Local<v8::Object>) -> bool {
+fn object_has_iterator(scope: &mut v8::PinScope, object: v8::Local<v8::Object>) -> bool {
     let Some(iterator_key) = symbol_iterator_value(scope) else {
         return false;
     };
@@ -170,7 +170,7 @@ fn object_has_iterator(scope: &mut v8::HandleScope, object: v8::Local<v8::Object
 }
 
 fn array_from_iterable<'scope, 'value>(
-    scope: &mut v8::HandleScope<'scope>,
+    scope: &mut v8::PinScope<'scope, '_>,
     iterable: v8::Local<'value, v8::Value>,
 ) -> Option<v8::Local<'scope, v8::Array>> {
     let context = scope.get_current_context();
@@ -195,13 +195,13 @@ fn array_from_iterable<'scope, 'value>(
     v8::Local::<v8::Array>::try_from(result).ok()
 }
 
-fn set_iterator_returns_self(scope: &mut v8::HandleScope, iterator: v8::Local<v8::Object>) {
+fn set_iterator_returns_self(scope: &mut v8::PinScope, iterator: v8::Local<v8::Object>) {
     let Some(iterator_key) = symbol_iterator_value(scope) else {
         return;
     };
     let Some(iterator_fn) = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             retval.set(args.this().into());
@@ -214,7 +214,7 @@ fn set_iterator_returns_self(scope: &mut v8::HandleScope, iterator: v8::Local<v8
 
 /// URLSearchParams constructor callback
 fn url_search_params_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -272,7 +272,7 @@ fn url_search_params_constructor(
                     pairs = parsed_pairs;
                 } else {
                     // Parse from record object - use simple property enumeration
-                    let prop_names = obj.get_own_property_names(scope);
+                    let prop_names = obj.get_own_property_names(scope, Default::default());
                     let prop_names = match prop_names {
                         Some(names) => names,
                         None => v8::Array::new(scope, 0),
@@ -313,7 +313,7 @@ fn url_search_params_constructor(
     // Add toString method
     let to_string_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut _retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -331,7 +331,7 @@ fn url_search_params_constructor(
     // Add append method
     let append_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -358,7 +358,7 @@ fn url_search_params_constructor(
     // Add delete method
     let delete_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -380,7 +380,7 @@ fn url_search_params_constructor(
     // Add get method
     let get_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -411,7 +411,7 @@ fn url_search_params_constructor(
     // Add getAll method
     let get_all_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -442,7 +442,7 @@ fn url_search_params_constructor(
     // Add has method
     let has_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -468,7 +468,7 @@ fn url_search_params_constructor(
     // Add set method
     let set_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -498,7 +498,7 @@ fn url_search_params_constructor(
     // Add sort method
     let sort_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -515,7 +515,7 @@ fn url_search_params_constructor(
     // Add forEach method
     let for_each_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -554,7 +554,7 @@ fn url_search_params_constructor(
     // Add keys method
     let keys_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -571,7 +571,7 @@ fn url_search_params_constructor(
 
                 // Store iterator state: index in internal field 0
                 let index_val: v8::Local<v8::Value> = v8::Integer::new(scope, 0).into();
-                iterator.set_internal_field(0, index_val);
+                iterator.set_internal_field(0, index_val.into());
 
                 // Store data reference using External - clone Arc and leak it
                 let data_ptr = Arc::into_raw(data) as *mut c_void;
@@ -582,13 +582,16 @@ fn url_search_params_constructor(
                 // Create next function
                 let next_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args_inner: v8::FunctionCallbackArguments,
                      mut retval_inner: v8::ReturnValue| {
                         let iterator_obj = args_inner.this();
 
                         // Get index - get_internal_field returns Option<Local<Value>>
-                        if let Some(index_val) = iterator_obj.get_internal_field(scope, 0) {
+                        if let Some(index_val) = iterator_obj
+                            .get_internal_field(scope, 0)
+                            .and_then(|d| v8::Local::<v8::Value>::try_from(d).ok())
+                        {
                             let index = index_val
                                 .to_integer(scope)
                                 .map(|i| i.value() as usize)
@@ -636,7 +639,7 @@ fn url_search_params_constructor(
                                         let next_index = (index + 1) as i32;
                                         let next_index_val: v8::Local<v8::Value> =
                                             v8::Integer::new(scope, next_index).into();
-                                        iterator_obj.set_internal_field(0, next_index_val);
+                                        iterator_obj.set_internal_field(0, next_index_val.into());
 
                                         retval_inner.set(result_obj.into());
                                         return;
@@ -666,7 +669,7 @@ fn url_search_params_constructor(
     // Add values method
     let values_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -683,7 +686,7 @@ fn url_search_params_constructor(
 
                 // Store iterator state: index in internal field 0
                 let index_val: v8::Local<v8::Value> = v8::Integer::new(scope, 0).into();
-                iterator.set_internal_field(0, index_val);
+                iterator.set_internal_field(0, index_val.into());
 
                 // Store data reference using External - clone Arc and leak it
                 let data_ptr = Arc::into_raw(data) as *mut c_void;
@@ -694,13 +697,16 @@ fn url_search_params_constructor(
                 // Create next function
                 let next_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args_inner: v8::FunctionCallbackArguments,
                      mut retval_inner: v8::ReturnValue| {
                         let iterator_obj = args_inner.this();
 
                         // Get index - get_internal_field returns Option<Local<Value>>
-                        if let Some(index_val) = iterator_obj.get_internal_field(scope, 0) {
+                        if let Some(index_val) = iterator_obj
+                            .get_internal_field(scope, 0)
+                            .and_then(|d| v8::Local::<v8::Value>::try_from(d).ok())
+                        {
                             let index = index_val
                                 .to_integer(scope)
                                 .map(|i| i.value() as usize)
@@ -748,7 +754,7 @@ fn url_search_params_constructor(
                                         let next_index = (index + 1) as i32;
                                         let next_index_val: v8::Local<v8::Value> =
                                             v8::Integer::new(scope, next_index).into();
-                                        iterator_obj.set_internal_field(0, next_index_val);
+                                        iterator_obj.set_internal_field(0, next_index_val.into());
 
                                         retval_inner.set(result_obj.into());
                                         return;
@@ -778,7 +784,7 @@ fn url_search_params_constructor(
     // Add entries method
     let entries_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this_obj = args.this();
@@ -795,7 +801,7 @@ fn url_search_params_constructor(
 
                 // Store iterator state: index in internal field 0
                 let index_val: v8::Local<v8::Value> = v8::Integer::new(scope, 0).into();
-                iterator.set_internal_field(0, index_val);
+                iterator.set_internal_field(0, index_val.into());
 
                 // Store data reference using External - clone Arc and leak it
                 let data_ptr = Arc::into_raw(data) as *mut c_void;
@@ -806,13 +812,16 @@ fn url_search_params_constructor(
                 // Create next function
                 let next_fn = v8::Function::new(
                     scope,
-                    |scope: &mut v8::HandleScope,
+                    |scope: &mut v8::PinScope,
                      args_inner: v8::FunctionCallbackArguments,
                      mut retval_inner: v8::ReturnValue| {
                         let iterator_obj = args_inner.this();
 
                         // Get index - get_internal_field returns Option<Local<Value>>
-                        if let Some(index_val) = iterator_obj.get_internal_field(scope, 0) {
+                        if let Some(index_val) = iterator_obj
+                            .get_internal_field(scope, 0)
+                            .and_then(|d| v8::Local::<v8::Value>::try_from(d).ok())
+                        {
                             let index = index_val
                                 .to_integer(scope)
                                 .map(|i| i.value() as usize)
@@ -866,7 +875,7 @@ fn url_search_params_constructor(
                                         let next_index = (index + 1) as i32;
                                         let next_index_val: v8::Local<v8::Value> =
                                             v8::Integer::new(scope, next_index).into();
-                                        iterator_obj.set_internal_field(0, next_index_val);
+                                        iterator_obj.set_internal_field(0, next_index_val.into());
 
                                         retval_inner.set(result_obj.into());
                                         return;

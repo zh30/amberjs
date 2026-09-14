@@ -316,7 +316,7 @@ impl RuntimeLite {
     }
     /// Set up console API for V8 context
     fn setup_console(
-        scope: &mut v8::HandleScope,
+        scope: &mut v8::PinScope,
         context: &v8::Local<v8::Context>,
     ) -> Result<()> {
         use crate::console_log_callback;

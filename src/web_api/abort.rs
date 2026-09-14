@@ -10,7 +10,7 @@ pub fn setup_abort_api(
     // v0.3.291: Create AbortController template
     let abort_controller_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Create all strings for this instance
@@ -32,7 +32,7 @@ pub fn setup_abort_api(
             // Create addEventListener for signal
             let add_listener_fn = v8::FunctionTemplate::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     if args.length() > 1 {
@@ -67,7 +67,7 @@ pub fn setup_abort_api(
             // Create abort function for controller
             let abort_fn = v8::FunctionTemplate::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     let controller_obj = args.this();

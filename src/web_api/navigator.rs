@@ -13,7 +13,7 @@ pub fn setup_navigator_api(
     let navigator_key = v8::String::new(scope, "navigator").unwrap();
     let navigator_obj = if let Some(val) = global.get(scope, navigator_key.into()) {
         if val.is_object() {
-            unsafe { v8::Local::cast(val) }
+            v8::Local::cast(val)
         } else {
             let obj = v8::Object::new(scope);
             global.set(scope, navigator_key.into(), obj.into());

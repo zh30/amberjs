@@ -6,7 +6,7 @@ use rusty_v8 as v8;
 use std::ffi::CStr;
 use std::fs::File;
 
-fn to_raw_ptr(scope: &mut v8::HandleScope, val: v8::Local<v8::Value>) -> usize {
+fn to_raw_ptr(scope: &mut v8::PinScope, val: v8::Local<v8::Value>) -> usize {
     if val.is_big_int() {
         if let Ok(bi) = v8::Local::<v8::BigInt>::try_from(val) {
             return bi.u64_value().0 as usize;
@@ -17,24 +17,22 @@ fn to_raw_ptr(scope: &mut v8::HandleScope, val: v8::Local<v8::Value>) -> usize {
     0
 }
 
-fn extract_target_ptr(scope: &mut v8::HandleScope, arg: v8::Local<v8::Value>) -> usize {
+fn extract_target_ptr(scope: &mut v8::PinScope, arg: v8::Local<v8::Value>) -> usize {
     if arg.is_array_buffer_view() {
         if let Ok(view) = v8::Local::<v8::ArrayBufferView>::try_from(arg) {
             let byte_offset = view.byte_offset();
             if let Some(ab) = view.buffer(scope) {
                 let store = ab.get_backing_store();
-                let data = store.data();
-                if !data.is_null() {
-                    return unsafe { (data as *mut u8).add(byte_offset) as usize };
+                if let Some(data) = store.data() {
+                    return unsafe { (data.as_ptr() as *mut u8).add(byte_offset) as usize };
                 }
             }
         }
     } else if arg.is_array_buffer() {
         if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(arg) {
             let store = ab.get_backing_store();
-            let data = store.data();
-            if !data.is_null() {
-                return data as usize;
+            if let Some(data) = store.data() {
+                return data.as_ptr() as usize;
             }
         }
     } else if arg.is_object() {
@@ -45,9 +43,8 @@ fn extract_target_ptr(scope: &mut v8::HandleScope, arg: v8::Local<v8::Value>) ->
                 if buf_val.is_array_buffer() {
                     if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(buf_val) {
                         let store = ab.get_backing_store();
-                        let data = store.data();
-                        if !data.is_null() {
-                            return data as usize;
+                        if let Some(data) = store.data() {
+                            return data.as_ptr() as usize;
                         }
                     }
                 }
@@ -81,9 +78,7 @@ pub fn setup_wasm_api(
     // 1. wasm.ptr(target) -> BigInt
     let ptr_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() == 0 || args.get(0).is_null_or_undefined() {
                 rv.set(v8::BigInt::new_from_u64(scope, 0).into());
                 return;
@@ -97,9 +92,7 @@ pub fn setup_wasm_api(
     // 2. wasm.copyMemory(srcPtr, dstPtr, length) -> boolean
     let copy_memory_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() < 3 {
                 let err = v8::String::new(
                     scope,
@@ -134,9 +127,7 @@ pub fn setup_wasm_api(
     // 3. wasm.fillMemory(ptr, value, length) -> boolean
     let fill_memory_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() < 3 {
                 let err = v8::String::new(
                     scope,
@@ -171,9 +162,7 @@ pub fn setup_wasm_api(
     // 4. wasm.compareMemory(ptr1, ptr2, length) -> number
     let compare_memory_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() < 3 {
                 let err = v8::String::new(
                     scope,
@@ -208,9 +197,7 @@ pub fn setup_wasm_api(
     // 5. wasm.read(ptr, type)
     let read_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let ptr = to_raw_ptr(scope, args.get(0));
             if ptr == 0 {
                 rv.set(v8::null(scope).into());
@@ -258,9 +245,7 @@ pub fn setup_wasm_api(
     // 6. wasm.write(ptr, val, type)
     let write_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let ptr = to_raw_ptr(scope, args.get(0));
             if ptr == 0 {
                 rv.set(v8::Boolean::new(scope, false).into());
@@ -325,9 +310,7 @@ pub fn setup_wasm_api(
     // 7. wasm.readCString(ptr)
     let read_cstring_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let ptr = to_raw_ptr(scope, args.get(0)) as *const libc::c_char;
             if ptr.is_null() {
                 rv.set(v8::null(scope).into());
@@ -343,9 +326,7 @@ pub fn setup_wasm_api(
     // 8. wasm.readString(ptr, length)
     let read_string_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let ptr = to_raw_ptr(scope, args.get(0)) as *const u8;
             let len = args.get(1).integer_value(scope).unwrap_or(0) as usize;
             if ptr.is_null() {
@@ -363,9 +344,7 @@ pub fn setup_wasm_api(
     // 9. wasm.writeString(ptr, str)
     let write_string_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let ptr = to_raw_ptr(scope, args.get(0)) as *mut u8;
             if ptr.is_null() {
                 rv.set(v8::Integer::new(scope, 0).into());
@@ -384,9 +363,7 @@ pub fn setup_wasm_api(
     // 10. wasm.loadModuleMmap(path) -> Promise<WebAssembly.Module>
     let load_module_mmap_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let path_str = if args.length() > 0 && !args.get(0).is_null_or_undefined() {
                 args.get(0).to_rust_string_lossy(scope)
             } else {

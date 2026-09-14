@@ -26,11 +26,11 @@ pub fn setup_error_event_api(
     let event_func_name = v8::String::new(scope, "Event").unwrap();
     let event_func = global.get(scope, event_func_name.into()).unwrap();
     if event_func.is_function() {
-        let event_func: v8::Local<v8::Function> = unsafe { v8::Local::cast(event_func) };
+        let event_func: v8::Local<v8::Function> = v8::Local::cast(event_func);
         let prototype_of = v8::String::new(scope, "prototype").unwrap();
         let event_proto = event_func.get(scope, prototype_of.into()).unwrap();
         if event_proto.is_object() {
-            let event_proto: v8::Local<v8::Object> = unsafe { v8::Local::cast(event_proto) };
+            let event_proto: v8::Local<v8::Object> = v8::Local::cast(event_proto);
             prototype.set_prototype(scope, event_proto.into());
         }
     }
@@ -56,7 +56,7 @@ fn setup_window_onerror(
 
     let onerror_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut rv: v8::ReturnValue| {
             rv.set(v8::Boolean::new(_scope, false).into());
@@ -80,7 +80,7 @@ fn setup_window_onerror(
 ///   - colno: Column number (default: 0)
 ///   - error: Error object (default: null)
 fn error_event_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -108,7 +108,7 @@ fn error_event_constructor(
     if args.length() > 1 {
         let dict = args.get(1);
         if dict.is_object() {
-            let dict: v8::Local<v8::Object> = unsafe { v8::Local::cast(dict) };
+            let dict: v8::Local<v8::Object> = v8::Local::cast(dict);
 
             // Get message
             let message_key = v8::String::new(scope, "message").unwrap();
@@ -220,7 +220,7 @@ fn error_event_constructor(
 /// This is a helper function that can be used by other modules
 /// (like WebSocket, Worker, etc.) to dispatch error events
 pub fn create_error_event_object<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     message: &str,
     filename: &str,
     lineno: u32,
@@ -292,7 +292,7 @@ pub fn create_error_event_object<'a>(
 /// Returns true if the error was handled (onerror returned true), false otherwise
 /// This function is called from the runtime when an uncaught exception occurs
 pub fn call_onerror_handler(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     message: &str,
     filename: &str,
     lineno: u32,
@@ -322,7 +322,7 @@ pub fn call_onerror_handler(
         return false;
     }
 
-    let handler: v8::Local<v8::Function> = unsafe { v8::Local::cast(onerror_val) };
+    let handler: v8::Local<v8::Function> = v8::Local::cast(onerror_val);
 
     // Prepare arguments for onerror callback:
     // (message, filename, lineno, colno, error)

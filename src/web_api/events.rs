@@ -74,7 +74,7 @@ impl ExtendableEvent {
 }
 
 fn bool_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     init: v8::Local<v8::Value>,
     key: &str,
     default: bool,
@@ -95,7 +95,7 @@ fn bool_option(
         .unwrap_or(default)
 }
 
-fn prevent_default_if_cancelable(scope: &mut v8::HandleScope, this: v8::Local<v8::Object>) {
+fn prevent_default_if_cancelable(scope: &mut v8::PinScope, this: v8::Local<v8::Object>) {
     let Some(cancelable_key) = v8::String::new(scope, "cancelable") else {
         return;
     };
@@ -201,7 +201,7 @@ pub fn setup_events_api(
 }
 /// EventTarget constructor callback
 fn event_target_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -240,7 +240,7 @@ fn event_target_constructor_callback(
 }
 
 fn event_target_add_event_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -297,7 +297,7 @@ fn event_target_add_event_listener_callback(
 }
 
 fn event_target_remove_event_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -350,7 +350,7 @@ fn event_target_remove_event_listener_callback(
 }
 
 fn event_target_dispatch_event_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -412,7 +412,7 @@ fn event_target_dispatch_event_callback(
 
 /// Event constructor callback
 fn event_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -463,7 +463,7 @@ fn event_constructor_callback(
 
     let prevent_default_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this = args.this();
@@ -479,7 +479,7 @@ fn event_constructor_callback(
 
 /// ExtendableEvent constructor callback
 fn extendable_event_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -530,7 +530,7 @@ fn extendable_event_constructor_callback(
 
     let prevent_default_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this = args.this();

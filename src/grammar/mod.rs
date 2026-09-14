@@ -193,7 +193,7 @@ pub fn parse_sse_chunk(chunk: &str) -> Vec<SSEMessage> {
 }
 
 fn grammar_native_dispatch(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -228,7 +228,7 @@ fn grammar_native_dispatch(
 
 /// Sets up the `bee:grammar` API in V8 context
 pub fn setup_grammar_api(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> anyhow::Result<()> {
     let global = context.global(scope);

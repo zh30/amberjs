@@ -32,7 +32,7 @@ pub fn setup_vm_api(
     Ok(())
 }
 
-fn compile_and_run(scope: &mut v8::HandleScope, code: &str, rv: &mut v8::ReturnValue) {
+fn compile_and_run(scope: &mut v8::PinScope, code: &str, rv: &mut v8::ReturnValue) {
     let source = v8::String::new(scope, code).unwrap();
     let script = match v8::Script::compile(scope, source, None) {
         Some(s) => s,
@@ -44,7 +44,7 @@ fn compile_and_run(scope: &mut v8::HandleScope, code: &str, rv: &mut v8::ReturnV
 }
 
 fn run_in_this_context(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -57,7 +57,7 @@ fn run_in_this_context(
 }
 
 fn run_in_new_context(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     rv: v8::ReturnValue,
 ) {
@@ -66,7 +66,7 @@ fn run_in_new_context(
 }
 
 fn create_context_cb(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -78,7 +78,7 @@ fn create_context_cb(
 }
 
 fn is_context_cb(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -86,7 +86,7 @@ fn is_context_cb(
 }
 
 fn script_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -102,9 +102,7 @@ fn script_constructor(
 
     let run = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let this = args.this();
             let code_key = v8::String::new(scope, "_code").unwrap();
             let code = this

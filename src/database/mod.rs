@@ -19,7 +19,7 @@ pub fn setup_db_api(
     // 1. Register native SQLite callbacks
     let open_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let path = if args.length() > 0 && !args.get(0).is_undefined() {
@@ -51,7 +51,7 @@ pub fn setup_db_api(
 
     let close_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let handle = if args.length() > 0 {
@@ -68,7 +68,7 @@ pub fn setup_db_api(
 
     let exec_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let handle = if args.length() > 0 {
@@ -100,7 +100,7 @@ pub fn setup_db_api(
 
     let query_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let handle = if args.length() > 0 {
@@ -138,7 +138,7 @@ pub fn setup_db_api(
 
     let run_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let handle = if args.length() > 0 {

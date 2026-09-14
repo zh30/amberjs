@@ -13,7 +13,7 @@ use crate::permissions::{
 /// 创建 Buffer 对象（v8::ArrayBuffer）- v0.3.66
 /// 用于 'buffer' 编码读取时返回二进制数据
 fn create_buffer_from_bytes<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     bytes: &[u8],
 ) -> v8::Local<'a, v8::Value> {
     let _buffer: v8::Local<v8::ArrayBuffer> = v8::ArrayBuffer::new(scope, bytes.len());
@@ -27,13 +27,13 @@ fn create_buffer_from_bytes<'a>(
     buffer_obj.into()
 }
 
-fn throw_permission_error(scope: &mut v8::HandleScope, error: PermissionError) {
+fn throw_permission_error(scope: &mut v8::PinScope, error: PermissionError) {
     let message = v8::String::new(scope, &error.to_string()).unwrap();
     let exception = v8::Exception::type_error(scope, message);
     scope.throw_exception(exception);
 }
 
-fn ensure_fs_permission(scope: &mut v8::HandleScope, action: PermissionAction, path: &str) -> bool {
+fn ensure_fs_permission(scope: &mut v8::PinScope, action: PermissionAction, path: &str) -> bool {
     if !crate::permissions::has_restrictions() {
         return true;
     }
@@ -50,7 +50,7 @@ fn ensure_fs_permission(scope: &mut v8::HandleScope, action: PermissionAction, p
     }
 }
 
-fn get_stats_flag(scope: &mut v8::HandleScope, this: v8::Local<v8::Object>, key: &str) -> bool {
+fn get_stats_flag(scope: &mut v8::PinScope, this: v8::Local<v8::Object>, key: &str) -> bool {
     let key = v8::String::new(scope, key).unwrap();
     this.get(scope, key.into())
         .map(|value| value.to_boolean(scope).boolean_value(scope))
@@ -58,7 +58,7 @@ fn get_stats_flag(scope: &mut v8::HandleScope, this: v8::Local<v8::Object>, key:
 }
 
 fn stats_is_file_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -67,7 +67,7 @@ fn stats_is_file_callback(
 }
 
 fn stats_is_directory_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -76,7 +76,7 @@ fn stats_is_directory_callback(
 }
 
 fn create_stats_object<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     metadata: &std::fs::Metadata,
 ) -> v8::Local<'a, v8::Object> {
     let stat_obj = v8::Object::new(scope);
@@ -119,7 +119,7 @@ fn create_stats_object<'a>(
 }
 
 fn create_vfs_stats_object<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     meta: &crate::sandbox::virtual_fs::VfsMetadata,
 ) -> v8::Local<'a, v8::Object> {
     let stat_obj = v8::Object::new(scope);
@@ -253,7 +253,7 @@ pub fn setup_fs_api(
 /// If `then()`'s fulfillment callback returns another thenable, chain to it.
 /// Existing tests still read `__result__` on the original object.
 fn thenable_chain_return(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     this: v8::Local<v8::Object>,
     maybe_result: Option<v8::Local<v8::Value>>,
     retval: &mut v8::ReturnValue,
@@ -275,7 +275,7 @@ fn thenable_chain_return(
 }
 
 /// 创建 fs.promises 对象 - v0.3.64
-fn create_fs_promises<'a>(scope: &mut v8::HandleScope<'a>) -> v8::Local<'a, v8::Object> {
+fn create_fs_promises<'a>(scope: &mut v8::PinScope<'a, '_>) -> v8::Local<'a, v8::Object> {
     let promises_obj = v8::Object::new(scope);
 
     // readFile - 返回一个 thenable 对象
@@ -337,19 +337,14 @@ fn create_fs_promises<'a>(scope: &mut v8::HandleScope<'a>) -> v8::Local<'a, v8::
 
 #[inline]
 fn get_path_fast<'a>(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     val: v8::Local<v8::Value>,
     buf: &'a mut [u8; 512],
 ) -> (std::borrow::Cow<'a, str>, Option<*const libc::c_char>) {
     if let Some(s) = val.to_string(scope) {
         let len = s.utf8_length(scope);
         if len > 0 && len < 511 {
-            s.write_utf8(
-                scope,
-                &mut buf[..len],
-                None,
-                v8::WriteOptions::NO_NULL_TERMINATION,
-            );
+            s.write_utf8_v2(scope, &mut buf[..len], v8::WriteFlags::empty(), None);
             buf[len] = 0;
             if let Ok(valid_str) = std::str::from_utf8(&buf[..len]) {
                 return (
@@ -406,7 +401,7 @@ fn direct_write_sync(
 
 /// fs.readFileSync(path, encoding) - 读取文件
 fn fs_read_file_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -590,7 +585,7 @@ thread_local! {
 
 /// fs.writeFileSync(path, data, encoding) - 写入文件
 fn fs_write_file_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -610,12 +605,7 @@ fn fs_write_file_sync_callback(
                 if buf.len() < len {
                     buf.resize(len, 0);
                 }
-                s.write_utf8(
-                    scope,
-                    &mut buf[..len],
-                    None,
-                    v8::WriteOptions::NO_NULL_TERMINATION,
-                );
+                s.write_utf8_v2(scope, &mut buf[..len], v8::WriteFlags::empty(), None);
                 direct_write_sync(c_path, path.as_ref(), &buf[..len])
             })
         } else {
@@ -703,7 +693,7 @@ fn fs_write_file_sync_callback(
 
 /// fs.existsSync(path) - 检查文件是否存在
 fn fs_exists_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -729,7 +719,7 @@ fn fs_exists_sync_callback(
 
 /// fs.mkdirSync(path) - 创建目录
 fn fs_mkdir_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -773,7 +763,7 @@ fn fs_mkdir_sync_callback(
 
 /// fs.readdirSync(path) - 读取目录内容
 fn fs_readdir_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -833,7 +823,7 @@ fn fs_readdir_sync_callback(
 
 /// fs.statSync(path) - 获取文件状态
 fn fs_stat_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -879,7 +869,7 @@ fn fs_stat_sync_callback(
 
 /// fs.unlinkSync(path) - 删除文件 - v0.3.64
 fn fs_unlink_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -923,7 +913,7 @@ fn fs_unlink_sync_callback(
 
 /// fs.renameSync(oldPath, newPath) - 重命名文件 - v0.3.64
 fn fs_rename_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -961,7 +951,7 @@ fn fs_rename_sync_callback(
 
 /// fs.rmdirSync(path) - 删除目录
 fn fs_rmdir_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1005,7 +995,7 @@ fn fs_rmdir_sync_callback(
 
 /// fs.readFile(path, [encoding], callback) - callback 风格读取
 fn fs_read_file_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1058,7 +1048,7 @@ fn fs_read_file_callback(
 
 /// fs.writeFile(path, data, callback) - callback 风格写入
 fn fs_write_file_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1113,7 +1103,7 @@ fn fs_write_file_callback(
 
 /// fs.appendFile(path, data, callback) - callback 风格追加写入
 fn fs_append_file_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1180,10 +1170,7 @@ enum Encoding {
 }
 
 /// 提取编码选项 - v0.3.66
-fn extract_encoding_option(
-    scope: &mut v8::HandleScope,
-    options: &v8::Local<v8::Value>,
-) -> Encoding {
+fn extract_encoding_option(scope: &mut v8::PinScope, options: &v8::Local<v8::Value>) -> Encoding {
     if options.is_undefined() || options.is_null() {
         return Encoding::Utf8;
     }
@@ -1224,7 +1211,7 @@ fn extract_encoding_option(
 /// 支持 encoding 参数：'utf-8', 'base64', 'hex', 'buffer'
 /// 返回一个 thenable 对象，可以配合 await/then 使用
 fn fs_promises_read_file_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1263,7 +1250,7 @@ fn fs_promises_read_file_callback(
     // then 方法 - 从 thenable 对象获取路径和编码 - v0.3.66
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -1392,7 +1379,7 @@ fn fs_promises_read_file_callback(
 
     let catch_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -1438,7 +1425,7 @@ fn fs_promises_read_file_callback(
 
 /// fs.promises.writeFile(path, data, options) - v0.3.64
 fn fs_promises_write_file_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1469,7 +1456,7 @@ fn fs_promises_write_file_callback(
 
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -1548,7 +1535,7 @@ fn fs_promises_write_file_callback(
 
 /// fs.promises.appendFile(path, data, options) - v0.3.66
 fn fs_promises_append_file_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1578,7 +1565,7 @@ fn fs_promises_append_file_callback(
 
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -1654,7 +1641,7 @@ fn fs_promises_append_file_callback(
 
 /// fs.promises.mkdir(path, options) - v0.3.64
 fn fs_promises_mkdir_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1676,7 +1663,7 @@ fn fs_promises_mkdir_callback(
 
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -1740,7 +1727,7 @@ fn fs_promises_mkdir_callback(
 
 /// fs.promises.rmdir(path) - v0.3.66
 fn fs_promises_rmdir_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1762,7 +1749,7 @@ fn fs_promises_rmdir_callback(
 
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -1824,7 +1811,7 @@ fn fs_promises_rmdir_callback(
 
 /// fs.promises.readdir(path) - v0.3.64
 fn fs_promises_readdir_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1846,7 +1833,7 @@ fn fs_promises_readdir_callback(
 
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -1916,7 +1903,7 @@ fn fs_promises_readdir_callback(
 
 /// fs.promises.stat(path) - v0.3.64
 fn fs_promises_stat_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1938,7 +1925,7 @@ fn fs_promises_stat_callback(
 
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -2004,7 +1991,7 @@ fn fs_promises_stat_callback(
 
 /// fs.promises.unlink(path) - v0.3.64
 fn fs_promises_unlink_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2026,7 +2013,7 @@ fn fs_promises_unlink_callback(
 
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();
@@ -2090,7 +2077,7 @@ fn fs_promises_unlink_callback(
 
 /// fs.promises.rename(oldPath, newPath) - v0.3.64
 fn fs_promises_rename_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2123,7 +2110,7 @@ fn fs_promises_rename_callback(
 
     let then_func = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let this = args.this();

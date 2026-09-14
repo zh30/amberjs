@@ -1,7 +1,7 @@
 /// url polyfill
 use rusty_v8 as v8;
 use std::collections::{HashMap, BTreeMap};
-pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
+pub fn register(scope: &mut v8::PinScope, global: &v8::Local<v8::Object>) {
     let url_key: _ = v8::String::new(scope, "url").unwrap();
     let url_obj: _ = v8::Object::new(scope);
     // Parse URL
@@ -10,7 +10,7 @@ pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
     url_obj.set(scope, parse_key, parse_fn.into());
     global.set(scope, url_key.into(), url_obj.into());
 }
-fn parse(scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
+fn parse(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue) {
     let url_arg: _ = args.get(0);
     let url_str: _ = url_arg.to_string(scope).unwrap().to_rust_string_lossy(scope);
     match url::Url::parse(&url_str) {

@@ -49,7 +49,7 @@ pub fn setup_readline_api(
     // Create Interface constructor
     let interface_constructor = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut _retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -100,7 +100,7 @@ pub fn setup_readline_api(
             // Create question method
             let question_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {
                     if args.length() < 2 {
@@ -130,21 +130,21 @@ pub fn setup_readline_api(
 
             let close_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
             .unwrap();
             let pause_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
             .unwrap();
             let resume_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
@@ -152,7 +152,7 @@ pub fn setup_readline_api(
 
             let set_prompt_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {
                     // Get interface_id from 'this' object
@@ -179,7 +179,7 @@ pub fn setup_readline_api(
 
             let prompt_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
@@ -187,7 +187,7 @@ pub fn setup_readline_api(
 
             let write_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {
                     if args.length() >= 1 {
@@ -202,7 +202,7 @@ pub fn setup_readline_api(
 
             let clear_line_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
@@ -263,7 +263,7 @@ pub fn setup_readline_api(
     // createInterface(options) function - using simpler methods that don't capture state
     let create_interface_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -329,7 +329,7 @@ pub fn setup_readline_api(
             // Create methods for the interface - all stateless closures
             let question_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {
                     if args.length() < 2 {
@@ -359,21 +359,21 @@ pub fn setup_readline_api(
 
             let close_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
             .unwrap();
             let pause_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
             .unwrap();
             let resume_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
@@ -382,7 +382,7 @@ pub fn setup_readline_api(
             // setPrompt - use global state lookup instead of closure capture
             let set_prompt_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {
                     // Get interface_id from 'this' object
@@ -409,7 +409,7 @@ pub fn setup_readline_api(
 
             let prompt_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
@@ -417,7 +417,7 @@ pub fn setup_readline_api(
 
             let write_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {
                     if args.length() >= 1 {
@@ -432,7 +432,7 @@ pub fn setup_readline_api(
 
             let clear_line_fn = v8::Function::new(
                 scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {},
             )
@@ -493,7 +493,7 @@ pub fn setup_readline_api(
             // v0.3.280: Add on() method for event handling (line, close events)
             let on_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     if args.length() < 2 {
@@ -542,7 +542,7 @@ pub fn setup_readline_api(
             // v0.3.280: Add emit() method for triggering events
             let emit_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {
                     if args.length() < 1 {

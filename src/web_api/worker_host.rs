@@ -175,7 +175,7 @@ impl WorkerHost {
         std::mem::take(&mut host.pending_messages)
     }
 
-    pub fn pump_parent_messages(scope: &mut v8::HandleScope) {
+    pub fn pump_parent_messages(scope: &mut v8::PinScope) {
         let messages = Self::drain_parent_messages();
         if messages.is_empty() {
             return;
@@ -252,8 +252,8 @@ fn run_worker_thread(
     });
 
     {
-        let scope = &mut v8::HandleScope::new(&mut isolate);
-        let context = v8::Context::new(scope);
+        v8::scope!(let scope, &mut isolate);
+        let context = v8::Context::new(scope, Default::default());
         let scope = &mut v8::ContextScope::new(scope, context);
         let global = context.global(scope);
 
@@ -261,7 +261,7 @@ fn run_worker_thread(
         let console = v8::Object::new(scope);
         let log_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              _rv: v8::ReturnValue| {
                 let mut parts = Vec::new();
@@ -288,7 +288,7 @@ fn run_worker_thread(
         // Native callback: __bee_worker_post_message(payload_str)
         let send_fn = v8::Function::new(
             scope,
-            |scope: &mut v8::HandleScope,
+            |scope: &mut v8::PinScope,
              args: v8::FunctionCallbackArguments,
              _rv: v8::ReturnValue| {
                 let payload = args
@@ -434,7 +434,7 @@ fn run_worker_thread(
         }
 
         // Run user script with TryCatch
-        let scope = &mut v8::TryCatch::new(scope);
+        v8::tc_scope!(let scope, scope);
         let user_src = v8::String::new(scope, &script_source).unwrap();
         let compile_ok = match v8::Script::compile(scope, user_src, None) {
             Some(script) => {
@@ -568,9 +568,7 @@ pub fn setup_worker_host_api(
     // Native: __bee_spawn_worker(source, url, workerDataJson) -> id
     let spawn_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() < 2 {
                 let msg = v8::String::new(scope, "Worker requires script source and url").unwrap();
                 let exc = v8::Exception::type_error(scope, msg);
@@ -614,9 +612,7 @@ pub fn setup_worker_host_api(
     // Native: __bee_worker_post(id, payloadJson)
     let post_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let id = args
                 .get(0)
                 .to_uint32(scope)
@@ -643,9 +639,7 @@ pub fn setup_worker_host_api(
     // Native: __bee_worker_terminate(id)
     let term_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let id = args
                 .get(0)
                 .to_uint32(scope)
@@ -662,9 +656,7 @@ pub fn setup_worker_host_api(
     // Native: __bee_worker_ref(id, is_refed)
     let ref_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let id = args
                 .get(0)
                 .to_uint32(scope)
@@ -682,9 +674,7 @@ pub fn setup_worker_host_api(
     // Native: __bee_resolve_script_file(script_ref) -> JSON string { source, url }
     let resolve_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let script_ref = args
                 .get(0)
                 .to_string(scope)

@@ -5,7 +5,7 @@
 use anyhow::Result;
 use rusty_v8 as v8;
 
-fn is_port_closed(scope: &mut v8::HandleScope, port: v8::Local<v8::Object>) -> bool {
+fn is_port_closed(scope: &mut v8::PinScope, port: v8::Local<v8::Object>) -> bool {
     let closed_key = v8::String::new(scope, "_closed").unwrap();
     port.get(scope, closed_key.into())
         .is_some_and(|value| value.is_true())
@@ -22,7 +22,7 @@ pub fn setup_message_channel_api(
     // Create MessageChannel constructor function
     let message_channel_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Create the MessageChannel object
@@ -94,11 +94,11 @@ pub fn setup_message_channel_api(
 }
 
 /// Setup MessagePort properties (postMessage, onmessage, start, close, etc.)
-fn setup_message_port_properties(scope: &mut v8::HandleScope, port: v8::Local<v8::Object>) {
+fn setup_message_port_properties(scope: &mut v8::PinScope, port: v8::Local<v8::Object>) {
     // Create postMessage function
     let post_message_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             if args.length() == 0 {
                 return;
             }
@@ -182,7 +182,7 @@ fn setup_message_port_properties(scope: &mut v8::HandleScope, port: v8::Local<v8
     // Create start() function
     let start_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             let this_obj = args.this();
 
             // Set started flag
@@ -224,7 +224,7 @@ fn setup_message_port_properties(scope: &mut v8::HandleScope, port: v8::Local<v8
     // Create close() function
     let close_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             let this_obj = args.this();
 
             // Set closed flag
@@ -253,7 +253,7 @@ fn setup_message_port_properties(scope: &mut v8::HandleScope, port: v8::Local<v8
 
 /// Dispatch a message event to the port's onmessage handler
 fn dispatch_message_event(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     port: v8::Local<v8::Object>,
     data: v8::Local<v8::Value>,
 ) {

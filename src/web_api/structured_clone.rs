@@ -11,7 +11,7 @@ const CLONE_FUNC_KEY: &str = "__beejs_internal_clone_func";
 
 /// Setup the internal clone function in the global object
 fn setup_internal_clone_func(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     global: v8::Local<v8::Object>,
 ) -> Result<()> {
     let code = r#"
@@ -402,7 +402,7 @@ fn setup_internal_clone_func(
 
 /// structuredClone callback function
 fn structured_clone_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -495,8 +495,9 @@ fn structured_clone_callback(
                                         let reason_obj =
                                             v8::Local::<v8::Object>::try_from(reason).ok();
                                         if let Some(obj) = reason_obj {
-                                            let prop_names =
-                                                obj.get_own_property_names(scope).unwrap();
+                                            let prop_names = obj
+                                                .get_own_property_names(scope, Default::default())
+                                                .unwrap();
                                             for i in 0..prop_names.length() {
                                                 if let Some(key) = prop_names.get_index(scope, i) {
                                                     if let Some(val) = obj.get(scope, key) {

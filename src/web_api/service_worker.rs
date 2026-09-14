@@ -129,7 +129,7 @@ fn setup_service_worker_global_scope(
 
 /// ServiceWorkerGlobalScope.addEventListener callback
 fn sw_add_event_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -140,7 +140,7 @@ fn sw_add_event_listener_callback(
 
 /// ServiceWorkerGlobalScope.removeEventListener callback
 fn sw_remove_event_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -149,7 +149,7 @@ fn sw_remove_event_listener_callback(
 
 /// ServiceWorkerGlobalScope.skipWaiting callback
 fn sw_skip_waiting_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -205,7 +205,7 @@ fn setup_service_worker_events(
 /// InstallEvent constructor
 #[allow(unused_mut)]
 fn install_event_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -215,7 +215,7 @@ fn install_event_constructor_callback(
 /// ActivateEvent constructor
 #[allow(unused_mut)]
 fn activate_event_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -224,7 +224,7 @@ fn activate_event_constructor_callback(
 
 /// FetchEvent constructor
 fn fetch_event_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -286,7 +286,7 @@ fn fetch_event_constructor_callback(
 
 /// Common helper to create service worker events
 fn create_service_worker_event(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     event_type: &str,
     mut rv: v8::ReturnValue,
@@ -325,7 +325,7 @@ fn create_service_worker_event(
 /// ExtendableEvent.waitUntil() callback (shared by install/activate)
 #[allow(dead_code)]
 fn extendable_event_wait_until_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -338,7 +338,7 @@ fn extendable_event_wait_until_callback(
 /// FetchEvent.respondWith() callback - v0.3.328: Full Response object integration
 #[allow(dead_code)]
 fn fetch_event_respond_with_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -366,7 +366,7 @@ fn fetch_event_respond_with_callback(
 /// FetchEvent.clientId property getter - v0.3.328: Track client origin
 #[allow(dead_code)]
 fn fetch_event_client_id_getter(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::PropertyCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -419,7 +419,7 @@ fn setup_navigator_service_worker(
 
 /// ServiceWorker registration callback
 fn service_worker_register_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -487,7 +487,7 @@ fn setup_cache_api(
 /// Beejs does not currently have a real CacheStorage backend. Reject instead of
 /// returning a Cache-shaped object whose mutating methods silently succeed.
 fn cache_storage_open_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -510,7 +510,7 @@ fn cache_storage_open_callback(
 
 /// CacheStorage.keys callback
 fn cache_storage_keys_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -531,7 +531,7 @@ fn cache_storage_keys_callback(
 
 /// CacheStorage.has callback
 fn cache_storage_has_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -552,7 +552,7 @@ fn cache_storage_has_callback(
 
 /// CacheStorage.delete callback
 fn cache_storage_delete_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -697,7 +697,7 @@ fn setup_push_api(
 
 /// PushManager constructor - mainly for prototype access
 fn push_manager_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -710,7 +710,7 @@ fn push_manager_constructor_callback(
 
 /// PushSubscription constructor boundary.
 fn push_subscription_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -727,7 +727,7 @@ fn push_subscription_constructor_callback(
 /// subscription store, and key generation backend. Direct prototype calls must
 /// not return fixed key material.
 fn push_subscription_get_key_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -738,7 +738,7 @@ fn push_subscription_get_key_callback(
 
 /// PushSubscription.toJSON() boundary.
 fn push_subscription_to_json_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -749,7 +749,7 @@ fn push_subscription_to_json_callback(
 
 /// PushSubscription.unsubscribe() boundary.
 fn push_subscription_unsubscribe_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -771,7 +771,7 @@ fn push_subscription_unsubscribe_callback(
 
 /// PushManager.subscribe() - requests a push subscription
 fn push_manager_subscribe_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -793,7 +793,7 @@ fn push_manager_subscribe_callback(
 
 /// PushManager.getSubscription() - returns existing subscription or null
 fn push_manager_get_subscription_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -816,7 +816,7 @@ fn push_manager_get_subscription_callback(
 
 /// PushManager.permissionState() - returns the permission state
 fn push_manager_permission_state_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -839,7 +839,7 @@ fn push_manager_permission_state_callback(
 
 /// PushEvent constructor - extends ExtendableEvent
 fn push_event_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -890,7 +890,7 @@ fn push_event_constructor_callback(
     // For now, add it directly to support basic usage
     let wait_until_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut rv: v8::ReturnValue| {
             rv.set(v8::undefined(_scope).into());

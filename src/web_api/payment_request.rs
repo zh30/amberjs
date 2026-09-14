@@ -57,7 +57,7 @@ pub fn setup_payment_request_api(
 
 /// PaymentRequest constructor callback
 fn payment_request_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -129,7 +129,7 @@ fn payment_request_constructor_callback(
 
 /// PaymentRequest.show() callback - shows the payment UI
 fn payment_request_show_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -152,7 +152,7 @@ fn payment_request_show_callback(
 
 /// PaymentRequest.abort() callback - cancels the payment request
 fn payment_request_abort_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -175,7 +175,7 @@ fn payment_request_abort_callback(
 
 /// PaymentRequest.canMakePayment() callback - checks if payment can be made
 fn payment_request_can_make_payment_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -197,7 +197,7 @@ fn payment_request_can_make_payment_callback(
 
 /// PaymentResponse constructor callback (for creating response objects)
 fn payment_response_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -210,7 +210,7 @@ fn payment_response_constructor_callback(
 
 /// PaymentAddress constructor callback (for address objects)
 fn payment_address_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {

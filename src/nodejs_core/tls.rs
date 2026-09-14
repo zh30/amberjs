@@ -13,7 +13,7 @@ pub fn setup_tls_api(
 
     let connect = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut rv: v8::ReturnValue| {
             // Return a minimal EventEmitter-like socket placeholder.
@@ -27,7 +27,7 @@ pub fn setup_tls_api(
     .unwrap();
     let create_server = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut rv: v8::ReturnValue| {
             let server = v8::Object::new(scope);
