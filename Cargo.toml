@@ -63,7 +63,7 @@ include = [
 # V8 - Google's high-performance JavaScript engine with Rust bindings
 # Pin 0.22 for API stability of the current binding surface.
 # Upgrade path to 0.32 / `v8` crate: docs/V8_UPGRADE.md (dedicated branch).
-rusty_v8 = "0.22"
+rusty_v8 = "0.32.1"
 
 # TypeScript 6.0 syntax transpile (strip types, downlevel using/decorators for V8 0.22)
 oxc = { version = "0.147", default-features = false, features = [

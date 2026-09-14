@@ -316,7 +316,7 @@ pub fn initialize_v8() -> Result<()> {
         let v8_flags_str: _ = v8_flags.join(" ");
         v8::V8::set_flags_from_string(&v8_flags_str);
         // Create platform
-        let platform: _ = v8::new_default_platform().unwrap();
+        let platform = v8::new_default_platform(0, false).make_shared();
         // Initialize V8
         v8::V8::initialize_platform(platform);
         v8::V8::initialize();

@@ -26,7 +26,7 @@ pub fn startup_snapshot_name() -> String {
         "release"
     };
     format!(
-        "beejs-startup-v{}-{}-rusty_v8-0.22-warmup-v2.bin",
+        "beejs-startup-v{}-{}-rusty_v8-0.32-warmup-v2.bin",
         env!("CARGO_PKG_VERSION"),
         mode
     )
