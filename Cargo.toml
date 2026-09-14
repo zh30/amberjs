@@ -63,7 +63,7 @@ include = [
 # V8 - Google's high-performance JavaScript engine with Rust bindings
 # Pin 0.22 for API stability of the current binding surface.
 # Upgrade path to 0.32 / `v8` crate: docs/V8_UPGRADE.md (dedicated branch).
-rusty_v8 = "0.32.1"
+rusty_v8 = { package = "v8", version = "152.2.0" }
 
 # TypeScript 6.0 syntax transpile (strip types, downlevel using/decorators for V8 0.22)
 oxc = { version = "0.147", default-features = false, features = [
@@ -76,8 +76,8 @@ oxc = { version = "0.147", default-features = false, features = [
 wasmtime = "38.0"
 wasmtime-wasi = "38.0"
 
-# JavaScript to WebAssembly compiler
-javy-codegen = "1.0"
+# JavaScript to WebAssembly compiler (unused, disabled to eliminate swc serde constraint)
+# javy-codegen = "1.0"
 
 # WebAssembly bindings
 wasm-bindgen = "0.2"
@@ -94,7 +94,7 @@ blake3 = "1.5"
 clap = { version = "4.0", features = ["derive"] }
 anyhow = "1.0"
 tokio = { version = "1.0", features = ["full"] }
-serde = { version = "=1.0.215", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 thiserror = "1.0"
 crossbeam = "0.8"
