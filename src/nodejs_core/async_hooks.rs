@@ -42,14 +42,17 @@ pub fn setup_async_hooks_api(
             }
         }
 
+        const _activeAlsInstances = new Set();
         class AsyncLocalStorage {
             constructor() {
                 this._store = undefined;
                 this._enabled = true;
+                _activeAlsInstances.add(this);
             }
             disable() {
                 this._store = undefined;
                 this._enabled = false;
+                _activeAlsInstances.delete(this);
             }
             getStore() {
                 return this._enabled ? this._store : undefined;
@@ -100,8 +103,37 @@ pub fn setup_async_hooks_api(
                 }
             }
             static snapshot() {
-                return function(cb, ...args) {
-                    return cb(...args);
+                const captured = [];
+                for (const als of _activeAlsInstances) {
+                    if (als._enabled) {
+                        captured.push({ als, store: als._store });
+                    }
+                }
+                return function runInSnapshot(cb, ...args) {
+                    const prevStores = [];
+                    for (const { als, store } of captured) {
+                        prevStores.push({ als, prev: als._store });
+                        als._store = store;
+                    }
+                    try {
+                        const res = cb(...args);
+                        if (res && typeof res.then === 'function') {
+                            return Promise.resolve(res).finally(() => {
+                                for (const { als, prev } of prevStores) {
+                                    als._store = prev;
+                                }
+                            });
+                        }
+                        for (const { als, prev } of prevStores) {
+                            als._store = prev;
+                        }
+                        return res;
+                    } catch (err) {
+                        for (const { als, prev } of prevStores) {
+                            als._store = prev;
+                        }
+                        throw err;
+                    }
                 };
             }
         }

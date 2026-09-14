@@ -1,11 +1,12 @@
 # Beejs Node conformance scorecard
 
-Generated: 2026-09-14T07:14Z
+Generated: 2026-09-14T10:37Z
 
 | Fixture | Result | Notes |
 |---------|--------|-------|
 | assert_basics.js | PASS |
 | async_hooks.js | PASS |
+| async_local_storage_snapshot.js | PASS |
 | bee_ai_basics.js | PASS |
 | buffer_basics.js | PASS |
 | child_process_exec_denied.js | PASS |
@@ -20,12 +21,14 @@ Generated: 2026-09-14T07:14Z
 | events_advanced.js | PASS |
 | events_basics.js | PASS |
 | events_once_promise.js | PASS |
+| express_smoke.js | PASS |
 | fastify_smoke.js | PASS |
 | fetch_allowlist.js | PASS |
 | fs_basics.js | PASS |
 | fs_jail_allows_prefix.js | PASS |
 | fs_promises.js | PASS |
 | fs_read_denied.js | PASS |
+| hono_smoke.js | PASS |
 | http2_basics.js | PASS |
 | http_listen.js | PASS |
 | http_listen_options.js | PASS |
@@ -40,6 +43,7 @@ Generated: 2026-09-14T07:14Z
 | querystring_basics.js | PASS |
 | run_denied.js | PASS |
 | stream_async_iterator.js | PASS |
+| stream_duplex_from.js | PASS |
 | stream_finished.js | PASS |
 | stream_pipe.js | PASS |
 | stream_readable_from.js | PASS |
@@ -56,4 +60,4 @@ Generated: 2026-09-14T07:14Z
 | worker_threads_basics.js | PASS |
 | zlib_sync.js | PASS |
 
-**Pass rate: 51/51 (100%)**
+**Pass rate: 55/55 (100%)**
