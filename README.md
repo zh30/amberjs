@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://bee.zhanghe.dev"><img src="https://img.shields.io/badge/docs-bee.zhanghe.dev-0f172a" alt="Docs"></a>
-  <a href="https://github.com/zh30/beejs/releases/tag/v1.10.0"><img src="https://img.shields.io/badge/release-v1.10.0-22c55e" alt="Release"></a>
+  <a href="https://github.com/zh30/beejs/releases/tag/v1.11.0"><img src="https://img.shields.io/badge/release-v1.11.0-22c55e" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
   <a href="https://github.com/zh30/beejs/actions/workflows/ci.yml"><img src="https://github.com/zh30/beejs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
@@ -54,7 +54,7 @@ Prebuilt archives: **macOS** (arm64, x64), **Linux gnu** (x64, arm64), **Windows
 curl -fsSL https://bee.zhanghe.dev/install.sh | sh
 
 # pin a release
-curl -fsSL https://bee.zhanghe.dev/install.sh | BEEJS_VERSION=v1.10.0 sh
+curl -fsSL https://bee.zhanghe.dev/install.sh | BEEJS_VERSION=v1.11.0 sh
 ```
 
 Windows (PowerShell):
@@ -116,7 +116,7 @@ bee repl
 
 ## Test runner
 
-Jest-style `describe` / `test` / `expect`, auto-discovery, watch mode. Stable in v1.10.0.
+Jest-style `describe` / `test` / `expect`, auto-discovery, watch mode. Stable in v1.11.0.
 
 ```js
 // math.test.js
@@ -224,7 +224,7 @@ Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 
 ## Compatibility
 
-| | Beejs 1.10.0 | Node.js | Bun | Deno |
+| | Beejs 1.11.0 | Node.js | Bun | Deno |
 | --- | --- | --- | --- | --- |
 | Engine | V8 + Rust | V8 + C++ | JavaScriptCore + Zig | V8 + Rust |
 | TypeScript | oxc, transpile-only | loaders / `tsc` | built-in | built-in |
@@ -234,7 +234,7 @@ Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 | Test runner | built-in `bee test` | external | `bun test` | `deno test` |
 | Native AI | `bee:ai` | — | — | — |
 
-Node modules that exist today include `fs`, `path`, `os`, `url`, `buffer`, `events`, `stream`, `crypto`, `http`, `net`, `child_process` (`execSync` / `spawnSync`), `zlib`, `util`, `worker_threads`. Web: `fetch`, Streams, Web Crypto, URL, `Worker`, and related APIs. **Coverage is per-API**, not “Node compatible.” The executable scorecard is `tests/conformance/` (50+ fixtures). WinterTC baseline: `DOMException`, `URLPattern`, `ReadableStream.from`, `bee:sockets`, `import.meta.main`.
+Node modules that exist today include `fs`, `path`, `os`, `url`, `buffer`, `events`, `stream`, `crypto`, `http`, `http2`, `net`, `child_process` (`execSync` / `spawnSync`), `zlib`, `util`, `worker_threads`. Web: `fetch`, Streams, Web Crypto, URL, `Worker`, and related APIs. **Coverage is per-API**, not “Node compatible.” The executable scorecard is `tests/conformance/` (55 fixtures). WinterTC baseline: `DOMException`, `URLPattern`, `ReadableStream.from`, `bee:sockets`, `import.meta.main`.
 
 The only user-facing capability boundary is [Current Scope](docs/CURRENT_SCOPE.md). Historical `docs/STAGE_*` numbers and “1000x” claims are not current facts.
 

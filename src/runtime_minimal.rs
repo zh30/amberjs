@@ -25631,6 +25631,18 @@ require.resolve = function(specifier) {{
             if (globalThis.stream) {
                 Object.assign(Stream, globalThis.stream);
             }
+            const streamClasses = [
+                Stream.Readable,
+                Stream.Writable,
+                Stream.Duplex,
+                Stream.Transform,
+                Stream.PassThrough
+            ];
+            for (const Cls of streamClasses) {
+                if (Cls && Cls.prototype) {
+                    Object.setPrototypeOf(Cls.prototype, Stream.prototype);
+                }
+            }
 
             function finished(stream, options, callback) {
                 if (typeof options === 'function') {
@@ -25722,6 +25734,32 @@ require.resolve = function(specifier) {{
                     });
                     return r;
                 };
+                if (Stream.Readable.prototype) {
+                    Stream.Readable.prototype.setEncoding = function(encoding) {
+                        if (this._readableState) {
+                            this._readableState.encoding = encoding;
+                        }
+                        this._encoding = encoding;
+                        return this;
+                    };
+                    Stream.Readable.prototype.pause = function() {
+                        if (this._readableState) {
+                            this._readableState.paused = true;
+                            this._readableState.flowing = false;
+                        }
+                        return this;
+                    };
+                    Stream.Readable.prototype.resume = function() {
+                        if (this._readableState) {
+                            this._readableState.paused = false;
+                            this._readableState.flowing = true;
+                        }
+                        return this;
+                    };
+                    Stream.Readable.prototype.isPaused = function() {
+                        return this._readableState ? !!this._readableState.paused : false;
+                    };
+                }
 
                 if (Stream.Readable.prototype && !Stream.Readable.prototype[Symbol.asyncIterator]) {
                     Stream.Readable.prototype[Symbol.asyncIterator] = function() {
@@ -25799,6 +25837,26 @@ require.resolve = function(specifier) {{
                 }
             }
 
+            if (Stream.Duplex) {
+                Stream.Duplex.from = function(src) {
+                    if (src instanceof Stream.Duplex) return src;
+                    if (src instanceof Stream.Readable) return src;
+                    if (Stream.Readable && typeof Stream.Readable.from === 'function') {
+                        return Stream.Readable.from(src);
+                    }
+                    return new Stream.Duplex();
+                };
+            }
+            Stream.from = function(src) {
+                if (Stream.Duplex && typeof Stream.Duplex.from === 'function') {
+                    return Stream.Duplex.from(src);
+                }
+                if (Stream.Readable && typeof Stream.Readable.from === 'function') {
+                    return Stream.Readable.from(src);
+                }
+                return new Stream();
+            };
+
             Stream.finished = finished;
             Stream.addAbortSignal = addAbortSignal;
             Stream.promises = {
@@ -25806,7 +25864,9 @@ require.resolve = function(specifier) {{
                 pipeline: Stream.pipeline
             };
             Stream.Stream = Stream;
+            Stream.default = Stream;
             globalThis.stream = Stream;
+            globalThis.Stream = Stream;
         })();
         "#;
         if let Some(code) = v8::String::new(scope, stream_bootstrap) {

@@ -116,6 +116,121 @@ pub fn setup_stream_api(
     // 设置到全局
     let stream_key: _ = v8::String::new(scope, "stream").unwrap();
     global.set(scope, stream_key.into(), stream_obj.into());
+
+    let stream_bootstrap = r#"
+    (function() {
+        const proto = typeof EventEmitter !== 'undefined' ? EventEmitter.prototype : Object.prototype;
+        function Stream(opts) {
+            if (typeof EventEmitter !== 'undefined') {
+                EventEmitter.call(this, opts);
+            }
+        }
+        Stream.prototype = Object.create(proto);
+        if (globalThis.stream) {
+            Object.assign(Stream, globalThis.stream);
+        }
+        const streamClasses = [
+            Stream.Readable,
+            Stream.Writable,
+            Stream.Duplex,
+            Stream.Transform,
+            Stream.PassThrough
+        ];
+        for (const Cls of streamClasses) {
+            if (Cls && Cls.prototype) {
+                Object.setPrototypeOf(Cls.prototype, Stream.prototype);
+            }
+        }
+
+        if (Stream.Readable) {
+            Stream.Readable.from = function(iterable, options) {
+                let iter;
+                if (iterable && typeof iterable[Symbol.asyncIterator] === 'function') {
+                    iter = iterable[Symbol.asyncIterator]();
+                } else if (iterable && typeof iterable[Symbol.iterator] === 'function') {
+                    iter = iterable[Symbol.iterator]();
+                }
+                return new Stream.Readable({
+                    ...options,
+                    async read() {
+                        if (!iter) {
+                            this.push(null);
+                            return;
+                        }
+                        try {
+                            const res = await iter.next();
+                            if (res.done) {
+                                this.push(null);
+                            } else {
+                                this.push(res.value);
+                            }
+                        } catch (err) {
+                            if (typeof this.destroy === 'function') this.destroy(err);
+                            else this.push(null);
+                        }
+                    }
+                });
+            };
+            if (Stream.Readable.prototype) {
+                Stream.Readable.prototype.setEncoding = function(encoding) {
+                    if (this._readableState) {
+                        this._readableState.encoding = encoding;
+                    }
+                    this._encoding = encoding;
+                    return this;
+                };
+                Stream.Readable.prototype.pause = function() {
+                    if (this._readableState) {
+                        this._readableState.paused = true;
+                        this._readableState.flowing = false;
+                    }
+                    return this;
+                };
+                Stream.Readable.prototype.resume = function() {
+                    if (this._readableState) {
+                        this._readableState.paused = false;
+                        this._readableState.flowing = true;
+                    }
+                    return this;
+                };
+                Stream.Readable.prototype.isPaused = function() {
+                    return this._readableState ? !!this._readableState.paused : false;
+                };
+            }
+        }
+
+        if (Stream.Duplex) {
+            Stream.Duplex.from = function(src) {
+                if (src instanceof Stream.Duplex) return src;
+                if (src instanceof Stream.Readable) return src;
+                if (Stream.Readable && typeof Stream.Readable.from === 'function') {
+                    return Stream.Readable.from(src);
+                }
+                return new Stream.Duplex();
+            };
+        }
+        Stream.from = function(src) {
+            if (Stream.Duplex && typeof Stream.Duplex.from === 'function') {
+                return Stream.Duplex.from(src);
+            }
+            if (Stream.Readable && typeof Stream.Readable.from === 'function') {
+                return Stream.Readable.from(src);
+            }
+            return new Stream();
+        };
+
+        Stream.Stream = Stream;
+        Stream.default = Stream;
+        globalThis.stream = Stream;
+        globalThis.Stream = Stream;
+    })();
+    "#;
+    if let Some(code) = v8::String::new(scope, stream_bootstrap) {
+        if let Some(script) = v8::Script::compile(scope, code, None) {
+            let _ = script.run(scope);
+        }
+    }
+
     Ok(())
 }
 fn readable_constructor_callback(

@@ -782,6 +782,18 @@ pub fn setup_http_api(
             return (typeof EE === 'function' && EE.prototype.on ? EE.prototype.on : function(){}).apply(this, arguments);
         };
         IncomingMessage.prototype.addListener = IncomingMessage.prototype.on;
+        IncomingMessage.prototype.setEncoding = function(encoding) {
+            this._encoding = encoding;
+            return this;
+        };
+        IncomingMessage.prototype.pause = function() {
+            this._paused = true;
+            return this;
+        };
+        IncomingMessage.prototype.resume = function() {
+            this._paused = false;
+            return this;
+        };
         http.IncomingMessage = IncomingMessage;
 
         function ServerResponse() {
@@ -958,11 +970,28 @@ pub fn setup_http_api(
         Server.prototype.addListener = Server.prototype.on;
         http.Server = Server;
 
+        ServerResponse.prototype.assignSocket = function(socket) {
+            this.socket = socket;
+            this.connection = socket;
+            if (typeof this.emit === 'function') {
+                this.emit('socket', socket);
+            }
+            return this;
+        };
+
         function ClientRequest() {
             if (typeof EE === 'function') EE.call(this);
         }
         ClientRequest.prototype = Object.create(proto);
         ClientRequest.prototype.constructor = ClientRequest;
+        ClientRequest.prototype.assignSocket = function(socket) {
+            this.socket = socket;
+            this.connection = socket;
+            if (typeof this.emit === 'function') {
+                this.emit('socket', socket);
+            }
+            return this;
+        };
         http.ClientRequest = ClientRequest;
 
         const _nativeCreateServer = http.createServer;
@@ -3286,13 +3315,24 @@ pub fn process_http_request_in_v8(
 
     // 设置 headers 对象
     let headers_obj = v8::Object::new(scope);
+    let raw_headers_arr = v8::Array::new(scope, (request.headers.len() * 2) as i32);
+    let mut raw_idx = 0;
     for (name, value) in &request.headers {
         let name_key = v8::String::new(scope, name).unwrap();
         let value_val = v8::String::new(scope, value).unwrap();
         headers_obj.set(scope, name_key.into(), value_val.into());
+        raw_headers_arr.set_index(scope, raw_idx, name_key.into());
+        raw_headers_arr.set_index(scope, raw_idx + 1, value_val.into());
+        raw_idx += 2;
     }
     let headers_key = v8::String::new(scope, "headers").unwrap();
     req_obj.set(scope, headers_key.into(), headers_obj.into());
+    let raw_headers_key = v8::String::new(scope, "rawHeaders").unwrap();
+    req_obj.set(scope, raw_headers_key.into(), raw_headers_arr.into());
+
+    let complete_key = v8::String::new(scope, "complete").unwrap();
+    let complete_val = v8::Boolean::new(scope, true);
+    req_obj.set(scope, complete_key.into(), complete_val.into());
 
     let body_text = String::from_utf8_lossy(&request.body).into_owned();
     let req_body_key = v8::String::new(scope, "body").unwrap();

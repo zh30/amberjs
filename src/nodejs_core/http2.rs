@@ -26,16 +26,49 @@ pub fn setup_http2_api(
         }
         Http2Session.prototype = Object.create(proto);
 
+        function Http2Stream() {
+            if (typeof EE === 'function') EE.call(this);
+        }
+        Http2Stream.prototype = Object.create(proto);
+
+        function Http2ServerRequest() {
+            if (typeof EE === 'function') EE.call(this);
+        }
+        Http2ServerRequest.prototype = Object.create(proto);
+
+        function Http2ServerResponse() {
+            if (typeof EE === 'function') EE.call(this);
+        }
+        Http2ServerResponse.prototype = Object.create(proto);
+
         const http2 = {
             constants: {
                 NGHTTP2_SESSION_SERVER: 1,
                 NGHTTP2_SESSION_CLIENT: 2,
                 NGHTTP2_FLAG_NONE: 0,
+                NGHTTP2_NO_ERROR: 0,
+                NGHTTP2_PROTOCOL_ERROR: 1,
+                NGHTTP2_INTERNAL_ERROR: 2,
+                NGHTTP2_FLOW_CONTROL_ERROR: 3,
+                NGHTTP2_SETTINGS_TIMEOUT: 4,
+                NGHTTP2_STREAM_CLOSED: 5,
+                NGHTTP2_FRAME_SIZE_ERROR: 6,
+                NGHTTP2_REFUSED_STREAM: 7,
+                NGHTTP2_CANCEL: 8,
+                NGHTTP2_COMPRESSION_ERROR: 9,
+                NGHTTP2_CONNECT_ERROR: 10,
+                NGHTTP2_ENHANCE_YOUR_CALM: 11,
+                NGHTTP2_INADEQUATE_SECURITY: 12,
+                NGHTTP2_HTTP_1_1_REQUIRED: 13,
                 HTTP2_HEADER_STATUS: ':status',
                 HTTP2_HEADER_METHOD: ':method',
                 HTTP2_HEADER_AUTHORITY: ':authority',
                 HTTP2_HEADER_SCHEME: ':scheme',
                 HTTP2_HEADER_PATH: ':path',
+                HTTP2_HEADER_ACCEPT_ENCODING: 'accept-encoding',
+                HTTP2_HEADER_ACCEPT: 'accept',
+                HTTP2_HEADER_CONTENT_LENGTH: 'content-length',
+                HTTP2_HEADER_CONTENT_TYPE: 'content-type',
             },
             getDefaultSettings() { return {}; },
             getPackedSettings() { return typeof Buffer !== 'undefined' && Buffer.alloc ? Buffer.alloc(0) : []; },
@@ -52,6 +85,9 @@ pub fn setup_http2_api(
             Http2Server,
             Http2SecureServer,
             Http2Session,
+            Http2Stream,
+            Http2ServerRequest,
+            Http2ServerResponse,
         };
         http2.default = http2;
         return http2;

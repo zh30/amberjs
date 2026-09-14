@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.0] - 2026-09-14
+
+### Added
+- **Node.js Conformance 5.0 & Mainstream Framework Compatibility**:
+  - Full compatibility support and smoke verification for modern server frameworks: **Express 5.x**, **Fastify 5.x**, and **Hono 4.x** (`@hono/node-server`).
+  - Conformance test harness expanded to 55 fixtures with a 100% pass rate (55/55 PASS).
+- **HTTP/2 Prototype & Constants**:
+  - Implemented `Http2ServerRequest`, `Http2ServerResponse`, and `Http2Stream` classes and prototypes in `node:http2`.
+  - Added HTTP/2 protocol constants (e.g. `constants.NGHTTP2_NO_ERROR: 0`) required by `@hono/node-server`.
+- **Stream Ecosystem Modernization**:
+  - Unified `Readable`, `Writable`, `Duplex`, `Transform`, and `PassThrough` under `Stream.prototype` inheriting from `EventEmitter.prototype`.
+  - Implemented `Stream.Duplex.from` and `Stream.from` factory methods for iterable and async iterable adaptation.
+  - Added `pause()`, `resume()`, `isPaused()`, and `setEncoding(enc)` on `Readable.prototype`.
+- **AsyncLocalStorage Snapshot API**:
+  - Implemented `AsyncLocalStorage.snapshot()` in `node:async_hooks` for capturing and restoring context across asynchronous boundaries.
+- **Node HTTP Protocol Enhancements**:
+  - Added `assignSocket(socket)` to both `ServerResponse` and `ClientRequest`.
+  - Added `rawHeaders`, `complete`, and encoding control methods (`setEncoding`, `pause`, `resume`) on `IncomingMessage`.
+
 ## [1.10.0] - 2026-09-14
 
 ### Added
