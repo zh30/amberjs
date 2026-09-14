@@ -12,7 +12,7 @@ use anyhow::Result;
 use rusty_v8 as v8;
 
 fn vfs_is_enabled_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -21,7 +21,7 @@ fn vfs_is_enabled_callback(
 }
 
 fn vfs_is_cow_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -30,7 +30,7 @@ fn vfs_is_cow_callback(
 }
 
 fn vfs_enable_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -44,7 +44,7 @@ fn vfs_enable_callback(
 }
 
 fn vfs_disable_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -53,7 +53,7 @@ fn vfs_disable_callback(
 }
 
 fn vfs_reset_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -62,7 +62,7 @@ fn vfs_reset_callback(
 }
 
 fn vfs_list_files_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -76,7 +76,7 @@ fn vfs_list_files_callback(
 }
 
 fn vfs_snapshot_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -128,9 +128,7 @@ pub fn setup_sandbox_api(
     // Audit Log API
     let start_audit_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() < 1 || !args.get(0).is_string() {
                 let msg =
                     v8::String::new(scope, "startAuditLog requires a file path string").unwrap();
@@ -155,7 +153,7 @@ pub fn setup_sandbox_api(
 
     let stop_audit_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut rv: v8::ReturnValue| {
             let _ = crate::permissions::set_audit_log_path(None);
@@ -168,7 +166,7 @@ pub fn setup_sandbox_api(
 
     let get_audit_path_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut rv: v8::ReturnValue| {
             if let Some(p) = crate::permissions::get_audit_log_path() {

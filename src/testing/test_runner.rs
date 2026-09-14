@@ -107,9 +107,9 @@ impl TestRunner {
         if let Some(before_all) = &suite.before_all {
             // Execute beforeAll in V8
             let mut isolate = v8::Isolate::new(Default::default());
-            let mut scope = v8::HandleScope::new(&mut isolate);
-            let context = v8::Context::new(&mut scope);
-            let scope = &mut v8::ContextScope::new(&mut scope, context);
+            v8::scope!(let scope, &mut isolate);
+            let context = v8::Context::new(scope, Default::default());
+            let scope = &mut v8::ContextScope::new(scope, context);
 
             let hook_fn = v8::Local::new(scope, before_all);
             let undefined = v8::undefined(scope);
@@ -137,9 +137,9 @@ impl TestRunner {
         // Run afterAll hook if present (using V8 executor)
         if let Some(after_all) = &suite.after_all {
             let mut isolate = v8::Isolate::new(Default::default());
-            let mut scope = v8::HandleScope::new(&mut isolate);
-            let context = v8::Context::new(&mut scope);
-            let scope = &mut v8::ContextScope::new(&mut scope, context);
+            v8::scope!(let scope, &mut isolate);
+            let context = v8::Context::new(scope, Default::default());
+            let scope = &mut v8::ContextScope::new(scope, context);
 
             let hook_fn = v8::Local::new(scope, after_all);
             let undefined = v8::undefined(scope);

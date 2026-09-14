@@ -85,7 +85,7 @@ fn parse_descriptor_to_parts(
 
 /// Sets up `bee:security` / `bee:permissions` inside V8 context
 pub fn setup_security_api(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> anyhow::Result<()> {
     let security_obj = v8::Object::new(scope);
@@ -94,9 +94,7 @@ pub fn setup_security_api(
     // 1. permissions.query({ name, path, host, varName, command })
     let query_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() == 0 || !args.get(0).is_object() {
                 let msg = v8::String::new(scope, "permissions.query requires a descriptor object")
                     .unwrap();
@@ -177,9 +175,7 @@ pub fn setup_security_api(
     // 2. permissions.has(descriptor) -> boolean
     let has_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() == 0 || !args.get(0).is_object() {
                 rv.set(v8::Boolean::new(scope, false).into());
                 return;
@@ -243,7 +239,7 @@ pub fn setup_security_api(
     // 3. permissions.list()
     let list_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut rv: v8::ReturnValue| {
             let broker = global_resource_broker().read().unwrap();
@@ -314,9 +310,7 @@ pub fn setup_security_api(
     // 4. permissions.revoke(descriptor)
     let revoke_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() == 0 || !args.get(0).is_object() {
                 let msg = v8::String::new(scope, "permissions.revoke requires a descriptor object")
                     .unwrap();
@@ -383,9 +377,7 @@ pub fn setup_security_api(
     // 5. createSandboxPolicy(rules)
     let create_policy_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let policy_obj = if args.length() > 0 && args.get(0).is_object() {
                 args.get(0)
             } else {
@@ -401,9 +393,7 @@ pub fn setup_security_api(
     // 6. attenuate(parentPolicy, restrictions)
     let attenuate_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let base_obj = if args.length() > 0 && args.get(0).is_object() {
                 args.get(0).to_object(scope).unwrap()
             } else {
@@ -419,7 +409,7 @@ pub fn setup_security_api(
             // Merge rest_obj properties into new result object
             let merged = v8::Object::new(scope);
 
-            if let Some(prop_names) = base_obj.get_property_names(scope) {
+            if let Some(prop_names) = base_obj.get_property_names(scope, Default::default()) {
                 let len = prop_names.length();
                 for i in 0..len {
                     if let Some(k) = prop_names.get_index(scope, i) {
@@ -430,7 +420,7 @@ pub fn setup_security_api(
                 }
             }
 
-            if let Some(prop_names) = rest_obj.get_property_names(scope) {
+            if let Some(prop_names) = rest_obj.get_property_names(scope, Default::default()) {
                 let len = prop_names.length();
                 for i in 0..len {
                     if let Some(k) = prop_names.get_index(scope, i) {

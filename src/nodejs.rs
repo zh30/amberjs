@@ -73,7 +73,7 @@ fn setup_process(
     Ok(())
 }
 fn cwd_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -85,7 +85,7 @@ fn cwd_callback(
     retval.set(result_str.into());
 }
 fn next_tick_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -147,7 +147,7 @@ fn setup_path(
     Ok(())
 }
 fn path_join_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -166,7 +166,7 @@ fn path_join_callback(
     retval.set(result_str.into());
 }
 fn path_resolve_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -196,7 +196,7 @@ fn path_resolve_callback(
     retval.set(result_str.into());
 }
 fn path_dirname_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -214,7 +214,7 @@ fn path_dirname_callback(
     retval.set(result_str.into());
 }
 fn path_basename_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -233,7 +233,7 @@ fn path_basename_callback(
     retval.set(result_str.into());
 }
 fn path_extname_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -294,7 +294,7 @@ fn setup_fs(
     Ok(())
 }
 fn fs_read_file_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -308,7 +308,7 @@ fn fs_read_file_sync_callback(
     retval.set(result_str.into());
 }
 fn fs_write_file_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -326,7 +326,7 @@ fn fs_write_file_sync_callback(
     // Just return - V8 ReturnValue doesn't have set_undefined in 0.20
 }
 fn fs_exists_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -339,7 +339,7 @@ fn fs_exists_sync_callback(
     retval.set(v8::Boolean::new(scope, exists).into());
 }
 fn fs_mkdir_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -352,7 +352,7 @@ fn fs_mkdir_sync_callback(
     // Just return - V8 ReturnValue doesn't have set_undefined in 0.20
 }
 fn fs_readdir_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -377,7 +377,7 @@ fn fs_readdir_sync_callback(
     retval.set(array.into());
 }
 fn fs_stat_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -449,7 +449,7 @@ fn setup_module_system(
     Ok(())
 }
 fn require_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -610,7 +610,7 @@ fn require_callback(
 }
 /// Resolve module path from module name
 #[allow(dead_code)]
-fn resolve_module_path(scope: &mut v8::HandleScope, module_name: &str) -> Result<String> {
+fn resolve_module_path(scope: &mut v8::PinScope, module_name: &str) -> Result<String> {
     let context: _ = scope.get_current_context();
     let global: _ = context.global(scope);
     // Get current file's directory from __filename
@@ -670,7 +670,7 @@ mod tests {
         crate::initialize_v8();
         let isolate: _ = &mut v8::Isolate::new(Default::default());
         let handle_scope: _ = &mut v8::HandleScope::new(isolate);
-        let context: _ = v8::Context::new(handle_scope);
+        let context: _ = v8::Context::new(handle_scope, Default::default());
         let scope: _ = &mut v8::ContextScope::new(handle_scope, context);
         let result: _ = setup_nodejs_apis(scope, None, &context, None);
         assert!(result.is_ok());

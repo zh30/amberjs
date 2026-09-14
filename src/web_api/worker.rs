@@ -87,7 +87,7 @@ pub fn setup_worker_api(
 
 /// Worker constructor callback - implemented as a standalone function to avoid closure capture issues
 fn worker_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -103,14 +103,11 @@ fn worker_constructor_callback(
     rv.set(v8::undefined(scope).into());
 }
 
-fn add_prototype_methods(
-    scope: &mut v8::HandleScope,
-    prototype: v8::Local<v8::Object>,
-) -> Result<()> {
+fn add_prototype_methods(scope: &mut v8::PinScope, prototype: v8::Local<v8::Object>) -> Result<()> {
     // postMessage method
     let post_message_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             let this_obj = args.this();
 
             // Check if worker is terminated
@@ -136,7 +133,7 @@ fn add_prototype_methods(
     // terminate method
     let terminate_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             let this_obj = args.this();
 
             let worker_id_key = v8::String::new(scope, "_workerId").unwrap();

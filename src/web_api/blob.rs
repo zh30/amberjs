@@ -4,7 +4,7 @@
 use anyhow::Result;
 use rusty_v8 as v8;
 
-fn append_blob_part(scope: &mut v8::HandleScope, part: v8::Local<v8::Value>, data: &mut Vec<u8>) {
+fn append_blob_part(scope: &mut v8::PinScope, part: v8::Local<v8::Value>, data: &mut Vec<u8>) {
     if part.is_string() {
         let part_str = part.to_string(scope).unwrap().to_rust_string_lossy(scope);
         data.extend_from_slice(part_str.as_bytes());
@@ -12,7 +12,10 @@ fn append_blob_part(scope: &mut v8::HandleScope, part: v8::Local<v8::Value>, dat
         let byte_len = array_buffer.byte_length();
         if byte_len > 0 {
             let backing_store = array_buffer.get_backing_store();
-            let src_ptr = backing_store.data() as *const u8;
+            let src_ptr = backing_store
+                .data()
+                .map(|p| p.as_ptr() as *const u8)
+                .unwrap_or(std::ptr::null());
             if !src_ptr.is_null() {
                 let bytes = unsafe { std::slice::from_raw_parts(src_ptr, byte_len) };
                 data.extend_from_slice(bytes);
@@ -31,13 +34,16 @@ fn append_blob_part(scope: &mut v8::HandleScope, part: v8::Local<v8::Value>, dat
 }
 
 fn array_buffer_from_bytes<'scope>(
-    scope: &mut v8::HandleScope<'scope>,
+    scope: &mut v8::PinScope<'scope, '_>,
     bytes: &[u8],
 ) -> v8::Local<'scope, v8::ArrayBuffer> {
     let array_buffer = v8::ArrayBuffer::new(scope, bytes.len());
     if !bytes.is_empty() {
         let backing_store = array_buffer.get_backing_store();
-        let ptr = backing_store.data() as *mut u8;
+        let ptr = backing_store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, bytes.len()) };
             slice.copy_from_slice(bytes);
@@ -53,28 +59,24 @@ fn bytes_from_array_buffer_value(value: v8::Local<v8::Value>) -> Option<Vec<u8>>
         return Some(Vec::new());
     }
     let backing_store = buffer.get_backing_store();
-    let ptr = backing_store.data() as *const u8;
+    let ptr = backing_store
+        .data()
+        .map(|p| p.as_ptr() as *const u8)
+        .unwrap_or(std::ptr::null());
     if ptr.is_null() {
         return None;
     }
     Some(unsafe { std::slice::from_raw_parts(ptr, len).to_vec() })
 }
 
-fn blob_object_bytes(
-    scope: &mut v8::HandleScope,
-    object: v8::Local<v8::Object>,
-) -> Option<Vec<u8>> {
+fn blob_object_bytes(scope: &mut v8::PinScope, object: v8::Local<v8::Object>) -> Option<Vec<u8>> {
     let bytes_key = v8::String::new(scope, "blobBytes")?;
     object
         .get(scope, bytes_key.into())
         .and_then(bytes_from_array_buffer_value)
 }
 
-fn set_blob_data_properties(
-    scope: &mut v8::HandleScope,
-    object: v8::Local<v8::Object>,
-    data: &[u8],
-) {
+fn set_blob_data_properties(scope: &mut v8::PinScope, object: v8::Local<v8::Object>, data: &[u8]) {
     let bytes_key = v8::String::new(scope, "blobBytes").unwrap();
     let bytes_buffer = array_buffer_from_bytes(scope, data);
     object.set(scope, bytes_key.into(), bytes_buffer.into());
@@ -114,7 +116,7 @@ pub fn setup_blob_api(
 }
 /// Blob constructor callback
 fn blob_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -190,7 +192,7 @@ fn blob_constructor(
 }
 /// File constructor callback (extends Blob)
 fn file_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -297,7 +299,7 @@ fn file_constructor(
 }
 /// Blob.arrayBuffer() method
 fn blob_array_buffer(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -333,7 +335,7 @@ fn blob_array_buffer(
 }
 /// Blob.text() method
 fn blob_text(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -356,7 +358,7 @@ fn blob_text(
 }
 /// Blob.slice() method
 fn blob_slice(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -477,20 +479,20 @@ fn blob_slice(
 }
 /// Blob.stream() method
 fn blob_stream(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
     let stream = v8::Object::new(scope);
     let get_reader = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let reader = v8::Object::new(scope);
             let read = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let result = v8::Object::new(scope);

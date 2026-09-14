@@ -63,14 +63,10 @@ impl SnapshotManager {
     fn create_startup_blob(warmup_source: &str) -> Result<Vec<u8>> {
         crate::initialize_v8()?;
 
-        let mut creator = v8::SnapshotCreator::new(None);
-        // SAFETY: `get_owned_isolate` may be called at most once per creator,
-        // and this is the only call. The isolate is leaked below because the
-        // creator destroys it in its own `Drop`.
-        let mut isolate = unsafe { creator.get_owned_isolate() };
+        let mut isolate = v8::Isolate::snapshot_creator(None, None);
         {
-            let scope = &mut v8::HandleScope::new(&mut isolate);
-            let context = v8::Context::new(scope);
+            v8::scope!(let scope, &mut isolate);
+            let context = v8::Context::new(scope, Default::default());
             {
                 let scope = &mut v8::ContextScope::new(scope, context);
                 let source = v8::String::new(scope, warmup_source)
@@ -80,13 +76,12 @@ impl SnapshotManager {
                 script
                     .run(scope)
                     .ok_or_else(|| anyhow!("warmup script did not complete"))?;
+                scope.set_default_context(context);
             }
-            creator.set_default_context(context);
         }
-        std::mem::forget(isolate);
 
-        // create_blob must not run inside a handle scope.
-        let blob = creator
+        // create_blob consumes the isolate created by snapshot_creator
+        let blob = isolate
             .create_blob(v8::FunctionCodeHandling::Keep)
             .ok_or_else(|| anyhow!("V8 refused to serialize the warmup context"))?;
         Ok(blob.to_vec())
@@ -131,10 +126,10 @@ impl SnapshotManager {
 
         // 使用作用域直接在 isolate 上操作
         {
-            let scope = &mut v8::HandleScope::new(&mut isolate);
+            v8::scope!(let scope, &mut isolate);
 
             // 创建 V8 上下文用于预热
-            let context = v8::Context::new(scope);
+            let context = v8::Context::new(scope, Default::default());
             let context_scope = &mut v8::ContextScope::new(scope, context);
 
             // 预热 Object.prototype - 访问常用方法触发 JIT 编译
@@ -236,7 +231,7 @@ impl SnapshotManager {
     /// 执行预热代码的辅助方法
     fn execute_warmup_code(
         &self,
-        scope: &mut v8::ContextScope<'_, v8::HandleScope<'_>>,
+        scope: &mut v8::ContextScope<'_, '_, v8::HandleScope<'_>>,
         code: &str,
     ) -> Result<()> {
         // 将代码转换为 V8 字符串

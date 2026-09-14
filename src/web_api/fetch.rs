@@ -230,7 +230,7 @@ pub fn setup_fetch_api(
 }
 /// Main fetch function callback
 fn fetch_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -693,7 +693,7 @@ pub struct RequestData {
 }
 
 fn request_text_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -717,7 +717,7 @@ fn request_text_callback(
 }
 
 fn request_json_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -749,7 +749,7 @@ fn request_json_callback(
 }
 
 fn request_array_buffer_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -779,7 +779,7 @@ fn request_array_buffer_callback(
     retval.set(resolver.get_promise(scope).into());
 }
 
-fn attach_request_body_methods(scope: &mut v8::HandleScope, request_obj: v8::Local<v8::Object>) {
+fn attach_request_body_methods(scope: &mut v8::PinScope, request_obj: v8::Local<v8::Object>) {
     let text_fn = v8::Function::new(scope, request_text_callback).unwrap();
     let text_key = v8::String::new(scope, "text").unwrap().into();
     request_obj.set(scope, text_key, text_fn.into());
@@ -795,7 +795,7 @@ fn attach_request_body_methods(scope: &mut v8::HandleScope, request_obj: v8::Loc
 
 /// Request constructor callback
 fn request_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1023,9 +1023,7 @@ fn request_constructor_callback(
     // Add clone() method using object data
     let clone_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let this_obj = args.this();
 
             // Get request data from the object properties
@@ -1142,7 +1140,7 @@ fn request_constructor_callback(
             // Add clone method to new request (simple implementation)
             let new_clone_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  _args: v8::FunctionCallbackArguments,
                  mut rv: v8::ReturnValue| {
                     let null_val: v8::Local<v8::Value> = v8::null(scope).into();
@@ -1168,7 +1166,7 @@ fn request_constructor_callback(
 }
 /// Response constructor callback
 fn response_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1249,7 +1247,7 @@ fn response_constructor_callback(
     retval.set(response_obj.into());
 }
 
-fn body_value_to_bytes(scope: &mut v8::HandleScope, body: v8::Local<v8::Value>) -> Vec<u8> {
+fn body_value_to_bytes(scope: &mut v8::PinScope, body: v8::Local<v8::Value>) -> Vec<u8> {
     if body.is_null_or_undefined() {
         Vec::new()
     } else if let Ok(view) = v8::Local::<v8::ArrayBufferView>::try_from(body) {
@@ -1275,7 +1273,7 @@ fn body_value_to_bytes(scope: &mut v8::HandleScope, body: v8::Local<v8::Value>) 
 }
 
 fn header_entries_from_value(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     headers_val: v8::Local<v8::Value>,
 ) -> Vec<(String, String)> {
     if !headers_val.is_object() {
@@ -1297,7 +1295,7 @@ fn header_entries_from_value(
         }
     }
 
-    let Some(keys_array) = headers_obj.get_own_property_names(scope) else {
+    let Some(keys_array) = headers_obj.get_own_property_names(scope, Default::default()) else {
         return Vec::new();
     };
 
@@ -1332,7 +1330,7 @@ fn normalize_header_name(name: &str) -> String {
 }
 
 fn header_entries_from_sequence(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     headers_array: v8::Local<v8::Array>,
 ) -> Vec<(String, String)> {
     let mut entries = Vec::new();
@@ -1370,17 +1368,18 @@ fn header_entries_from_sequence(
 }
 
 fn headers_cache_index_from_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     headers_obj: v8::Local<v8::Object>,
 ) -> Option<usize> {
     headers_obj
         .get_internal_field(scope, 0)
+        .and_then(|d| v8::Local::<v8::Value>::try_from(d).ok())
         .and_then(|value| value.to_integer(scope))
         .map(|index| index.value() as usize)
 }
 
 fn headers_entries_for_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     headers_obj: v8::Local<v8::Object>,
 ) -> Vec<(String, String)> {
     headers_cache_index_from_object(scope, headers_obj)
@@ -1389,7 +1388,7 @@ fn headers_entries_for_object(
 }
 
 fn headers_keys_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     entries: &[(String, String)],
 ) -> v8::Local<'a, v8::Array> {
     let array = v8::Array::new(scope, entries.len() as i32);
@@ -1401,7 +1400,7 @@ fn headers_keys_array<'a>(
 }
 
 fn headers_values_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     entries: &[(String, String)],
 ) -> v8::Local<'a, v8::Array> {
     let array = v8::Array::new(scope, entries.len() as i32);
@@ -1413,7 +1412,7 @@ fn headers_values_array<'a>(
 }
 
 fn headers_entries_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     entries: &[(String, String)],
 ) -> v8::Local<'a, v8::Array> {
     let array = v8::Array::new(scope, entries.len() as i32);
@@ -1428,7 +1427,7 @@ fn headers_entries_array<'a>(
     array
 }
 
-fn symbol_iterator_value<'a>(scope: &mut v8::HandleScope<'a>) -> Option<v8::Local<'a, v8::Value>> {
+fn symbol_iterator_value<'a>(scope: &mut v8::PinScope<'a, '_>) -> Option<v8::Local<'a, v8::Value>> {
     let context = scope.get_current_context();
     let global = context.global(scope);
     let symbol_key: v8::Local<v8::Value> = v8::String::new(scope, "Symbol")?.into();
@@ -1439,7 +1438,7 @@ fn symbol_iterator_value<'a>(scope: &mut v8::HandleScope<'a>) -> Option<v8::Loca
 }
 
 fn iterator_from_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     array: v8::Local<'a, v8::Array>,
 ) -> v8::Local<'a, v8::Value> {
     let Some(iterator_key) = symbol_iterator_value(scope) else {
@@ -1459,7 +1458,7 @@ fn iterator_from_array<'a>(
 
 /// Headers constructor callback - uses ObjectTemplate with internal fields
 fn headers_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1485,7 +1484,7 @@ fn headers_constructor_callback(
 
     // Store index in internal field 0
     let index_val: v8::Local<v8::Value> = v8::Integer::new(scope, index as i32).into();
-    headers_obj.set_internal_field(0, index_val);
+    headers_obj.set_internal_field(0, index_val.into());
 
     // Initialize headers data for this index
     let initial_entries = header_entries_from_value(scope, args.get(0));
@@ -1497,14 +1496,13 @@ fn headers_constructor_callback(
     let get_key = v8::String::new(scope, "get").unwrap().into();
     let get_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let this_obj: v8::Local<v8::Object> = args.this();
 
             // Get index from internal field
             let index = this_obj
                 .get_internal_field(scope, 0)
+                .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
                 .and_then(|v| v.to_integer(scope))
                 .map(|i| i.value() as usize)
                 .unwrap_or(usize::MAX);
@@ -1542,12 +1540,13 @@ fn headers_constructor_callback(
     let set_key = v8::String::new(scope, "set").unwrap().into();
     let set_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             let this_obj: v8::Local<v8::Object> = args.this();
 
             // Get index from internal field
             let index = this_obj
                 .get_internal_field(scope, 0)
+                .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
                 .and_then(|v| v.to_integer(scope))
                 .map(|i| i.value() as usize)
                 .unwrap_or(usize::MAX);
@@ -1580,14 +1579,13 @@ fn headers_constructor_callback(
     let has_key = v8::String::new(scope, "has").unwrap().into();
     let has_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let this_obj: v8::Local<v8::Object> = args.this();
 
             // Get index from internal field
             let index = this_obj
                 .get_internal_field(scope, 0)
+                .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
                 .and_then(|v| v.to_integer(scope))
                 .map(|i| i.value() as usize)
                 .unwrap_or(usize::MAX);
@@ -1615,12 +1613,13 @@ fn headers_constructor_callback(
     let delete_key = v8::String::new(scope, "delete").unwrap().into();
     let delete_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             let this_obj: v8::Local<v8::Object> = args.this();
 
             // Get index from internal field
             let index = this_obj
                 .get_internal_field(scope, 0)
+                .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
                 .and_then(|v| v.to_integer(scope))
                 .map(|i| i.value() as usize)
                 .unwrap_or(usize::MAX);
@@ -1644,12 +1643,13 @@ fn headers_constructor_callback(
     let append_key = v8::String::new(scope, "append").unwrap().into();
     let append_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             let this_obj: v8::Local<v8::Object> = args.this();
 
             // Get index from internal field
             let index = this_obj
                 .get_internal_field(scope, 0)
+                .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
                 .and_then(|v| v.to_integer(scope))
                 .map(|i| i.value() as usize)
                 .unwrap_or(usize::MAX);
@@ -1679,9 +1679,7 @@ fn headers_constructor_callback(
     let keys_key = v8::String::new(scope, "keys").unwrap().into();
     let keys_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let entries = headers_entries_for_object(scope, args.this());
             let array = headers_keys_array(scope, &entries);
             rv.set(iterator_from_array(scope, array));
@@ -1694,9 +1692,7 @@ fn headers_constructor_callback(
     let values_key = v8::String::new(scope, "values").unwrap().into();
     let values_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let entries = headers_entries_for_object(scope, args.this());
             let array = headers_values_array(scope, &entries);
             rv.set(iterator_from_array(scope, array));
@@ -1709,9 +1705,7 @@ fn headers_constructor_callback(
     let entries_key = v8::String::new(scope, "entries").unwrap().into();
     let entries_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let entries = headers_entries_for_object(scope, args.this());
             let array = headers_entries_array(scope, &entries);
             rv.set(iterator_from_array(scope, array));
@@ -1723,9 +1717,7 @@ fn headers_constructor_callback(
     // Add [Symbol.iterator]() method
     let iterator_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let entries = headers_entries_for_object(scope, args.this());
             let array = headers_entries_array(scope, &entries);
             rv.set(iterator_from_array(scope, array));
@@ -1740,7 +1732,7 @@ fn headers_constructor_callback(
     let for_each_key = v8::String::new(scope, "forEach").unwrap().into();
     let for_each_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue| {
             let callback_val = args.get(0);
             let Ok(callback) = v8::Local::<v8::Function>::try_from(callback_val) else {
                 return;
@@ -1771,9 +1763,7 @@ fn headers_constructor_callback(
     let get_set_cookie_key = v8::String::new(scope, "getSetCookie").unwrap().into();
     let get_set_cookie_func_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let entries = headers_entries_for_object(scope, args.this());
             let cookies: Vec<String> = entries
                 .into_iter()
@@ -1795,7 +1785,7 @@ fn headers_constructor_callback(
 }
 
 fn create_headers_object_with_entries<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     entries: Vec<(String, String)>,
 ) -> v8::Local<'a, v8::Object> {
     let mut headers_obj = v8::Object::new(scope);
@@ -1835,7 +1825,7 @@ fn create_headers_object_with_entries<'a>(
 }
 
 fn store_response_body(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     response_obj: v8::Local<v8::Object>,
     url: String,
     body_vec: Vec<u8>,
@@ -1855,7 +1845,7 @@ fn store_response_body(
     response_obj.set(scope, body_key.into(), body_val);
 }
 
-fn attach_response_body_methods(scope: &mut v8::HandleScope, response_obj: v8::Local<v8::Object>) {
+fn attach_response_body_methods(scope: &mut v8::PinScope, response_obj: v8::Local<v8::Object>) {
     let json_template: _ = v8::FunctionTemplate::new(scope, json_callback);
     let json_func: _ = json_template.get_function(scope).unwrap();
     let json_key: _ = v8::String::new(scope, "json").unwrap();
@@ -1877,13 +1867,11 @@ fn attach_response_body_methods(scope: &mut v8::HandleScope, response_obj: v8::L
     response_obj.set(scope, blob_key.into(), blob_func.into());
 }
 
-fn attach_response_clone_method(scope: &mut v8::HandleScope, response_obj: v8::Local<v8::Object>) {
+fn attach_response_clone_method(scope: &mut v8::PinScope, response_obj: v8::Local<v8::Object>) {
     let clone_key: _ = v8::String::new(scope, "clone").unwrap();
     let clone_template: _ = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let this_obj: v8::Local<v8::Object> = args.this();
 
             if response_body_is_used(scope, this_obj) {
@@ -1929,7 +1917,7 @@ fn attach_response_clone_method(scope: &mut v8::HandleScope, response_obj: v8::L
 
 /// json() method callback for Response objects
 fn json_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1969,7 +1957,7 @@ fn json_callback(
 
 /// text() method callback for Response objects
 fn text_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1997,7 +1985,7 @@ fn text_callback(
 /// arrayBuffer() method callback for Response objects (Body mixin)
 /// Returns the response body as an ArrayBuffer
 fn array_buffer_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2031,7 +2019,7 @@ fn array_buffer_callback(
 /// blob() method callback for Response objects (Body mixin)
 /// Returns the response body as a Blob-like object
 fn blob_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2084,7 +2072,7 @@ fn blob_callback(
 }
 
 fn consume_response_body_for_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     response_obj: v8::Local<v8::Object>,
 ) -> std::result::Result<Option<Vec<u8>>, ()> {
     if response_body_is_used(scope, response_obj) {
@@ -2102,7 +2090,7 @@ fn consume_response_body_for_object(
     Ok(body)
 }
 
-fn response_body_is_used(scope: &mut v8::HandleScope, response_obj: v8::Local<v8::Object>) -> bool {
+fn response_body_is_used(scope: &mut v8::PinScope, response_obj: v8::Local<v8::Object>) -> bool {
     let body_used_key = v8::String::new(scope, "bodyUsed").unwrap().into();
     response_obj
         .get(scope, body_used_key)
@@ -2110,14 +2098,14 @@ fn response_body_is_used(scope: &mut v8::HandleScope, response_obj: v8::Local<v8
         .unwrap_or(false)
 }
 
-fn throw_response_body_already_consumed(scope: &mut v8::HandleScope) {
+fn throw_response_body_already_consumed(scope: &mut v8::PinScope) {
     let message = v8::String::new(scope, "Response body already consumed").unwrap();
     let error = v8::Exception::type_error(scope, message);
     scope.throw_exception(error.into());
 }
 
 fn response_body_for_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     response_obj: v8::Local<v8::Object>,
 ) -> Option<Vec<u8>> {
     let response_id_key = v8::String::new(scope, "__beejsResponseId").unwrap().into();

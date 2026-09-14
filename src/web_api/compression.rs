@@ -11,7 +11,7 @@ use std::io::{Cursor, Read};
 
 /// Close method for compression stream - closes the writable stream
 fn compression_close_method(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -33,7 +33,7 @@ fn compression_close_method(
 
 /// Close method for decompression stream
 fn decompression_close_method(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -55,13 +55,16 @@ fn decompression_close_method(
 
 /// Helper to create Uint8Array from bytes
 fn create_uint8_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     data: &[u8],
 ) -> Option<v8::Local<'a, v8::Uint8Array>> {
     let buffer = v8::ArrayBuffer::new(scope, data.len());
     if data.len() > 0 {
         let store = buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         unsafe {
             std::slice::from_raw_parts_mut(ptr, data.len()).copy_from_slice(data);
         }
@@ -70,7 +73,7 @@ fn create_uint8_array<'a>(
 }
 
 fn uint8_array_to_vec(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     data: v8::Local<v8::Uint8Array>,
 ) -> Option<Vec<u8>> {
     let len = data.byte_length();
@@ -80,7 +83,10 @@ fn uint8_array_to_vec(
 
     let buffer = data.buffer(scope)?;
     let store = buffer.get_backing_store();
-    let ptr = store.data() as *const u8;
+    let ptr = store
+        .data()
+        .map(|p| p.as_ptr() as *const u8)
+        .unwrap_or(std::ptr::null());
     if ptr.is_null() {
         return None;
     }
@@ -90,7 +96,7 @@ fn uint8_array_to_vec(
 }
 
 /// Attach close method to compression stream instance
-fn attach_compression_close_method(scope: &mut v8::HandleScope, this_obj: v8::Local<v8::Object>) {
+fn attach_compression_close_method(scope: &mut v8::PinScope, this_obj: v8::Local<v8::Object>) {
     let close_key = v8::String::new(scope, "close").unwrap();
     let close_fn_template = v8::FunctionTemplate::new(scope, compression_close_method);
     if let Some(close_fn) = close_fn_template.get_function(scope) {
@@ -99,7 +105,7 @@ fn attach_compression_close_method(scope: &mut v8::HandleScope, this_obj: v8::Lo
 }
 
 /// Attach close method to decompression stream instance
-fn attach_decompression_close_method(scope: &mut v8::HandleScope, this_obj: v8::Local<v8::Object>) {
+fn attach_decompression_close_method(scope: &mut v8::PinScope, this_obj: v8::Local<v8::Object>) {
     let close_key = v8::String::new(scope, "close").unwrap();
     let close_fn_template = v8::FunctionTemplate::new(scope, decompression_close_method);
     if let Some(close_fn) = close_fn_template.get_function(scope) {
@@ -141,7 +147,7 @@ pub fn setup_compression_api(
     // Setup helper function for compression (_compressData)
     let compress_template = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() >= 2 {
@@ -194,7 +200,7 @@ pub fn setup_compression_api(
     // Setup helper function for decompression (_decompressData)
     let decompress_template = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() >= 2 {
@@ -247,7 +253,7 @@ pub fn setup_compression_api(
 
 /// CompressionStream constructor - full implementation with actual compression
 fn compression_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -386,7 +392,7 @@ fn compression_stream_constructor(
 
 /// DecompressionStream constructor - full implementation with actual decompression
 fn decompression_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

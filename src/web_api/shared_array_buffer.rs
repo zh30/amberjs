@@ -45,7 +45,7 @@ pub fn setup_shared_array_buffer_api(
 /// SharedArrayBuffer constructor callback
 /// Creates a new SharedArrayBuffer with the specified byte length
 fn shared_array_buffer_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

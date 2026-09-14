@@ -116,7 +116,7 @@ pub fn topic_matches(pattern: &str, topic: &str) -> bool {
 }
 
 fn bus_native_dispatch(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -246,7 +246,7 @@ fn bus_native_dispatch(
 
 /// Sets up the `bee:bus` API in V8 context
 pub fn setup_bus_api(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> anyhow::Result<()> {
     let global = context.global(scope);

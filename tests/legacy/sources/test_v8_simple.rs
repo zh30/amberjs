@@ -12,11 +12,11 @@ fn main() {
     v8::V8::initialize();
 
     // Create isolate
-    let isolate = v8::Isolate::new(v8::CreateParams::default());
-    let scope = &mut v8::HandleScope::new(isolate);
+    let mut isolate = v8::Isolate::new(v8::CreateParams::default());
+    v8::scope!(let scope, &mut isolate);
 
     // Create context
-    let context = v8::Context::new(scope);
+    let context = v8::Context::new(scope, Default::default());
     let scope = &mut v8::ContextScope::new(scope, context);
 
     // Test 1: Simple arithmetic

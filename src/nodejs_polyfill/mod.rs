@@ -11,7 +11,7 @@ pub mod url;
 pub mod querystring;
 pub mod util;
 /// Register all built-in modules with the V8 context
-pub fn register_builtins<'a>(scope: &mut v8::HandleScope<'a>) -> v8::Local<'a, v8::Object> {
+pub fn register_builtins<'a>(scope: &mut v8::PinScope<'a, '_>) -> v8::Local<'a, v8::Object> {
     let global: _ = v8::Object::new(scope);
     
     // Register each module

@@ -37,7 +37,7 @@ pub fn setup_querystring_api(
 }
 
 fn argument_string_or_default(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: &v8::FunctionCallbackArguments,
     index: i32,
     default: &str,
@@ -63,7 +63,7 @@ fn decode_component(value: &str) -> String {
         .to_string()
 }
 
-fn value_to_string(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> String {
+fn value_to_string(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
     if value.is_undefined() || value.is_null() {
         return String::new();
     }
@@ -74,7 +74,7 @@ fn value_to_string(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> 
 }
 
 fn set_or_append_parse_value(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     result_obj: v8::Local<v8::Object>,
     key: &str,
     value: &str,
@@ -109,7 +109,7 @@ fn push_stringified_pair(output: &mut Vec<String>, key: &str, value: &str, eq: &
 }
 
 fn qs_parse_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -138,7 +138,7 @@ fn qs_parse_callback(
 }
 
 fn qs_stringify_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -150,7 +150,7 @@ fn qs_stringify_callback(
     if value.is_object() && !value.is_null() {
         if let Some(obj) = value.to_object(scope) {
             let prop_names = obj
-                .get_own_property_names(scope)
+                .get_own_property_names(scope, Default::default())
                 .unwrap_or_else(|| v8::Array::new(scope, 0));
             for i in 0..prop_names.length() {
                 let Some(key_val) = prop_names.get_index(scope, i) else {
@@ -187,7 +187,7 @@ fn qs_stringify_callback(
 }
 
 fn qs_escape_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -201,7 +201,7 @@ fn qs_escape_callback(
 }
 
 fn qs_unescape_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

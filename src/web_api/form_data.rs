@@ -26,7 +26,7 @@ pub struct FormDataEntry {
 }
 
 fn value_to_optional_string(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     value: v8::Local<v8::Value>,
 ) -> Option<String> {
     if value.is_undefined() || value.is_null() {
@@ -39,7 +39,7 @@ fn value_to_optional_string(
 }
 
 fn object_string_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     object: v8::Local<v8::Object>,
     key: &str,
 ) -> Option<String> {
@@ -50,7 +50,7 @@ fn object_string_property(
 }
 
 fn object_bool_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     object: v8::Local<v8::Object>,
     key: &str,
 ) -> bool {
@@ -62,11 +62,7 @@ fn object_bool_property(
         .is_some_and(|value| value.is_boolean() && value.boolean_value(scope))
 }
 
-fn object_has_property(
-    scope: &mut v8::HandleScope,
-    object: v8::Local<v8::Object>,
-    key: &str,
-) -> bool {
+fn object_has_property(scope: &mut v8::PinScope, object: v8::Local<v8::Object>, key: &str) -> bool {
     let Some(key) = v8::String::new(scope, key) else {
         return false;
     };
@@ -80,17 +76,17 @@ fn bytes_from_array_buffer_value(value: v8::Local<v8::Value>) -> Option<Vec<u8>>
         return Some(Vec::new());
     }
     let backing_store = buffer.get_backing_store();
-    let ptr = backing_store.data() as *const u8;
+    let ptr = backing_store
+        .data()
+        .map(|p| p.as_ptr() as *const u8)
+        .unwrap_or(std::ptr::null());
     if ptr.is_null() {
         return None;
     }
     Some(unsafe { std::slice::from_raw_parts(ptr, len).to_vec() })
 }
 
-fn object_blob_bytes(
-    scope: &mut v8::HandleScope,
-    object: v8::Local<v8::Object>,
-) -> Option<Vec<u8>> {
+fn object_blob_bytes(scope: &mut v8::PinScope, object: v8::Local<v8::Object>) -> Option<Vec<u8>> {
     let key = v8::String::new(scope, "blobBytes")?;
     object
         .get(scope, key.into())
@@ -98,7 +94,7 @@ fn object_blob_bytes(
 }
 
 fn form_data_value_entry(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     value: v8::Local<v8::Value>,
     explicit_filename: Option<String>,
 ) -> Option<(String, Vec<u8>, Option<String>, String)> {
@@ -136,17 +132,18 @@ fn form_data_value_entry(
 }
 
 fn form_data_index_from_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     form_data_obj: v8::Local<v8::Object>,
 ) -> Option<usize> {
     form_data_obj
         .get_internal_field(scope, 0)
+        .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
         .and_then(|value| value.to_integer(scope))
         .map(|index| index.value() as usize)
 }
 
 fn form_data_entries_for_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     form_data_obj: v8::Local<v8::Object>,
 ) -> Vec<FormDataEntry> {
     form_data_index_from_object(scope, form_data_obj)
@@ -155,7 +152,7 @@ fn form_data_entries_for_object(
 }
 
 fn form_data_entries_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     entries: &[FormDataEntry],
 ) -> v8::Local<'a, v8::Array> {
     let array = v8::Array::new(scope, entries.len() as i32);
@@ -171,7 +168,7 @@ fn form_data_entries_array<'a>(
 }
 
 fn form_data_keys_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     entries: &[FormDataEntry],
 ) -> v8::Local<'a, v8::Array> {
     let array = v8::Array::new(scope, entries.len() as i32);
@@ -183,7 +180,7 @@ fn form_data_keys_array<'a>(
 }
 
 fn form_data_values_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     entries: &[FormDataEntry],
 ) -> v8::Local<'a, v8::Array> {
     let array = v8::Array::new(scope, entries.len() as i32);
@@ -194,7 +191,7 @@ fn form_data_values_array<'a>(
     array
 }
 
-fn symbol_iterator_value<'a>(scope: &mut v8::HandleScope<'a>) -> Option<v8::Local<'a, v8::Value>> {
+fn symbol_iterator_value<'a>(scope: &mut v8::PinScope<'a, '_>) -> Option<v8::Local<'a, v8::Value>> {
     let context = scope.get_current_context();
     let global = context.global(scope);
     let symbol_key: v8::Local<v8::Value> = v8::String::new(scope, "Symbol")?.into();
@@ -205,7 +202,7 @@ fn symbol_iterator_value<'a>(scope: &mut v8::HandleScope<'a>) -> Option<v8::Loca
 }
 
 fn iterator_from_array<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     array: v8::Local<'a, v8::Array>,
 ) -> v8::Local<'a, v8::Value> {
     let Some(iterator_key) = symbol_iterator_value(scope) else {
@@ -239,7 +236,7 @@ pub fn setup_form_data_api(
 }
 /// FormData constructor callback
 fn form_data_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -265,7 +262,7 @@ fn form_data_constructor(
 
     // Store index in internal field 0
     let index_val: v8::Local<v8::Value> = v8::Integer::new(scope, index as i32).into();
-    form_data_obj.set_internal_field(0, index_val);
+    form_data_obj.set_internal_field(0, index_val.into());
 
     // Initialize FormData entries for this index
     let mut cache = get_formdata_cache().lock().unwrap();
@@ -341,7 +338,7 @@ fn form_data_constructor(
 /// FormData.append() method - adds a new value to an existing key
 /// or adds the key if it doesn't exist
 fn form_data_append(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -350,6 +347,7 @@ fn form_data_append(
     // Get index from internal field
     let index = this_obj
         .get_internal_field(scope, 0)
+        .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
         .and_then(|v| v.to_integer(scope))
         .map(|i| i.value() as usize)
         .unwrap_or(usize::MAX);
@@ -386,7 +384,7 @@ fn form_data_append(
 
 /// FormData.delete() method - removes all values associated with a key
 fn form_data_delete(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -394,6 +392,7 @@ fn form_data_delete(
 
     let index = this_obj
         .get_internal_field(scope, 0)
+        .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
         .and_then(|v| v.to_integer(scope))
         .map(|i| i.value() as usize)
         .unwrap_or(usize::MAX);
@@ -412,7 +411,7 @@ fn form_data_delete(
 
 /// FormData.get() method - returns the first value associated with a key
 fn form_data_get(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -420,6 +419,7 @@ fn form_data_get(
 
     let index = this_obj
         .get_internal_field(scope, 0)
+        .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
         .and_then(|v| v.to_integer(scope))
         .map(|i| i.value() as usize)
         .unwrap_or(usize::MAX);
@@ -445,7 +445,7 @@ fn form_data_get(
 
 /// FormData.getAll() method - returns all values associated with a key
 fn form_data_get_all(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -453,6 +453,7 @@ fn form_data_get_all(
 
     let index = this_obj
         .get_internal_field(scope, 0)
+        .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
         .and_then(|v| v.to_integer(scope))
         .map(|i| i.value() as usize)
         .unwrap_or(usize::MAX);
@@ -480,7 +481,7 @@ fn form_data_get_all(
 
 /// FormData.has() method - returns whether a key exists
 fn form_data_has(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -488,6 +489,7 @@ fn form_data_has(
 
     let index = this_obj
         .get_internal_field(scope, 0)
+        .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
         .and_then(|v| v.to_integer(scope))
         .map(|i| i.value() as usize)
         .unwrap_or(usize::MAX);
@@ -510,7 +512,7 @@ fn form_data_has(
 
 /// FormData.set() method - sets a new value for a key, replacing existing values
 fn form_data_set(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -518,6 +520,7 @@ fn form_data_set(
 
     let index = this_obj
         .get_internal_field(scope, 0)
+        .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
         .and_then(|v| v.to_integer(scope))
         .map(|i| i.value() as usize)
         .unwrap_or(usize::MAX);
@@ -552,7 +555,7 @@ fn form_data_set(
 
 /// FormData.entries() method - returns an iterator of key/value pairs
 fn form_data_entries(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -563,7 +566,7 @@ fn form_data_entries(
 
 /// FormData.keys() method - returns an iterator of keys
 fn form_data_keys(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -574,7 +577,7 @@ fn form_data_keys(
 
 /// FormData.values() method - returns an iterator of values
 fn form_data_values(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -585,7 +588,7 @@ fn form_data_values(
 
 /// FormData.forEach() method - iterates over all key/value pairs
 fn form_data_for_each(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -620,10 +623,7 @@ pub fn get_formdata_entries(index: usize) -> Option<Vec<FormDataEntry>> {
 }
 
 /// Check if a V8 value is a FormData object and return its internal index
-pub fn get_formdata_index(
-    scope: &mut v8::HandleScope,
-    value: v8::Local<v8::Value>,
-) -> Option<usize> {
+pub fn get_formdata_index(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> Option<usize> {
     if !value.is_object() {
         return None;
     }
@@ -643,6 +643,7 @@ pub fn get_formdata_index(
 
     // Get the internal field which stores the FormData index
     obj.get_internal_field(scope, 0)
+        .and_then(|data| v8::Local::<v8::Value>::try_from(data).ok())
         .and_then(|v| v.to_integer(scope))
         .map(|i| i.value() as usize)
 }

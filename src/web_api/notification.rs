@@ -66,7 +66,7 @@ pub fn setup_notification_api(
 
 /// Notification constructor callback
 fn notification_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -78,7 +78,7 @@ fn notification_constructor_callback(
 
 /// Notification.requestPermission() callback
 fn notification_request_permission_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {

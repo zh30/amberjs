@@ -66,7 +66,7 @@ pub fn setup_buffer_api(
     Ok(())
 }
 fn buffer_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -86,7 +86,7 @@ fn buffer_constructor_callback(
     retval.set(buffer.into());
 }
 fn buffer_from_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -144,7 +144,7 @@ fn buffer_from_callback(
     }
 }
 fn buffer_alloc_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -167,7 +167,7 @@ fn buffer_alloc_callback(
     retval.set(buffer.into());
 }
 fn buffer_concat_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -214,7 +214,7 @@ fn buffer_concat_callback(
     }
 }
 fn buffer_byte_length_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -238,7 +238,7 @@ fn buffer_byte_length_callback(
     retval.set(v8::Integer::new(scope, byte_length as i32).into());
 }
 fn buffer_is_buffer_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -248,7 +248,7 @@ fn buffer_is_buffer_callback(
 }
 #[allow(dead_code)]
 fn buffer_to_string_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -289,7 +289,7 @@ fn buffer_to_string_callback(
 }
 #[allow(dead_code)]
 fn buffer_to_json_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -307,7 +307,7 @@ fn buffer_to_json_callback(
 }
 #[allow(dead_code)]
 fn buffer_fill_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -348,7 +348,7 @@ fn buffer_fill_callback(
 }
 #[allow(dead_code)]
 fn buffer_slice_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

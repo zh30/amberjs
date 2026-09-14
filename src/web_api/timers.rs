@@ -91,7 +91,7 @@ pub fn setup_timer_api(
 /// Note: This is a simplified synchronous implementation
 /// In a full runtime, setTimeout would schedule async execution
 fn set_timeout_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -132,7 +132,7 @@ fn set_timeout_callback(
 }
 /// setInterval callback
 fn set_interval_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -162,7 +162,7 @@ fn set_interval_callback(
 }
 /// clearTimeout callback
 fn clear_timeout_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -177,7 +177,7 @@ fn clear_timeout_callback(
 }
 /// clearInterval callback
 fn clear_interval_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -192,7 +192,7 @@ fn clear_interval_callback(
 }
 /// queueMicrotask callback - schedules a microtask
 fn queue_microtask_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
@@ -214,7 +214,7 @@ fn queue_microtask_callback(
 /// setImmediate callback - schedules callback to run in next iteration of event loop
 /// v0.2.5: Implementation for Node.js compatibility
 fn set_immediate_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -247,7 +247,7 @@ fn set_immediate_callback(
 /// clearImmediate callback - cancels a scheduled setImmediate
 /// v0.2.5: Implementation for Node.js compatibility
 fn clear_immediate_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {

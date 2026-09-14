@@ -195,7 +195,7 @@ static MANAGERS: Lazy<RwLock<HashMap<u64, CheckpointManager>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
 
 fn checkpoint_native_dispatch(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -366,7 +366,7 @@ fn checkpoint_native_dispatch(
 
 /// Sets up the `bee:checkpoint` API in V8 context
 pub fn setup_checkpoint_api(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> anyhow::Result<()> {
     let global = context.global(scope);

@@ -115,7 +115,7 @@ pub fn setup_path_api(
     Ok(())
 }
 fn path_join_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -146,7 +146,7 @@ fn path_join_callback(
     retval.set(v8::String::new(scope, &result).unwrap().into());
 }
 fn path_resolve_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -209,7 +209,7 @@ fn is_absolute_path(path: &str, is_windows: bool) -> bool {
     }
 }
 fn path_relative_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -258,7 +258,7 @@ fn path_relative_callback(
     retval.set(v8::String::new(scope, &result).unwrap().into());
 }
 fn path_dirname_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -302,7 +302,7 @@ fn path_dirname_callback(
     retval.set(v8::String::new(scope, &result).unwrap().into());
 }
 fn path_basename_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -335,7 +335,7 @@ fn path_basename_callback(
     retval.set(v8::String::new(scope, result).unwrap().into());
 }
 fn path_extname_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -359,7 +359,7 @@ fn path_extname_callback(
     retval.set(v8::String::new(scope, result).unwrap().into());
 }
 fn path_parse_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -437,7 +437,7 @@ fn path_parse_callback(
     retval.set(result.into());
 }
 fn path_format_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -486,7 +486,7 @@ fn path_format_callback(
     }
 }
 fn path_is_absolute_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -506,7 +506,7 @@ fn path_is_absolute_callback(
     retval.set(v8::Boolean::new(scope, is_absolute).into());
 }
 fn path_normalize_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

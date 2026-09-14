@@ -286,7 +286,7 @@ pub fn setup_os_api(
     Ok(())
 }
 fn os_arch_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -294,7 +294,7 @@ fn os_arch_callback(
     retval.set(v8::String::new(scope, arch).unwrap().into());
 }
 fn os_platform_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -302,7 +302,7 @@ fn os_platform_callback(
     retval.set(v8::String::new(scope, platform).unwrap().into());
 }
 fn os_type_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -316,7 +316,7 @@ fn os_type_callback(
     retval.set(v8::String::new(scope, os_type).unwrap().into());
 }
 fn os_release_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -332,7 +332,7 @@ fn os_release_callback(
     retval.set(v8::String::new(scope, &release).unwrap().into());
 }
 fn os_hostname_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -345,7 +345,7 @@ fn os_hostname_callback(
     }
 }
 fn os_loadavg_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -362,7 +362,7 @@ fn os_loadavg_callback(
     retval.set(loadavg.into());
 }
 fn os_uptime_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -390,7 +390,7 @@ fn os_uptime_callback(
     retval.set(v8::Number::new(scope, uptime as f64).into());
 }
 fn os_cpus_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -443,7 +443,7 @@ fn os_cpus_callback(
     retval.set(cpus_array.into());
 }
 fn os_freemem_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -451,7 +451,7 @@ fn os_freemem_callback(
     retval.set(v8::Number::new(scope, freemem as f64).into());
 }
 fn os_totalmem_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -459,7 +459,7 @@ fn os_totalmem_callback(
     retval.set(v8::Number::new(scope, totalmem as f64).into());
 }
 fn os_homedir_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -474,7 +474,7 @@ fn os_homedir_callback(
     }
 }
 fn os_tmpdir_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -486,7 +486,7 @@ fn os_tmpdir_callback(
     retval.set(v8::String::new(scope, &tmpdir).unwrap().into());
 }
 fn os_network_interfaces_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

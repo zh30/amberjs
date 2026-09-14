@@ -199,9 +199,7 @@ pub fn setup_ffi_api(
     // Native helper for dlopen
     let dlopen_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let path_opt = if args.length() > 0 && !args.get(0).is_null_or_undefined() {
                 let s = args.get(0).to_rust_string_lossy(scope);
                 if s.is_empty() {
@@ -238,9 +236,7 @@ pub fn setup_ffi_api(
     // Native helper for calling FFI symbols
     let call_symbol_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() < 4 {
                 let msg =
                     v8::String::new(scope, "callSymbol requires (libId, symbol, args, returns)")
@@ -544,9 +540,7 @@ pub fn setup_ffi_api(
     // Native helper for closeLibrary
     let close_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let lib_id = args.get(0).int32_value(scope).unwrap_or(0) as usize;
             let registry = get_lib_registry();
             let mut guard = registry.lock().unwrap();
@@ -559,9 +553,7 @@ pub fn setup_ffi_api(
     // Native pointer read/write utilities
     let read_ptr_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let raw_ptr = if args.get(0).is_big_int() {
                 if let Ok(bi) = v8::Local::<v8::BigInt>::try_from(args.get(0)) {
                     let (val, _) = bi.u64_value();
@@ -615,9 +607,7 @@ pub fn setup_ffi_api(
 
     let write_ptr_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let raw_ptr = if args.get(0).is_big_int() {
                 if let Ok(bi) = v8::Local::<v8::BigInt>::try_from(args.get(0)) {
                     let (val, _) = bi.u64_value();
@@ -683,9 +673,7 @@ pub fn setup_ffi_api(
 
     let read_cstring_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let raw_ptr = if args.get(0).is_big_int() {
                 if let Ok(bi) = v8::Local::<v8::BigInt>::try_from(args.get(0)) {
                     let (val, _) = bi.u64_value();
@@ -711,18 +699,16 @@ pub fn setup_ffi_api(
 
     let ptr_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let arg = args.get(0);
             if arg.is_array_buffer_view() {
                 if let Ok(view) = v8::Local::<v8::ArrayBufferView>::try_from(arg) {
                     let byte_offset = view.byte_offset();
                     if let Some(ab) = view.buffer(scope) {
                         let store = ab.get_backing_store();
-                        let data = store.data();
-                        if !data.is_null() {
-                            let ptr = unsafe { (data as *mut u8).add(byte_offset) as usize };
+                        if let Some(data) = store.data() {
+                            let ptr =
+                                unsafe { (data.as_ptr() as *mut u8).add(byte_offset) as usize };
                             rv.set(v8::BigInt::new_from_u64(scope, ptr as u64).into());
                             return;
                         }
@@ -731,9 +717,8 @@ pub fn setup_ffi_api(
             } else if arg.is_array_buffer() {
                 if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(arg) {
                     let store = ab.get_backing_store();
-                    let data = store.data();
-                    if !data.is_null() {
-                        let ptr = data as usize;
+                    if let Some(data) = store.data() {
+                        let ptr = data.as_ptr() as usize;
                         rv.set(v8::BigInt::new_from_u64(scope, ptr as u64).into());
                         return;
                     }

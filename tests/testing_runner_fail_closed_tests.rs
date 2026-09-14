@@ -5,10 +5,10 @@ use rusty_v8 as v8;
 use serial_test::serial;
 use std::time::Duration;
 
-fn create_noop_test_case(scope: &mut v8::HandleScope, name: &str, timeout: Duration) -> TestCase {
+fn create_noop_test_case(scope: &mut v8::PinScope, name: &str, timeout: Duration) -> TestCase {
     let function = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {},
     )
@@ -21,11 +21,11 @@ fn create_noop_test_case(scope: &mut v8::HandleScope, name: &str, timeout: Durat
 fn parallel_executor_without_actual_v8_execution_fails_closed() {
     beejs::initialize_v8().expect("V8 should initialize");
     let mut isolate = v8::Isolate::new(Default::default());
-    let mut scope = v8::HandleScope::new(&mut isolate);
-    let context = v8::Context::new(&mut scope);
-    let mut scope = v8::ContextScope::new(&mut scope, context);
+    v8::scope!(let scope, &mut isolate);
+    let context = v8::Context::new(scope, Default::default());
+    let scope = &mut v8::ContextScope::new(scope, context);
     let test_case = create_noop_test_case(
-        &mut scope,
+        scope,
         "must not be reported as passed without execution",
         Duration::from_millis(25),
     );
@@ -62,11 +62,11 @@ fn parallel_executor_without_actual_v8_execution_fails_closed() {
 fn enhanced_runner_without_actual_v8_execution_fails_closed() {
     beejs::initialize_v8().expect("V8 should initialize");
     let mut isolate = v8::Isolate::new(Default::default());
-    let mut scope = v8::HandleScope::new(&mut isolate);
-    let context = v8::Context::new(&mut scope);
-    let mut scope = v8::ContextScope::new(&mut scope, context);
+    v8::scope!(let scope, &mut isolate);
+    let context = v8::Context::new(scope, Default::default());
+    let scope = &mut v8::ContextScope::new(scope, context);
     let test_case = create_noop_test_case(
-        &mut scope,
+        scope,
         "must not be reported as passed without execution",
         Duration::from_millis(25),
     );

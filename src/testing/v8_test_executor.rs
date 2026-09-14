@@ -57,11 +57,11 @@ impl V8TestExecutor {
 
         // Create a new isolate for this test (simpler than reusing)
         let mut isolate = v8::Isolate::new(Default::default());
-        let mut scope = v8::HandleScope::new(&mut isolate);
+        v8::scope!(let scope, &mut isolate);
 
         // Create context
-        let context = v8::Context::new(&mut scope);
-        let scope = &mut v8::ContextScope::new(&mut scope, context);
+        let context = v8::Context::new(scope, Default::default());
+        let scope = &mut v8::ContextScope::new(scope, context);
 
         // Set up testing APIs (expect, matchers, etc.)
         let global = context.global(scope);
@@ -86,20 +86,20 @@ impl V8TestExecutor {
         let mut error_message: Option<String> = None;
 
         {
-            let mut tc = v8::TryCatch::new(scope);
+            v8::tc_scope!(let tc, scope);
 
             // Execute test function - TryCatch derefs to HandleScope
-            let _call_result = test_fn.call(&mut tc, undefined.into(), &[]);
+            let _call_result = test_fn.call(tc, undefined.into(), &[]);
 
             // Check for errors during test execution
             if tc.has_caught() {
                 let exception = tc.exception();
                 error_message = if let Some(exc) = exception {
-                    // Use &mut tc (TryCatch) for operations since it derefs to HandleScope
-                    let exc_local = v8::Local::new(&mut tc, exc);
-                    let exc_str = exc_local.to_string(&mut tc);
+                    // Use tc (TryCatch) for operations since it derefs to HandleScope
+                    let exc_local = v8::Local::new(tc, exc);
+                    let exc_str = exc_local.to_string(tc);
                     exc_str
-                        .map(|s| s.to_rust_string_lossy(&mut tc))
+                        .map(|s| s.to_rust_string_lossy(tc))
                         .or_else(|| Some("Unknown error".to_string()))
                 } else {
                     Some("Unknown error".to_string())
@@ -136,9 +136,9 @@ impl V8TestExecutor {
         // Run beforeAll hook if present
         if let Some(before_all) = &suite.before_all {
             let mut isolate = v8::Isolate::new(Default::default());
-            let mut scope = v8::HandleScope::new(&mut isolate);
-            let context = v8::Context::new(&mut scope);
-            let scope = &mut v8::ContextScope::new(&mut scope, context);
+            v8::scope!(let scope, &mut isolate);
+            let context = v8::Context::new(scope, Default::default());
+            let scope = &mut v8::ContextScope::new(scope, context);
 
             let hook_fn = v8::Local::new(scope, before_all);
             let undefined = v8::undefined(scope);
@@ -159,9 +159,9 @@ impl V8TestExecutor {
         // Run afterAll hook if present
         if let Some(after_all) = &suite.after_all {
             let mut isolate = v8::Isolate::new(Default::default());
-            let mut scope = v8::HandleScope::new(&mut isolate);
-            let context = v8::Context::new(&mut scope);
-            let scope = &mut v8::ContextScope::new(&mut scope, context);
+            v8::scope!(let scope, &mut isolate);
+            let context = v8::Context::new(scope, Default::default());
+            let scope = &mut v8::ContextScope::new(scope, context);
 
             let hook_fn = v8::Local::new(scope, after_all);
             let undefined = v8::undefined(scope);
@@ -224,11 +224,11 @@ macro_rules! throw_matcher_error {
 }
 
 /// Set up testing APIs in V8 context (simplified version)
-fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>) {
+fn setup_testing_apis(scope: &mut v8::PinScope, global: v8::Local<v8::Object>) {
     // Create expect function - simplified to not use closures
     let expect_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let actual = args.get(0);
@@ -243,7 +243,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toBe matcher
             let to_be_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let expected = args.get(0);
@@ -264,7 +264,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toEqual matcher - simplified to not use closures (V8 Function constraints)
             let to_equal_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let expected = args.get(0);
@@ -286,7 +286,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toBeTruthy matcher - v0.3.254: Check if actual value is truthy
             let to_truthy_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let actual_val = expectation_actual!(scope, args);
@@ -325,7 +325,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toBeFalsy matcher - v0.3.254: Check if actual value is falsy
             let to_falsy_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let actual_val = expectation_actual!(scope, args);
@@ -364,7 +364,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toContain matcher - v0.3.254: Check if string/array contains value
             let to_contain_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let actual_val = expectation_actual!(scope, args);
@@ -431,7 +431,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toThrow matcher - v0.3.254: Check if function throws (not applicable in this context)
             let to_throw_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let actual_val = expectation_actual!(scope, args);
@@ -446,9 +446,9 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
                     };
 
                     let did_throw = {
-                        let mut try_catch = v8::TryCatch::new(scope);
-                        let undefined = v8::undefined(&mut try_catch);
-                        let _ = function.call(&mut try_catch, undefined.into(), &[]);
+                        v8::tc_scope!(let try_catch, scope);
+                        let undefined = v8::undefined(try_catch);
+                        let _ = function.call(try_catch, undefined.into(), &[]);
                         try_catch.has_caught()
                     };
 
@@ -466,7 +466,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toHaveLength matcher - v0.3.254: Check if string/array has expected length
             let to_length_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let actual_val = expectation_actual!(scope, args);
@@ -512,7 +512,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toBeDefined matcher - v0.3.254: Check if value is not undefined
             let to_defined_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let actual_val = expectation_actual!(scope, args);
@@ -536,7 +536,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
             // Add toBeNull matcher - v0.3.254: Check if value is null
             let to_null_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut retval: v8::ReturnValue| {
                     let actual_val = expectation_actual!(scope, args);
@@ -567,7 +567,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
     // Add test/it functions
     let test_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let _name: String = args.get(0).to_rust_string_lossy(scope);
@@ -581,7 +581,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
     // Add describe function
     let describe_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let _name: String = args.get(0).to_rust_string_lossy(scope);
@@ -595,7 +595,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
     // Add beforeEach/afterEach/beforeAll/afterAll
     let before_each_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             retval.set(v8::undefined(scope).into());
@@ -607,7 +607,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
 
     let after_each_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             retval.set(v8::undefined(scope).into());
@@ -619,7 +619,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
 
     let before_all_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             retval.set(v8::undefined(scope).into());
@@ -631,7 +631,7 @@ fn setup_testing_apis(scope: &mut v8::HandleScope, global: v8::Local<v8::Object>
 
     let after_all_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             retval.set(v8::undefined(scope).into());
@@ -651,9 +651,9 @@ mod tests {
         crate::initialize_v8().map_err(|err| err.to_string())?;
 
         let mut isolate = v8::Isolate::new(Default::default());
-        let mut handle_scope = v8::HandleScope::new(&mut isolate);
-        let context = v8::Context::new(&mut handle_scope);
-        let scope = &mut v8::ContextScope::new(&mut handle_scope, context);
+        v8::scope!(let handle_scope, &mut isolate);
+        let context = v8::Context::new(handle_scope, Default::default());
+        let scope = &mut v8::ContextScope::new(handle_scope, context);
 
         let global = context.global(scope);
         setup_testing_apis(scope, global);
@@ -661,17 +661,17 @@ mod tests {
         let code = v8::String::new(scope, source).ok_or("failed to create script source")?;
         let script = v8::Script::compile(scope, code, None).ok_or("failed to compile script")?;
 
-        let mut try_catch = v8::TryCatch::new(scope);
-        match script.run(&mut try_catch) {
+        v8::tc_scope!(let try_catch, scope);
+        match script.run(try_catch) {
             Some(value) => Ok(value
-                .to_string(&mut try_catch)
-                .map(|value| value.to_rust_string_lossy(&mut try_catch))
+                .to_string(try_catch)
+                .map(|value| value.to_rust_string_lossy(try_catch))
                 .unwrap_or_default()),
             None => {
                 let message = try_catch
                     .exception()
-                    .and_then(|exception| exception.to_string(&mut try_catch))
-                    .map(|message| message.to_rust_string_lossy(&mut try_catch))
+                    .and_then(|exception| exception.to_string(try_catch))
+                    .map(|message| message.to_rust_string_lossy(try_catch))
                     .unwrap_or_else(|| "Unknown V8 exception".to_string());
                 Err(message)
             }

@@ -19,7 +19,7 @@ pub fn setup_mcp_api(
     // Native stdio read_line and write_line callback
     let mcp_native_fn = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let action = if args.length() > 0 {

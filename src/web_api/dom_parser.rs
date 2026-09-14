@@ -14,7 +14,7 @@ fn is_supported_content_type(content_type: &str) -> bool {
     )
 }
 
-fn throw_type_error(scope: &mut v8::HandleScope, message: &str) {
+fn throw_type_error(scope: &mut v8::PinScope, message: &str) {
     let error_message = v8::String::new(scope, message).unwrap();
     let error = v8::Exception::type_error(scope, error_message);
     scope.throw_exception(error);
@@ -33,7 +33,7 @@ pub fn setup_dom_parser_api(
     // Create parseFromString method template
     let parse_from_string_fn_template = v8::FunctionTemplate::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let string_arg = args.get(0);
@@ -115,7 +115,7 @@ pub fn setup_dom_parser_api(
     // Note: We create it separately and then set the parseFromString method on instances
     let dom_parser_template = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Create a simple object as instance

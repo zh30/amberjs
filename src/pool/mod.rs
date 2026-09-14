@@ -212,9 +212,7 @@ pub fn setup_pool_api(
     // Native pool creation callback
     let create_pool_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let mut config = PoolConfig::default();
 
             if args.length() > 0 && args.get(0).is_object() {
@@ -262,9 +260,7 @@ pub fn setup_pool_api(
     // Native pool execute callback (synchronous worker execution returning value)
     let run_pool_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             if args.length() < 2 {
                 let msg = v8::String::new(scope, "poolRun requires poolId and code").unwrap();
                 let exc = v8::Exception::type_error(scope, msg);
@@ -315,9 +311,7 @@ pub fn setup_pool_api(
     // Native pool stats callback
     let stats_pool_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let pool_id = args.get(0).int32_value(scope).unwrap_or(0) as usize;
             let pool = {
                 let registry = get_pool_registry();
@@ -360,9 +354,7 @@ pub fn setup_pool_api(
     // Native pool destroy callback
     let destroy_pool_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
             let pool_id = args.get(0).int32_value(scope).unwrap_or(0) as usize;
             let registry = get_pool_registry();
             let mut guard = registry.lock().unwrap();

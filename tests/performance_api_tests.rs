@@ -285,8 +285,8 @@ mod performance_api_tests {
         beejs::initialize_v8().expect("V8 should initialize");
 
         let mut isolate = rusty_v8::Isolate::new(Default::default());
-        let scope = &mut rusty_v8::HandleScope::new(&mut isolate);
-        let context = rusty_v8::Context::new(scope);
+        rusty_v8::scope!(let scope, &mut isolate);
+        let context = rusty_v8::Context::new(scope, Default::default());
         let scope = &mut rusty_v8::ContextScope::new(scope, context);
 
         beejs::web_api::init_web_api(scope, &context).expect("web APIs should initialize");

@@ -29,12 +29,12 @@ pub struct NapiCallbackInfo {
 }
 
 thread_local! {
-    static CURRENT_SCOPE: Cell<*mut v8::HandleScope<'static>> = const { Cell::new(std::ptr::null_mut()) };
+    static CURRENT_SCOPE: Cell<*mut ()> = const { Cell::new(std::ptr::null_mut()) };
     static CURRENT_ENV: Cell<napi_env> = const { Cell::new(std::ptr::null_mut()) };
 }
 
-fn set_current_scope(scope: &mut v8::HandleScope) {
-    let ptr = scope as *mut v8::HandleScope as *mut v8::HandleScope<'static>;
+fn set_current_scope(scope: &mut v8::PinScope) {
+    let ptr = scope as *mut v8::PinScope as *mut ();
     CURRENT_SCOPE.with(|cell| cell.set(ptr));
 }
 
@@ -44,21 +44,21 @@ fn clear_current_scope() {
 
 fn with_scope<F, R>(f: F) -> Option<R>
 where
-    F: FnOnce(&mut v8::HandleScope) -> R,
+    F: FnOnce(&mut v8::PinScope) -> R,
 {
     let ptr = CURRENT_SCOPE.with(|cell| cell.get());
     if ptr.is_null() {
         return None;
     }
-    Some(f(unsafe { &mut *ptr }))
+    Some(f(unsafe { &mut *(ptr as *mut v8::PinScope) }))
 }
 
-fn box_value(scope: &mut v8::HandleScope, local: v8::Local<v8::Value>) -> napi_value {
+fn box_value(scope: &mut v8::PinScope, local: v8::Local<v8::Value>) -> napi_value {
     Box::into_raw(Box::new(v8::Global::new(scope, local)))
 }
 
 fn unbox_value<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     value: napi_value,
 ) -> Option<v8::Local<'s, v8::Value>> {
     if value.is_null() {
@@ -81,7 +81,7 @@ fn retain_napi_c_abi() {
 }
 
 /// Load `napi_register_module_v1` from `filename` and assign the result to `module.exports`.
-pub fn load_napi_addon(scope: &mut v8::HandleScope, module: v8::Local<v8::Object>, filename: &str) {
+pub fn load_napi_addon(scope: &mut v8::PinScope, module: v8::Local<v8::Object>, filename: &str) {
     retain_napi_c_abi();
     set_current_scope(scope);
     let env = Box::into_raw(Box::new(NapiEnv { _private: 0 }));
@@ -246,24 +246,22 @@ pub unsafe extern "C" fn napi_set_named_property(
 }
 
 fn napi_function_trampoline(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
     set_current_scope(scope);
     let env = CURRENT_ENV.with(|cell| cell.get());
-    let callback: napi_callback = args.data().and_then(|data| {
-        v8::Local::<v8::External>::try_from(data)
-            .ok()
-            .and_then(|ext| {
-                let ptr = ext.value() as usize;
-                if ptr == 0 {
-                    None
-                } else {
-                    Some(unsafe { std::mem::transmute(ptr) })
-                }
-            })
-    });
+    let callback: napi_callback = v8::Local::<v8::External>::try_from(args.data())
+        .ok()
+        .and_then(|ext| {
+            let ptr = ext.value() as usize;
+            if ptr == 0 {
+                None
+            } else {
+                Some(unsafe { std::mem::transmute(ptr) })
+            }
+        });
     let info = Box::into_raw(Box::new(NapiCallbackInfo { env }));
     let ret = if let Some(callback) = callback {
         unsafe { callback(env, info) }

@@ -9,11 +9,7 @@
 use anyhow::Result;
 use rusty_v8 as v8;
 
-fn get_bool_property(
-    scope: &mut v8::HandleScope,
-    object: v8::Local<v8::Object>,
-    name: &str,
-) -> bool {
+fn get_bool_property(scope: &mut v8::PinScope, object: v8::Local<v8::Object>, name: &str) -> bool {
     let key = v8::String::new(scope, name).unwrap();
     object
         .get(scope, key.into())
@@ -21,7 +17,7 @@ fn get_bool_property(
 }
 
 fn set_bool_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     object: v8::Local<v8::Object>,
     name: &str,
     value: bool,
@@ -31,7 +27,7 @@ fn set_bool_property(
     object.set(scope, key.into(), bool_value);
 }
 
-fn throw_type_error(scope: &mut v8::HandleScope, message: &str) {
+fn throw_type_error(scope: &mut v8::PinScope, message: &str) {
     let message = v8::String::new(scope, message).unwrap();
     let error = v8::Exception::type_error(scope, message);
     scope.throw_exception(error);
@@ -44,7 +40,7 @@ fn throw_type_error(scope: &mut v8::HandleScope, message: &str) {
 /// ReadableStream constructor - enhanced with start() and enqueue support
 /// Uses JavaScript arrays on the stream object for queue storage
 fn readable_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -85,7 +81,7 @@ fn readable_stream_constructor(
                     // enqueue(chunk) - adds a chunk to the queue array on the stream
                     let enqueue_fn = v8::Function::new(
                         scope,
-                        |scope: &mut v8::HandleScope,
+                        |scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          _rv: v8::ReturnValue| {
                             if args.length() > 0 {
@@ -122,7 +118,7 @@ fn readable_stream_constructor(
                     // close() - sets state to closed
                     let close_fn = v8::Function::new(
                         scope,
-                        |scope: &mut v8::HandleScope,
+                        |scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          _rv: v8::ReturnValue| {
                             let controller_obj = args.this();
@@ -143,7 +139,7 @@ fn readable_stream_constructor(
                     // error(e) - sets state to errored
                     let error_fn = v8::Function::new(
                         scope,
-                        |scope: &mut v8::HandleScope,
+                        |scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
                          _rv: v8::ReturnValue| {
                             let controller_obj = args.this();
@@ -172,7 +168,7 @@ fn readable_stream_constructor(
     // Setup getReader method
     let get_reader_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let stream_this = args.this();
@@ -193,7 +189,7 @@ fn readable_stream_constructor(
             // Supports BYOB (Bring Your Own Buffer) when a TypedArray view is passed
             let read_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -310,13 +306,18 @@ fn readable_stream_constructor(
                                                         chunk_uint8.buffer(__scope).unwrap();
                                                     let chunk_store =
                                                         chunk_buffer.get_backing_store();
-                                                    let chunk_data_ptr =
-                                                        chunk_store.data() as *const u8;
+                                                    let chunk_data_ptr = chunk_store
+                                                        .data()
+                                                        .map(|p| p.as_ptr() as *const u8)
+                                                        .unwrap_or(std::ptr::null());
                                                     let chunk_len = chunk_uint8.byte_length();
 
                                                     // Get target buffer info
                                                     let buffer_store = buffer.get_backing_store();
-                                                    let target_ptr = buffer_store.data() as *mut u8;
+                                                    let target_ptr = buffer_store
+                                                        .data()
+                                                        .map(|p| p.as_ptr() as *mut u8)
+                                                        .unwrap_or(std::ptr::null_mut());
 
                                                     // Calculate how many bytes we can copy
                                                     let bytes_to_copy = std::cmp::min(
@@ -413,7 +414,7 @@ fn readable_stream_constructor(
             // Setup releaseLock() method
             let _release_fn = v8::FunctionTemplate::new(
                 _scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  _r: v8::ReturnValue| {
                     // releaseLock logic - for basic implementation, does nothing
@@ -436,7 +437,7 @@ fn readable_stream_constructor(
             let read_func: v8::Local<v8::Function> = read_fn.get_function(_scope).unwrap();
             let release_func = v8::Function::new(
                 _scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _r: v8::ReturnValue| {
                     let reader_this = args.this();
@@ -475,7 +476,7 @@ fn readable_stream_constructor(
     // Returns a Promise that resolves when piping completes or rejects on error
     let pipe_to_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Get the destination writable stream
@@ -707,7 +708,7 @@ fn readable_stream_constructor(
     // v0.3.288: Setup pipeThrough() method - pipes this readable through a transform
     let pipe_through_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             // Get the transform stream
@@ -788,7 +789,7 @@ fn readable_stream_constructor(
 /// WritableStream constructor - enhanced with start() callback and write queue
 /// Uses JavaScript arrays on the stream object for write queue storage
 fn writable_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -851,7 +852,7 @@ fn writable_stream_constructor(
     // Setup getWriter method
     let get_writer_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let writable_this = _args.this();
@@ -871,7 +872,7 @@ fn writable_stream_constructor(
             // v0.3.292: Setup write() method - adds chunk to queue and calls write callback
             let write_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -1029,7 +1030,7 @@ fn writable_stream_constructor(
             // Setup close() method
             let close_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -1060,7 +1061,7 @@ fn writable_stream_constructor(
             // Setup abort() method
             let abort_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -1115,7 +1116,7 @@ fn writable_stream_constructor(
             let abort_func: v8::Local<v8::Function> = abort_fn.get_function(_scope).unwrap();
             let release_func = v8::Function::new(
                 _scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     let writer_this = args.this();
@@ -1185,7 +1186,7 @@ fn writable_stream_constructor(
 /// TransformStream constructor - enhanced with transform() support
 /// Connects writable stream writes to readable stream output via transformer
 fn transform_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1248,7 +1249,7 @@ fn transform_stream_constructor(
             // enqueue(chunk) - adds to the transform queue
             let enqueue_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     if args.length() > 0 {
@@ -1271,7 +1272,7 @@ fn transform_stream_constructor(
             // close() - marks transform as done
             let close_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     let ctrl = args.this();
@@ -1287,7 +1288,7 @@ fn transform_stream_constructor(
             // error(e) - marks transform as errored
             let error_fn = v8::Function::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     let ctrl = args.this();
@@ -1322,7 +1323,7 @@ fn transform_stream_constructor(
     // Create getReader template for readable stream
     let readable_get_reader_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let reader: v8::Local<v8::Object> = v8::Object::new(_scope);
@@ -1337,7 +1338,7 @@ fn transform_stream_constructor(
             // Setup read() method - reads from transform queue
             let read_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -1421,7 +1422,7 @@ fn transform_stream_constructor(
             // Setup releaseLock() method
             let release_fn = v8::FunctionTemplate::new(
                 _scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  _r: v8::ReturnValue| {},
             );
@@ -1473,7 +1474,7 @@ fn transform_stream_constructor(
     // Create getWriter template for writable stream
     let writable_get_writer_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let writer: v8::Local<v8::Object> = v8::Object::new(_scope);
@@ -1489,7 +1490,7 @@ fn transform_stream_constructor(
             // Transform function and controller are stored on transform object for closure access
             let write_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -1541,7 +1542,7 @@ fn transform_stream_constructor(
             // If flush returns a Promise, we chain it and return the chained Promise to JavaScript
             let close_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     // Get transform from writer
@@ -1652,7 +1653,7 @@ fn transform_stream_constructor(
             // Setup abort() method
             let abort_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -1734,7 +1735,7 @@ fn transform_stream_constructor(
 /// TextDecoderStream constructor for streaming UTF-8 decoding
 /// Uses TransformStream internally for AI workloads
 fn text_decoder_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1811,7 +1812,7 @@ fn text_decoder_stream_constructor(
 
     let readable_get_reader_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let reader: v8::Local<v8::Object> = v8::Object::new(_scope);
@@ -1826,7 +1827,7 @@ fn text_decoder_stream_constructor(
 
             let read_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -1887,7 +1888,7 @@ fn text_decoder_stream_constructor(
 
             let release_fn = v8::FunctionTemplate::new(
                 _scope,
-                |_scope: &mut v8::HandleScope,
+                |_scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  _r: v8::ReturnValue| {},
             );
@@ -1937,7 +1938,7 @@ fn text_decoder_stream_constructor(
 
     let writable_get_writer_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let writer: v8::Local<v8::Object> = v8::Object::new(_scope);
@@ -1952,7 +1953,7 @@ fn text_decoder_stream_constructor(
 
             let write_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -2068,7 +2069,7 @@ fn text_decoder_stream_constructor(
 
             let close_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -2081,7 +2082,7 @@ fn text_decoder_stream_constructor(
 
             let abort_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -2169,7 +2170,7 @@ fn text_decoder_stream_constructor(
 /// TextEncoderStream constructor for streaming UTF-8 encoding
 /// Uses TransformStream internally for AI workloads
 fn text_encoder_stream_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2231,7 +2232,7 @@ fn text_encoder_stream_constructor(
 
     let readable_get_reader_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let reader: v8::Local<v8::Object> = v8::Object::new(_scope);
@@ -2246,7 +2247,7 @@ fn text_encoder_stream_constructor(
 
             let read_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -2302,7 +2303,10 @@ fn text_encoder_stream_constructor(
                                             // Create ArrayBuffer and Uint8Array view
                                             let buffer = v8::ArrayBuffer::new(__scope, bytes.len());
                                             let buffer_store = buffer.get_backing_store();
-                                            let target_ptr = buffer_store.data() as *mut u8;
+                                            let target_ptr = buffer_store
+                                                .data()
+                                                .map(|p| p.as_ptr() as *mut u8)
+                                                .unwrap_or(std::ptr::null_mut());
                                             unsafe {
                                                 std::ptr::copy_nonoverlapping(
                                                     bytes.as_ptr(),
@@ -2367,7 +2371,7 @@ fn text_encoder_stream_constructor(
             // releaseLock function - no-op for TextEncoderStream reader
             let release_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     // releaseLock is a no-op for TextEncoderStream
@@ -2408,7 +2412,7 @@ fn text_encoder_stream_constructor(
 
     let writable_get_writer_fn = v8::FunctionTemplate::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let writer: v8::Local<v8::Object> = v8::Object::new(_scope);
@@ -2423,7 +2427,7 @@ fn text_encoder_stream_constructor(
 
             let write_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -2484,7 +2488,7 @@ fn text_encoder_stream_constructor(
             // TextEncoderStream close function - sets closed flag
             let close_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =
@@ -2509,7 +2513,7 @@ fn text_encoder_stream_constructor(
 
             let abort_fn = v8::FunctionTemplate::new(
                 _scope,
-                |__scope: &mut v8::HandleScope,
+                |__scope: &mut v8::PinScope,
                  _a: v8::FunctionCallbackArguments,
                  mut _r: v8::ReturnValue| {
                     let promise: v8::Local<v8::PromiseResolver> =

@@ -4,7 +4,7 @@ use anyhow::Result;
 use rusty_v8 as v8;
 use std::process::Command;
 
-fn string_from_v8_value(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> String {
+fn string_from_v8_value(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
     value
         .to_string(scope)
         .map(|value| value.to_rust_string_lossy(scope))
@@ -12,7 +12,7 @@ fn string_from_v8_value(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>
 }
 
 fn string_vec_from_v8_array_value(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     value: v8::Local<v8::Value>,
 ) -> Vec<String> {
     if !value.is_array() {
@@ -68,7 +68,7 @@ fn child_process_output_from_result(
 }
 
 fn child_process_output_object<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     output: &ChildProcessOutput,
 ) -> v8::Local<'s, v8::Object> {
     let child_obj = v8::Object::new(scope);
@@ -106,7 +106,7 @@ fn child_process_output_object<'s>(
 }
 
 fn child_process_error_value<'s>(
-    scope: &mut v8::HandleScope<'s>,
+    scope: &mut v8::PinScope<'s, '_>,
     exit_code: i32,
 ) -> v8::Local<'s, v8::Value> {
     if exit_code == 0 {
@@ -125,7 +125,7 @@ fn child_process_error_value<'s>(
 }
 
 fn call_child_process_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     callback_value: v8::Local<v8::Value>,
     output: &ChildProcessOutput,
 ) {
@@ -173,7 +173,7 @@ pub fn setup_child_process_api(
     Ok(())
 }
 fn cp_exec_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -208,7 +208,7 @@ fn cp_exec_callback(
     retval.set(child_obj.into());
 }
 fn cp_spawn_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -261,7 +261,7 @@ fn cp_spawn_callback(
     retval.set(child_obj.into());
 }
 fn cp_exec_file_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -295,7 +295,7 @@ fn cp_exec_file_callback(
     retval.set(child_obj.into());
 }
 fn child_on_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

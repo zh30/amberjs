@@ -222,7 +222,7 @@ pub fn setup_sockets_api(
 }
 
 fn socket_connect_raw(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -301,7 +301,7 @@ fn socket_connect_raw(
 }
 
 fn socket_read_raw(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -341,7 +341,7 @@ fn socket_read_raw(
 }
 
 fn socket_write_raw(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -353,7 +353,7 @@ fn socket_write_raw(
     let chunk_val = args.get(1);
 
     let bytes = if chunk_val.is_uint8_array() {
-        let u8_arr: v8::Local<v8::Uint8Array> = unsafe { v8::Local::cast(chunk_val) };
+        let u8_arr: v8::Local<v8::Uint8Array> = v8::Local::cast(chunk_val);
         let mut buffer = vec![0u8; u8_arr.byte_length()];
         u8_arr.copy_contents(&mut buffer);
         buffer
@@ -383,7 +383,7 @@ fn socket_write_raw(
 }
 
 fn socket_close_raw(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -409,7 +409,7 @@ fn socket_close_raw(
 }
 
 fn socket_start_tls_raw(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

@@ -36,7 +36,7 @@ pub fn setup_array_buffer_transfer_api(
 /// Transfer an ArrayBuffer to an Attached state (Web standard: transferToAttached)
 /// This enables zero-copy transfer of ArrayBuffer ownership between contexts
 fn transfer_to_attached_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -75,7 +75,7 @@ fn transfer_to_attached_callback(
 
     // Detach the ArrayBuffer (releases ownership of backing store)
     // This is the key operation for zero-copy transfer
-    buffer.detach();
+    buffer.detach(None);
 
     // Return the byte length (to verify detachment)
     let result: v8::Local<v8::Value> = v8::Integer::new(scope, byte_length as i32).into();
@@ -85,7 +85,7 @@ fn transfer_to_attached_callback(
 /// Transfer ownership from an Attached ArrayBuffer (Web standard: transferFromAttached)
 /// This receives an ArrayBuffer that was transferred with transferToAttached
 fn transfer_from_attached_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -117,7 +117,7 @@ fn transfer_from_attached_callback(
 /// Detach an ArrayBuffer (utility function)
 /// Similar to transferToAttached but returns undefined
 fn detach_array_buffer_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -150,7 +150,7 @@ fn detach_array_buffer_callback(
     }
 
     // Detach the ArrayBuffer
-    buffer.detach();
+    buffer.detach(None);
 
     let undefined: v8::Local<v8::Value> = v8::undefined(scope).into();
     retval.set(undefined);

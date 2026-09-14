@@ -112,7 +112,7 @@ impl VariableInspector {
     /// Convert V8 object to VariableInfo
     fn object_to_variables(
         &self,
-        _scope: &mut v8::HandleScope,
+        _scope: &mut v8::PinScope,
         _object: v8::Global<v8::Object>,
         _name: String,
     ) -> DebugResult<Vec<VariableInfo>> {

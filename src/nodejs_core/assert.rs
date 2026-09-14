@@ -47,12 +47,10 @@ pub fn setup_assert_api(
     Ok(())
 }
 
-fn copy_props(
-    scope: &mut v8::HandleScope,
-    from: v8::Local<v8::Object>,
-    to: v8::Local<v8::Function>,
-) {
-    let names = from.get_own_property_names(scope).unwrap();
+fn copy_props(scope: &mut v8::PinScope, from: v8::Local<v8::Object>, to: v8::Local<v8::Function>) {
+    let names = from
+        .get_own_property_names(scope, Default::default())
+        .unwrap();
     for i in 0..names.length() {
         if let Some(key) = names.get_index(scope, i) {
             if let Some(val) = from.get(scope, key) {
@@ -62,13 +60,13 @@ fn copy_props(
     }
 }
 
-fn throw_assertion(scope: &mut v8::HandleScope, message: &str) {
+fn throw_assertion(scope: &mut v8::PinScope, message: &str) {
     let msg = v8::String::new(scope, message).unwrap();
     let err = v8::Exception::error(scope, msg);
     scope.throw_exception(err);
 }
 
-fn value_is_truthy(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> bool {
+fn value_is_truthy(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> bool {
     if value.is_null_or_undefined() || value.is_false() {
         return false;
     }
@@ -87,11 +85,7 @@ fn value_is_truthy(scope: &mut v8::HandleScope, value: v8::Local<v8::Value>) -> 
     true
 }
 
-fn assert_ok(
-    scope: &mut v8::HandleScope,
-    args: v8::FunctionCallbackArguments,
-    _rv: v8::ReturnValue,
-) {
+fn assert_ok(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue) {
     let value = args.get(0);
     let truthy = value_is_truthy(scope, value);
     if !truthy {
@@ -108,7 +102,7 @@ fn assert_ok(
 }
 
 fn assert_equal(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -131,7 +125,7 @@ fn assert_equal(
 }
 
 fn assert_strict_equal(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -157,7 +151,7 @@ fn assert_strict_equal(
 }
 
 fn assert_deep_strict_equal(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -192,7 +186,7 @@ fn assert_deep_strict_equal(
 }
 
 fn assert_throws(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -200,8 +194,8 @@ fn assert_throws(
     if let Ok(func) = v8::Local::<v8::Function>::try_from(fn_val) {
         let undefined = v8::undefined(scope).into();
         let caught = {
-            let mut try_catch = v8::TryCatch::new(scope);
-            let _ = func.call(&mut try_catch, undefined, &[]);
+            v8::tc_scope!(let try_catch, scope);
+            let _ = func.call(try_catch, undefined, &[]);
             try_catch.has_caught()
         };
         if !caught {
@@ -213,7 +207,7 @@ fn assert_throws(
 }
 
 fn assert_fail(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -229,7 +223,7 @@ fn assert_fail(
 }
 
 fn assert_if_error(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {

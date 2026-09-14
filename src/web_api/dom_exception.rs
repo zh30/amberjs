@@ -76,12 +76,11 @@ pub fn setup_dom_exception_api(
     let error_str = v8::String::new(scope, "Error").unwrap();
     if let Some(error_val) = global.get(scope, error_str.into()) {
         if error_val.is_function() {
-            let error_fn: v8::Local<v8::Function> = unsafe { v8::Local::cast(error_val) };
+            let error_fn: v8::Local<v8::Function> = v8::Local::cast(error_val);
             let proto_key = v8::String::new(scope, "prototype").unwrap();
             if let Some(error_proto) = error_fn.get(scope, proto_key.into()) {
                 if error_proto.is_object() {
-                    let error_proto_obj: v8::Local<v8::Object> =
-                        unsafe { v8::Local::cast(error_proto) };
+                    let error_proto_obj: v8::Local<v8::Object> = v8::Local::cast(error_proto);
                     let _ = prototype.set_prototype(scope, error_proto_obj.into());
                 }
             }
@@ -117,7 +116,7 @@ pub fn setup_dom_exception_api(
 }
 
 fn dom_exception_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

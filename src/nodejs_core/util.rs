@@ -90,7 +90,7 @@ pub fn setup_util_api(
     Ok(())
 }
 fn util_inspect_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -155,7 +155,7 @@ fn util_inspect_callback(
     retval.set(v8::String::new(scope, &result).unwrap().into());
 }
 fn util_format_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -293,7 +293,7 @@ fn util_format_callback(
     retval.set(v8::String::new(scope, &result).unwrap().into());
 }
 fn util_types_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -325,7 +325,7 @@ fn util_types_callback(
     retval.set(types_obj.into());
 }
 fn util_is_array_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -334,7 +334,7 @@ fn util_is_array_callback(
     retval.set(v8::Boolean::new(scope, is_array).into());
 }
 fn util_is_boolean_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -343,7 +343,7 @@ fn util_is_boolean_callback(
     retval.set(v8::Boolean::new(scope, is_boolean).into());
 }
 fn util_is_null_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -352,7 +352,7 @@ fn util_is_null_callback(
     retval.set(v8::Boolean::new(scope, is_null).into());
 }
 fn util_is_null_undefined_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -361,7 +361,7 @@ fn util_is_null_undefined_callback(
     retval.set(v8::Boolean::new(scope, is_null_or_undefined).into());
 }
 fn util_is_number_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -370,7 +370,7 @@ fn util_is_number_callback(
     retval.set(v8::Boolean::new(scope, is_number).into());
 }
 fn util_is_string_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -379,7 +379,7 @@ fn util_is_string_callback(
     retval.set(v8::Boolean::new(scope, is_string).into());
 }
 fn util_is_undefined_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -388,7 +388,7 @@ fn util_is_undefined_callback(
     retval.set(v8::Boolean::new(scope, is_undefined).into());
 }
 fn util_is_object_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -397,7 +397,7 @@ fn util_is_object_callback(
     retval.set(v8::Boolean::new(scope, is_object).into());
 }
 fn util_is_function_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -406,7 +406,7 @@ fn util_is_function_callback(
     retval.set(v8::Boolean::new(scope, is_function).into());
 }
 fn util_promisify_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -424,7 +424,7 @@ fn util_promisify_callback(
     retval.set(promisified_instance.into());
 }
 fn util_promisified_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -441,7 +441,7 @@ fn util_promisified_callback(
     retval.set(promise_obj.into());
 }
 fn util_promise_then_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -455,7 +455,7 @@ fn util_promise_then_callback(
     retval.set(v8::undefined(scope).into());
 }
 fn util_debuglog_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -474,7 +474,7 @@ fn util_debuglog_callback(
     retval.set(debuglog_instance.into());
 }
 fn util_debuglog_func_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -508,13 +508,13 @@ fn util_debuglog_func_callback(
     retval.set(v8::undefined(scope).into());
 }
 // 辅助函数
-fn get_object_key_count(_obj: v8::Local<v8::Object>, _scope: &mut v8::HandleScope) -> usize {
+fn get_object_key_count(_obj: v8::Local<v8::Object>, _scope: &mut v8::PinScope) -> usize {
     // 简化的实现，返回固定值
     3
 }
 // 类型检查辅助函数
 fn util_is_date_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -523,7 +523,7 @@ fn util_is_date_callback(
     retval.set(v8::Boolean::new(scope, is_date).into());
 }
 fn util_is_regex_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -532,7 +532,7 @@ fn util_is_regex_callback(
     retval.set(v8::Boolean::new(scope, is_regex).into());
 }
 fn util_is_error_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -541,7 +541,7 @@ fn util_is_error_callback(
     retval.set(v8::Boolean::new(scope, is_error).into());
 }
 fn util_is_native_error_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

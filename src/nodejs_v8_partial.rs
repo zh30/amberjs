@@ -33,7 +33,7 @@ fn setup_process(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     // process.version
     process.set(scope, "version", v8::String::new(scope, "1.0.0-bee").unwrap().into())?;
     // process.cwd()
-    let cwd_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, _args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let cwd_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, _args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let result: _ = match env::current_dir() {
             Ok(path) => path.to_string_lossy().to_string(),
             Err(_) => ".".to_string(),
@@ -43,7 +43,7 @@ fn setup_process(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let cwd_func_instance: _ = cwd_func.get_function(scope).unwrap();
     process.set(scope, "cwd", cwd_func_instance.into())?;
     // process.nextTick()
-    let next_tick_func: _ = v8::FunctionTemplate::new(scope, |_scope: &mut v8::HandleScope, _args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let next_tick_func: _ = v8::FunctionTemplate::new(scope, |_scope: &mut v8::PinScope, _args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         // Simple implementation - execute callback immediately
         // In a real implementation, this would use a task queue
         retval.set_undefined();
@@ -62,7 +62,7 @@ fn setup_process(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
 fn setup_path(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let path: _ = v8::Object::new(scope);
     // path.join() - accept multiple string arguments
-    let join_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let join_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let mut paths = Vec::new();
         for i in 0..args.length() {
             let arg: _ = args.get(i);
@@ -79,7 +79,7 @@ fn setup_path(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let join_func_instance: _ = join_func.get_function(scope).unwrap();
     path.set(scope, "join", join_func_instance.into())?;
     // path.resolve()
-    let resolve_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let resolve_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let mut paths = Vec::new();
         for i in 0..args.length() {
             let arg: _ = args.get(i);
@@ -109,7 +109,7 @@ fn setup_path(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let resolve_func_instance: _ = resolve_func.get_function(scope).unwrap();
     path.set(scope, "resolve", resolve_func_instance.into())?;
     // path.dirname()
-    let dirname_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let dirname_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let arg: _ = args.get(0);
         let arg_str: _ = arg.to_string(scope)
             .unwrap_or_else(|| v8::String::new(scope, "<error>").unwrap())
@@ -125,7 +125,7 @@ fn setup_path(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let dirname_func_instance: _ = dirname_func.get_function(scope).unwrap();
     path.set(scope, "dirname", dirname_func_instance.into())?;
     // path.basename()
-    let basename_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let basename_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let arg: _ = args.get(0);
         let arg_str: _ = arg.to_string(scope)
             .unwrap_or_else(|| v8::String::new(scope, "<error>").unwrap())
@@ -140,7 +140,7 @@ fn setup_path(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let basename_func_instance: _ = basename_func.get_function(scope).unwrap();
     path.set(scope, "basename", basename_func_instance.into())?;
     // path.extname()
-    let extname_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let extname_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let arg: _ = args.get(0);
         let arg_str: _ = arg.to_string(scope)
             .unwrap_or_else(|| v8::String::new(scope, "<error>").unwrap())
@@ -166,7 +166,7 @@ fn setup_path(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
 fn setup_fs(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let fs_obj: _ = v8::Object::new(scope);
     // fs.readFileSync()
-    let read_file_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let read_file_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let path: _ = args.get(0);
         let _encoding: _ = args.get(1); // Not used in simple implementation
         let path_str: _ = path.to_string(scope)
@@ -181,7 +181,7 @@ fn setup_fs(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let read_file_sync_instance: _ = read_file_sync.get_function(scope).unwrap();
     fs_obj.set(scope, "readFileSync", read_file_sync_instance.into())?;
     // fs.writeFileSync()
-    let write_file_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let write_file_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let path: _ = args.get(0);
         let data: _ = args.get(1);
         let _encoding: _ = args.get(2); // Not used in simple implementation
@@ -197,7 +197,7 @@ fn setup_fs(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let write_file_sync_instance: _ = write_file_sync.get_function(scope).unwrap();
     fs_obj.set(scope, "writeFileSync", write_file_sync_instance.into())?;
     // fs.existsSync()
-    let exists_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let exists_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let path: _ = args.get(0);
         let path_str: _ = path.to_string(scope)
             .unwrap_or_else(|| v8::String::new(scope, "<error>").unwrap())
@@ -208,7 +208,7 @@ fn setup_fs(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let exists_sync_instance: _ = exists_sync.get_function(scope).unwrap();
     fs_obj.set(scope, "existsSync", exists_sync_instance.into())?;
     // fs.mkdirSync()
-    let mkdir_sync: _ = v8::FunctionTemplate::new(scope, |_scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let mkdir_sync: _ = v8::FunctionTemplate::new(scope, |_scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let path: _ = args.get(0);
         let path_str: _ = path.to_string(_scope)
             .unwrap_or_else(|| v8::String::new(_scope, "<error>").unwrap())
@@ -219,7 +219,7 @@ fn setup_fs(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let mkdir_sync_instance: _ = mkdir_sync.get_function(_scope).unwrap();
     fs_obj.set(scope, "mkdirSync", mkdir_sync_instance.into())?;
     // fs.readdirSync()
-    let readdir_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let readdir_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let path: _ = args.get(0);
         let path_str: _ = path.to_string(scope)
             .unwrap_or_else(|| v8::String::new(scope, "<error>").unwrap())
@@ -244,7 +244,7 @@ fn setup_fs(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     let readdir_sync_instance: _ = readdir_sync.get_function(scope).unwrap();
     fs_obj.set(scope, "readdirSync", readdir_sync_instance.into())?;
     // fs.statSync()
-    let stat_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let stat_sync: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let path: _ = args.get(0);
         let path_str: _ = path.to_string(scope)
             .unwrap_or_else(|| v8::String::new(scope, "<error>").unwrap())
@@ -263,7 +263,7 @@ fn setup_fs(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
 /// Module system implementation
 fn setup_module_system(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     // Global require function - simplified implementation
-    let require_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::HandleScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
+    let require_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
         let module_name: _ = args.get(0);
         let module_name_str: _ = module_name.to_string(scope)
             .unwrap_or_else(|| v8::String::new(scope, "<error>").unwrap())

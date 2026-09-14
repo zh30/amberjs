@@ -6,7 +6,7 @@ use rusty_v8 as v8;
 /// 从 JavaScript 调用 push 方法
 /// v0.3.56: 支持 push(null) 触发 end 事件
 fn readable_push_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -119,7 +119,7 @@ pub fn setup_stream_api(
     Ok(())
 }
 fn readable_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -231,7 +231,7 @@ fn readable_constructor_callback(
     retval.set(stream_obj.into());
 }
 fn readable_read_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -247,7 +247,7 @@ fn readable_read_callback(
     retval.set(chunk.into());
 }
 fn readable_public_read_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -275,7 +275,7 @@ fn readable_public_read_callback(
     retval.set(v8::null(scope).into());
 }
 fn readable_on_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -319,7 +319,7 @@ fn readable_on_callback(
 
 /// once回调 - v0.3.56 新增：一次性事件监听
 fn readable_once_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -362,7 +362,7 @@ fn readable_once_callback(
     retval.set(this.into());
 }
 fn readable_pause_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -380,7 +380,7 @@ fn readable_pause_callback(
     retval.set(this.into());
 }
 fn readable_resume_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -400,7 +400,7 @@ fn readable_resume_callback(
 /// pipe 数据处理回调 - 当 readable 产生数据时调用
 /// v0.3.59: 实现 pipe() 方法的数据流
 fn pipe_data_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -438,7 +438,7 @@ fn pipe_data_callback(
 /// pipe 结束处理回调 - 当 readable 结束时调用
 /// v0.3.59: 实现 pipe() 方法的结束处理
 fn pipe_end_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -468,7 +468,7 @@ fn pipe_end_callback(
 /// v0.3.59: pipe() 方法实现
 /// 将 readable 流的数据管道传输到 writable 流
 fn readable_pipe_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -520,7 +520,7 @@ fn readable_pipe_callback(
     retval.set(destination);
 }
 fn readable_unpipe_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -528,7 +528,7 @@ fn readable_unpipe_callback(
     retval.set(this.into());
 }
 fn writable_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -615,7 +615,7 @@ fn writable_constructor_callback(
     retval.set(stream_obj.into());
 }
 fn writable_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -633,7 +633,7 @@ fn writable_write_callback(
 }
 
 fn writable_public_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -692,7 +692,7 @@ fn writable_public_write_callback(
     retval.set(v8::Boolean::new(scope, true).into());
 }
 fn writable_end_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -769,7 +769,7 @@ fn writable_end_callback(
     retval.set(this.into());
 }
 fn transform_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -964,7 +964,7 @@ fn transform_constructor_callback(
     retval.set(stream_obj.into());
 }
 fn transform_transform_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -991,7 +991,7 @@ fn transform_transform_callback(
 /// 它会调用 _transform 函数，_transform 在内部调用 push() 产生新数据
 #[allow(dead_code)]
 fn transform_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1011,7 +1011,7 @@ fn transform_write_callback(
                 // 创建一个内联的 callback 函数
                 let callback_template = v8::FunctionTemplate::new(
                     scope,
-                    |_scope: &mut v8::HandleScope,
+                    |_scope: &mut v8::PinScope,
                      _args: v8::FunctionCallbackArguments,
                      _retval: v8::ReturnValue| {
                         // 空的 callback，什么都不做
@@ -1035,7 +1035,7 @@ fn transform_write_callback(
 }
 
 fn duplex_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1215,7 +1215,7 @@ fn duplex_constructor_callback(
 /// v0.3.77: 增强支持回调参数
 /// 将多个流依次连接，返回最后一个 Writable 流，支持 callback 参数
 fn stream_pipeline_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1304,7 +1304,7 @@ fn stream_pipeline_callback(
             // 注意：不捕获任何变量，从对象属性获取回调
             let pipeline_callback_fn: v8::Local<v8::Function> = v8::FunctionTemplate::new(
                 scope,
-                |scope: &mut v8::HandleScope,
+                |scope: &mut v8::PinScope,
                  args: v8::FunctionCallbackArguments,
                  _retval: v8::ReturnValue| {
                     let this: v8::Local<v8::Object> = args.this();
@@ -1350,7 +1350,7 @@ fn stream_pipeline_callback(
 /// v0.3.74: stream.passThrough() 实现
 /// 创建一个 PassThrough 流（不做任何转换的 Transform 流）
 fn stream_passthrough_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1508,7 +1508,7 @@ fn stream_passthrough_callback(
 
 /// PassThrough 流的默认 _write 实现 - 直接将输入传递到输出（通过 push）
 fn passthrough_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {

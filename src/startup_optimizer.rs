@@ -38,7 +38,7 @@ impl MemoryPreallocator {
         Ok(())
     }
     /// 预分配常用对象
-    fn preallocate_objects(&self, _scope: &mut v8::HandleScope) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    fn preallocate_objects(&self, _scope: &mut v8::PinScope) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Note: Object preallocation will be implemented with proper V8 integration
         Ok(())
     }

@@ -158,7 +158,7 @@ pub fn setup_performance_api(
     // performance.now() - returns a high-resolution timestamp in milliseconds
     let now_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let now = get_high_res_time();
@@ -170,7 +170,7 @@ pub fn setup_performance_api(
     // performance.mark(name) - creates a performance mark
     let mark_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -216,7 +216,7 @@ pub fn setup_performance_api(
     // performance.measure(name, startMark, endMark) - creates a performance measure
     let measure_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -281,7 +281,7 @@ pub fn setup_performance_api(
     // performance.clearMarks() - removes all marks
     let clear_marks_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let mut state = PERFORMANCE_STATE.lock().unwrap();
@@ -296,7 +296,7 @@ pub fn setup_performance_api(
     // performance.clearMeasures() - removes all measures
     let clear_measures_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let mut state = PERFORMANCE_STATE.lock().unwrap();
@@ -310,7 +310,7 @@ pub fn setup_performance_api(
     // performance.clearAllMarks() - removes all marks (alias for clearMarks)
     let clear_all_marks_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::HandleScope,
+        |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let mut state = PERFORMANCE_STATE.lock().unwrap();
@@ -325,7 +325,7 @@ pub fn setup_performance_api(
     // performance.getEntries() - returns all performance entries
     let get_entries_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let state = PERFORMANCE_STATE.lock().unwrap();
@@ -372,7 +372,7 @@ pub fn setup_performance_api(
     // performance.getEntriesByName(name) - returns entries matching the name
     let get_entries_by_name_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -432,7 +432,7 @@ pub fn setup_performance_api(
     // performance.getEntriesByType(type) - returns entries of the specified type
     let get_entries_by_type_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             if args.length() < 1 {
@@ -499,7 +499,7 @@ pub fn setup_performance_api(
     // performance.toJSON() - returns a JSON representation
     let to_json_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
             let obj = v8::Object::new(scope);

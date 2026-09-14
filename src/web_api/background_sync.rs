@@ -91,7 +91,7 @@ fn setup_sync_manager(
 
 /// SyncEvent constructor callback
 fn sync_event_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -192,7 +192,7 @@ fn sync_event_constructor_callback(
 
 /// SyncEvent.waitUntil() callback
 fn sync_event_wait_until_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -252,7 +252,7 @@ fn sync_event_wait_until_callback(
 }
 
 fn sync_event_wait_until_done_callback(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -267,7 +267,7 @@ fn decrement_pending_wait_until() {
 
 /// SyncManager.register() callback
 fn sync_manager_register_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -287,7 +287,7 @@ fn sync_manager_register_callback(
 
 /// SyncManager.getTags() callback
 fn sync_manager_get_tags_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {

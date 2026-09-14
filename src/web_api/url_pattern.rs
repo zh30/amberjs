@@ -262,7 +262,7 @@ pub fn setup_url_pattern_api(
 }
 
 fn url_pattern_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -323,7 +323,7 @@ fn url_pattern_constructor(
             pathname = pattern_str;
         }
     } else if arg0.is_object() {
-        let obj: v8::Local<v8::Object> = unsafe { v8::Local::cast(arg0) };
+        let obj: v8::Local<v8::Object> = v8::Local::cast(arg0);
 
         macro_rules! get_comp {
             ($field:ident, $key:literal) => {
@@ -378,7 +378,7 @@ fn url_pattern_constructor(
 }
 
 fn get_pattern_from_this(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     this: v8::Local<v8::Object>,
 ) -> URLPatternInternal {
     macro_rules! read_prop {
@@ -404,14 +404,14 @@ fn get_pattern_from_this(
 }
 
 fn parse_url_args(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: &v8::FunctionCallbackArguments,
 ) -> (String, Option<String>) {
     let arg0 = args.get(0);
     let input = if arg0.is_string() {
         arg0.to_string(scope).unwrap().to_rust_string_lossy(scope)
     } else if arg0.is_object() {
-        let obj: v8::Local<v8::Object> = unsafe { v8::Local::cast(arg0) };
+        let obj: v8::Local<v8::Object> = v8::Local::cast(arg0);
         let k_url = v8::String::new(scope, "url").unwrap();
         if let Some(u) = obj
             .get(scope, k_url.into())
@@ -440,7 +440,7 @@ fn parse_url_args(
 }
 
 fn url_pattern_test(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -453,7 +453,7 @@ fn url_pattern_test(
 }
 
 fn url_pattern_exec(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {

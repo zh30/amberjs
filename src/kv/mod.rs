@@ -395,7 +395,7 @@ where
 
 /// Native callback dispatcher for `bee:kv` operations
 fn kv_native_dispatch(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -687,7 +687,7 @@ fn kv_native_dispatch(
 
 /// Sets up the `bee:kv` API inside V8 Context
 pub fn setup_kv_api(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> anyhow::Result<()> {
     let global = context.global(scope);

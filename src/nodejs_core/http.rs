@@ -361,7 +361,7 @@ pub fn allocate_http_connection_id() -> u64 {
 /// Drain queued HTTP requests using the caller's existing V8 scope.
 /// Safe to call from `execute_code` (do not nest `pump_http_messages`).
 pub fn pump_pending_http_requests_in_scope(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> usize {
     let mut processed = 0;
@@ -377,11 +377,11 @@ pub fn pump_pending_http_requests_in_scope(
 
 /// Dispatch one request to the JS handler and send the matching response.
 pub fn dispatch_http_request_in_scope(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
     request: &HttpRequestMessage,
 ) {
-    let req_scope = &mut v8::HandleScope::new(scope);
+    v8::scope!(let req_scope, scope);
     let handler = get_global_request_handler(req_scope, context);
     match process_http_request_in_v8(request, req_scope, context, handler) {
         HttpDispatchResult::Response(mut response) => {
@@ -1008,7 +1008,7 @@ pub fn setup_http_api(
 }
 
 /// 创建默认的 Agent 实例 - v0.3.84 集成连接池
-fn create_default_agent<'a>(scope: &mut v8::HandleScope<'a>) -> v8::Local<'a, v8::Object> {
+fn create_default_agent<'a>(scope: &mut v8::PinScope<'a, '_>) -> v8::Local<'a, v8::Object> {
     let agent_obj: _ = v8::Object::new(scope);
 
     // v0.3.84: 从全局获取或创建默认 Agent 配置
@@ -1052,7 +1052,7 @@ fn create_default_agent<'a>(scope: &mut v8::HandleScope<'a>) -> v8::Local<'a, v8
 
 /// Agent.getPoolStats() 回调 - v0.3.84
 fn http_agent_get_pool_stats_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1062,7 +1062,7 @@ fn http_agent_get_pool_stats_callback(
 }
 /// Shared by `http.createServer` and `https.createServer`.
 pub(crate) fn build_http_server_object<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
 ) -> v8::Local<'a, v8::Object> {
     let server_obj = v8::Object::new(scope);
 
@@ -1086,7 +1086,7 @@ pub(crate) fn build_http_server_object<'a>(
 
 /// v0.3.93: http.createServer callback 版本，可以访问全局对象
 fn http_create_server_with_global_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1112,7 +1112,7 @@ fn http_create_server_with_global_callback(
 }
 
 pub(crate) fn attach_tls_options_to_server(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     server_obj: v8::Local<v8::Object>,
     options: v8::Local<v8::Value>,
 ) {
@@ -1133,7 +1133,7 @@ pub(crate) fn attach_tls_options_to_server(
 }
 
 fn tls_config_from_server_object(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     server_obj: v8::Local<v8::Object>,
 ) -> Option<Arc<rustls::ServerConfig>> {
     let tls_flag_key = v8::String::new(scope, "_beeUsesTls").unwrap();
@@ -1176,7 +1176,7 @@ fn tls_config_from_server_object(
 
 /// http.Agent 构造函数回调
 fn http_agent_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1217,7 +1217,7 @@ fn http_agent_callback(
 
 /// 提取整数选项
 fn extract_integer_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     options: &v8::Local<v8::Value>,
     key: &str,
     default: i32,
@@ -1241,7 +1241,7 @@ fn extract_integer_option(
 
 /// 提取布尔选项
 fn extract_boolean_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     options: &v8::Local<v8::Value>,
     key: &str,
     default: bool,
@@ -1260,7 +1260,7 @@ fn extract_boolean_option(
 
 /// 提取字符串选项 - v0.3.65
 fn extract_string_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     options: &v8::Local<v8::Value>,
     key: &str,
     default: &str,
@@ -1345,14 +1345,14 @@ fn check_http_network_listen_permission(host: &str, port: u16) -> Result<(), Str
     .map_err(|error| error.to_string())
 }
 
-fn throw_http_permission_error(scope: &mut v8::HandleScope, message: &str) {
+fn throw_http_permission_error(scope: &mut v8::PinScope, message: &str) {
     let error_message = v8::String::new(scope, message).unwrap();
     let error = v8::Exception::type_error(scope, error_message);
     scope.throw_exception(error);
 }
 
 /// 从 options 中提取 port - v0.3.68
-fn extract_port(scope: &mut v8::HandleScope, options: &v8::Local<v8::Value>, default: u16) -> u16 {
+fn extract_port(scope: &mut v8::PinScope, options: &v8::Local<v8::Value>, default: u16) -> u16 {
     if options.is_undefined() || options.is_null() {
         return default;
     }
@@ -1369,7 +1369,7 @@ fn extract_port(scope: &mut v8::HandleScope, options: &v8::Local<v8::Value>, def
 
 /// Agent.createConnection 回调
 fn http_agent_create_connection_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1383,7 +1383,7 @@ fn http_agent_create_connection_callback(
 
 /// http.Server.close 回调 - v0.3.87 更新
 fn http_server_close_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1419,7 +1419,7 @@ fn http_server_close_callback(
     retval.set(this.into());
 }
 fn http_request_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1501,7 +1501,7 @@ fn http_request_callback(
     retval.set(req_obj.into());
 }
 fn http_get_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1580,7 +1580,7 @@ fn http_get_callback(
     retval.set(req_obj.into());
 }
 fn http_server_listen_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1722,7 +1722,7 @@ fn http_server_listen_callback(
 }
 
 fn http_server_address_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1762,7 +1762,7 @@ fn http_server_address_callback(
 
 #[allow(dead_code)]
 fn http_server_on_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1795,7 +1795,7 @@ fn http_server_on_callback(
 }
 /// http.request().end() 回调 - v0.3.84 集成连接池
 fn http_req_end_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1891,7 +1891,7 @@ fn http_req_end_callback(
 
 /// 创建响应对象 - v0.3.65
 #[allow(dead_code)]
-fn create_response_object<'a>(scope: &mut v8::HandleScope<'a>) -> v8::Local<'a, v8::Object> {
+fn create_response_object<'a>(scope: &mut v8::PinScope<'a, '_>) -> v8::Local<'a, v8::Object> {
     let res_obj: _ = v8::Object::new(scope);
 
     // statusCode
@@ -1957,7 +1957,7 @@ fn create_response_object<'a>(scope: &mut v8::HandleScope<'a>) -> v8::Local<'a, 
 
 /// 创建响应对象（带真实数据）- v0.3.73
 fn create_response_object_with_data<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     status_code: i32,
     status_message: &str,
     headers: &[(String, String)],
@@ -2033,7 +2033,7 @@ fn create_response_object_with_data<'a>(
 
 /// 从 V8 对象提取字符串属性 - v0.3.73
 fn extract_string_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: &v8::Local<v8::Object>,
     key: &str,
 ) -> Option<String> {
@@ -2049,7 +2049,7 @@ fn extract_string_property(
 
 /// 从 V8 对象提取整数属性 - v0.3.73
 fn extract_integer_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: &v8::Local<v8::Object>,
     key: &str,
 ) -> Option<i32> {
@@ -2066,7 +2066,7 @@ fn extract_integer_property(
 
 /// http.request().write() 回调 - v0.3.65
 fn http_req_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2108,7 +2108,7 @@ fn http_req_write_callback(
 
 /// response.getAllHeaders() 回调 - v0.3.64
 fn http_res_get_all_headers_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2129,7 +2129,7 @@ fn http_res_get_all_headers_callback(
 
 /// response.getHeader() 回调 - v0.3.64
 fn http_res_get_header_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2160,7 +2160,7 @@ fn http_res_get_header_callback(
 
 /// response.setHeader() 回调 - v0.3.64
 pub fn http_res_set_header_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2191,7 +2191,7 @@ pub fn http_res_set_header_callback(
 
 /// response.hasHeader() 回调 - 不区分大小写检查响应头存在性
 pub fn http_res_has_header_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2208,7 +2208,7 @@ pub fn http_res_has_header_callback(
     if let Some(headers_val) = this.get(scope, headers_key.into()) {
         if let Ok(headers_obj) = v8::Local::<v8::Object>::try_from(headers_val) {
             let props = headers_obj
-                .get_property_names(scope)
+                .get_property_names(scope, Default::default())
                 .unwrap_or(v8::Array::new(scope, 0));
             for i in 0..props.length() {
                 if let Some(key_val) = props.get_index(scope, i) {
@@ -2228,7 +2228,7 @@ pub fn http_res_has_header_callback(
 
 /// response.write() 回调 - 支持字符串和 Uint8Array/Buffer 流式数据追加
 pub fn http_res_write_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2278,7 +2278,7 @@ pub fn http_res_write_callback(
 
 /// response.writeHead() 回调 - 支持二参数 status/headers 与三参数重载
 pub fn http_res_write_head_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2325,7 +2325,7 @@ pub fn http_res_write_head_callback(
 
         if let Ok(new_headers_obj) = v8::Local::<v8::Object>::try_from(headers) {
             let props = new_headers_obj
-                .get_property_names(scope)
+                .get_property_names(scope, Default::default())
                 .unwrap_or(v8::Array::new(scope, 0));
             for i in 0..props.length() {
                 if let Some(k) = props.get_index(scope, i) {
@@ -2345,7 +2345,7 @@ pub fn http_res_write_head_callback(
     retval.set(this.into());
 }
 /// response.end() 回调 - v0.3.64
-pub fn extract_http_body_string(scope: &mut v8::HandleScope, data: v8::Local<v8::Value>) -> String {
+pub fn extract_http_body_string(scope: &mut v8::PinScope, data: v8::Local<v8::Value>) -> String {
     if data.is_string() {
         return data
             .to_string(scope)
@@ -2362,7 +2362,10 @@ pub fn extract_http_body_string(scope: &mut v8::HandleScope, data: v8::Local<v8:
     if data.is_array_buffer() {
         if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(data) {
             let bs = ab.get_backing_store();
-            let ptr = bs.data() as *const u8;
+            let ptr = bs
+                .data()
+                .map(|p| p.as_ptr() as *const u8)
+                .unwrap_or(std::ptr::null());
             if !ptr.is_null() {
                 let slice = unsafe { std::slice::from_raw_parts(ptr, ab.byte_length()) };
                 return String::from_utf8_lossy(slice).into_owned();
@@ -2381,7 +2384,10 @@ pub fn extract_http_body_string(scope: &mut v8::HandleScope, data: v8::Local<v8:
                         .map(|i| i.value() as usize)
                         .unwrap_or_else(|| ab.byte_length());
                     let bs = ab.get_backing_store();
-                    let ptr = bs.data() as *const u8;
+                    let ptr = bs
+                        .data()
+                        .map(|p| p.as_ptr() as *const u8)
+                        .unwrap_or(std::ptr::null());
                     if !ptr.is_null() {
                         let actual_len = len.min(ab.byte_length());
                         let slice = unsafe { std::slice::from_raw_parts(ptr, actual_len) };
@@ -2397,7 +2403,7 @@ pub fn extract_http_body_string(scope: &mut v8::HandleScope, data: v8::Local<v8:
 }
 
 pub fn http_res_end_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -3163,7 +3169,7 @@ fn handle_connection(stream: TcpStream, server_state: &HttpServerState, _handler
 
 /// response.removeHeader() 回调 - v0.3.87
 fn http_res_remove_header_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -3211,7 +3217,7 @@ fn http_res_remove_header_callback(
 /// - `None` 如果没有 handler 或处理失败
 pub fn process_http_request_in_v8(
     request: &HttpRequestMessage,
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
     request_handler: Option<v8::Global<v8::Function>>,
 ) -> HttpDispatchResult {
@@ -3365,7 +3371,7 @@ pub fn process_http_request_in_v8(
     let args = [req_obj.into(), res_obj.into()];
 
     let call_res = {
-        let tc_scope = &mut v8::TryCatch::new(scope);
+        v8::tc_scope!(let tc_scope, scope);
         let r = handler_fn.call(tc_scope, this_val, &args);
         if r.is_none() && tc_scope.has_caught() {
             if let Some(exc) = tc_scope.exception() {
@@ -3409,7 +3415,7 @@ fn sr_proto_from_p<'a>(p: Option<v8::Local<'a, v8::Value>>) -> Option<v8::Local<
 
 #[allow(dead_code)]
 fn http_req_on_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -3442,7 +3448,7 @@ fn http_req_on_callback(
 }
 
 fn emit_incoming_request_body_events(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     req_obj: v8::Local<v8::Object>,
     body_text: &str,
 ) {
@@ -3476,7 +3482,7 @@ fn emit_incoming_request_body_events(
 }
 
 fn extract_http_response_from_res(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     res_obj: v8::Local<v8::Object>,
     connection_id: u64,
 ) -> HttpResponseMessage {
@@ -3503,7 +3509,7 @@ fn extract_http_response_from_res(
     if let Some(headers_val) = res_obj.get(scope, res_headers_key.into()) {
         if let Ok(headers_obj) = v8::Local::<v8::Object>::try_from(headers_val) {
             let props = headers_obj
-                .get_property_names(scope)
+                .get_property_names(scope, Default::default())
                 .unwrap_or(v8::Array::new(scope, 0));
             for i in 0..props.length() {
                 if let Some(key_val) = props.get_index(scope, i) {
@@ -3544,7 +3550,7 @@ fn extract_http_response_from_res(
 /// 返回响应的 body 字符串和状态码
 pub fn handle_http_request_v8(
     request: &HttpRequestMessage,
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> Option<(u16, Vec<u8>)> {
     // 获取全局 request handler
@@ -3560,7 +3566,7 @@ pub fn handle_http_request_v8(
 /// 获取全局 request handler
 /// v0.3.91: 新增功能
 pub fn get_global_request_handler(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> Option<v8::Global<v8::Function>> {
     let global = context.global(scope);
@@ -3591,7 +3597,7 @@ pub fn get_global_request_handler(
 /// 设置全局 request handler（供 JS 代码使用）
 /// v0.3.91: 新增功能
 pub fn set_global_request_handler(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
     handler: v8::Local<v8::Function>,
 ) {
@@ -3856,7 +3862,7 @@ pub fn generate_https_response(response: &mut HttpServerResponse) -> Vec<u8> {
 /// 创建 HTTPS 服务器配置的 JavaScript API
 /// v0.3.98: 新增功能
 pub fn create_https_config_js<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     cert_path: String,
     key_path: String,
     port: u16,
@@ -3884,7 +3890,7 @@ pub fn create_https_config_js<'a>(
 /// 加载 TLS 证书的 JavaScript API
 /// v0.3.98: 新增功能
 pub fn load_tls_certificate_js<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     args: v8::FunctionCallbackArguments<'a>,
 ) -> Option<v8::Local<'a, v8::Object>> {
     let cert_path: String = args

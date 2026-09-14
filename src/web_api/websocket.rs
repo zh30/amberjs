@@ -284,7 +284,7 @@ pub fn setup_websocket_api(
 }
 /// WebSocket constructor callback
 fn websocket_constructor_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -395,14 +395,14 @@ fn websocket_constructor_callback(
 }
 
 fn websocket_noop_error_handler(
-    _scope: &mut v8::HandleScope,
+    _scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     _retval: v8::ReturnValue,
 ) {
 }
 
 /// Get WebSocket ID from JS object
-fn get_ws_id(scope: &mut v8::HandleScope, this: v8::Local<v8::Object>) -> Option<u64> {
+fn get_ws_id(scope: &mut v8::PinScope, this: v8::Local<v8::Object>) -> Option<u64> {
     let id_key: _ = v8::String::new(scope, "__wsId").unwrap();
     let id_val: _ = this.get(scope, id_key.into())?;
     if id_val.is_number() {
@@ -413,7 +413,7 @@ fn get_ws_id(scope: &mut v8::HandleScope, this: v8::Local<v8::Object>) -> Option
 }
 /// WebSocket send callback
 fn websocket_send_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -443,7 +443,7 @@ fn websocket_send_callback(
 }
 /// WebSocket close callback
 fn websocket_close_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -480,7 +480,7 @@ fn websocket_close_callback(
 }
 /// WebSocket addEventListener callback
 fn websocket_add_event_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -511,7 +511,7 @@ fn websocket_add_event_listener_callback(
 }
 /// WebSocket removeEventListener callback
 fn websocket_remove_event_listener_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
@@ -535,7 +535,7 @@ fn websocket_remove_event_listener_callback(
 }
 /// Poll for WebSocket events (used internally for event loop integration)
 fn websocket_poll_events_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -588,7 +588,10 @@ fn websocket_poll_events_callback(
                         // Copy data into ArrayBuffer's backing store
                         let store = buffer.get_backing_store();
                         unsafe {
-                            let ptr = store.data() as *mut u8;
+                            let ptr = store
+                                .data()
+                                .map(|p| p.as_ptr() as *mut u8)
+                                .unwrap_or(std::ptr::null_mut());
                             std::slice::from_raw_parts_mut(ptr, data.len()).copy_from_slice(&data);
                         }
                         event_obj.set(scope, data_key.into(), buffer.into());
@@ -619,7 +622,10 @@ fn websocket_poll_events_callback(
                                 // Copy data into the buffer's backing store
                                 let store = buffer.get_backing_store();
                                 unsafe {
-                                    let ptr = store.data() as *mut u8;
+                                    let ptr = store
+                                        .data()
+                                        .map(|p| p.as_ptr() as *mut u8)
+                                        .unwrap_or(std::ptr::null_mut());
                                     std::slice::from_raw_parts_mut(ptr, data.len())
                                         .copy_from_slice(&data);
                                 }
@@ -630,7 +636,10 @@ fn websocket_poll_events_callback(
                             let buffer: _ = v8::ArrayBuffer::new(scope, data.len());
                             let store = buffer.get_backing_store();
                             unsafe {
-                                let ptr = store.data() as *mut u8;
+                                let ptr = store
+                                    .data()
+                                    .map(|p| p.as_ptr() as *mut u8)
+                                    .unwrap_or(std::ptr::null_mut());
                                 std::slice::from_raw_parts_mut(ptr, data.len())
                                     .copy_from_slice(&data);
                             }
@@ -681,7 +690,7 @@ fn websocket_poll_events_callback(
 }
 /// Update readyState from native state
 fn websocket_update_ready_state_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {

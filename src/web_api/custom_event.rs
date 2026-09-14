@@ -5,7 +5,7 @@
 use rusty_v8 as v8;
 
 fn bool_option(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     init_obj: v8::Local<v8::Object>,
     key: &str,
     default: bool,
@@ -19,7 +19,7 @@ fn bool_option(
         .unwrap_or(default)
 }
 
-fn has_own_property(scope: &mut v8::HandleScope, object: v8::Local<v8::Object>, key: &str) -> bool {
+fn has_own_property(scope: &mut v8::PinScope, object: v8::Local<v8::Object>, key: &str) -> bool {
     let Some(key_string) = v8::String::new(scope, key) else {
         return false;
     };
@@ -29,7 +29,7 @@ fn has_own_property(scope: &mut v8::HandleScope, object: v8::Local<v8::Object>, 
         .unwrap_or(false)
 }
 
-fn prevent_default_if_cancelable(scope: &mut v8::HandleScope, this: v8::Local<v8::Object>) {
+fn prevent_default_if_cancelable(scope: &mut v8::PinScope, this: v8::Local<v8::Object>) {
     let Some(cancelable_key) = v8::String::new(scope, "cancelable") else {
         return;
     };
@@ -68,11 +68,11 @@ pub fn setup_custom_event_api(
     let event_func_name = v8::String::new(scope, "Event").unwrap();
     let event_func = global.get(scope, event_func_name.into()).unwrap();
     if event_func.is_function() {
-        let event_func: v8::Local<v8::Function> = unsafe { v8::Local::cast(event_func) };
+        let event_func: v8::Local<v8::Function> = v8::Local::cast(event_func);
         let prototype_of = v8::String::new(scope, "prototype").unwrap();
         let event_proto = event_func.get(scope, prototype_of.into()).unwrap();
         if event_proto.is_object() {
-            let event_proto: v8::Local<v8::Object> = unsafe { v8::Local::cast(event_proto) };
+            let event_proto: v8::Local<v8::Object> = v8::Local::cast(event_proto);
             prototype.set_prototype(scope, event_proto.into());
         }
     }
@@ -80,7 +80,7 @@ pub fn setup_custom_event_api(
     // Set up prototype methods - preventDefault from Event
     let prevent_default_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this = args.this();
@@ -104,7 +104,7 @@ pub fn setup_custom_event_api(
 ///   - bubbles: Whether event bubbles (default: false)
 ///   - cancelable: Whether event is cancelable (default: false)
 fn custom_event_constructor(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
@@ -129,7 +129,7 @@ fn custom_event_constructor(
     if args.length() >= 2 {
         let dict = args.get(1);
         if dict.is_object() {
-            let dict: v8::Local<v8::Object> = unsafe { v8::Local::cast(dict) };
+            let dict: v8::Local<v8::Object> = v8::Local::cast(dict);
             let mut has_explicit_detail = false;
             let has_event_init_field = has_own_property(scope, dict, "bubbles")
                 || has_own_property(scope, dict, "cancelable")
@@ -216,7 +216,7 @@ fn custom_event_constructor(
     // Add preventDefault method
     let prevent_default_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this = args.this();
@@ -234,7 +234,7 @@ fn custom_event_constructor(
 /// Create a CustomEvent object for event dispatching
 /// This is a helper function that can be used by other modules
 pub fn create_custom_event_object<'a>(
-    scope: &mut v8::HandleScope<'a>,
+    scope: &mut v8::PinScope<'a, '_>,
     event_type: &str,
     detail: Option<v8::Local<'a, v8::Value>>,
 ) -> v8::Local<'a, v8::Object> {
@@ -282,7 +282,7 @@ pub fn create_custom_event_object<'a>(
     // Add preventDefault method
     let prevent_default_fn = v8::Function::new(
         scope,
-        |scope: &mut v8::HandleScope,
+        |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
             let this = args.this();

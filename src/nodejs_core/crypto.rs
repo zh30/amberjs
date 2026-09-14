@@ -14,7 +14,7 @@ use sha1::{Digest, Sha1};
 
 /// 根据输出编码返回结果的辅助函数
 fn return_output(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     output: &[u8],
     output_encoding: &str,
     mut retval: v8::ReturnValue,
@@ -43,7 +43,10 @@ fn return_output(
         let buffer_obj: _ = v8::ArrayBuffer::new(scope, output.len());
         if output.len() > 0 {
             let store = buffer_obj.get_backing_store();
-            let ptr = store.data() as *mut u8;
+            let ptr = store
+                .data()
+                .map(|p| p.as_ptr() as *mut u8)
+                .unwrap_or(std::ptr::null_mut());
             if !ptr.is_null() {
                 let slice = unsafe { std::slice::from_raw_parts_mut(ptr, output.len()) };
                 slice.copy_from_slice(output);
@@ -91,7 +94,10 @@ fn array_buffer_bytes(
     let actual_len = length.min(byte_len - offset);
 
     let backing_store = value.get_backing_store();
-    let ptr = backing_store.data() as *const u8;
+    let ptr = backing_store
+        .data()
+        .map(|p| p.as_ptr() as *const u8)
+        .unwrap_or(std::ptr::null());
     if ptr.is_null() {
         return Err("buffer data is unavailable".to_string());
     }
@@ -114,7 +120,7 @@ fn encode_digest_bytes(bytes: &[u8], encoding: &str) -> String {
 }
 
 fn optional_string_arg(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: &v8::FunctionCallbackArguments,
     index: i32,
 ) -> Option<String> {
@@ -129,7 +135,7 @@ fn optional_string_arg(
 }
 
 fn object_string_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: v8::Local<v8::Object>,
     name: &str,
 ) -> Option<String> {
@@ -140,7 +146,7 @@ fn object_string_property(
 }
 
 fn digest_encoding_arg(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: &v8::FunctionCallbackArguments,
 ) -> Option<String> {
     let value = args.get(0);
@@ -151,12 +157,7 @@ fn digest_encoding_arg(
         let mut buf = [0u8; 16];
         let len = s.utf8_length(scope);
         if len > 0 && len <= 16 {
-            s.write_utf8(
-                scope,
-                &mut buf,
-                None,
-                v8::WriteOptions::NO_NULL_TERMINATION | v8::WriteOptions::REPLACE_INVALID_UTF8,
-            );
+            s.write_utf8_v2(scope, &mut buf, v8::WriteFlags::kReplaceInvalidUtf8, None);
             let slice = &buf[..len];
             if slice.eq_ignore_ascii_case(b"hex") {
                 return Some("hex".to_string());
@@ -177,7 +178,7 @@ fn digest_encoding_arg(
 }
 
 fn hmac_key_encoding_arg(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: &v8::FunctionCallbackArguments,
 ) -> Option<String> {
     let value = args.get(2);
@@ -366,7 +367,7 @@ thread_local! {
 }
 
 fn parse_hash_algorithm(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     val: v8::Local<v8::Value>,
 ) -> Result<String, String> {
     let Some(s) = val.to_string(scope) else {
@@ -375,12 +376,7 @@ fn parse_hash_algorithm(
     let mut buf = [0u8; 32];
     let len = s.utf8_length(scope);
     if len > 0 && len <= 32 {
-        s.write_utf8(
-            scope,
-            &mut buf,
-            None,
-            v8::WriteOptions::NO_NULL_TERMINATION | v8::WriteOptions::REPLACE_INVALID_UTF8,
-        );
+        s.write_utf8_v2(scope, &mut buf, v8::WriteFlags::kReplaceInvalidUtf8, None);
         let slice = &buf[..len];
         if slice.eq_ignore_ascii_case(b"sha256") || slice.eq_ignore_ascii_case(b"sha-256") {
             return Ok("sha256".to_string());
@@ -419,7 +415,7 @@ fn next_crypto_id() -> u32 {
 }
 
 fn with_bytes_from_update_value<R>(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     value: v8::Local<v8::Value>,
     string_encoding: Option<&str>,
     f: impl FnOnce(&[u8]) -> R,
@@ -434,23 +430,11 @@ fn with_bytes_from_update_value<R>(
                 let utf8_len = s.utf8_length(scope);
                 if utf8_len <= 4096 {
                     let mut buf = [0u8; 4096];
-                    s.write_utf8(
-                        scope,
-                        &mut buf,
-                        None,
-                        v8::WriteOptions::NO_NULL_TERMINATION
-                            | v8::WriteOptions::REPLACE_INVALID_UTF8,
-                    );
+                    s.write_utf8_v2(scope, &mut buf, v8::WriteFlags::kReplaceInvalidUtf8, None);
                     return Ok(f(&buf[..utf8_len]));
                 } else {
                     let mut buf = vec![0u8; utf8_len];
-                    s.write_utf8(
-                        scope,
-                        &mut buf,
-                        None,
-                        v8::WriteOptions::NO_NULL_TERMINATION
-                            | v8::WriteOptions::REPLACE_INVALID_UTF8,
-                    );
+                    s.write_utf8_v2(scope, &mut buf, v8::WriteFlags::kReplaceInvalidUtf8, None);
                     return Ok(f(&buf));
                 }
             }
@@ -489,7 +473,10 @@ fn with_bytes_from_update_value<R>(
         let buffer = v8::Local::<v8::ArrayBuffer>::try_from(value)
             .map_err(|_| "data must be an ArrayBuffer".to_string())?;
         let store = buffer.get_backing_store();
-        let ptr = store.data() as *const u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *const u8)
+            .unwrap_or(std::ptr::null());
         if ptr.is_null() {
             return Ok(f(&[]));
         }
@@ -504,7 +491,10 @@ fn with_bytes_from_update_value<R>(
             .buffer(scope)
             .ok_or_else(|| "view buffer is unavailable".to_string())?;
         let store = buffer.get_backing_store();
-        let ptr = store.data() as *const u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *const u8)
+            .unwrap_or(std::ptr::null());
         if ptr.is_null() {
             return Ok(f(&[]));
         }
@@ -519,21 +509,24 @@ fn with_bytes_from_update_value<R>(
         if let Some(buf_val) = obj.get(scope, buf_key.into()) {
             if buf_val.is_array_buffer() {
                 if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(buf_val) {
-                    let mut tc = v8::TryCatch::new(scope);
-                    let offset_key = v8::String::new(&mut tc, "byteOffset").unwrap();
+                    v8::tc_scope!(let tc, scope);
+                    let offset_key = v8::String::new(tc, "byteOffset").unwrap();
                     let offset = obj
-                        .get(&mut tc, offset_key.into())
-                        .and_then(|v| v.to_integer(&mut tc))
+                        .get(tc, offset_key.into())
+                        .and_then(|v| v.to_integer(tc))
                         .map(|i| i.value() as usize)
                         .unwrap_or(0);
-                    let len_key = v8::String::new(&mut tc, "length").unwrap();
+                    let len_key = v8::String::new(tc, "length").unwrap();
                     let len = obj
-                        .get(&mut tc, len_key.into())
-                        .and_then(|v| v.to_integer(&mut tc))
+                        .get(tc, len_key.into())
+                        .and_then(|v| v.to_integer(tc))
                         .map(|i| i.value() as usize)
                         .unwrap_or_else(|| ab.byte_length().saturating_sub(offset));
                     let store = ab.get_backing_store();
-                    let ptr = store.data() as *const u8;
+                    let ptr = store
+                        .data()
+                        .map(|p| p.as_ptr() as *const u8)
+                        .unwrap_or(std::ptr::null());
                     if ptr.is_null() {
                         return Ok(f(&[]));
                     }
@@ -548,18 +541,14 @@ fn with_bytes_from_update_value<R>(
 }
 
 fn bytes_from_update_value(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     value: v8::Local<v8::Value>,
     string_encoding: Option<&str>,
 ) -> Result<Vec<u8>, String> {
     with_bytes_from_update_value(scope, value, string_encoding, |slice| slice.to_vec())
 }
 
-fn object_bool_property(
-    scope: &mut v8::HandleScope,
-    obj: v8::Local<v8::Object>,
-    name: &str,
-) -> bool {
+fn object_bool_property(scope: &mut v8::PinScope, obj: v8::Local<v8::Object>, name: &str) -> bool {
     let Some(key) = v8::String::new(scope, name) else {
         return false;
     };
@@ -569,7 +558,7 @@ fn object_bool_property(
 }
 
 fn set_object_bool_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: v8::Local<v8::Object>,
     name: &str,
     value: bool,
@@ -581,7 +570,7 @@ fn set_object_bool_property(
 }
 
 fn object_usize_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: v8::Local<v8::Object>,
     name: &str,
 ) -> usize {
@@ -596,7 +585,7 @@ fn object_usize_property(
 }
 
 fn set_object_usize_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: v8::Local<v8::Object>,
     name: &str,
     value: usize,
@@ -608,7 +597,7 @@ fn set_object_usize_property(
 }
 
 fn object_array_buffer_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: v8::Local<v8::Object>,
     name: &str,
 ) -> Vec<u8> {
@@ -626,7 +615,10 @@ fn object_array_buffer_property(
     if len == 0 {
         return Vec::new();
     }
-    let ptr = store.data() as *const u8;
+    let ptr = store
+        .data()
+        .map(|p| p.as_ptr() as *const u8)
+        .unwrap_or(std::ptr::null());
     if ptr.is_null() {
         Vec::new()
     } else {
@@ -635,7 +627,7 @@ fn object_array_buffer_property(
 }
 
 fn set_object_array_buffer_property(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     obj: v8::Local<v8::Object>,
     name: &str,
     bytes: &[u8],
@@ -647,7 +639,10 @@ fn set_object_array_buffer_property(
     let buffer = v8::ArrayBuffer::new(scope, bytes.len());
     if !bytes.is_empty() {
         let store = buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, bytes.len()) };
             slice.copy_from_slice(bytes);
@@ -656,7 +651,7 @@ fn set_object_array_buffer_property(
     obj.set(scope, key.into(), buffer.into());
 }
 
-fn cipher_auto_padding(scope: &mut v8::HandleScope, obj: v8::Local<v8::Object>) -> bool {
+fn cipher_auto_padding(scope: &mut v8::PinScope, obj: v8::Local<v8::Object>) -> bool {
     let Some(key) = v8::String::new(scope, "_autoPadding") else {
         return true;
     };
@@ -672,13 +667,13 @@ fn cipher_auto_padding(scope: &mut v8::HandleScope, obj: v8::Local<v8::Object>) 
         .unwrap_or(true)
 }
 
-fn throw_crypto_error(scope: &mut v8::HandleScope, message: &str) {
+fn throw_crypto_error(scope: &mut v8::PinScope, message: &str) {
     let message = v8::String::new(scope, message).unwrap();
     let error = v8::Exception::error(scope, message);
     scope.throw_exception(error);
 }
 
-fn throw_crypto_error_with_code(scope: &mut v8::HandleScope, message: &str, code: &str) {
+fn throw_crypto_error_with_code(scope: &mut v8::PinScope, message: &str, code: &str) {
     let message = v8::String::new(scope, message).unwrap();
     let error = v8::Exception::error(scope, message);
     if let Some(error_object) = error.to_object(scope) {
@@ -691,7 +686,7 @@ fn throw_crypto_error_with_code(scope: &mut v8::HandleScope, message: &str, code
     scope.throw_exception(error);
 }
 
-fn throw_digest_already_called(scope: &mut v8::HandleScope) {
+fn throw_digest_already_called(scope: &mut v8::PinScope) {
     let message = v8::String::new(scope, "Digest already called").unwrap();
     let error = v8::Exception::error(scope, message);
     scope.throw_exception(error);
@@ -858,7 +853,7 @@ fn fill_secure_random(slice: &mut [u8]) {
     }
 }
 
-fn set_hash_methods(scope: &mut v8::HandleScope, hash_obj: v8::Local<v8::Object>) {
+fn set_hash_methods(scope: &mut v8::PinScope, hash_obj: v8::Local<v8::Object>) {
     let update_func: _ = v8::FunctionTemplate::new(scope, hash_update_callback);
     let update_instance: _ = update_func.get_function(scope).unwrap();
     let update_key: _ = v8::String::new(scope, "update").unwrap();
@@ -876,7 +871,7 @@ fn set_hash_methods(scope: &mut v8::HandleScope, hash_obj: v8::Local<v8::Object>
 }
 
 fn create_hash_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -922,7 +917,7 @@ fn create_hash_callback(
 }
 
 fn hash_update_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -961,7 +956,7 @@ fn hash_update_callback(
 }
 
 fn hash_copy_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1006,7 +1001,7 @@ fn hash_copy_callback(
 }
 
 fn hash_digest_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1065,7 +1060,7 @@ fn hash_digest_callback(
 }
 
 fn create_hmac_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1129,7 +1124,7 @@ fn create_hmac_callback(
 }
 
 fn hmac_update_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1168,7 +1163,7 @@ fn hmac_update_callback(
 }
 
 fn hmac_digest_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1223,7 +1218,7 @@ fn hmac_digest_callback(
 }
 
 fn random_bytes_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1238,7 +1233,10 @@ fn random_bytes_callback(
 
     if size > 0 {
         let store = buffer_obj.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, size) };
             if let Some(seed) = crate::permissions::get_deterministic_seed() {
@@ -1275,7 +1273,7 @@ fn random_bytes_callback(
 }
 
 fn random_bytes_sync_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1290,7 +1288,10 @@ fn random_bytes_sync_callback(
 
     if size > 0 {
         let store = buffer_obj.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, size) };
             if let Some(seed) = crate::permissions::get_deterministic_seed() {
@@ -1406,7 +1407,7 @@ fn create_crypter(
 }
 
 fn apply_gcm_aad(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     crypter: &mut Crypter,
     this: v8::Local<v8::Object>,
 ) -> bool {
@@ -1425,7 +1426,7 @@ fn apply_gcm_aad(
 }
 
 fn cipher_set_aad_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1451,7 +1452,7 @@ fn cipher_set_aad_callback(
 }
 
 fn cipher_get_auth_tag_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     retval: v8::ReturnValue,
 ) {
@@ -1471,7 +1472,7 @@ fn cipher_get_auth_tag_callback(
 }
 
 fn cipher_set_auth_tag_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1498,7 +1499,7 @@ fn cipher_set_auth_tag_callback(
     retval.set(this.into());
 }
 
-fn set_gcm_methods(scope: &mut v8::HandleScope, obj: v8::Local<v8::Object>, is_encrypt: bool) {
+fn set_gcm_methods(scope: &mut v8::PinScope, obj: v8::Local<v8::Object>, is_encrypt: bool) {
     let set_aad_func: _ = v8::FunctionTemplate::new(scope, cipher_set_aad_callback);
     let set_aad_instance: _ = set_aad_func.get_function(scope).unwrap();
     let set_aad_key: _ = v8::String::new(scope, "setAAD").unwrap();
@@ -1520,7 +1521,7 @@ fn set_gcm_methods(scope: &mut v8::HandleScope, obj: v8::Local<v8::Object>, is_e
 /// createCipher 回调函数 - v0.3.61
 /// 创建对称加密 Cipher 对象
 fn create_cipher_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1603,7 +1604,10 @@ fn create_cipher_callback(
     // 复制密钥数据到缓冲区
     if key.len() > 0 {
         let store = key_buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, key.len()) };
             slice.copy_from_slice(&key);
@@ -1618,7 +1622,10 @@ fn create_cipher_callback(
         let iv_buffer = v8::ArrayBuffer::new(scope, iv_len);
         if iv_len > 0 {
             let store = iv_buffer.get_backing_store();
-            let ptr = store.data() as *mut u8;
+            let ptr = store
+                .data()
+                .map(|p| p.as_ptr() as *mut u8)
+                .unwrap_or(std::ptr::null_mut());
             if !ptr.is_null() {
                 let slice = unsafe { std::slice::from_raw_parts_mut(ptr, iv_len) };
                 slice.copy_from_slice(iv_data_ref);
@@ -1676,7 +1683,7 @@ fn create_cipher_callback(
 /// createDecipher 回调函数 - v0.3.61
 /// 创建对称解密 Decipher 对象
 fn create_decipher_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1758,7 +1765,10 @@ fn create_decipher_callback(
     // 复制密钥数据到缓冲区
     if key.len() > 0 {
         let store = key_buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, key.len()) };
             slice.copy_from_slice(&key);
@@ -1773,7 +1783,10 @@ fn create_decipher_callback(
         let iv_buffer = v8::ArrayBuffer::new(scope, iv_len);
         if iv_len > 0 {
             let store = iv_buffer.get_backing_store();
-            let ptr = store.data() as *mut u8;
+            let ptr = store
+                .data()
+                .map(|p| p.as_ptr() as *mut u8)
+                .unwrap_or(std::ptr::null_mut());
             if !ptr.is_null() {
                 let slice = unsafe { std::slice::from_raw_parts_mut(ptr, iv_len) };
                 slice.copy_from_slice(iv_data_ref);
@@ -1832,7 +1845,7 @@ fn create_decipher_callback(
 /// 创建带显式 IV 的对称加密 Cipher 对象
 /// 参数: algorithm, key, iv[, options]
 fn create_cipheriv_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -1936,7 +1949,10 @@ fn create_cipheriv_callback(
     let key_buffer = v8::ArrayBuffer::new(scope, key_data.len());
     if key_data.len() > 0 {
         let store = key_buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, key_data.len()) };
             slice.copy_from_slice(&key_data);
@@ -1949,7 +1965,10 @@ fn create_cipheriv_callback(
     let iv_buffer = v8::ArrayBuffer::new(scope, iv_data.len());
     if iv_data.len() > 0 {
         let store = iv_buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, iv_data.len()) };
             slice.copy_from_slice(&iv_data);
@@ -2003,7 +2022,7 @@ fn create_cipheriv_callback(
 /// 创建带显式 IV 的对称解密 Decipher 对象
 /// 参数: algorithm, key, iv[, options]
 fn create_decipheriv_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2107,7 +2126,10 @@ fn create_decipheriv_callback(
     let key_buffer = v8::ArrayBuffer::new(scope, key_data.len());
     if key_data.len() > 0 {
         let store = key_buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, key_data.len()) };
             slice.copy_from_slice(&key_data);
@@ -2120,7 +2142,10 @@ fn create_decipheriv_callback(
     let iv_buffer = v8::ArrayBuffer::new(scope, iv_data.len());
     if iv_data.len() > 0 {
         let store = iv_buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, iv_data.len()) };
             slice.copy_from_slice(&iv_data);
@@ -2236,7 +2261,7 @@ fn derive_key(algorithm: &str, password: &[u8]) -> Vec<u8> {
 
 /// cipher.update() 回调函数
 fn cipher_update_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     retval: v8::ReturnValue,
 ) {
@@ -2274,7 +2299,10 @@ fn cipher_update_callback(
                 let store = buf.get_backing_store();
                 let len = store.byte_length();
                 if len > 0 {
-                    let ptr = store.data() as *const u8;
+                    let ptr = store
+                        .data()
+                        .map(|p| p.as_ptr() as *const u8)
+                        .unwrap_or(std::ptr::null());
                     if !ptr.is_null() {
                         unsafe { std::slice::from_raw_parts(ptr, len).to_vec() }
                     } else {
@@ -2299,7 +2327,10 @@ fn cipher_update_callback(
                             let store = buf.get_backing_store();
                             let len = store.byte_length();
                             if len > 0 {
-                                let ptr = store.data() as *const u8;
+                                let ptr = store
+                                    .data()
+                                    .map(|p| p.as_ptr() as *const u8)
+                                    .unwrap_or(std::ptr::null());
                                 if !ptr.is_null() {
                                     unsafe { std::slice::from_raw_parts(ptr, len).to_vec() }
                                 } else {
@@ -2398,7 +2429,10 @@ fn cipher_update_callback(
             let store = buf.get_backing_store();
             let len = store.byte_length();
             if len > 0 {
-                let ptr = store.data() as *const u8;
+                let ptr = store
+                    .data()
+                    .map(|p| p.as_ptr() as *const u8)
+                    .unwrap_or(std::ptr::null());
                 if !ptr.is_null() {
                     unsafe { std::slice::from_raw_parts(ptr, len).to_vec() }
                 } else {
@@ -2419,7 +2453,10 @@ fn cipher_update_callback(
     let new_pending_buffer = v8::ArrayBuffer::new(scope, pending_data.len());
     if !pending_data.is_empty() {
         let store = new_pending_buffer.get_backing_store();
-        let ptr = store.data() as *mut u8;
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
         if !ptr.is_null() {
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, pending_data.len()) };
             slice.copy_from_slice(&pending_data);
@@ -2478,7 +2515,7 @@ fn cipher_update_callback(
 
 /// cipher.final() 回调函数 - 处理最后的数据块并添加/移除填充
 fn cipher_final_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
@@ -2518,7 +2555,10 @@ fn cipher_final_callback(
         let store = buf.get_backing_store();
         let len = store.byte_length();
         if len > 0 {
-            let ptr = store.data() as *const u8;
+            let ptr = store
+                .data()
+                .map(|p| p.as_ptr() as *const u8)
+                .unwrap_or(std::ptr::null());
             if !ptr.is_null() {
                 unsafe { std::slice::from_raw_parts(ptr, len).to_vec() }
             } else {
@@ -2543,7 +2583,10 @@ fn cipher_final_callback(
                 let store = iv_buf.get_backing_store();
                 let len = store.byte_length();
                 if len > 0 {
-                    let ptr = store.data() as *const u8;
+                    let ptr = store
+                        .data()
+                        .map(|p| p.as_ptr() as *const u8)
+                        .unwrap_or(std::ptr::null());
                     if !ptr.is_null() {
                         Some(unsafe { std::slice::from_raw_parts(ptr, len).to_vec() })
                     } else {
@@ -2566,7 +2609,10 @@ fn cipher_final_callback(
             let store = buf.get_backing_store();
             let len = store.byte_length();
             if len > 0 {
-                let ptr = store.data() as *const u8;
+                let ptr = store
+                    .data()
+                    .map(|p| p.as_ptr() as *const u8)
+                    .unwrap_or(std::ptr::null());
                 if !ptr.is_null() {
                     unsafe { std::slice::from_raw_parts(ptr, len).to_vec() }
                 } else {
@@ -2688,7 +2734,10 @@ fn cipher_final_callback(
         let buffer_obj: _ = v8::ArrayBuffer::new(scope, output.len());
         if output.len() > 0 {
             let store = buffer_obj.get_backing_store();
-            let ptr = store.data() as *mut u8;
+            let ptr = store
+                .data()
+                .map(|p| p.as_ptr() as *mut u8)
+                .unwrap_or(std::ptr::null_mut());
             if !ptr.is_null() {
                 let slice = unsafe { std::slice::from_raw_parts_mut(ptr, output.len()) };
                 slice.copy_from_slice(&output);
@@ -2702,7 +2751,7 @@ fn cipher_final_callback(
 
 /// setAutoPadding 回调函数
 fn set_auto_padding_callback(
-    scope: &mut v8::HandleScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
