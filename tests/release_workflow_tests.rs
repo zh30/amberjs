@@ -18,6 +18,15 @@ fn docker_yaml() -> String {
     fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()))
 }
 
+fn dockerfile_text() -> String {
+    fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Dockerfile")).unwrap()
+}
+
+fn dockerfile_has_bee_entrypoint() -> bool {
+    let docker = dockerfile_text();
+    docker.contains("ENTRYPOINT [\"bee\"]")
+}
+
 #[test]
 fn tag_v_star_publishes_non_draft_release_with_five_bee_archives() {
     let yaml = release_assets_yaml();
@@ -302,8 +311,13 @@ fn docker_workflow_publishes_ghcr_on_v_tags() {
         "GHCR workflow must push, not only load: true"
     );
     assert!(
-        yaml.contains("--version"),
+        yaml.contains("docker run --rm") && yaml.contains("--version"),
         "image job must smoke bee --version"
+    );
+    assert!(
+        !yaml.contains("docker run --rm ${{ env.IMAGE }}:ci --version")
+            || dockerfile_has_bee_entrypoint(),
+        "docker run IMAGE --version requires ENTRYPOINT [\"bee\"]; otherwise --version replaces CMD"
     );
     assert!(
         yaml.contains("amd64-only") || yaml.contains("linux/amd64 only"),
@@ -312,6 +326,23 @@ fn docker_workflow_publishes_ghcr_on_v_tags() {
     assert!(
         !yaml.contains("linux/arm64"),
         "do not advertise linux/arm64 unless a real arm64 build exists"
+    );
+}
+
+#[test]
+fn dockerfile_entrypoint_is_bee_so_docker_run_version_works() {
+    let docker = dockerfile_text();
+    assert!(
+        docker.contains("ENTRYPOINT [\"bee\"]"),
+        "GHCR smoke is `docker run IMAGE --version`; that only works with ENTRYPOINT bee: {docker}"
+    );
+    assert!(
+        docker.contains("CMD [\"serve\""),
+        "default container args must be serve host/port, not a second bee executable: {docker}"
+    );
+    assert!(
+        !docker.contains("CMD [\"bee\", \"serve\""),
+        "CMD must not start with bee once ENTRYPOINT is bee (would become `bee bee serve`)"
     );
 }
 

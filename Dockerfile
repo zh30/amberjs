@@ -80,8 +80,11 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD bee --version >/dev/null || exit 1
 
-# 启动命令
-CMD ["bee", "serve", "--host", "0.0.0.0", "--port", "3000"]
+# ENTRYPOINT is `bee` so `docker run IMAGE --version` execs bee, not `--version`.
+# A CMD-only image replaces the whole argv; GHCR smoke failed with exit 127:
+# exec: "--version": executable file not found in $PATH
+ENTRYPOINT ["bee"]
+CMD ["serve", "--host", "0.0.0.0", "--port", "3000"]
 
 # ==============================================================================
 # 多阶段构建说明:
