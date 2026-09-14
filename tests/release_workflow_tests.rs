@@ -623,7 +623,7 @@ fn homebrew_updater_writes_nonzero_sha256_and_refuses_zeros() {
     let formula = dir.path().join("bee.rb");
     fs::copy(&formula_src, &formula).unwrap();
 
-    let version = "1.9.1";
+    let version = "1.10.0";
     for target in [
         "aarch64-apple-darwin",
         "x86_64-apple-darwin",
@@ -653,7 +653,7 @@ fn homebrew_updater_writes_nonzero_sha256_and_refuses_zeros() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(output.status.success(), "homebrew updater failed: {stderr}");
     let text = fs::read_to_string(&formula).unwrap();
-    assert!(text.contains("version \"1.9.1\""));
+    assert!(text.contains("version \"1.10.0\""));
     assert!(!text.contains("0000000000000000000000000000000000000000000000000000000000000000"));
     assert!(text.contains("sha256 \""));
     for line in text.lines() {

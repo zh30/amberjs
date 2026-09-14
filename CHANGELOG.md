@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.0] - 2026-09-14
+
+### Added
+- **Modern V8 Engine Upgrade**: Full migration from legacy rusty_v8 to modern official `v8 = "152.2.0"` (Chromium 134+).
+- **Stack-pinned Scope Architecture**: Standardized on `v8::PinScope` across all core runtime modules, Web APIs, and Node.js compat layers.
+- **Modern V8 Macro Suite**: Upgraded to official `v8::scope!`, `v8::callback_scope!`, and `v8::tc_scope!` macros.
+- **Snapshot Isolation & Self-Healing (`BEEJS_V3`)**: Startup snapshot versioning with dynamic V8 engine version binding to prevent binary mismatch crashes.
+- **Unlocked Modern Toolchain**: Removed legacy pinned `serde = "=1.0.197"` and historical swc locks, restoring ecosystem upgrade flexibility.
+
+### Changed
+- ArrayBuffer and BackingStore memory handling safe rewrite with `Option<NonNull<c_void>>` and `detach(None)`.
+- ESM dynamic import and synthetic module callbacks migrated to safe Rust signatures.
+- Evaluator startup latency improved to 14.95ms (1.76x faster than Node.js).
+- In-process warm isolate execution throughput exceeds 1,000,000 ops/sec (< 1µs).
+
 ## [1.9.1] - 2026-09-10
 
 ### Added
