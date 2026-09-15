@@ -199,7 +199,7 @@ candle-nn = { version = "0.8.2", default-features = false }
 tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
 
 # Stage 54.3: PyTorch TorchScript dependencies
-tch = { version = "0.11", optional = true }  # 可选依赖，支持条件编译
+tch = { version = "0.26", optional = true }  # 可选依赖，支持条件编译
 
 # Stage 88: Multi-language support
 pyo3 = { version = "0.24", features = ["auto-initialize"], optional = true }  # Python integration
