@@ -477,6 +477,20 @@ pub fn candle_matmul(
             n
         );
     }
+    // Fast path: for small matrices, CPU SIMD avoids GPU kernel dispatch and compiler latency
+    if m * k1 < 256 && k2 * n < 256 {
+        let mut out = vec![0.0f32; m * n];
+        for i in 0..m {
+            for k in 0..k1 {
+                let a_ik = a_data[i * k1 + k];
+                for j in 0..n {
+                    out[i * n + j] += a_ik * b_data[k * n + j];
+                }
+            }
+        }
+        return Ok(out);
+    }
+
     let dev = get_device(None);
     let tensor_a = Tensor::from_slice(a_data, (m, k1), &dev)?;
     let tensor_b = Tensor::from_slice(b_data, (k2, n), &dev)?;
@@ -487,6 +501,16 @@ pub fn candle_matmul(
 
 /// Numerically stable softmax along inner axis using Candle Tensor
 pub fn candle_softmax(data: &[f32], shape: &[usize]) -> Result<Vec<f32>> {
+    // Fast path: small vectors
+    if data.len() < 256 {
+        let max_val = data.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+        let exps: Vec<f32> = data.iter().map(|&x| (x - max_val).exp()).collect();
+        let sum: f32 = exps.iter().sum();
+        if sum > 0.0 {
+            return Ok(exps.into_iter().map(|x| x / sum).collect());
+        }
+    }
+
     let dev = get_device(None);
     let tensor = Tensor::from_slice(data, shape, &dev)?;
     let sm = candle_nn::ops::softmax_last_dim(&tensor)?;
@@ -503,6 +527,12 @@ pub fn candle_dot(a: &[f32], b: &[f32]) -> Result<f32> {
             b.len()
         );
     }
+    // Fast path: small vectors
+    if a.len() < 256 {
+        let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+        return Ok(dot);
+    }
+
     let dev = get_device(None);
     let tensor_a = Tensor::from_slice(a, a.len(), &dev)?;
     let tensor_b = Tensor::from_slice(b, b.len(), &dev)?;
@@ -512,6 +542,12 @@ pub fn candle_dot(a: &[f32], b: &[f32]) -> Result<f32> {
 
 /// Fast L2 norm using Candle
 pub fn candle_norm(a: &[f32]) -> Result<f32> {
+    // Fast path: small vectors
+    if a.len() < 256 {
+        let sq: f32 = a.iter().map(|x| x * x).sum();
+        return Ok(sq.sqrt());
+    }
+
     let dev = get_device(None);
     let tensor = Tensor::from_slice(a, a.len(), &dev)?;
     let sq = tensor.sqr()?.sum_all()?.to_scalar::<f32>()?;

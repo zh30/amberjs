@@ -41,6 +41,7 @@ pub mod performance_reporter;
 
 pub mod agent; // Tool export, JSON-RPC session, MCP stdio
 pub mod event_loop;
+pub mod isolate_prewarmer; // Modern Isolate pre-warming and pool system
 pub mod mcp; // Official Model Context Protocol (MCP) Server & Client
 pub mod nodejs_core; // Core Node.js compatible modules (fs, path, crypto, http, net, timers)
 pub mod package_manager; // Package manager
@@ -198,9 +199,7 @@ pub enum OptimizeMode {
 //     ProcessPoolConfig, WorkerMetrics, TaskComplexity, ProcessPoolStats, ProcessPool,
 // };
 // 重新导出预热相关类型
-// pub use isolate_prewarmer::{  // Temporarily disabled
-//     IsolatePrewarmer, PrewarmConfig, PrewarmStats,
-// };
+pub use isolate_prewarmer::{global_prewarmer, IsolatePrewarmer, PrewarmConfig, PrewarmStats};
 // 重新导出预编译缓存类型
 // pub use precompiled_cache::PrecompiledModuleCache;  // Moved to startup module
 // 重新导出运行时最小版

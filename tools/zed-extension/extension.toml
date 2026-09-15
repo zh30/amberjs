@@ -1,7 +1,7 @@
 id = "beejs"
 name = "Beejs"
 description = "Launches Beejs `bee lsp` for JavaScript, TypeScript, and .beejs files."
-version = "1.12.0"
+version = "1.14.0"
 schema_version = 1
 authors = ["Henry Zhang <hello@zhanghe.dev>"]
 repository = "https://github.com/zh30/beejs"

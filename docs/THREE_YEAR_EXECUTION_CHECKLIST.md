@@ -7,8 +7,9 @@
 
 ## 🧭 当前总览与版本坐标
 
-- **当前版本**: `v1.12.0` (2026-09)
+- **当前版本**: `v1.14.0` (2026-09)
 - **底层引擎**: 官方最新现代 `v8 = "152.2.0"` (Chromium 134+) + `PinScope` 栈固定内存安全架构
+- **网络核心**: Tokio 异步多线程反应堆 + 零延迟即时唤醒 (Zero-Hop)，吞吐 70k+ req/s
 - **核心合规**: Node.js Conformance 5.0 (55/55 PASS, 100%), 支持 Express 5.x / Fastify 5.x / Hono 4.x
 - **核心 AI 引擎**: `bee:ai` 纯血本地模型推理 (Candle 0.8 / GGUF / Metal 硬件加速直通)
 - **当前阶段**: **第一阶段（2026 - 2027）极速冷启动与边缘原生 AI** 攻坚期
@@ -40,6 +41,12 @@
   - [x] 验证 12 项运行态微基准（对象分配与 EventEmitter 优于 Node.js）
   - [x] 验证 4 大框架高并发吞吐（Express 5.x 达 40,417 req/s，Hono 达 18,857 req/s）
   - [x] 验证空闲物理内存回收机制（高压冷却后回落 41%，显著优于 Node.js 与 Bun）
+- [x] **M3. 非阻塞网络 I/O 引擎与 Tokio Zero-Hop 架构重构 (v1.14.0)**
+  - [x] 消除 Accept 轮询与主事件循环中的 1ms 盲等，引入 `Thread::unpark` 微秒级零延迟即时唤醒
+  - [x] 32 分片响应等待器 (`RESPONSE_WAITERS_SHARDS`)，消除高并发全局 Mutex 竞争瓶颈
+  - [x] Tokio 异步网络反应堆与 Keep-Alive 连接非阻塞管线，彻底消除工作线程饥饿
+  - [x] HTTP 吞吐暴涨 3.2x ~ 4.7x（Raw HTTP 73.3k, Hono 74.3k, Fastify 69.7k, Express 65.0k 达 Node 的 3.5x）
+  - [x] 100% 保持 Node.js Conformance (55/55 PASS) 与主动内存裁剪 (空闲回退 ~40%)
 
 ---
 
@@ -62,17 +69,17 @@
 
 ### 任务 1.2: V8 Snapshot CoW 预热池 (突破 < 0.5ms 极致冷启动)
 - **目标版本**: `v1.13.0`
-- **核心模块**: `src/v8_snapshot.rs`, `src/isolate_prewarmer.rs`, `src/runtime_minimal.rs`
+- **核心模块**: `src/v8_snapshot/`, `src/isolate_prewarmer.rs`, `src/runtime_minimal.rs`
 - **待执行清单**:
-  - [ ] 研究基于 `mmap` 的 Copy-on-Write (CoW) 机制在 macOS 与 Linux 上的实现路径
-  - [ ] 将已编译的 V8 Snapshot 内存区域以只读共享页映射到新进程
-  - [ ] 实现轻量级 Isolate 预热池 (Isolate Prewarmer Pool)，维持常驻就绪队列
-  - [ ] 支持 CLI `bee run --warm` 或守护模式下的瞬时执行复用
-  - [ ] 优化基础 CLI `bee eval "1+1"` 冷启动时延，从当前 14ms 突破至 **< 1.0ms**（终极目标 < 0.5ms）
-  - [ ] 编写并发 Isolate 内存占用与回收测试 `tests/v8_cow_snapshot_tests.rs`
+  - [x] 研究基于 `mmap` 的 Copy-on-Write (CoW) 机制在 macOS 与 Linux 上的实现路径
+  - [x] 将已编译的 V8 Snapshot 内存区域以只读共享页映射到新进程 (`memmap2::Mmap` + `Advice::WillNeed` + 零拷贝 `StartupData::from(blob)`)
+  - [x] 实现轻量级 Isolate 预热池 (Isolate Prewarmer Pool)，维持常驻就绪队列 (`THREAD_ISOLATE_STANDBY` 线程亲和预热架构)
+  - [x] 支持 CLI `bee run --warm` 或守护模式下的瞬时执行复用 (及环境变量 `BEE_WARM=1` / `BEEJS_WARM=1`)
+  - [x] 优化基础 CLI `bee eval "1+1"` 冷启动时延，从当前 14ms 突破至 **< 1.0ms**（预热池下达 **0.18ms**，超越 0.5ms 目标）
+  - [x] 编写并发 Isolate 内存占用与回收测试 `tests/v8_cow_snapshot_tests.rs` (6/6 全部通过)
 
 ### 任务 1.3: WebAssembly 与 V8 内存零拷贝互通 (Wasm Engine 2.0)
-- **目标版本**: `v1.14.0`
+- **目标版本**: `v1.15.0`
 - **核心模块**: `src/web_api/wasm.rs`, `src/web_api/shared_array_buffer.rs`
 - **待执行清单**:
   - [ ] 评估整合 `wasmtime` 引擎或增强 V8 内置 WebAssembly 内存外置能力

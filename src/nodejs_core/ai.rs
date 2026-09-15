@@ -134,10 +134,15 @@ pub fn setup_ai_api(
                     match crate::ai_engine::CandleModel::load(&path, &opts_json) {
                         Ok(arc_model) => {
                             let m = arc_model.lock().unwrap();
+                            let dev_str = match m.device {
+                                candle_core::Device::Cpu => "cpu",
+                                candle_core::Device::Cuda(_) => "cuda",
+                                candle_core::Device::Metal(_) => "metal",
+                            };
                             let info = serde_json::json!({
                                 "modelId": m.id,
                                 "path": m.path,
-                                "device": format!("{:?}", m.device),
+                                "device": dev_str,
                                 "contextLength": m.context_length,
                                 "eosTokenId": m.eos_token_id
                             });
@@ -745,7 +750,7 @@ pub fn setup_ai_api(
                         return new LLM(modelPathOrName, {
                             ...options,
                             _modelId: parsed.modelId,
-                            device: parsed.device || options.device || 'cpu',
+                            device: options.device || parsed.device || 'cpu',
                             contextLength: parsed.contextLength || 4096
                         });
                     } catch (_) {}

@@ -151,6 +151,9 @@ enum Command {
         /// Port for V8 Inspector agent (default: 9229)
         #[arg(long = "inspect-port", default_value = "9229")]
         inspect_port: u16,
+        /// Use pre-warmed V8 isolate and CoW snapshot for sub-millisecond execution
+        #[arg(long = "warm")]
+        warm: bool,
     },
     /// JSON-RPC session over stdin/stdout for Agent hosts
     Session {
@@ -181,6 +184,9 @@ enum Command {
         permissions: PermissionCliOptions,
         /// JavaScript code to execute
         code: String,
+        /// Use pre-warmed V8 isolate and CoW snapshot for sub-millisecond execution
+        #[arg(long = "warm")]
+        warm: bool,
     },
     /// Run in REPL mode
     Repl,
@@ -4568,6 +4574,7 @@ fn main() -> Result<()> {
             inspect,
             inspect_brk,
             inspect_port,
+            warm,
         }) => {
             let inspector = if inspect || inspect_brk {
                 let inspector = beejs::tooling::inspector::InspectorServer::new(
@@ -4830,7 +4837,14 @@ fn main() -> Result<()> {
 
                 // Default single-isolate execution
                 beejs::v8_snapshot::enable_startup_snapshot_for_cli();
-                let mut runtime = if let Some(mem_mb) = permissions.max_memory {
+                let is_warm_mode = warm
+                    || std::env::var_os("BEE_WARM").is_some()
+                    || std::env::var_os("BEEJS_WARM").is_some();
+                let mut runtime = if is_warm_mode {
+                    beejs::isolate_prewarmer::global_prewarmer()
+                        .acquire()
+                        .expect("Failed to acquire prewarmed runtime")
+                } else if let Some(mem_mb) = permissions.max_memory {
                     beejs::runtime_minimal::MinimalRuntime::with_memory_limit(mem_mb)
                         .expect("Failed to create runtime with memory limit")
                 } else {
@@ -4911,17 +4925,29 @@ fn main() -> Result<()> {
             }
             return Ok(());
         }
-        Some(Command::Eval { permissions, code }) => {
+        Some(Command::Eval {
+            permissions,
+            code,
+            warm,
+        }) => {
             apply_permission_cli_options(&permissions)?;
 
             if verbose {
                 println!("Evaluating JavaScript code");
             }
 
-            // Create a minimal runtime with Web API support
+            // Create or acquire a pre-warmed runtime
             beejs::v8_snapshot::enable_startup_snapshot_for_cli();
-            let mut runtime =
-                beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+            let is_warm_mode = warm
+                || std::env::var_os("BEE_WARM").is_some()
+                || std::env::var_os("BEEJS_WARM").is_some();
+            let mut runtime = if is_warm_mode {
+                beejs::isolate_prewarmer::global_prewarmer()
+                    .acquire()
+                    .expect("Failed to acquire prewarmed runtime")
+            } else {
+                beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime")
+            };
             let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
             if code.contains("import ") || code.contains("export ") || code.contains("import{") {
                 runtime.set_main_module_path(cwd.join("eval.mjs"));

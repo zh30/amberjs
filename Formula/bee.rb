@@ -3,7 +3,7 @@
 class Bee < Formula
   desc "JavaScript/TypeScript runtime built with Rust and V8"
   homepage "https://github.com/zh30/beejs"
-  version "1.12.0"
+  version "1.14.0"
   license "MIT"
 
   on_macos do

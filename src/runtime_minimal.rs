@@ -4261,7 +4261,7 @@ impl MinimalRuntime {
     fn isolate_create_params(initial: usize, maximum: usize) -> v8::CreateParams {
         let params = v8::CreateParams::default().heap_limits(initial, maximum);
         match crate::v8_snapshot::cached_startup_blob() {
-            Some(blob) => params.snapshot_blob(v8::StartupData::from(blob.to_vec())),
+            Some(blob) => params.snapshot_blob(v8::StartupData::from(blob)),
             None => params,
         }
     }
@@ -4596,6 +4596,60 @@ impl MinimalRuntime {
         self.context = Some(global_context);
         self.esm_module_cache.clear();
         self.esm_module_cache_fingerprints.clear();
+    }
+
+    /// 预热运行时：预先创建 Context 并安装全部 Core 及 Extended APIs。
+    /// 消除后续首次调用 execute_code 时的上下文构建与 API 挂载时延，
+    /// 实现亚毫秒级（< 0.5ms）极致就绪与热执行。
+    pub fn prewarm(&mut self) -> Result<()> {
+        if self.apis_initialized && self.extended_apis_initialized && self.context.is_some() {
+            return Ok(());
+        }
+
+        v8::scope!(let scope, &mut self.isolate);
+        let context = if self.context.is_none() {
+            let context = v8::Context::new(scope, Default::default());
+            let global_context = v8::Global::new(scope, context);
+            self.context = Some(global_context);
+            context
+        } else {
+            v8::Local::new(scope, self.context.as_ref().unwrap())
+        };
+
+        let scope = &mut v8::ContextScope::new(scope, context);
+
+        if !self.apis_initialized {
+            Self::install_core_apis(
+                scope,
+                &context,
+                &self.main_module_dir,
+                &self.main_module_filename,
+            )?;
+            self.apis_initialized = true;
+        }
+
+        if !self.extended_apis_initialized {
+            Self::install_extended_apis(scope, &context)?;
+            self.extended_apis_initialized = true;
+        }
+
+        Ok(())
+    }
+
+    /// Exit this isolate from the current thread (e.g. before storing into a pool).
+    ///
+    /// # Safety
+    /// Must only be called when no scopes are active on this isolate on the current thread.
+    pub unsafe fn exit_current_thread(&mut self) {
+        self.isolate.exit();
+    }
+
+    /// Enter this isolate onto the current thread (e.g. after acquiring from a pool).
+    ///
+    /// # Safety
+    /// Must be balanced by an exit or drop on the same thread.
+    pub unsafe fn enter_current_thread(&mut self) {
+        self.isolate.enter();
     }
 
     fn should_execute_as_esm_module(code: &str, main_module_filename: &str) -> Result<bool> {
@@ -8837,6 +8891,7 @@ impl MinimalRuntime {
         // CLI `bee run` keeps the process alive while HTTP servers listen.
         // Tests leave `http_server_keep_alive` false so listen() returns.
         if http_server_keep_alive {
+            crate::nodejs_core::http::register_http_dispatch_thread(std::thread::current());
             let mut idle_ticks: u32 = 0;
             let mut last_trim_time = std::time::Instant::now();
             loop {
@@ -8900,7 +8955,7 @@ impl MinimalRuntime {
                         }
                         last_trim_time = std::time::Instant::now();
                     }
-                    std::thread::sleep(std::time::Duration::from_millis(1));
+                    std::thread::park_timeout(std::time::Duration::from_millis(1));
                 }
             }
         }

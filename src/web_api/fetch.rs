@@ -1865,40 +1865,6 @@ fn attach_response_body_methods(scope: &mut v8::PinScope, response_obj: v8::Loca
     let blob_func: _ = blob_template.get_function(scope).unwrap();
     let blob_key: _ = v8::String::new(scope, "blob").unwrap();
     response_obj.set(scope, blob_key.into(), blob_func.into());
-
-    let then_template = v8::FunctionTemplate::new(
-        scope,
-        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
-            let this_val = args.this();
-            let on_fulfilled = args.get(0);
-            if on_fulfilled.is_function() {
-                let func = v8::Local::<v8::Function>::try_from(on_fulfilled).unwrap();
-                let undefined = v8::undefined(scope);
-                if let Some(res) = func.call(scope, undefined.into(), &[this_val.into()]) {
-                    rv.set(res);
-                } else {
-                    rv.set(this_val.into());
-                }
-            } else {
-                rv.set(this_val.into());
-            }
-        },
-    );
-    let then_func = then_template.get_function(scope).unwrap();
-    let then_key = v8::String::new(scope, "then").unwrap();
-    response_obj.set(scope, then_key.into(), then_func.into());
-
-    let catch_template = v8::FunctionTemplate::new(
-        scope,
-        |_scope: &mut v8::PinScope,
-         args: v8::FunctionCallbackArguments,
-         mut rv: v8::ReturnValue| {
-            rv.set(args.this().into());
-        },
-    );
-    let catch_func = catch_template.get_function(scope).unwrap();
-    let catch_key = v8::String::new(scope, "catch").unwrap();
-    response_obj.set(scope, catch_key.into(), catch_func.into());
 }
 
 fn attach_response_clone_method(scope: &mut v8::PinScope, response_obj: v8::Local<v8::Object>) {

@@ -17,6 +17,10 @@ pub fn candle_cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
     if a.len() != b.len() || a.is_empty() {
         return 0.0;
     }
+    // Fast path: for small vectors, avoid GPU kernel launch overhead
+    if a.len() < 256 {
+        return crate::ai_engine::embedding::cosine_similarity(a, b);
+    }
     let dev = get_device(None);
     if let (Ok(t_a), Ok(t_b)) = (
         Tensor::from_slice(a, a.len(), &dev),

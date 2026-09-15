@@ -8,13 +8,16 @@ use once_cell::sync::Lazy;
 use rusty_v8 as v8;
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::net::{SocketAddr, TcpListener, TcpStream, ToSocketAddrs};
+use std::net::{SocketAddr, TcpListener, ToSocketAddrs};
+use std::pin::Pin;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 };
+use std::task::{Context, Poll};
 use std::thread;
 use std::time::{Duration, Instant};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use super::tcp_async::{sync_http_request, HttpRequestOptions};
 use crate::permissions::{check_global_permission, PermissionAction, PermissionKind, ResourceId};
@@ -174,14 +177,82 @@ fn stop_http_server_state(host: &str, port: u16) {
     states.retain(|state| state.listening.load(Ordering::SeqCst));
 }
 
+static GLOBAL_REQUEST_SENDER: Lazy<Mutex<Option<crossbeam::channel::Sender<HttpRequestMessage>>>> =
+    Lazy::new(|| Mutex::new(None));
+static GLOBAL_REQUEST_RECEIVER: Lazy<Mutex<Option<crossbeam::channel::Receiver<HttpRequestMessage>>>> =
+    Lazy::new(|| Mutex::new(None));
+
+static MAIN_V8_THREAD: Lazy<Mutex<Option<std::thread::Thread>>> =
+    Lazy::new(|| Mutex::new(None));
+
+/// 登记主 V8 线程句柄，用于微秒级即时唤醒
+pub fn register_http_dispatch_thread(thread: std::thread::Thread) {
+    if let Ok(mut guard) = MAIN_V8_THREAD.lock() {
+        *guard = Some(thread);
+    }
+}
+
+/// 立即唤醒挂起等待的 V8 主事件循环 (零延迟)
+pub fn wake_http_dispatch_thread() {
+    if let Ok(guard) = MAIN_V8_THREAD.lock() {
+        if let Some(ref thread) = *guard {
+            thread.unpark();
+        }
+    }
+}
+
+/// HTTP 响应发送器（统一抽象 crossbeam 与 Tokio oneshot）
+pub enum HttpResponseSender {
+    Crossbeam(crossbeam::channel::Sender<HttpResponseMessage>),
+    TokioOneshot(tokio::sync::oneshot::Sender<HttpResponseMessage>),
+}
+
+impl HttpResponseSender {
+    pub fn send_response(self, msg: HttpResponseMessage) {
+        match self {
+            HttpResponseSender::Crossbeam(tx) => {
+                let _ = tx.send(msg);
+            }
+            HttpResponseSender::TokioOneshot(tx) => {
+                let _ = tx.send(msg);
+            }
+        }
+    }
+}
+
+const NUM_RESPONSE_SHARDS: usize = 32;
+
+struct ResponseWaiterShard {
+    map: Mutex<HashMap<u64, HttpResponseSender>>,
+}
+
+static RESPONSE_WAITERS_SHARDS: Lazy<Vec<ResponseWaiterShard>> = Lazy::new(|| {
+    (0..NUM_RESPONSE_SHARDS)
+        .map(|_| ResponseWaiterShard {
+            map: Mutex::new(HashMap::new()),
+        })
+        .collect()
+});
+
+#[inline]
+fn get_response_shard(connection_id: u64) -> &'static ResponseWaiterShard {
+    let idx = (connection_id as usize) % NUM_RESPONSE_SHARDS;
+    &RESPONSE_WAITERS_SHARDS[idx]
+}
+
 /// 初始化全局消息通道
 #[allow(static_mut_refs)]
 pub fn init_http_server_channel() -> Arc<Mutex<Option<HttpServerMessageChannel>>> {
     unsafe {
         if HTTP_SERVER_CHANNEL.is_none() {
-            HTTP_SERVER_CHANNEL = Some(Arc::new(Mutex::new(Some(HttpServerMessageChannel::new(
-                4096,
-            )))));
+            let channel = HttpServerMessageChannel::new(32768);
+            if let Ok(mut tx_guard) = GLOBAL_REQUEST_SENDER.lock() {
+                *tx_guard = Some(channel.request_sender.clone());
+            }
+            if let Ok(mut rx_guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+                *rx_guard = Some(channel.request_receiver.clone());
+            }
+            HTTP_SERVER_CHANNEL = Some(Arc::new(Mutex::new(Some(channel))));
         }
         HTTP_SERVER_CHANNEL.as_ref().unwrap().clone()
     }
@@ -195,12 +266,13 @@ pub fn get_http_server_channel() -> Option<Arc<Mutex<Option<HttpServerMessageCha
 
 /// 重置全局消息通道
 /// v0.3.93: 添加测试支持，用于清空通道中的残留消息
-/// 创建一个新的消息通道，丢弃所有未处理的消息
 #[allow(static_mut_refs)]
 pub fn reset_http_server_channel() {
     stop_all_http_server_states();
-    if let Ok(mut map) = RESPONSE_WAITERS.lock() {
-        map.clear();
+    for shard in RESPONSE_WAITERS_SHARDS.iter() {
+        if let Ok(mut map) = shard.map.lock() {
+            map.clear();
+        }
     }
     PENDING_ASYNC_HTTP_RESPONSES.store(0, Ordering::SeqCst);
 
@@ -209,24 +281,30 @@ pub fn reset_http_server_channel() {
             let mut channel_guard = channel_arc
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            // 创建一个新通道，丢弃所有未处理的消息
-            *channel_guard = Some(HttpServerMessageChannel::new(4096));
+            let channel = HttpServerMessageChannel::new(32768);
+            if let Ok(mut tx_guard) = GLOBAL_REQUEST_SENDER.lock() {
+                *tx_guard = Some(channel.request_sender.clone());
+            }
+            if let Ok(mut rx_guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+                *rx_guard = Some(channel.request_receiver.clone());
+            }
+            *channel_guard = Some(channel);
         }
     }
 }
 
-/// 发送 HTTP 响应到后台线程
-/// v0.3.90: 实现跨线程响应传递
+/// 发送 HTTP 响应到等待中的工作任务（支持分片锁与 0ms 通知）
 #[allow(static_mut_refs)]
 pub fn send_http_response(response: HttpResponseMessage) {
-    let waiter = if let Ok(mut map) = RESPONSE_WAITERS.lock() {
+    let shard = get_response_shard(response.connection_id);
+    let waiter = if let Ok(mut map) = shard.map.lock() {
         map.remove(&response.connection_id)
     } else {
         None
     };
 
-    if let Some(tx) = waiter {
-        let _ = tx.send(response);
+    if let Some(sender) = waiter {
+        sender.send_response(response);
     } else {
         unsafe {
             if let Some(ref channel_arc) = HTTP_SERVER_CHANNEL {
@@ -242,26 +320,33 @@ pub fn send_http_response(response: HttpResponseMessage) {
 }
 
 /// 获取消息接收器（用于事件循环轮询）
-/// v0.3.90: 添加消息接收支持
 #[allow(static_mut_refs)]
 #[deprecated(since = "0.3.90", note = "Use try_recv_http_request instead")]
 pub fn get_http_request_receiver() -> Option<crossbeam::channel::Receiver<HttpRequestMessage>> {
+    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+        if let Some(ref rx) = *guard {
+            return Some(rx.clone());
+        }
+    }
     unsafe {
         HTTP_SERVER_CHANNEL.as_ref().and_then(|channel_arc| {
             let _ = channel_arc
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner())
                 .as_ref()?;
-            // 使用 try_recv_http_request 替代
             None
         })
     }
 }
 
-/// v0.3.90: 尝试接收 HTTP 请求（非阻塞）
-/// 返回 Some(request) 如果有请求，None 如果没有请求
+/// 尝试接收 HTTP 请求（非阻塞快路径）
 #[allow(static_mut_refs)]
 pub fn try_recv_http_request() -> Option<HttpRequestMessage> {
+    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+        if let Some(ref rx) = *guard {
+            return rx.try_recv().ok();
+        }
+    }
     unsafe {
         if let Some(ref channel_arc) = HTTP_SERVER_CHANNEL {
             if let Some(ref channel) = *channel_arc
@@ -270,11 +355,7 @@ pub fn try_recv_http_request() -> Option<HttpRequestMessage> {
             {
                 match channel.request_receiver.try_recv() {
                     Ok(request) => Some(request),
-                    Err(crossbeam::channel::TryRecvError::Empty) => {
-                        // Channel is empty, no request available
-                        None
-                    }
-                    Err(crossbeam::channel::TryRecvError::Disconnected) => None,
+                    Err(_) => None,
                 }
             } else {
                 None
@@ -285,23 +366,35 @@ pub fn try_recv_http_request() -> Option<HttpRequestMessage> {
     }
 }
 
-static RESPONSE_WAITERS: Lazy<
-    Mutex<HashMap<u64, crossbeam::channel::Sender<HttpResponseMessage>>>,
-> = Lazy::new(|| Mutex::new(HashMap::new()));
-
 pub fn register_http_response_waiter(
     connection_id: u64,
     sender: crossbeam::channel::Sender<HttpResponseMessage>,
 ) {
-    if let Ok(mut map) = RESPONSE_WAITERS.lock() {
-        map.insert(connection_id, sender);
+    let shard = get_response_shard(connection_id);
+    if let Ok(mut map) = shard.map.lock() {
+        map.insert(connection_id, HttpResponseSender::Crossbeam(sender));
+    }
+}
+
+pub fn register_tokio_response_waiter(
+    connection_id: u64,
+    sender: tokio::sync::oneshot::Sender<HttpResponseMessage>,
+) {
+    let shard = get_response_shard(connection_id);
+    if let Ok(mut map) = shard.map.lock() {
+        map.insert(connection_id, HttpResponseSender::TokioOneshot(sender));
     }
 }
 
 pub fn unregister_http_response_waiter(connection_id: u64) {
-    if let Ok(mut map) = RESPONSE_WAITERS.lock() {
+    let shard = get_response_shard(connection_id);
+    if let Ok(mut map) = shard.map.lock() {
         map.remove(&connection_id);
     }
+}
+
+pub fn unregister_tokio_response_waiter(connection_id: u64) {
+    unregister_http_response_waiter(connection_id);
 }
 
 static FALLBACK_HTTP_CONNECTION_ID: AtomicU64 = AtomicU64::new(1);
@@ -334,6 +427,11 @@ pub fn has_pending_async_http_responses() -> bool {
 
 /// True when the request channel has at least one queued message.
 pub fn has_pending_http_requests() -> bool {
+    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+        if let Some(ref rx) = *guard {
+            return !rx.is_empty();
+        }
+    }
     unsafe {
         if let Some(ref channel_arc) = HTTP_SERVER_CHANNEL {
             if let Ok(guard) = channel_arc.lock() {
@@ -364,12 +462,28 @@ pub fn pump_pending_http_requests_in_scope(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> usize {
+    let fast_rx = if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+        guard.clone()
+    } else {
+        None
+    };
+
     let mut processed = 0;
-    while let Some(request) = try_recv_http_request() {
-        dispatch_http_request_in_scope(scope, context, &request);
-        processed += 1;
-        if processed >= 256 {
-            break;
+    if let Some(rx) = fast_rx {
+        while let Ok(request) = rx.try_recv() {
+            dispatch_http_request_in_scope(scope, context, &request);
+            processed += 1;
+            if processed >= 256 {
+                break;
+            }
+        }
+    } else {
+        while let Some(request) = try_recv_http_request() {
+            dispatch_http_request_in_scope(scope, context, &request);
+            processed += 1;
+            if processed >= 256 {
+                break;
+            }
         }
     }
     processed
@@ -2712,6 +2826,7 @@ pub fn generate_http_response_v2(
     result
 }
 
+#[allow(dead_code)]
 fn create_reuse_port_listener(addr_str: &str) -> std::io::Result<TcpListener> {
     #[cfg(unix)]
     {
@@ -2793,16 +2908,78 @@ fn create_reuse_port_listener(addr_str: &str) -> std::io::Result<TcpListener> {
     }
 }
 
-/// HTTP 服务器运行函数（在独立线程中运行）
-fn run_http_server(server_state: Arc<HttpServerState>, handler_code: String) {
+static HTTP_TOKIO_RUNTIME: Lazy<tokio::runtime::Runtime> = Lazy::new(|| {
+    let num_threads = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(4)
+        .max(2);
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(num_threads)
+        .thread_name("beejs-http-tokio")
+        .enable_all()
+        .build()
+        .expect("Failed to create HTTP Tokio runtime")
+});
+
+pub fn get_http_tokio_runtime() -> &'static tokio::runtime::Runtime {
+    &HTTP_TOKIO_RUNTIME
+}
+
+enum TokioServerIo {
+    Plain(tokio::net::TcpStream),
+    Tls(tokio_rustls::server::TlsStream<tokio::net::TcpStream>),
+}
+
+impl tokio::io::AsyncRead for TokioServerIo {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
+        match self.get_mut() {
+            TokioServerIo::Plain(s) => Pin::new(s).poll_read(cx, buf),
+            TokioServerIo::Tls(s) => Pin::new(s).poll_read(cx, buf),
+        }
+    }
+}
+
+impl tokio::io::AsyncWrite for TokioServerIo {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<std::io::Result<usize>> {
+        match self.get_mut() {
+            TokioServerIo::Plain(s) => Pin::new(s).poll_write(cx, buf),
+            TokioServerIo::Tls(s) => Pin::new(s).poll_write(cx, buf),
+        }
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        match self.get_mut() {
+            TokioServerIo::Plain(s) => Pin::new(s).poll_flush(cx),
+            TokioServerIo::Tls(s) => Pin::new(s).poll_flush(cx),
+        }
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        match self.get_mut() {
+            TokioServerIo::Plain(s) => Pin::new(s).poll_shutdown(cx),
+            TokioServerIo::Tls(s) => Pin::new(s).poll_shutdown(cx),
+        }
+    }
+}
+
+/// HTTP 服务器运行函数（基于 Tokio 异步网络反应堆）
+fn run_http_server(server_state: Arc<HttpServerState>, _handler_code: String) {
     let addr = format!("{}:{}", server_state.host, server_state.port);
 
     if !server_state.listening.load(Ordering::SeqCst) {
         return;
     }
 
-    // 创建 TCP 监听器（支持多 Worker SO_REUSEPORT 端口重用）
-    let listener = match create_reuse_port_listener(&addr).or_else(|_| TcpListener::bind(&addr)) {
+    // 创建 TCP 监听器
+    let std_listener = match TcpListener::bind(&addr) {
         Ok(l) => {
             if let Ok(local) = l.local_addr() {
                 server_state
@@ -2818,8 +2995,11 @@ fn run_http_server(server_state: Arc<HttpServerState>, handler_code: String) {
         }
     };
 
-    // 设置为非阻塞模式
-    listener.set_nonblocking(true).ok();
+    if let Err(e) = std_listener.set_nonblocking(true) {
+        eprintln!("[Beejs] Failed to set non-blocking on listener: {}", e);
+        server_state.listening.store(false, Ordering::SeqCst);
+        return;
+    }
 
     if !server_state.listening.load(Ordering::SeqCst) {
         return;
@@ -2827,69 +3007,62 @@ fn run_http_server(server_state: Arc<HttpServerState>, handler_code: String) {
 
     eprintln!("[Beejs] HTTP Server listening on {}", addr);
 
-    // 创建工作线程池（根据硬件核心数复用线程，消除每次连接 thread::spawn 的高昂开销）
-    let num_workers = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(4)
-        .max(4)
-        * 2;
-    let (conn_tx, conn_rx) =
-        crossbeam::channel::bounded::<(TcpStream, Arc<HttpServerState>, String)>(2048);
+    let rt = get_http_tokio_runtime();
+    let state_clone = server_state.clone();
 
-    for _ in 0..num_workers {
-        let rx = conn_rx.clone();
-        thread::spawn(move || {
-            while let Ok((stream, state, code)) = rx.recv() {
-                handle_connection(stream, &state, &code);
+    rt.spawn(async move {
+        let tokio_listener = match tokio::net::TcpListener::from_std(std_listener) {
+            Ok(l) => l,
+            Err(e) => {
+                eprintln!("[Beejs] Failed to convert listener to Tokio: {}", e);
+                state_clone.listening.store(false, Ordering::SeqCst);
+                return;
             }
-        });
-    }
+        };
 
-    loop {
-        // 检查是否应该停止
-        if !server_state.listening.load(Ordering::SeqCst) {
-            break;
-        }
-
-        loop {
-            match listener.accept() {
-                Ok((stream, _addr)) => {
-                    let state = server_state.clone();
-                    let code = handler_code.clone();
-
-                    if let Err(crossbeam::channel::TrySendError::Full((s, st, cd))) =
-                        conn_tx.try_send((stream, state, code))
-                    {
-                        // 队列极端饱满时动态溢出处理，避免丢弃连接
-                        thread::spawn(move || {
-                            handle_connection(s, &st, &cd);
-                        });
+        while state_clone.listening.load(Ordering::SeqCst) {
+            tokio::select! {
+                res = tokio_listener.accept() => {
+                    match res {
+                        Ok((stream, _addr)) => {
+                            let state = state_clone.clone();
+                            tokio::spawn(async move {
+                                let _ = stream.set_nodelay(true);
+                                if let Some(ref tls_config) = state.tls_config {
+                                    let acceptor = tokio_rustls::TlsAcceptor::from(tls_config.clone());
+                                    match acceptor.accept(stream).await {
+                                        Ok(tls_stream) => {
+                                            handle_tokio_connection(TokioServerIo::Tls(tls_stream), state).await;
+                                        }
+                                        Err(e) => {
+                                            eprintln!("[Beejs] TLS handshake failed: {}", e);
+                                        }
+                                    }
+                                } else {
+                                    handle_tokio_connection(TokioServerIo::Plain(stream), state).await;
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            if !state_clone.listening.load(Ordering::SeqCst) {
+                                break;
+                            }
+                            eprintln!("[Beejs] Accept failed: {}", e);
+                            tokio::time::sleep(Duration::from_millis(5)).await;
+                        }
                     }
                 }
-                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    break;
-                }
-                Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => {
-                    continue;
-                }
-                Err(e) => {
-                    eprintln!("[Beejs] Accept failed: {}", e);
-                    break;
+                _ = tokio::time::sleep(Duration::from_millis(100)) => {
+                    // Periodic listening check
                 }
             }
         }
-        thread::sleep(Duration::from_millis(1));
-    }
-
-    drop(conn_tx);
-
-    eprintln!("[Beejs] HTTP Server stopped");
+        eprintln!("[Beejs] HTTP Server stopped");
+    });
 }
 
 /// 处理单个连接
-/// v0.3.89: 修改为使用消息通道模式，支持跨线程 V8 上下文调用
 /// 检查是否应该保持连接（Keep-Alive）
-/// v0.3.96: 新增功能
 fn header_value_ignore_case<'a>(
     headers: &'a HashMap<String, String>,
     name: &str,
@@ -2962,14 +3135,12 @@ fn should_keep_alive(headers: &HashMap<String, String>, http_version: &str) -> b
     let conn = header_value_ignore_case(headers, "connection").map(|s| s.to_ascii_lowercase());
     // HTTP/1.1 默认 Keep-Alive，HTTP/1.0 默认 Close
     if http_version == "HTTP/1.1" {
-        // HTTP/1.1 默认 Keep-Alive，除非明确指定 Connection: close
         match conn.as_deref() {
             Some("close") => false,
             Some("keep-alive") => true,
             _ => true,
         }
     } else {
-        // HTTP/1.0 默认 Close，除非明确指定 Connection: keep-alive
         match conn.as_deref() {
             Some("keep-alive") => true,
             _ => false,
@@ -2977,91 +3148,26 @@ fn should_keep_alive(headers: &HashMap<String, String>, http_version: &str) -> b
     }
 }
 
-enum ServerIo {
-    Plain(TcpStream),
-    Tls(rustls::StreamOwned<rustls::ServerConnection, TcpStream>),
-}
-
-impl Read for ServerIo {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        match self {
-            ServerIo::Plain(stream) => stream.read(buf),
-            ServerIo::Tls(stream) => stream.read(buf),
-        }
-    }
-}
-
-impl Write for ServerIo {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        match self {
-            ServerIo::Plain(stream) => stream.write(buf),
-            ServerIo::Tls(stream) => stream.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        match self {
-            ServerIo::Plain(stream) => stream.flush(),
-            ServerIo::Tls(stream) => stream.flush(),
-        }
-    }
-}
-
-impl ServerIo {
-    fn shutdown_write(&mut self) {
-        match self {
-            ServerIo::Plain(stream) => {
-                let _ = stream.shutdown(std::net::Shutdown::Write);
-            }
-            ServerIo::Tls(stream) => {
-                let _ = stream.sock.shutdown(std::net::Shutdown::Write);
-            }
-        }
-    }
-}
-
-fn wrap_accepted_stream(stream: TcpStream, server_state: &HttpServerState) -> Option<ServerIo> {
-    let _ = stream.set_nodelay(true);
-    let _ = stream.set_nonblocking(false);
-    let _ = stream.set_read_timeout(Some(Duration::from_secs(30)));
-    let _ = stream.set_write_timeout(Some(Duration::from_secs(30)));
-    match &server_state.tls_config {
-        Some(config) => match rustls::ServerConnection::new(config.clone()) {
-            Ok(connection) => Some(ServerIo::Tls(rustls::StreamOwned::new(connection, stream))),
-            Err(error) => {
-                eprintln!("[Beejs] TLS accept failed: {error}");
-                None
-            }
-        },
-        None => Some(ServerIo::Plain(stream)),
-    }
-}
-
-/// 处理 HTTP 连接（支持 Keep-Alive）
-/// v0.3.96: 添加 Keep-Alive 支持
-/// v0.3.87: 基础功能
-fn handle_connection(stream: TcpStream, server_state: &HttpServerState, _handler_code: &str) {
-    let Some(mut stream) = wrap_accepted_stream(stream, server_state) else {
-        return;
-    };
+/// 基于 Tokio 异步任务处理 HTTP 连接（全异步非阻塞 + Keep-Alive 复用）
+async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<HttpServerState>) {
     const KEEP_ALIVE_TIMEOUT: Duration = Duration::from_secs(30);
 
     let mut buffer = [0u8; 8192];
-    let mut request_data = Vec::with_capacity(2048);
+    let mut request_data = Vec::with_capacity(4096);
 
     loop {
         request_data.clear();
         let mut connection_close = false;
 
-        // 读取请求数据
+        // 非阻塞读取请求数据
         loop {
-            match stream.read(&mut buffer) {
-                Ok(0) => {
-                    // 连接关闭
+            let read_res = tokio::time::timeout(KEEP_ALIVE_TIMEOUT, stream.read(&mut buffer)).await;
+            match read_res {
+                Ok(Ok(0)) => {
                     connection_close = true;
                     break;
                 }
-                Ok(n) => {
+                Ok(Ok(n)) => {
                     request_data.extend_from_slice(&buffer[..n]);
 
                     // 检查是否收到完整的请求头（以 \r\n\r\n 结尾）
@@ -3076,49 +3182,36 @@ fn handle_connection(stream: TcpStream, server_state: &HttpServerState, _handler
                         break;
                     }
                 }
-                Err(ref e)
-                    if e.kind() == std::io::ErrorKind::WouldBlock
-                        || e.kind() == std::io::ErrorKind::TimedOut =>
-                {
-                    connection_close = true;
-                    break;
-                }
-                Err(_e) => {
+                Ok(Err(_)) | Err(_) => {
                     connection_close = true;
                     break;
                 }
             }
         }
 
-        if request_data.is_empty() {
+        if request_data.is_empty() || connection_close {
             break;
         }
 
         // 解析 HTTP 请求
         let parsed_request = match parse_http_request(&request_data) {
             Some(req) => req,
-            None => {
-                break;
-            }
+            None => break,
         };
 
         if is_websocket_upgrade(&parsed_request.headers) {
-            handle_same_port_websocket_upgrade(stream, request_data);
+            if let TokioServerIo::Plain(plain_stream) = stream {
+                if let Ok(std_stream) = plain_stream.into_std() {
+                    let _ = std_stream.set_nonblocking(false);
+                    handle_same_port_websocket_upgrade(std_stream, request_data);
+                }
+            }
             return;
         }
 
         // 判断是否 Keep-Alive
         let is_keep_alive = !connection_close
             && should_keep_alive(&parsed_request.headers, &parsed_request.http_version);
-
-        let channel = server_state
-            .channel
-            .as_ref()
-            .cloned()
-            .or_else(get_http_server_channel);
-        let use_message_channel = server_state.use_message_channel && channel.is_some();
-
-        let mut message_channel_used = false;
 
         let connection_id = allocate_http_connection_id();
         let request_msg = HttpRequestMessage {
@@ -3131,69 +3224,59 @@ fn handle_connection(stream: TcpStream, server_state: &HttpServerState, _handler
             connection_id,
         };
 
-        let (resp_tx, resp_rx) = crossbeam::channel::bounded(1);
-        if use_message_channel {
-            register_http_response_waiter(connection_id, resp_tx);
-            if let Some(ref channel_ref) = channel {
-                let locked = channel_ref
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner());
-                if let Some(ref msg_channel) = *locked {
-                    match msg_channel.send_request(request_msg) {
-                        Ok(()) => {
-                            message_channel_used = true;
-                        }
-                        Err(e) => {
-                            unregister_http_response_waiter(connection_id);
-                            eprintln!("[Beejs] Failed to send request via channel: {:?}", e);
-                        }
-                    }
+        let (resp_tx, resp_rx) = tokio::sync::oneshot::channel::<HttpResponseMessage>();
+        register_tokio_response_waiter(connection_id, resp_tx);
+
+        let mut message_channel_used = false;
+        if let Ok(tx_guard) = GLOBAL_REQUEST_SENDER.lock() {
+            if let Some(ref tx) = *tx_guard {
+                if tx.send(request_msg).is_ok() {
+                    message_channel_used = true;
+                    wake_http_dispatch_thread();
                 }
             }
         }
 
         if !message_channel_used {
+            unregister_tokio_response_waiter(connection_id);
             let fallback_body = "Beejs HTTP server dispatcher unavailable";
-            let connection_header = "close";
-
             let response_data = format!(
-                "HTTP/1.1 503 Service Unavailable\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: {}\r\n\r\n{}",
+                "HTTP/1.1 503 Service Unavailable\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                 fallback_body.len(),
-                connection_header,
                 fallback_body
             );
-
-            let _ = stream.write_all(response_data.as_bytes());
-            let _ = stream.shutdown_write();
+            let _ = stream.write_all(response_data.as_bytes()).await;
+            let _ = stream.shutdown().await;
             break;
         }
 
-        match resp_rx.recv_timeout(KEEP_ALIVE_TIMEOUT) {
-            Ok(response) => {
+        match tokio::time::timeout(KEEP_ALIVE_TIMEOUT, resp_rx).await {
+            Ok(Ok(response)) => {
                 let response_has_close = response.headers.iter().any(|(k, v)| {
                     k.eq_ignore_ascii_case("connection") && v.trim().eq_ignore_ascii_case("close")
                 });
                 let keep_alive = is_keep_alive && !response_has_close;
-
                 let connection_header = if keep_alive { "keep-alive" } else { "close" };
 
                 let response_data = generate_http_response_v2(&response, Some(connection_header));
-                let _ = stream.write_all(&response_data);
+                if stream.write_all(&response_data).await.is_err() {
+                    break;
+                }
 
                 if !keep_alive {
-                    let _ = stream.shutdown_write();
+                    let _ = stream.shutdown().await;
                     break;
                 }
             }
-            Err(_) => {
-                unregister_http_response_waiter(connection_id);
-                let _ = stream.shutdown_write();
+            _ => {
+                unregister_tokio_response_waiter(connection_id);
+                let _ = stream.shutdown().await;
                 break;
             }
         }
     }
 
-    let _ = stream.shutdown_write();
+    let _ = stream.shutdown().await;
 }
 
 /// response.removeHeader() 回调 - v0.3.87

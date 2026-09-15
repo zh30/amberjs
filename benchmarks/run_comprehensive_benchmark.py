@@ -85,6 +85,11 @@ def run_bench_part1_startup(meta):
             "node": ["node", "-e", "1 + 1"],
             "bun": ["bun", "-e", "1 + 1"]
         }),
+        ("eval '1 + 1' (--warm)", {
+            "bee": [str(BEE_BIN), "eval", "--warm", "1 + 1"],
+            "node": ["node", "-e", "1 + 1"],
+            "bun": ["bun", "-e", "1 + 1"]
+        }),
         ("eval console.log('hello')", {
             "bee": [str(BEE_BIN), "eval", "console.log('hello')"],
             "node": ["node", "-e", "console.log('hello')"],
@@ -92,6 +97,11 @@ def run_bench_part1_startup(meta):
         }),
         ("run hello_world.js", {
             "bee": [str(BEE_BIN), "run", "examples/basics/hello_world.js"],
+            "node": ["node", "examples/basics/hello_world.js"],
+            "bun": ["bun", "examples/basics/hello_world.js"]
+        }),
+        ("run hello_world.js (--warm)", {
+            "bee": [str(BEE_BIN), "run", "--warm", "examples/basics/hello_world.js"],
             "node": ["node", "examples/basics/hello_world.js"],
             "bun": ["bun", "examples/basics/hello_world.js"]
         }),
@@ -145,12 +155,16 @@ def run_bench_part2_microbenchmarks():
 def wait_for_server(url: str, timeout_sec: float = 8.0) -> bool:
     parsed = urllib.parse.urlparse(url)
     start = time.time()
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     while time.time() - start < timeout_sec:
         try:
             req = urllib.request.Request(url)
-            with urllib.request.urlopen(req, timeout=0.5) as resp:
+            with opener.open(req, timeout=0.5) as resp:
                 if resp.status in (200, 404):
                     return True
+        except urllib.error.HTTPError as e:
+            if e.code in (200, 404):
+                return True
         except Exception:
             pass
         time.sleep(0.1)
@@ -184,6 +198,10 @@ def run_bench_part3_http_frameworks():
             url = f"http://127.0.0.1:{port}/"
             env = os.environ.copy()
             env["PORT"] = str(port)
+            env["no_proxy"] = "127.0.0.1,localhost"
+            env["NO_PROXY"] = "127.0.0.1,localhost"
+            for k in ["http_proxy", "https_proxy", "all_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"]:
+                env.pop(k, None)
             
             # Start server
             server_proc = subprocess.Popen(
@@ -212,7 +230,7 @@ def run_bench_part3_http_frameworks():
                     url
                 ]
                 
-                ac_proc = subprocess.run(autocannon_cmd, capture_output=True, text=True)
+                ac_proc = subprocess.run(autocannon_cmd, capture_output=True, text=True, env=env)
                 
                 # Measure peak RSS during/after load
                 peak_rss = get_process_rss_mb(server_proc.pid)
@@ -322,7 +340,7 @@ def generate_markdown_report(sys_info, p1_data, p2_data, p3_data, p4_data):
     md.append("")
     md.append("每项工作负载执行 20 次取统计值，涵盖从系统进程创建、V8 快照恢复、动态加载到安全退出的全部时间（越低越好）：")
     md.append("")
-    md.append("| 工作负载 (Workload) | Beejs 1.11.0 (均值) | Beejs (P95) | Node.js v24.16 | Bun v1.4.1 | 优势分析 (vs Node.js) |")
+    md.append(f"| 工作负载 (Workload) | {sys_info['bee_version']} (均值) | Beejs (P95) | {sys_info['node_version']} | {sys_info['bun_version']} | 优势分析 (vs Node.js) |")
     md.append("|---|---|---|---|---|---|")
     for name, rts in p1_data.items():
         bee_m = rts.get("bee", {}).get("mean_ms", "N/A")
@@ -397,7 +415,7 @@ def generate_markdown_report(sys_info, p1_data, p2_data, p3_data, p4_data):
                 p99 = d["p99_latency_ms"]
                 total = d["total_requests"]
                 mem_str = f"{d['baseline_rss_mb']:.1f} → {d['peak_rss_mb']:.1f} → {d['settled_rss_mb']:.1f} MB"
-                rt_label = f"**Beejs 1.11**" if rt == "bee" else rt.upper()
+                rt_label = f"**{sys_info['bee_version']}**" if rt == "bee" else rt.upper()
                 md.append(f"| **{fw_name}** | {rt_label} | **{rps:,.1f} req/s** | {lat:.2f} ms | {p99:.2f} ms | {total:,} | {mem_str} |")
     md.append("")
     

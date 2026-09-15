@@ -114,7 +114,7 @@ fn wrap_snapshot_payload(data: &[u8]) -> Vec<u8> {
     payload
 }
 
-fn unwrap_snapshot_payload(bytes: &[u8]) -> Option<Vec<u8>> {
+fn unwrap_snapshot_bounds(bytes: &[u8]) -> Option<(usize, usize)> {
     if bytes.len() < 8 + 2 + 8 {
         return None;
     }
@@ -137,7 +137,13 @@ fn unwrap_snapshot_payload(bytes: &[u8]) -> Option<Vec<u8>> {
     if bytes.len() < data_offset + dlen {
         return None;
     }
-    Some(bytes[data_offset..data_offset + dlen].to_vec())
+    Some((data_offset, dlen))
+}
+
+/// Helper for backwards compatibility and payload unwrapping.
+pub fn unwrap_snapshot_payload(bytes: &[u8]) -> Option<Vec<u8>> {
+    let (offset, len) = unwrap_snapshot_bounds(bytes)?;
+    Some(bytes[offset..offset + len].to_vec())
 }
 
 /// Process-wide warmup blob for `CreateParams::snapshot_blob`.
@@ -152,16 +158,26 @@ pub fn cached_startup_blob() -> Option<&'static [u8]> {
     if !enabled {
         return None;
     }
-    static BLOB: OnceLock<Option<Vec<u8>>> = OnceLock::new();
-    BLOB.get_or_init(load_or_create_startup_blob).as_deref()
+    static BLOB: OnceLock<Option<&'static [u8]>> = OnceLock::new();
+    *BLOB.get_or_init(load_or_create_startup_blob_cow)
 }
 
-fn load_or_create_startup_blob() -> Option<Vec<u8>> {
+/// Returns true if the startup snapshot is enabled and actively loaded.
+pub fn is_startup_blob_cow_active() -> bool {
+    cached_startup_blob().is_some()
+}
+
+fn load_or_create_startup_blob_cow() -> Option<&'static [u8]> {
     let path = startup_blob_path();
     if let Ok(file) = std::fs::File::open(&path) {
         if let Ok(mmap) = unsafe { memmap2::Mmap::map(&file) } {
-            if let Some(valid_blob) = unwrap_snapshot_payload(&mmap) {
-                return Some(valid_blob);
+            #[cfg(unix)]
+            {
+                let _ = mmap.advise(memmap2::Advice::WillNeed);
+            }
+            if let Some((offset, len)) = unwrap_snapshot_bounds(&mmap) {
+                let leaked_mmap: &'static memmap2::Mmap = Box::leak(Box::new(mmap));
+                return Some(&leaked_mmap[offset..offset + len]);
             } else {
                 // Invalid or outdated snapshot detected: remove it so it heals cleanly
                 let _ = std::fs::remove_file(&path);
@@ -181,6 +197,21 @@ fn load_or_create_startup_blob() -> Option<Vec<u8>> {
         let _ = std::fs::create_dir_all(parent);
     }
     let payload = wrap_snapshot_payload(&snapshot.snapshot_data);
-    let _ = std::fs::write(&path, &payload);
-    Some(snapshot.snapshot_data)
+    if std::fs::write(&path, &payload).is_ok() {
+        if let Ok(file) = std::fs::File::open(&path) {
+            if let Ok(mmap) = unsafe { memmap2::Mmap::map(&file) } {
+                #[cfg(unix)]
+                {
+                    let _ = mmap.advise(memmap2::Advice::WillNeed);
+                }
+                if let Some((offset, len)) = unwrap_snapshot_bounds(&mmap) {
+                    let leaked_mmap: &'static memmap2::Mmap = Box::leak(Box::new(mmap));
+                    return Some(&leaked_mmap[offset..offset + len]);
+                }
+            }
+        }
+    }
+
+    let leaked_vec: &'static Vec<u8> = Box::leak(Box::new(snapshot.snapshot_data));
+    Some(leaked_vec.as_slice())
 }
