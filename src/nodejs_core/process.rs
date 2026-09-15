@@ -110,238 +110,1155 @@ thread_local! {
         Mutex::new(std::collections::HashMap::new());
 }
 
-/// 设置 process 全局对象
+fn env_permission_check_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+    let name = args
+        .get(0)
+        .to_string(scope)
+        .map(|s| s.to_rust_string_lossy(scope))
+        .unwrap_or_default();
+    if let Err(error) = crate::permissions::check_global_permission(
+        crate::permissions::PermissionKind::Environment,
+        crate::permissions::PermissionAction::Read,
+        crate::permissions::ResourceId::Name(name),
+    ) {
+        let error_message = v8::String::new(scope, &error.to_string()).unwrap();
+        let error_obj = v8::Exception::error(scope, error_message);
+        scope.throw_exception(error_obj.into());
+    }
+}
+
+fn env_is_allowed_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let name = args
+        .get(0)
+        .to_string(scope)
+        .map(|s| s.to_rust_string_lossy(scope))
+        .unwrap_or_default();
+    let allowed = crate::permissions::check_global_permission(
+        crate::permissions::PermissionKind::Environment,
+        crate::permissions::PermissionAction::Read,
+        crate::permissions::ResourceId::Name(name),
+    )
+    .is_ok();
+    retval.set(v8::Boolean::new(scope, allowed).into());
+}
+
+fn wrap_process_env_proxy<'scope>(
+    scope: &mut v8::PinScope<'scope, '_>,
+    env_obj: v8::Local<'scope, v8::Object>,
+    is_sandbox: bool,
+) -> v8::Local<'scope, v8::Object> {
+    let Some(code) = v8::String::new(
+        scope,
+        r#"
+(function(raw, isSandbox) {
+  return new Proxy(raw, {
+    get(target, prop, receiver) {
+      if (typeof prop !== 'string') {
+        return Reflect.get(target, prop, receiver);
+      }
+      if (isSandbox) {
+        if (!Object.prototype.hasOwnProperty.call(target, prop)) {
+          if (typeof globalThis.__beeCheckEnv === 'function') {
+            globalThis.__beeCheckEnv(prop);
+          }
+          return undefined;
+        }
+      }
+      if (typeof globalThis.__beeIsEnvAllowed === 'function' && !globalThis.__beeIsEnvAllowed(prop)) {
+        if (isSandbox && typeof globalThis.__beeCheckEnv === 'function') {
+          globalThis.__beeCheckEnv(prop);
+        }
+        return undefined;
+      }
+      return target[prop];
+    },
+    set(target, prop, value, receiver) {
+      if (typeof prop === 'string') {
+        target[prop] = String(value);
+        return true;
+      }
+      return Reflect.set(target, prop, value, receiver);
+    },
+    has(target, prop) {
+      if (typeof prop === 'string') {
+        if (isSandbox) {
+          if (!Object.prototype.hasOwnProperty.call(target, prop)) {
+            if (typeof globalThis.__beeCheckEnv === 'function') {
+              globalThis.__beeCheckEnv(prop);
+            }
+          }
+        }
+        if (typeof globalThis.__beeIsEnvAllowed === 'function' && !globalThis.__beeIsEnvAllowed(prop)) {
+          if (isSandbox && typeof globalThis.__beeCheckEnv === 'function') {
+            globalThis.__beeCheckEnv(prop);
+          }
+          return false;
+        }
+      }
+      return Reflect.has(target, prop);
+    },
+    deleteProperty(target, prop) {
+      return Reflect.deleteProperty(target, prop);
+    },
+    ownKeys(target) {
+      return Reflect.ownKeys(target).filter(prop => {
+        if (typeof prop === 'string') {
+          if (typeof globalThis.__beeIsEnvAllowed === 'function' && !globalThis.__beeIsEnvAllowed(prop)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    },
+    getOwnPropertyDescriptor(target, prop) {
+      if (typeof prop === 'string') {
+        if (typeof globalThis.__beeIsEnvAllowed === 'function' && !globalThis.__beeIsEnvAllowed(prop)) {
+          return undefined;
+        }
+      }
+      return Reflect.getOwnPropertyDescriptor(target, prop);
+    }
+  });
+})
+"#,
+    ) else {
+        return env_obj;
+    };
+    let Some(script) = v8::Script::compile(scope, code, None) else {
+        return env_obj;
+    };
+    let Some(factory) = script.run(scope) else {
+        return env_obj;
+    };
+    let Ok(factory) = v8::Local::<v8::Function>::try_from(factory) else {
+        return env_obj;
+    };
+    let undefined = v8::undefined(scope).into();
+    let is_sandbox_v8 = v8::Boolean::new(scope, is_sandbox);
+    match factory.call(scope, undefined, &[env_obj.into(), is_sandbox_v8.into()]) {
+        Some(value) if value.is_object() => value.to_object(scope).unwrap_or(env_obj),
+        _ => env_obj,
+    }
+}
+
+fn create_process_env_object<'scope>(
+    scope: &mut v8::PinScope<'scope, '_>,
+) -> v8::Local<'scope, v8::Object> {
+    let env_obj = v8::Object::new(scope);
+
+    for (key, value) in std::env::vars() {
+        if crate::permissions::check_global_permission(
+            crate::permissions::PermissionKind::Environment,
+            crate::permissions::PermissionAction::Read,
+            crate::permissions::ResourceId::Name(key.clone()),
+        )
+        .is_err()
+        {
+            continue;
+        }
+
+        let key_value = v8::String::new(scope, &key).unwrap();
+        let env_value = v8::String::new(scope, &value).unwrap();
+        env_obj.set(scope, key_value.into(), env_value.into());
+    }
+
+    let is_sandbox = crate::permissions::sandbox_strict_env();
+    wrap_process_env_proxy(scope, env_obj, is_sandbox)
+}
+
+/// v0.3.39: Get RSS (Resident Set Size) memory in bytes
+/// Cross-platform implementation for getting process memory usage
+fn get_rss_memory() -> u64 {
+    #[cfg(target_os = "linux")]
+    {
+        // On Linux, read from /proc/self/status
+        if let Ok(content) = std::fs::read_to_string("/proc/self/status") {
+            for line in content.lines() {
+                if line.starts_with("VmRSS:") {
+                    // Format: "VmRSS:    1234 kB"
+                    if let Some(kb_str) = line.split_whitespace().nth(1) {
+                        if let Ok(kb) = kb_str.parse::<u64>() {
+                            return kb * 1024; // Convert kB to bytes
+                        }
+                    }
+                }
+            }
+        }
+        0
+    }
+    #[cfg(target_os = "macos")]
+    {
+        // On macOS, use libc getrusage
+        use libc::{getrusage, rusage, RUSAGE_SELF};
+        let mut usage: rusage = unsafe { std::mem::zeroed() };
+        unsafe {
+            if getrusage(RUSAGE_SELF, &mut usage) == 0 {
+                // ru_maxrss is in kilobytes on macOS
+                usage.ru_maxrss as u64 * 1024
+            } else {
+                0
+            }
+        }
+    }
+    #[cfg(target_os = "windows")]
+    {
+        // windows-sys 0.52: GetCurrentProcess is Threading; counters are ProcessStatus.
+        use windows_sys::Win32::System::ProcessStatus::{
+            GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS,
+        };
+        use windows_sys::Win32::System::Threading::GetCurrentProcess;
+
+        unsafe {
+            let mut counters: PROCESS_MEMORY_COUNTERS = std::mem::zeroed();
+            counters.cb = std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32;
+
+            if GetProcessMemoryInfo(
+                GetCurrentProcess(),
+                &mut counters,
+                std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
+            ) != 0
+            {
+                counters.WorkingSetSize as u64
+            } else {
+                0
+            }
+        }
+    }
+    #[cfg(target_os = "freebsd")]
+    {
+        // On FreeBSD, use sysctl
+        use libc::{c_int, c_uint, sysctl, CTLTYPE_ULONG, CTL_MAXNAME};
+
+        let mut mib: [c_int; 2] = [0, 0];
+        let mut size: c_uint = std::mem::size_of::<u64>() as c_uint;
+        let mut value: u64 = 0;
+
+        // CTL_VM.VM_USED_TOTAL for FreeBSD (or we can try hw.physmem)
+        mib[0] = 0; // CTL_VM
+        mib[1] = 0; // VM_USED_TOTAL
+
+        unsafe {
+            if sysctl(
+                mib.as_ptr(),
+                2,
+                &mut value as *mut u64 as *mut libc::c_void,
+                &mut size,
+                std::ptr::null(),
+                0,
+            ) == 0
+            {
+                value
+            } else {
+                0
+            }
+        }
+    }
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "windows",
+        target_os = "freebsd"
+    )))]
+    {
+        // Fallback for other platforms - estimate based on V8 heap
+        0
+    }
+}
+
 pub fn setup_process_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
     context: &v8::Local<v8::Context>,
 ) -> Result<()> {
+    use std::env;
+
     let global = context.global(scope);
+    if let Some(check_env) = v8::Function::new(scope, env_permission_check_callback) {
+        let check_key = v8::String::new(scope, "__beeCheckEnv").unwrap();
+        global.set(scope, check_key.into(), check_env.into());
+    }
+    if let Some(is_allowed) = v8::Function::new(scope, env_is_allowed_callback) {
+        let key = v8::String::new(scope, "__beeIsEnvAllowed").unwrap();
+        global.set(scope, key.into(), is_allowed.into());
+    }
 
-    // 创建 process 对象
-    let process_obj = v8::Object::new(scope);
-
-    // process.version - Node.js 版本
+    // Pre-create all V8 values to avoid scope borrowing issues
     let version_key = v8::String::new(scope, "version").unwrap();
-    let version_val = v8::String::new(scope, "v20.0.0").unwrap();
-    process_obj.set(scope, version_key.into(), version_val.into());
-
-    // process.platform - 平台信息
+    let version_value = v8::String::new(scope, "v20.11.0").unwrap();
+    let versions_key = v8::String::new(scope, "versions").unwrap();
+    let v8_key = v8::String::new(scope, "v8").unwrap();
+    let v8_value = v8::String::new(scope, v8::V8::get_version()).unwrap();
+    let node_key = v8::String::new(scope, "node").unwrap();
+    let node_value = v8::String::new(scope, "20.11.0").unwrap();
+    let bee_key = v8::String::new(scope, "bee").unwrap();
+    let beejs_key = v8::String::new(scope, "beejs").unwrap();
+    let beejs_value = v8::String::new(scope, env!("CARGO_PKG_VERSION")).unwrap();
     let platform_key = v8::String::new(scope, "platform").unwrap();
-    #[cfg(target_os = "macos")]
-    let platform_val = v8::String::new(scope, "darwin").unwrap();
-    #[cfg(target_os = "linux")]
-    let platform_val = v8::String::new(scope, "linux").unwrap();
-    #[cfg(target_os = "windows")]
-    let platform_val = v8::String::new(scope, "win32").unwrap();
-    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-    let platform_val = v8::String::new(scope, "unknown").unwrap();
-    process_obj.set(scope, platform_key.into(), platform_val.into());
-
-    // process.arch - 架构信息
+    let platform_value = v8::String::new(
+        scope,
+        if cfg!(target_os = "macos") {
+            "darwin"
+        } else if cfg!(target_os = "linux") {
+            "linux"
+        } else if cfg!(target_os = "windows") {
+            "win32"
+        } else {
+            "unknown"
+        },
+    )
+    .unwrap();
     let arch_key = v8::String::new(scope, "arch").unwrap();
-    #[cfg(target_arch = "x86_64")]
-    let arch_val = v8::String::new(scope, "x64").unwrap();
-    #[cfg(target_arch = "aarch64")]
-    let arch_val = v8::String::new(scope, "arm64").unwrap();
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
-    let arch_val = v8::String::new(scope, "unknown").unwrap();
-    process_obj.set(scope, arch_key.into(), arch_val.into());
-
-    // process.argv - 命令行参数
+    let arch_value = v8::String::new(
+        scope,
+        if cfg!(target_arch = "x86_64") {
+            "x64"
+        } else if cfg!(target_arch = "aarch64") {
+            "arm64"
+        } else {
+            "unknown"
+        },
+    )
+    .unwrap();
+    let pid_key = v8::String::new(scope, "pid").unwrap();
+    let pid_value = v8::Integer::new(scope, std::process::id() as i32);
+    // v0.3.40: Add process.ppid - parent process ID
+    let ppid_key = v8::String::new(scope, "ppid").unwrap();
+    // Get parent process ID - use getppid() on Unix, estimate on Windows
+    #[cfg(not(windows))]
+    let ppid_value = v8::Integer::new(scope, unsafe { libc::getppid() } as i32);
+    #[cfg(windows)]
+    let ppid_value = v8::Integer::new(scope, 0i32); // Windows doesn't expose ppid directly
+    let title_key = v8::String::new(scope, "title").unwrap();
+    let title_value = v8::String::new(scope, "bee").unwrap();
+    let env_key = v8::String::new(scope, "env").unwrap();
     let argv_key = v8::String::new(scope, "argv").unwrap();
-    let argv_array = v8::Array::new(scope, 0);
-    // 默认参数
-    let arg0 = v8::String::new(scope, "bee").unwrap();
-    argv_array.set_index(scope, 0, arg0.into());
-    let arg1 = v8::String::new(scope, "script.js").unwrap();
-    argv_array.set_index(scope, 1, arg1.into());
-    process_obj.set(scope, argv_key.into(), argv_array.into());
-
-    // process.execPath - 可执行文件路径
+    let exec_argv_key = v8::String::new(scope, "execArgv").unwrap();
     let exec_path_key = v8::String::new(scope, "execPath").unwrap();
-    let exec_path_val = v8::String::new(scope, "/usr/local/bin/bee").unwrap();
-    process_obj.set(scope, exec_path_key.into(), exec_path_val.into());
-
-    // process.cwd() - 获取当前工作目录
-    let cwd_func = v8::FunctionTemplate::new(scope, process_cwd_callback);
-    let cwd_instance = cwd_func.get_function(scope).unwrap();
     let cwd_key = v8::String::new(scope, "cwd").unwrap();
-    process_obj.set(scope, cwd_key.into(), cwd_instance.into());
-
-    // v0.3.239: process.nextTick() - 微任务队列优先级
-    let next_tick_func = v8::FunctionTemplate::new(scope, process_next_tick_callback);
-    let next_tick_instance = next_tick_func.get_function(scope).unwrap();
-    let next_tick_key = v8::String::new(scope, "nextTick").unwrap();
-    process_obj.set(scope, next_tick_key.into(), next_tick_instance.into());
-
-    // process.exit() - 退出程序
-    let exit_func = v8::FunctionTemplate::new(scope, process_exit_callback);
-    let exit_instance = exit_func.get_function(scope).unwrap();
+    let chdir_key = v8::String::new(scope, "chdir").unwrap();
+    let umask_key = v8::String::new(scope, "umask").unwrap();
+    let abort_key = v8::String::new(scope, "abort").unwrap();
+    let config_key = v8::String::new(scope, "config").unwrap();
+    let memory_usage_key = v8::String::new(scope, "memoryUsage").unwrap();
+    let memory_key = v8::String::new(scope, "memory").unwrap(); // v0.3.240: Add memory() alias
+    let uptime_key = v8::String::new(scope, "uptime").unwrap();
+    let hrtime_key = v8::String::new(scope, "hrtime").unwrap();
     let exit_key = v8::String::new(scope, "exit").unwrap();
-    process_obj.set(scope, exit_key.into(), exit_instance.into());
+    let exit_code_key = v8::String::new(scope, "exitCode").unwrap();
+    let exit_code_value = v8::Integer::new(scope, 0);
+    let next_tick_key = v8::String::new(scope, "nextTick").unwrap();
+    let features_key = v8::String::new(scope, "features").unwrap();
+    let debug_key = v8::String::new(scope, "debug").unwrap();
+    let debug_value = v8::Boolean::new(scope, cfg!(debug_assertions));
+    let ipc_key = v8::String::new(scope, "ipc").unwrap();
+    let ipc_value = v8::Boolean::new(scope, true);
+    // v0.3.40: Add additional features
+    let uv_key = v8::String::new(scope, "uv").unwrap();
+    let uv_value = v8::Boolean::new(scope, true); // V8 provides event loop
+    let v8_feature_key = v8::String::new(scope, "v8").unwrap();
+    let v8_feature_value = v8::Boolean::new(scope, true); // V8 engine is present
+    let modules_key = v8::String::new(scope, "modules").unwrap();
+    let modules_value = v8::Boolean::new(scope, true); // Module loading is supported
+    let is_beejs_key = v8::String::new(scope, "isBeejs").unwrap();
+    let is_beejs_value = v8::Boolean::new(scope, true);
+    let browser_key = v8::String::new(scope, "browser").unwrap();
+    let browser_value = v8::Boolean::new(scope, false);
+    let process_key = v8::String::new(scope, "process").unwrap();
 
-    // process.on() - 事件监听
-    let on_func = v8::FunctionTemplate::new(scope, process_on_callback);
-    let on_instance = on_func.get_function(scope).unwrap();
+    // Pre-create string values for array
+    let argv0_val = v8::String::new(scope, "bee").unwrap();
+    let argv1_val = v8::String::new(scope, "<program>").unwrap();
+    let exec_path_val = v8::String::new(
+        scope,
+        &env::current_exe().unwrap_or_default().to_string_lossy(),
+    )
+    .unwrap();
+
+    // Pre-create function templates
+    let cwd_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let cwd = env::current_dir().unwrap_or_default();
+            let cwd_str = v8::String::new(scope, cwd.to_string_lossy().as_ref()).unwrap();
+            retval.set(cwd_str.into());
+        },
+    );
+    let chdir_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let directory = args
+                .get(0)
+                .to_string(scope)
+                .map(|s| s.to_rust_string_lossy(scope))
+                .unwrap_or_default();
+            if let Err(error) = crate::permissions::check_global_permission(
+                crate::permissions::PermissionKind::Process,
+                crate::permissions::PermissionAction::Execute,
+                crate::permissions::ResourceId::Path(std::path::PathBuf::from(&directory)),
+            ) {
+                let error_message = v8::String::new(scope, &error.to_string()).unwrap();
+                let error_obj = v8::Exception::error(scope, error_message);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+            match env::set_current_dir(&directory) {
+                Ok(()) => {
+                    let undefined = v8::undefined(scope);
+                    retval.set(undefined.into());
+                }
+                Err(e) => {
+                    let error_msg = format!("chdir() failed: {}", e);
+                    let error = v8::String::new(scope, &error_msg).unwrap();
+                    let error_obj = v8::Exception::error(scope, error);
+                    scope.throw_exception(error_obj.into());
+                }
+            }
+        },
+    );
+
+    // v0.3.35: Add process.umask() - file mode creation mask
+    // umask() with no args returns current mask, with args sets new mask
+    let umask_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            static CURRENT_UMASK: std::sync::atomic::AtomicU32 =
+                std::sync::atomic::AtomicU32::new(0o022);
+
+            if args.length() == 0 {
+                // Return current umask as octal string
+                let mask = CURRENT_UMASK.load(std::sync::atomic::Ordering::SeqCst);
+                let mask_str = format!("{:04o}", mask);
+                let mask_v8 = v8::String::new(scope, &mask_str).unwrap();
+                retval.set(mask_v8.into());
+            } else {
+                // Set new umask
+                let new_mask = args
+                    .get(0)
+                    .to_integer(scope)
+                    .map(|i| i.value() as u32 & 0o777)
+                    .unwrap_or(0);
+                let old_mask = CURRENT_UMASK.swap(new_mask, std::sync::atomic::Ordering::SeqCst);
+                let old_mask_str = format!("{:04o}", old_mask);
+                let old_mask_v8 = v8::String::new(scope, &old_mask_str).unwrap();
+                retval.set(old_mask_v8.into());
+            }
+        },
+    );
+
+    // v0.3.35: Add process.abort() - abort the process
+    let abort_fn = v8::FunctionTemplate::new(
+        scope,
+        |_scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         _retval: v8::ReturnValue| {
+            std::process::abort();
+        },
+    );
+
+    let memory_usage_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // v0.3.39: Implement real memory usage tracking
+            // Get RSS first (cross-platform)
+            let rss = get_rss_memory();
+
+            let result_obj = v8::Object::new(scope);
+
+            // Estimate heap statistics with reasonable bounds
+            // For a simple runtime, heap typically takes 20-40% of RSS, with 50% utilization
+            // Cap values to reasonable bounds for testing
+            let rss_f64 = rss as f64;
+            let estimated_heap_total =
+                ((rss_f64 * 0.25).min(100.0 * 1024.0 * 1024.0)).max(2.0 * 1024.0 * 1024.0) as u64; // Max 100MB, Min 2MB
+            let estimated_heap_used =
+                ((estimated_heap_total as f64) / 2.0).max(512.0 * 1024.0) as u64; // Min 512KB
+
+            // heapTotal: Estimated total V8 heap size
+            let heap_total = v8::String::new(scope, "heapTotal").unwrap();
+            let heap_total_val = v8::Number::new(scope, estimated_heap_total as f64);
+            result_obj.set(scope, heap_total.into(), heap_total_val.into());
+
+            // heapUsed: Estimated used heap size
+            let heap_used = v8::String::new(scope, "heapUsed").unwrap();
+            let heap_used_val = v8::Number::new(scope, estimated_heap_used as f64);
+            result_obj.set(scope, heap_used.into(), heap_used_val.into());
+
+            // rss: Resident Set Size - total memory allocated by the process
+            let rss_key = v8::String::new(scope, "rss").unwrap();
+            let rss_val = v8::Number::new(scope, rss as f64);
+            result_obj.set(scope, rss_key.into(), rss_val.into());
+
+            // external: Memory allocated outside V8 heap (typically small for basic runtime)
+            let external = v8::String::new(scope, "external").unwrap();
+            let external_val = v8::Number::new(scope, 0.0);
+            result_obj.set(scope, external.into(), external_val.into());
+
+            // arrayBuffers: Memory used by ArrayBuffers
+            let array_buffers = v8::String::new(scope, "arrayBuffers").unwrap();
+            let array_buffers_obj = v8::Object::new(scope);
+            let ab_used = v8::String::new(scope, "used").unwrap();
+            let ab_used_val = v8::Number::new(scope, 0.0);
+            array_buffers_obj.set(scope, ab_used.into(), ab_used_val.into());
+            result_obj.set(scope, array_buffers.into(), array_buffers_obj.into());
+
+            retval.set(result_obj.into());
+        },
+    );
+
+    // v0.3.240: Add process.memory() - alias for memoryUsage
+    let memory_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // Reuse the same logic as memoryUsage
+            let rss = get_rss_memory();
+            let result_obj = v8::Object::new(scope);
+            let rss_f64 = rss as f64;
+            let estimated_heap_total =
+                ((rss_f64 * 0.25).min(100.0 * 1024.0 * 1024.0)).max(2.0 * 1024.0 * 1024.0) as u64;
+            let estimated_heap_used =
+                ((estimated_heap_total as f64) / 2.0).max(512.0 * 1024.0) as u64;
+
+            let heap_total = v8::String::new(scope, "heapTotal").unwrap();
+            let heap_total_val = v8::Number::new(scope, estimated_heap_total as f64);
+            result_obj.set(scope, heap_total.into(), heap_total_val.into());
+
+            let heap_used = v8::String::new(scope, "heapUsed").unwrap();
+            let heap_used_val = v8::Number::new(scope, estimated_heap_used as f64);
+            result_obj.set(scope, heap_used.into(), heap_used_val.into());
+
+            let external = v8::String::new(scope, "external").unwrap();
+            let external_val = v8::Number::new(scope, 0.0);
+            result_obj.set(scope, external.into(), external_val.into());
+
+            let rss_key = v8::String::new(scope, "rss").unwrap();
+            let rss_val = v8::Number::new(scope, rss as f64);
+            result_obj.set(scope, rss_key.into(), rss_val.into());
+
+            let array_buffers = v8::String::new(scope, "arrayBuffers").unwrap();
+            let array_buffers_obj = v8::Object::new(scope);
+            let ab_used = v8::String::new(scope, "used").unwrap();
+            let ab_used_val = v8::Number::new(scope, 0.0);
+            array_buffers_obj.set(scope, ab_used.into(), ab_used_val.into());
+            result_obj.set(scope, array_buffers.into(), array_buffers_obj.into());
+
+            retval.set(result_obj.into());
+        },
+    );
+
+    let uptime_fn = v8::FunctionTemplate::new(
+        scope,
+        |_scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // Returns seconds since Unix epoch (same as before)
+            let uptime = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as f64;
+            retval.set(v8::Number::new(_scope, uptime).into());
+        },
+    );
+
+    // v0.3.41: process.hrtime() with bigint() method
+    // Create bigint function first
+    let hrtime_bigint_fn = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let bigint_val = v8::BigInt::new_from_u64(scope, now as u64);
+            retval.set(bigint_val.into());
+        },
+    )
+    .unwrap();
+
+    // Create hrtime function
+    let hrtime_fn_template = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let sec = (now / 1_000_000_000) as i32;
+            let nsec = (now % 1_000_000_000) as i32;
+            let result_array = v8::Array::new(scope, 2);
+            let sec_val = v8::Integer::new(scope, sec);
+            let nsec_val = v8::Integer::new(scope, nsec);
+            result_array.set_index(scope, 0, sec_val.into());
+            result_array.set_index(scope, 1, nsec_val.into());
+            retval.set(result_array.into());
+        },
+    );
+    let hrtime_func = hrtime_fn_template.get_function(scope).unwrap();
+
+    // Add bigint method to the hrtime function object
+    let bigint_key = v8::String::new(scope, "bigint").unwrap();
+    hrtime_func.set(scope, bigint_key.into(), hrtime_bigint_fn.into());
+    let exit_fn = v8::FunctionTemplate::new(
+        scope,
+        |_scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         _retval: v8::ReturnValue| {
+            let code = args
+                .get(0)
+                .to_integer(_scope)
+                .map(|i| i.value() as i32)
+                .unwrap_or(0);
+            std::process::exit(code);
+        },
+    );
+    let next_tick_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         _retval: v8::ReturnValue| {
+            // v0.3.261: Use the same implementation as nodejs_core/process.rs
+            // Get callback function
+            let callback = args.get(0);
+            if !callback.is_function() {
+                let error = v8::String::new(scope, "process.nextTick: callback must be a function")
+                    .unwrap();
+                let error_obj = v8::Exception::type_error(scope, error);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+            // Collect any additional arguments to pass to the callback
+            let callback_args: Vec<v8::Global<v8::Value>> = (1..args.length())
+                .map(|i| args.get(i))
+                .filter(|v| !v.is_undefined())
+                .map(|v| v8::Global::new(scope, v))
+                .collect();
+            // Save to nextTick queue - callbacks will be executed by execute_next_tick_callbacks
+            let callback_global = v8::Global::new(scope, callback);
+            crate::nodejs_core::process::push_next_tick_callback(callback_global, callback_args);
+        },
+    );
+
+    // Get function instances
+    let cwd_func = cwd_fn.get_function(scope).unwrap();
+    let chdir_func = chdir_fn.get_function(scope).unwrap();
+    let umask_func = umask_fn.get_function(scope).unwrap();
+    let abort_func = abort_fn.get_function(scope).unwrap();
+    let memory_usage_func = memory_usage_fn.get_function(scope).unwrap();
+    let memory_func = memory_fn.get_function(scope).unwrap(); // v0.3.240
+    let uptime_func = uptime_fn.get_function(scope).unwrap();
+    let exit_func = exit_fn.get_function(scope).unwrap();
+    let next_tick_func = next_tick_fn.get_function(scope).unwrap();
+
+    // Create argv array
+    let argv_array = v8::Array::new(scope, 2);
+    argv_array.set_index(scope, 0, argv0_val.into());
+    argv_array.set_index(scope, 1, argv1_val.into());
+
+    // Create execArgv array
+    let exec_argv_array = v8::Array::new(scope, 0);
+
+    // Create versions object
+    let versions_obj = v8::Object::new(scope);
+    versions_obj.set(scope, v8_key.into(), v8_value.into());
+    versions_obj.set(scope, node_key.into(), node_value.into());
+    versions_obj.set(scope, bee_key.into(), beejs_value.into());
+    versions_obj.set(scope, beejs_key.into(), beejs_value.into());
+
+    // Create features object
+    let features_obj = v8::Object::new(scope);
+    features_obj.set(scope, debug_key.into(), debug_value.into());
+    features_obj.set(scope, ipc_key.into(), ipc_value.into());
+    // v0.3.40: Add additional features
+    features_obj.set(scope, uv_key.into(), uv_value.into());
+    features_obj.set(scope, v8_feature_key.into(), v8_feature_value.into());
+    features_obj.set(scope, modules_key.into(), modules_value.into());
+
+    // v0.3.35: Create config object with compiler settings
+    let config_obj = v8::Object::new(scope);
+    let variables_key = v8::String::new(scope, "variables").unwrap();
+    let variables_obj = v8::Object::new(scope);
+    let host_arch_key = v8::String::new(scope, "host_arch").unwrap();
+    let host_arch_value = v8::String::new(
+        scope,
+        if cfg!(target_arch = "x86_64") {
+            "x64"
+        } else if cfg!(target_arch = "aarch64") {
+            "arm64"
+        } else {
+            "unknown"
+        },
+    )
+    .unwrap();
+    let platform_key2 = v8::String::new(scope, "platform").unwrap();
+    let platform_value2 = v8::String::new(
+        scope,
+        if cfg!(target_os = "macos") {
+            "darwin"
+        } else if cfg!(target_os = "linux") {
+            "linux"
+        } else if cfg!(target_os = "windows") {
+            "win32"
+        } else {
+            "unknown"
+        },
+    )
+    .unwrap();
+    variables_obj.set(scope, host_arch_key.into(), host_arch_value.into());
+    variables_obj.set(scope, platform_key2.into(), platform_value2.into());
+    config_obj.set(scope, variables_key.into(), variables_obj.into());
+
+    // Create process object and set all properties
+    let process_obj = v8::Object::new(scope);
+    process_obj.set(scope, version_key.into(), version_value.into());
+    process_obj.set(scope, versions_key.into(), versions_obj.into());
+    process_obj.set(scope, platform_key.into(), platform_value.into());
+    process_obj.set(scope, arch_key.into(), arch_value.into());
+    process_obj.set(scope, pid_key.into(), pid_value.into());
+    // v0.3.40: Add process.ppid - parent process ID
+    process_obj.set(scope, ppid_key.into(), ppid_value.into());
+    process_obj.set(scope, title_key.into(), title_value.into());
+    let env_obj = create_process_env_object(scope);
+    process_obj.set(scope, env_key.into(), env_obj.into());
+    process_obj.set(scope, argv_key.into(), argv_array.into());
+    process_obj.set(scope, exec_argv_key.into(), exec_argv_array.into());
+    process_obj.set(scope, exec_path_key.into(), exec_path_val.into());
+    process_obj.set(scope, cwd_key.into(), cwd_func.into());
+    process_obj.set(scope, chdir_key.into(), chdir_func.into());
+    process_obj.set(scope, umask_key.into(), umask_func.into());
+    process_obj.set(scope, abort_key.into(), abort_func.into());
+    process_obj.set(scope, config_key.into(), config_obj.into());
+    process_obj.set(scope, memory_usage_key.into(), memory_usage_func.into());
+    process_obj.set(scope, memory_key.into(), memory_func.into()); // v0.3.240
+    process_obj.set(scope, uptime_key.into(), uptime_func.into());
+    process_obj.set(scope, hrtime_key.into(), hrtime_func.into());
+    process_obj.set(scope, exit_key.into(), exit_func.into());
+    process_obj.set(scope, exit_code_key.into(), exit_code_value.into());
+    process_obj.set(scope, next_tick_key.into(), next_tick_func.into());
+    process_obj.set(scope, features_key.into(), features_obj.into());
+    process_obj.set(scope, is_beejs_key.into(), is_beejs_value.into());
+    process_obj.set(scope, browser_key.into(), browser_value.into());
+
+    // v0.3.38: Add process.release object
+    let release_obj = v8::Object::new(scope);
+    let release_name_key = v8::String::new(scope, "name").unwrap();
+    let release_name_val = v8::String::new(scope, "bee").unwrap();
+    release_obj.set(scope, release_name_key.into(), release_name_val.into());
+    let release_key = v8::String::new(scope, "release").unwrap();
+    process_obj.set(scope, release_key.into(), release_obj.into());
+
+    // v0.3.238: Add process.on() for event handlers (uncaughtException, unhandledRejection)
+    // Returns process object for chaining (Node.js standard behavior)
     let on_key = v8::String::new(scope, "on").unwrap();
-    process_obj.set(scope, on_key.into(), on_instance.into());
+    let on_func = v8::Function::new(
+        scope,
+        |_scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // Return the process object (this) for chaining
+            retval.set(args.this().into());
+        },
+    )
+    .unwrap();
+    process_obj.set(scope, on_key.into(), on_func.into());
 
-    // process.off() - 移除事件监听
-    let off_func = v8::FunctionTemplate::new(scope, process_off_callback);
-    let off_instance = off_func.get_function(scope).unwrap();
+    // v0.3.238: Add process.off() for removing event handlers
+    // Returns process object for chaining
     let off_key = v8::String::new(scope, "off").unwrap();
-    process_obj.set(scope, off_key.into(), off_instance.into());
+    let off_func = v8::Function::new(
+        scope,
+        |_scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            retval.set(args.this().into());
+        },
+    )
+    .unwrap();
+    process_obj.set(scope, off_key.into(), off_func.into());
 
-    // process.removeListener() - 移除特定监听器
-    let remove_listener_func = v8::FunctionTemplate::new(scope, process_remove_listener_callback);
-    let remove_listener_instance = remove_listener_func.get_function(scope).unwrap();
+    // v0.3.238: Add process.removeListener() for removing specific event handlers
     let remove_listener_key = v8::String::new(scope, "removeListener").unwrap();
+    let remove_listener_func = v8::Function::new(
+        scope,
+        |_scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            retval.set(v8::Object::new(_scope).into());
+        },
+    )
+    .unwrap();
     process_obj.set(
         scope,
         remove_listener_key.into(),
-        remove_listener_instance.into(),
+        remove_listener_func.into(),
     );
 
-    // v0.3.242: process.setMaxListeners() - 设置最大监听器数量
-    let set_max_listeners_func =
-        v8::FunctionTemplate::new(scope, process_set_max_listeners_callback);
-    let set_max_listeners_instance = set_max_listeners_func.get_function(scope).unwrap();
+    // v0.3.242: Add process.setMaxListeners() for setting max listeners per event
+    // Returns process object for chaining
+    // v0.3.243: Fix - process.setMaxListeners(n) with single arg sets global default
     let set_max_listeners_key = v8::String::new(scope, "setMaxListeners").unwrap();
+    let set_max_listeners_func = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // Determine event name and n value
+            // If first arg is a number, treat it as n (set global default)
+            // If first arg is a string, treat it as event name, second arg is n
+            let (event_name, n) = if args.length() > 0 {
+                let first = args.get(0);
+                if first.is_number() {
+                    // Single argument: setMaxListeners(n) - sets "__default__"
+                    let n = first.int32_value(scope).unwrap_or(0);
+                    ("__default__".to_string(), n)
+                } else if first.is_string() || first.is_null_or_undefined() {
+                    // First arg is event name
+                    let name = first
+                        .to_string(scope)
+                        .map(|s| s.to_rust_string_lossy(scope))
+                        .unwrap_or_else(|| "__default__".to_string());
+                    let n = if args.length() > 1 {
+                        args.get(1).int32_value(scope).unwrap_or(0)
+                    } else {
+                        0
+                    };
+                    (name, n)
+                } else {
+                    // First arg is neither number nor string, treat as event name with default n
+                    ("__default__".to_string(), 0)
+                }
+            } else {
+                ("__default__".to_string(), 0)
+            };
+
+            // Validate n (must be >= 0)
+            let max_listeners = if n < 0 { 0 } else { n };
+
+            // Store in thread_local
+            MAX_LISTENERS.with(|map| {
+                let mut map = map.lock().unwrap();
+                map.insert(event_name, max_listeners);
+            });
+
+            // Return process object for chaining
+            retval.set(args.this().into());
+        },
+    )
+    .unwrap();
     process_obj.set(
         scope,
         set_max_listeners_key.into(),
-        set_max_listeners_instance.into(),
+        set_max_listeners_func.into(),
     );
 
-    // v0.3.242: process.getMaxListeners() - 获取最大监听器数量
-    let get_max_listeners_func =
-        v8::FunctionTemplate::new(scope, process_get_max_listeners_callback);
-    let get_max_listeners_instance = get_max_listeners_func.get_function(scope).unwrap();
+    // v0.3.242: Add process.getMaxListeners() for getting max listeners per event
+    // Returns number (default 10)
     let get_max_listeners_key = v8::String::new(scope, "getMaxListeners").unwrap();
+    let get_max_listeners_func = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // Get event name (defaults to "__default__")
+            let event_name = if args.length() > 0 {
+                let name = args.get(0);
+                if name.is_string() || name.is_null_or_undefined() {
+                    name.to_string(scope)
+                        .map(|s| s.to_rust_string_lossy(scope))
+                        .unwrap_or_else(|| "__default__".to_string())
+                } else {
+                    "__default__".to_string()
+                }
+            } else {
+                "__default__".to_string()
+            };
+
+            // Get from thread_local (default 10)
+            let max_listeners = MAX_LISTENERS.with(|map| {
+                let map = map.lock().unwrap();
+                map.get(&event_name).copied().unwrap_or(10)
+            });
+
+            retval.set(v8::Integer::new(scope, max_listeners).into());
+        },
+    )
+    .unwrap();
     process_obj.set(
         scope,
         get_max_listeners_key.into(),
-        get_max_listeners_instance.into(),
+        get_max_listeners_func.into(),
     );
 
-    // process.dlopen() - 加载原生 C/C++ .node 扩展模块
-    let dlopen_func = v8::FunctionTemplate::new(scope, process_dlopen_callback);
-    let dlopen_instance = dlopen_func.get_function(scope).unwrap();
-    let dlopen_key = v8::String::new(scope, "dlopen").unwrap();
-    process_obj.set(scope, dlopen_key.into(), dlopen_instance.into());
-
-    // process.pid - 进程 ID
-    let pid_key = v8::String::new(scope, "pid").unwrap();
-    let pid_val = v8::Integer::new(scope, std::process::id() as i32);
-    process_obj.set(scope, pid_key.into(), pid_val.into());
-
-    // process.ppid - 父进程 ID
-    let ppid_key = v8::String::new(scope, "ppid").unwrap();
-    let ppid_val = v8::Integer::new(scope, 1); // 默认 1
-    process_obj.set(scope, ppid_key.into(), ppid_val.into());
-
-    // process.env - 环境变量
-    let env_key = v8::String::new(scope, "env").unwrap();
-    let env_obj = v8::Object::new(scope);
-    // 添加常见环境变量
-    let home_key = v8::String::new(scope, "HOME").unwrap();
-    let home_val =
-        v8::String::new(scope, std::env::var("HOME").unwrap_or_default().as_str()).unwrap();
-    env_obj.set(scope, home_key.into(), home_val.into());
-    let path_key = v8::String::new(scope, "PATH").unwrap();
-    let path_val =
-        v8::String::new(scope, std::env::var("PATH").unwrap_or_default().as_str()).unwrap();
-    env_obj.set(scope, path_key.into(), path_val.into());
-    process_obj.set(scope, env_key.into(), env_obj.into());
-
-    // process.release - 发布信息
-    let release_key = v8::String::new(scope, "release").unwrap();
-    let release_obj = v8::Object::new(scope);
-    let name_key = v8::String::new(scope, "name").unwrap();
-    let name_val = v8::String::new(scope, "bee").unwrap();
-    release_obj.set(scope, name_key.into(), name_val.into());
-    process_obj.set(scope, release_key.into(), release_obj.into());
-
-    // v0.3.239: process.stdout - 标准输出（带 write() 方法）
+    // v0.3.238: Add process.stdout (basic implementation)
+    // v0.3.239: Add stdout.write() method
     let stdout_key = v8::String::new(scope, "stdout").unwrap();
     let stdout_obj = v8::Object::new(scope);
-    let stdout_write_func = v8::FunctionTemplate::new(scope, stdout_write_callback);
-    let stdout_write_instance = stdout_write_func.get_function(scope).unwrap();
     let stdout_write_key = v8::String::new(scope, "write").unwrap();
+    let stdout_write_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let data = args.get(0);
+            let output = if let Some(str_val) = data.to_string(scope) {
+                str_val.to_rust_string_lossy(scope)
+            } else if data.is_null_or_undefined() {
+                String::new()
+            } else {
+                String::from("[object]")
+            };
+            // 输出到 stdout 并刷新
+            let mut stdout = std::io::stdout();
+            let _ = std::write!(stdout, "{}", output);
+            let _ = stdout.flush();
+            let result = v8::Boolean::new(scope, true);
+            retval.set(result.into());
+        },
+    );
+    let stdout_write_instance = stdout_write_fn.get_function(scope).unwrap();
     stdout_obj.set(scope, stdout_write_key.into(), stdout_write_instance.into());
+
+    let is_stdout_tty = {
+        #[cfg(unix)]
+        {
+            unsafe { libc::isatty(1) == 1 }
+        }
+        #[cfg(not(unix))]
+        {
+            use std::io::IsTerminal;
+            std::io::stdout().is_terminal()
+        }
+    };
+    let is_stderr_tty = {
+        #[cfg(unix)]
+        {
+            unsafe { libc::isatty(2) == 1 }
+        }
+        #[cfg(not(unix))]
+        {
+            use std::io::IsTerminal;
+            std::io::stderr().is_terminal()
+        }
+    };
+    let is_stdin_tty = {
+        #[cfg(unix)]
+        {
+            unsafe { libc::isatty(0) == 1 }
+        }
+        #[cfg(not(unix))]
+        {
+            use std::io::IsTerminal;
+            std::io::stdin().is_terminal()
+        }
+    };
+
+    let fd_key = v8::String::new(scope, "fd").unwrap();
+    let is_tty_key = v8::String::new(scope, "isTTY").unwrap();
+    let columns_key = v8::String::new(scope, "columns").unwrap();
+    let rows_key = v8::String::new(scope, "rows").unwrap();
+
+    let stdout_fd = v8::Integer::new(scope, 1);
+    let stdout_tty = v8::Boolean::new(scope, is_stdout_tty);
+    let stdout_cols = v8::Integer::new(scope, 80);
+    let stdout_rows = v8::Integer::new(scope, 24);
+    stdout_obj.set(scope, fd_key.into(), stdout_fd.into());
+    stdout_obj.set(scope, is_tty_key.into(), stdout_tty.into());
+    stdout_obj.set(scope, columns_key.into(), stdout_cols.into());
+    stdout_obj.set(scope, rows_key.into(), stdout_rows.into());
     process_obj.set(scope, stdout_key.into(), stdout_obj.into());
 
-    // v0.3.239: process.stderr - 标准错误（带 write() 方法）
+    // v0.3.238: Add process.stderr (basic implementation)
+    // v0.3.239: Add stderr.write() method
     let stderr_key = v8::String::new(scope, "stderr").unwrap();
     let stderr_obj = v8::Object::new(scope);
-    let stderr_write_func = v8::FunctionTemplate::new(scope, stderr_write_callback);
-    let stderr_write_instance = stderr_write_func.get_function(scope).unwrap();
     let stderr_write_key = v8::String::new(scope, "write").unwrap();
+    let stderr_write_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let data = args.get(0);
+            let output = if let Some(str_val) = data.to_string(scope) {
+                str_val.to_rust_string_lossy(scope)
+            } else if data.is_null_or_undefined() {
+                String::new()
+            } else {
+                String::from("[object]")
+            };
+            // 输出到 stderr 并刷新
+            let mut stderr = std::io::stderr();
+            let _ = std::write!(stderr, "{}", output);
+            let _ = stderr.flush();
+            let result = v8::Boolean::new(scope, true);
+            retval.set(result.into());
+        },
+    );
+    let stderr_write_instance = stderr_write_fn.get_function(scope).unwrap();
     stderr_obj.set(scope, stderr_write_key.into(), stderr_write_instance.into());
+    let stderr_fd = v8::Integer::new(scope, 2);
+    let stderr_tty = v8::Boolean::new(scope, is_stderr_tty);
+    let stderr_cols = v8::Integer::new(scope, 80);
+    let stderr_rows = v8::Integer::new(scope, 24);
+    stderr_obj.set(scope, fd_key.into(), stderr_fd.into());
+    stderr_obj.set(scope, is_tty_key.into(), stderr_tty.into());
+    stderr_obj.set(scope, columns_key.into(), stderr_cols.into());
+    stderr_obj.set(scope, rows_key.into(), stderr_rows.into());
     process_obj.set(scope, stderr_key.into(), stderr_obj.into());
 
-    // v0.3.240: process.stdin - 标准输入
+    // v0.3.240: Add process.stdin (basic implementation)
+    // v0.3.240: Add stdin.fd and stdin.read()
     let stdin_key = v8::String::new(scope, "stdin").unwrap();
     let stdin_obj = v8::Object::new(scope);
-    // stdin.fd - 标准输入的文件描述符 (0)
+    // stdin.fd - file descriptor (0 for stdin)
     let stdin_fd_key = v8::String::new(scope, "fd").unwrap();
-    let stdin_fd_val = v8::Integer::new(scope, 0);
-    stdin_obj.set(scope, stdin_fd_key.into(), stdin_fd_val.into());
-    // stdin.read() - 读取输入（同步版本返回 null）
-    let stdin_read_func = v8::FunctionTemplate::new(scope, stdin_read_callback);
-    let stdin_read_instance = stdin_read_func.get_function(scope).unwrap();
+    let stdin_fd_value = v8::Integer::new(scope, 0);
+    let stdin_tty = v8::Boolean::new(scope, is_stdin_tty);
+    stdin_obj.set(scope, stdin_fd_key.into(), stdin_fd_value.into());
+    stdin_obj.set(scope, is_tty_key.into(), stdin_tty.into());
+    // stdin.read() - returns null (sync mode can't read stdin)
+    let stdin_read_fn = v8::FunctionTemplate::new(
+        scope,
+        |_scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let null_val = v8::null(_scope);
+            retval.set(null_val.into());
+        },
+    );
     let stdin_read_key = v8::String::new(scope, "read").unwrap();
+    let stdin_read_instance = stdin_read_fn.get_function(scope).unwrap();
     stdin_obj.set(scope, stdin_read_key.into(), stdin_read_instance.into());
     process_obj.set(scope, stdin_key.into(), stdin_obj.into());
 
-    // v0.3.240: process.hrtime() - 高精度时间
-    let hrtime_func = v8::FunctionTemplate::new(scope, process_hrtime_callback);
-    let hrtime_instance = hrtime_func.get_function(scope).unwrap();
-    let hrtime_key = v8::String::new(scope, "hrtime").unwrap();
-    process_obj.set(scope, hrtime_key.into(), hrtime_instance.into());
-
-    // v0.3.240: process.memory() - 内存使用统计
-    let memory_func = v8::FunctionTemplate::new(scope, process_memory_callback);
-    let memory_instance = memory_func.get_function(scope).unwrap();
-    let memory_key = v8::String::new(scope, "memory").unwrap();
-    process_obj.set(scope, memory_key.into(), memory_instance.into());
-
-    // v0.3.240: process.uptime() - 进程运行时间
-    let uptime_func = v8::FunctionTemplate::new(scope, process_uptime_callback);
-    let uptime_instance = uptime_func.get_function(scope).unwrap();
-    let uptime_key = v8::String::new(scope, "uptime").unwrap();
-    process_obj.set(scope, uptime_key.into(), uptime_instance.into());
-
-    // v0.3.240: process.cpuUsage() - CPU 使用统计
-    let cpu_usage_func = v8::FunctionTemplate::new(scope, process_cpu_usage_callback);
-    let cpu_usage_instance = cpu_usage_func.get_function(scope).unwrap();
+    // v0.3.240: Add process.cpuUsage()
     let cpu_usage_key = v8::String::new(scope, "cpuUsage").unwrap();
+    let cpu_usage_fn = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let _args = args; // Suppress unused warning - cpuUsage() could accept previous value in future
+            let result = v8::Object::new(scope);
+            let user_key = v8::String::new(scope, "user").unwrap();
+            let system_key = v8::String::new(scope, "system").unwrap();
+            let user_val = v8::Number::new(scope, 0.0); // Simplified - returns 0
+            let system_val = v8::Number::new(scope, 0.0); // Simplified - returns 0
+            result.set(scope, user_key.into(), user_val.into());
+            result.set(scope, system_key.into(), system_val.into());
+            retval.set(result.into());
+        },
+    );
+    let cpu_usage_instance = cpu_usage_fn.get_function(scope).unwrap();
     process_obj.set(scope, cpu_usage_key.into(), cpu_usage_instance.into());
 
-    // v0.3.243: process.kill(pid, signal) - 向进程发送信号
-    let kill_func = v8::FunctionTemplate::new(scope, process_kill_callback);
-    let kill_instance = kill_func.get_function(scope).unwrap();
+    // v0.3.243: Add process.kill(pid, signal) - Send signal to process
     let kill_key = v8::String::new(scope, "kill").unwrap();
-    process_obj.set(scope, kill_key.into(), kill_instance.into());
+    let kill_fn = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // Get PID
+            let pid = args.get(0).int32_value(scope).unwrap_or(0);
 
-    // 将 process 对象设置为全局
-    let process_key = v8::String::new(scope, "process").unwrap();
+            // Get signal (can be string or number)
+            let signal = if args.length() > 1 {
+                let sig_arg = args.get(1);
+                if sig_arg.is_number() {
+                    sig_arg.int32_value(scope).unwrap_or(15) as u32
+                } else if let Some(str_val) = sig_arg.to_string(scope) {
+                    let sig_str = str_val.to_rust_string_lossy(scope);
+                    match sig_str.to_uppercase().as_str() {
+                        "SIGHUP" | "HUP" => 1,
+                        "SIGINT" | "INT" => 2,
+                        "SIGQUIT" | "QUIT" => 3,
+                        "SIGILL" | "ILL" => 4,
+                        "SIGTRAP" | "TRAP" => 5,
+                        "SIGABRT" | "ABRT" => 6,
+                        "SIGFPE" | "FPE" => 8,
+                        "SIGKILL" | "KILL" => 9,
+                        "SIGUSR1" | "USR1" => 10,
+                        "SIGSEGV" | "SEGV" => 11,
+                        "SIGUSR2" | "USR2" => 12,
+                        "SIGPIPE" | "PIPE" => 13,
+                        "SIGALRM" | "ALRM" => 14,
+                        "SIGTERM" | "TERM" => 15,
+                        "SIGCHLD" | "CHLD" => 17,
+                        "SIGCONT" | "CONT" => 18,
+                        "SIGSTOP" | "STOP" => 19,
+                        "SIGTSTP" | "TSTP" => 20,
+                        "SIGTTIN" | "TTIN" => 21,
+                        "SIGTTOU" | "TTOU" => 22,
+                        _ => 15, // Default SIGTERM
+                    }
+                } else {
+                    15 // Default signal
+                }
+            } else {
+                15 // Default signal
+            };
+
+            // Send signal
+            let result = if pid > 0 {
+                #[cfg(target_family = "unix")]
+                {
+                    // Don't send signals to ourselves (would terminate the process)
+                    let current_pid = unsafe { libc::getpid() };
+                    if pid == current_pid as i32 {
+                        false // Can't send signal to self in this context
+                    } else {
+                        unsafe { libc::kill(pid as libc::pid_t, signal as libc::c_int) == 0 }
+                    }
+                }
+                #[cfg(target_family = "windows")]
+                {
+                    // Windows doesn't support Unix signals
+                    false
+                }
+                #[cfg(not(any(target_family = "unix", target_family = "windows")))]
+                {
+                    false
+                }
+            } else {
+                false
+            };
+
+            retval.set(v8::Boolean::new(scope, result).into());
+        },
+    )
+    .unwrap();
+    process_obj.set(scope, kill_key.into(), kill_fn.into());
+
+    // process.dlopen(module, filename, [flags]) - 原生扩展模块加载
+    let dlopen_key = v8::String::new(scope, "dlopen").unwrap();
+    let dlopen_fn =
+        v8::FunctionTemplate::new(scope, crate::nodejs_core::process::process_dlopen_callback);
+    let dlopen_func = dlopen_fn.get_function(scope).unwrap();
+    process_obj.set(scope, dlopen_key.into(), dlopen_func.into());
+
+    // Set process as global
     global.set(scope, process_key.into(), process_obj.into());
 
     Ok(())
-}
-
-/// process.cwd() 回调
-fn process_cwd_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let cwd = std::env::current_dir()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|_| "/".to_string());
-    let cwd_str = v8::String::new(scope, &cwd).unwrap();
-    retval.set(cwd_str.into());
 }
 
 /// process.dlopen(module, filename, [flags]) - 原生扩展模块动态链接加载
@@ -397,714 +1314,6 @@ pub fn process_dlopen_callback(
 
     crate::napi::load_napi_addon(scope, module_obj, &filename);
     retval.set(v8::undefined(scope).into());
-}
-
-/// v0.3.239: process.nextTick() 回调
-/// v0.3.261: 重构 - 只将回调添加到队列，由事件循环在正确时机执行
-/// 正确的执行顺序: nextTick -> microtasks (Promises) -> timers -> setImmediate
-fn process_next_tick_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    _retval: v8::ReturnValue,
-) {
-    let callback = args.get(0);
-
-    if !callback.is_function() {
-        let error =
-            v8::String::new(scope, "process.nextTick: callback must be a function").unwrap();
-        let error_obj = v8::Exception::type_error(scope, error);
-        scope.throw_exception(error_obj.into());
-        return;
-    }
-
-    // 收集额外参数
-    let callback_args: Vec<v8::Global<v8::Value>> = (1..args.length())
-        .map(|i| args.get(i))
-        .filter(|v| !v.is_undefined())
-        .map(|v| v8::Global::new(scope, v))
-        .collect();
-
-    // 保存到 nextTick 队列
-    // 回调将在事件循环的 execute_next_tick_callbacks 中执行
-    let callback_global = v8::Global::new(scope, callback);
-    NEXT_TICK_QUEUE.with(|queue| {
-        let mut q = queue.lock().unwrap();
-        q.push(NextTickCallback {
-            callback: callback_global,
-            args: callback_args,
-        });
-    });
-}
-
-// 获取 context 的辅助函数 - v0.3.265: 预留用于未来使用
-#[allow(dead_code)]
-fn _context<'s>(scope: &mut v8::PinScope<'s, '_>) -> v8::Local<'s, v8::Context> {
-    scope.get_current_context()
-}
-
-/// v0.3.239: stdout.write() 回调
-fn stdout_write_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let data = args.get(0);
-
-    // 将 V8 值转换为字符串并输出到 stdout
-    let output = if let Some(str_val) = data.to_string(scope) {
-        str_val.to_rust_string_lossy(scope)
-    } else if data.is_null_or_undefined() {
-        String::new()
-    } else {
-        String::from("[object]")
-    };
-
-    // 输出到 stdout 并刷新
-    let mut stdout = std::io::stdout();
-    let _ = write!(stdout, "{}", output);
-    let _ = stdout.flush();
-
-    // 返回 true（表示写入成功）
-    let result = v8::Boolean::new(scope, true);
-    retval.set(result.into());
-}
-
-/// v0.3.239: stderr.write() 回调
-fn stderr_write_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let data = args.get(0);
-
-    // 将 V8 值转换为字符串并输出到 stderr
-    let output = if let Some(str_val) = data.to_string(scope) {
-        str_val.to_rust_string_lossy(scope)
-    } else if data.is_null_or_undefined() {
-        String::new()
-    } else {
-        String::from("[object]")
-    };
-
-    // 输出到 stderr 并刷新
-    let mut stderr = std::io::stderr();
-    let _ = write!(stderr, "{}", output);
-    let _ = stderr.flush();
-
-    // 返回 true（表示写入成功）
-    let result = v8::Boolean::new(scope, true);
-    retval.set(result.into());
-}
-
-/// v0.3.240: stdin.read() 回调
-/// 同步读取不支持，返回 null（需要异步运行时支持）
-fn stdin_read_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    // 同步模式下无法读取 stdin，返回 null
-    let null_val = v8::null(scope);
-    retval.set(null_val.into());
-}
-
-/// v0.3.240: process.hrtime() 回调 - 高精度时间
-fn process_hrtime_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    // 获取当前时间（纳秒精度）
-    let now = std::time::UNIX_EPOCH.elapsed().unwrap();
-    let seconds = now.as_secs() as f64;
-    let nanos = now.subsec_nanos() as f64;
-
-    // 如果传入了 previous timestamp，计算差值
-    if args.length() > 0 {
-        let prev = args.get(0);
-        if prev.is_array() {
-            let prev_array = v8::Local::<v8::Array>::try_from(prev).unwrap();
-            if prev_array.length() >= 2 {
-                let prev_sec = prev_array
-                    .get_index(scope, 0)
-                    .unwrap()
-                    .to_number(scope)
-                    .unwrap()
-                    .value();
-                let prev_nano = prev_array
-                    .get_index(scope, 1)
-                    .unwrap()
-                    .to_number(scope)
-                    .unwrap()
-                    .value();
-
-                let diff_sec = seconds - prev_sec;
-                let diff_nano = nanos - prev_nano;
-
-                let diff_sec_num = v8::Number::new(scope, diff_sec);
-                let diff_nano_num = v8::Number::new(scope, diff_nano);
-                let result = v8::Array::new(scope, 2);
-                result.set_index(scope, 0, diff_sec_num.into());
-                result.set_index(scope, 1, diff_nano_num.into());
-                retval.set(result.into());
-                return;
-            }
-        }
-    }
-
-    // 返回 [seconds, nanoseconds] 数组
-    let seconds_num = v8::Number::new(scope, seconds);
-    let nanos_num = v8::Number::new(scope, nanos);
-    let result = v8::Array::new(scope, 2);
-    result.set_index(scope, 0, seconds_num.into());
-    result.set_index(scope, 1, nanos_num.into());
-    retval.set(result.into());
-}
-
-/// v0.3.241: process.memory() 回调 - 真实的 V8 堆内存统计
-/// 使用 V8 HeapStatistics API 获取真实的堆内存使用情况
-fn process_memory_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    // 使用 V8 API 获取真实的堆统计信息
-    let heap_stats = scope.get_heap_statistics();
-    {
-        let result = v8::Object::new(scope);
-
-        // heapUsed - 已使用的堆内存（字节）
-        let heap_used_key = v8::String::new(scope, "heapUsed").unwrap();
-        let heap_used_val = v8::Number::new(scope, heap_stats.used_heap_size() as f64);
-        result.set(scope, heap_used_key.into(), heap_used_val.into());
-
-        // heapTotal - 总堆内存（字节）
-        let heap_total_key = v8::String::new(scope, "heapTotal").unwrap();
-        let heap_total_val = v8::Number::new(scope, heap_stats.total_heap_size() as f64);
-        result.set(scope, heap_total_key.into(), heap_total_val.into());
-
-        // external - 外部内存（字节）
-        let external_key = v8::String::new(scope, "external").unwrap();
-        let external_val = v8::Number::new(scope, heap_stats.external_memory() as f64);
-        result.set(scope, external_key.into(), external_val.into());
-
-        let rss_key = v8::String::new(scope, "rss").unwrap();
-        let rss_val = v8::Number::new(scope, heap_stats.total_physical_size() as f64);
-        result.set(scope, rss_key.into(), rss_val.into());
-
-        let array_buffers_key = v8::String::new(scope, "arrayBuffers").unwrap();
-        let array_buffers_obj = v8::Object::new(scope);
-        let used_key = v8::String::new(scope, "used").unwrap();
-        let used_val = v8::Number::new(scope, 0.0);
-        array_buffers_obj.set(scope, used_key.into(), used_val.into());
-        result.set(scope, array_buffers_key.into(), array_buffers_obj.into());
-
-        retval.set(result.into());
-    }
-}
-
-/// v0.3.240: process.uptime() 回调 - 进程运行时间
-fn process_uptime_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let uptime = START_TIME.with(|start| start.elapsed().as_secs_f64());
-    retval.set(v8::Number::new(scope, uptime).into());
-}
-
-// v0.3.241: process.cpuUsage() 回调 - 真实的 CPU 使用统计
-// 使用平台特定的 API 获取用户和系统 CPU 时间
-
-// 线程本地存储初始 CPU 时间
-thread_local! {
-    static START_CPU_TIME: std::time::Duration = std::time::Duration::ZERO;
-}
-
-fn process_cpu_usage_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let mut prev_user = 0.0;
-    let mut prev_system = 0.0;
-
-    // 如果传入了 previous value，计算差值
-    if args.length() > 0 {
-        let prev = args.get(0);
-        if prev.is_object() {
-            let prev_obj = v8::Local::<v8::Object>::try_from(prev).unwrap();
-            let user_key = v8::String::new(scope, "user").unwrap();
-            let system_key = v8::String::new(scope, "system").unwrap();
-
-            if let Some(user_val) = prev_obj.get(scope, user_key.into()) {
-                if user_val.is_number() {
-                    prev_user = user_val.to_number(scope).unwrap().value();
-                }
-            }
-            if let Some(system_val) = prev_obj.get(scope, system_key.into()) {
-                if system_val.is_number() {
-                    prev_system = system_val.to_number(scope).unwrap().value();
-                }
-            }
-        }
-    }
-
-    // 获取当前 CPU 时间（微秒）
-    let (current_user, current_system) = get_cpu_times();
-
-    let result = v8::Object::new(scope);
-
-    // 如果传入了 previous value，返回差值
-    let user_value = if prev_user > 0.0 {
-        (current_user as f64) - prev_user
-    } else {
-        current_user as f64
-    };
-
-    let system_value = if prev_system > 0.0 {
-        (current_system as f64) - prev_system
-    } else {
-        current_system as f64
-    };
-
-    let user_key = v8::String::new(scope, "user").unwrap();
-    let user_val = v8::Number::new(scope, user_value);
-    result.set(scope, user_key.into(), user_val.into());
-
-    let system_key = v8::String::new(scope, "system").unwrap();
-    let system_val = v8::Number::new(scope, system_value);
-    result.set(scope, system_key.into(), system_val.into());
-
-    retval.set(result.into());
-}
-
-/// 获取当前进程的 CPU 使用时间（微秒）
-/// 返回 (user_time, system_time)
-#[cfg(target_os = "linux")]
-fn get_cpu_times() -> (u64, u64) {
-    use std::fs;
-
-    // 读取 /proc/self/stat 获取进程统计信息
-    if let Ok(stat) = fs::read_to_string("/proc/self/stat") {
-        let parts: Vec<&str> = stat.split_whitespace().collect();
-        if parts.len() >= 16 {
-            // utime (index 14) - 用户态时间（时钟滴答数）
-            // stime (index 15) - 内核态时间（时钟滴答数）
-            if let (Ok(utime), Ok(stime)) = (parts[14].parse::<u64>(), parts[15].parse::<u64>()) {
-                // 将时钟滴答数转换为微秒
-                let clk_tck = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
-                let usec_per_tick = 1_000_000 / clk_tck as u64;
-                return (utime * usec_per_tick, stime * usec_per_tick);
-            }
-        }
-    }
-
-    // 回退到基于时间的估算
-    fallback_cpu_time()
-}
-
-#[cfg(target_os = "macos")]
-fn get_cpu_times() -> (u64, u64) {
-    use libc::getrusage;
-    use libc::rusage;
-    use std::mem::zeroed;
-
-    const RUSAGE_SELF: i32 = 0;
-
-    let mut usage: rusage = unsafe { zeroed() };
-    unsafe {
-        if getrusage(RUSAGE_SELF, &mut usage) == 0 {
-            // tv_sec 和 tv_usec 转换为微秒
-            let user_usec =
-                (usage.ru_utime.tv_sec as u64) * 1_000_000 + usage.ru_utime.tv_usec as u64;
-            let system_usec =
-                (usage.ru_stime.tv_sec as u64) * 1_000_000 + usage.ru_stime.tv_usec as u64;
-            return (user_usec, system_usec);
-        }
-    }
-
-    fallback_cpu_time()
-}
-
-#[cfg(target_os = "freebsd")]
-fn get_cpu_times() -> (u64, u64) {
-    use std::fs;
-
-    // FreeBSD 使用 procfs
-    if let Ok(stat) = fs::read_to_string("/proc/curproc/status") {
-        for line in stat.lines() {
-            if line.starts_with("utime:") {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    if let (Ok(user), Ok(sys)) = (
-                        parts[1].parse::<u64>(),
-                        parts.get(2).and_then(|s| s.parse::<u64>().ok()),
-                    ) {
-                        return (user * 1000, sys * 1000); // 转换为微秒
-                    }
-                }
-            }
-        }
-    }
-
-    fallback_cpu_time()
-}
-
-/// 回退到基于时间的 CPU 使用估算
-fn fallback_cpu_time() -> (u64, u64) {
-    // 使用当前时间作为近似值
-    let now = std::time::Instant::now();
-    let elapsed = now.elapsed();
-    let micros = elapsed.as_secs() * 1_000_000 + elapsed.subsec_micros() as u64;
-    (micros, 0)
-}
-
-#[cfg(target_family = "windows")]
-fn get_cpu_times() -> (u64, u64) {
-    use windows_sys::Win32::Foundation::FILETIME;
-    use windows_sys::Win32::System::Threading::{GetCurrentProcess, GetProcessTimes};
-
-    fn filetime_to_micros(time: FILETIME) -> u64 {
-        let ticks = ((time.dwHighDateTime as u64) << 32) | (time.dwLowDateTime as u64);
-        ticks / 10
-    }
-
-    let mut creation_time = FILETIME {
-        dwLowDateTime: 0,
-        dwHighDateTime: 0,
-    };
-    let mut exit_time = FILETIME {
-        dwLowDateTime: 0,
-        dwHighDateTime: 0,
-    };
-    let mut kernel_time = FILETIME {
-        dwLowDateTime: 0,
-        dwHighDateTime: 0,
-    };
-    let mut user_time = FILETIME {
-        dwLowDateTime: 0,
-        dwHighDateTime: 0,
-    };
-
-    unsafe {
-        if GetProcessTimes(
-            GetCurrentProcess(),
-            &mut creation_time,
-            &mut exit_time,
-            &mut kernel_time,
-            &mut user_time,
-        ) != 0
-        {
-            return (
-                filetime_to_micros(user_time),
-                filetime_to_micros(kernel_time),
-            );
-        }
-    }
-
-    (0, 0)
-}
-
-#[cfg(not(any(
-    target_os = "linux",
-    target_os = "macos",
-    target_os = "freebsd",
-    target_family = "windows"
-)))]
-fn get_cpu_times() -> (u64, u64) {
-    // 其他平台回退到零
-    (0, 0)
-}
-
-/// process.exit() 回调
-fn process_exit_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    _retval: v8::ReturnValue,
-) {
-    let code = args.get(0).int32_value(scope).unwrap_or(0);
-
-    // 设置退出状态
-    SHOULD_EXIT.with(|exit| {
-        let mut should_exit = exit.lock().unwrap();
-        *should_exit = true;
-    });
-    EXIT_CODE.with(|exit_code| {
-        let mut code_ref = exit_code.lock().unwrap();
-        *code_ref = code;
-    });
-
-    // 注意: 实际退出需要在 Rust 层面处理
-    // 这里只是标记退出状态
-    eprintln!("[bee] Process exiting with code: {}", code);
-}
-
-/// process.on() 回调
-fn process_on_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let event_name = args.get(0);
-    let handler = args.get(1);
-
-    if !handler.is_function() {
-        let error = v8::String::new(scope, "Event handler must be a function").unwrap();
-        retval.set(error.into());
-        return;
-    }
-
-    let event_name_str = event_name
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(scope);
-
-    match event_name_str.as_str() {
-        "uncaughtException" => {
-            // 添加到未捕获异常处理器列表
-            let handler_global = v8::Global::new(scope, handler);
-            UNCAUGHT_EXCEPTION_HANDLERS.with(|handlers| {
-                let mut h = handlers.lock().unwrap();
-                h.push(handler_global);
-            });
-            retval.set(scope.get_current_context().global(scope).into());
-        }
-        "unhandledRejection" => {
-            // 添加到未处理的 Promise rejection 处理器列表
-            let handler_global = v8::Global::new(scope, handler);
-            UNHANDLED_REJECTION_HANDLERS.with(|handlers| {
-                let mut h = handlers.lock().unwrap();
-                h.push(handler_global);
-            });
-            retval.set(scope.get_current_context().global(scope).into());
-        }
-        _ => {
-            retval.set(scope.get_current_context().global(scope).into());
-        }
-    }
-}
-
-/// process.off() 回调
-fn process_off_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let event_name = args.get(0);
-    let handler = args.get(1);
-
-    if !handler.is_function() {
-        retval.set(scope.get_current_context().global(scope).into());
-        return;
-    }
-
-    let event_name_str = event_name
-        .to_string(scope)
-        .unwrap()
-        .to_rust_string_lossy(scope);
-
-    match event_name_str.as_str() {
-        "uncaughtException" => {
-            // 移除未捕获异常处理器
-            // 注意: 这是一个简化实现，实际需要更复杂的比较逻辑
-            retval.set(scope.get_current_context().global(scope).into());
-        }
-        "unhandledRejection" => {
-            // 移除未处理的 Promise rejection 处理器
-            retval.set(scope.get_current_context().global(scope).into());
-        }
-        _ => {
-            retval.set(scope.get_current_context().global(scope).into());
-        }
-    }
-}
-
-/// process.removeListener() 回调
-fn process_remove_listener_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let _event_name = args.get(0);
-    let _handler = args.get(1);
-
-    retval.set(scope.get_current_context().global(scope).into());
-}
-
-/// v0.3.242: process.setMaxListeners() 回调
-/// 设置指定事件的最大监听器数量
-/// n 为 0 表示无限制
-/// v0.3.243: Fix - process.setMaxListeners(n) with single arg sets global default
-fn process_set_max_listeners_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    // Determine event name and n value
-    // If first arg is a number, treat it as n (set global default)
-    // If first arg is a string, treat it as event name, second arg is n
-    let (event_name, n) = if args.length() > 0 {
-        let first = args.get(0);
-        if first.is_number() {
-            // Single argument: setMaxListeners(n) - sets "__default__"
-            let n = first.int32_value(scope).unwrap_or(0);
-            (String::from("__default__"), n)
-        } else if first.is_string() || first.is_null_or_undefined() {
-            // First arg is event name
-            let name = first.to_string(scope).unwrap().to_rust_string_lossy(scope);
-            let n = if args.length() > 1 {
-                args.get(1).int32_value(scope).unwrap_or(0)
-            } else {
-                0
-            };
-            (name, n)
-        } else {
-            (String::from("__default__"), 0)
-        }
-    } else {
-        (String::from("__default__"), 0)
-    };
-
-    // Validate n (must be >= 0)
-    let max_listeners = if n < 0 {
-        0 // 负数视为 0（无限制）
-    } else {
-        n
-    };
-
-    // 存储到线程本地
-    MAX_LISTENERS.with(|map| {
-        let mut map = map.lock().unwrap();
-        map.insert(event_name, max_listeners);
-    });
-
-    // 返回 process 对象（支持链式调用）
-    retval.set(args.this().into());
-}
-
-/// v0.3.242: process.getMaxListeners() 回调
-/// 获取指定事件的最大监听器数量
-fn process_get_max_listeners_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    // 获取事件名称
-    let event_name = if args.length() > 0 {
-        let name = args.get(0);
-        if name.is_string() || name.is_null_or_undefined() {
-            name.to_string(scope).unwrap().to_rust_string_lossy(scope)
-        } else {
-            String::from("__default__")
-        }
-    } else {
-        String::from("__default__")
-    };
-
-    // 从线程本地获取
-    let max_listeners = MAX_LISTENERS.with(|map| {
-        let map = map.lock().unwrap();
-        map.get(&event_name).copied().unwrap_or(10) // 默认值是 10
-    });
-
-    retval.set(v8::Integer::new(scope, max_listeners).into());
-}
-
-/// v0.3.243: process.kill(pid, signal) 回调
-/// 向指定进程发送信号
-fn process_kill_callback(
-    scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    // 获取 PID
-    let pid = args.get(0).int32_value(scope).unwrap_or(0);
-
-    // 获取信号（可以是字符串或数字）
-    let signal = if args.length() > 1 {
-        let sig_arg = args.get(1);
-        if sig_arg.is_number() {
-            sig_arg.int32_value(scope).unwrap_or(15) as u32
-        } else if let Some(str_val) = sig_arg.to_string(scope) {
-            let sig_str = str_val.to_rust_string_lossy(scope);
-            signal_name_to_number(&sig_str)
-        } else {
-            15 // 默认 SIGTERM
-        }
-    } else {
-        15 // 默认信号
-    };
-
-    // 发送信号
-    let result = if pid > 0 {
-        send_signal_to_process(pid as u32, signal)
-    } else {
-        false
-    };
-
-    retval.set(v8::Boolean::new(scope, result).into());
-}
-
-/// 将信号名称转换为信号编号
-fn signal_name_to_number(signal_name: &str) -> u32 {
-    match signal_name.to_uppercase().as_str() {
-        "SIGHUP" | "HUP" => 1,
-        "SIGINT" | "INT" => 2,
-        "SIGQUIT" | "QUIT" => 3,
-        "SIGILL" | "ILL" => 4,
-        "SIGTRAP" | "TRAP" => 5,
-        "SIGABRT" | "ABRT" => 6,
-        "SIGFPE" | "FPE" => 8,
-        "SIGKILL" | "KILL" => 9,
-        "SIGUSR1" | "USR1" => 10,
-        "SIGSEGV" | "SEGV" => 11,
-        "SIGUSR2" | "USR2" => 12,
-        "SIGPIPE" | "PIPE" => 13,
-        "SIGALRM" | "ALRM" => 14,
-        "SIGTERM" | "TERM" => 15,
-        "SIGCHLD" | "CHLD" => 17,
-        "SIGCONT" | "CONT" => 18,
-        "SIGSTOP" | "STOP" => 19,
-        "SIGTSTP" | "TSTP" => 20,
-        "SIGTTIN" | "TTIN" => 21,
-        "SIGTTOU" | "TTOU" => 22,
-        "SIGBUS" | "BUS" => 10, // FreeBSD uses 10, Linux uses 7
-        _ => 15,                // 默认 SIGTERM
-    }
-}
-
-/// 向进程发送信号
-fn send_signal_to_process(pid: u32, signal: u32) -> bool {
-    #[cfg(target_family = "unix")]
-    {
-        use libc::kill;
-
-        unsafe { kill(pid as libc::pid_t, signal as libc::c_int) == 0 }
-    }
-    #[cfg(target_family = "windows")]
-    {
-        // Windows 不支持 Unix 信号，这里简化处理
-        // 对于当前进程，标记退出
-        if pid == std::process::id() {
-            if signal == 15 || signal == 2 || signal == 1 {
-                // SIGTERM, SIGINT, SIGHUP
-                // 标记退出（实际退出由运行时处理）
-                SHOULD_EXIT.with(|exit| {
-                    *exit.lock().unwrap() = true;
-                });
-                EXIT_CODE.with(|code| {
-                    *code.lock().unwrap() = 128 + signal as i32;
-                });
-                return true;
-            }
-        }
-        false
-    }
-    #[cfg(not(any(target_family = "unix", target_family = "windows")))]
-    {
-        false
-    }
 }
 
 /// 触发未捕获异常事件

@@ -244,7 +244,7 @@ pub fn setup_os_api(
     let val_x86: _ = v8::String::new(scope, "x86").unwrap();
     arch_constants_obj.set(scope, key_x86.into(), val_x86.into());
     let arch_key: _ = v8::String::new(scope, "arch").unwrap();
-    os_obj.set(scope, arch_key.into(), arch_constants_obj.into());
+    constants_obj.set(scope, arch_key.into(), arch_constants_obj.into());
     // platform()的常量版本
     let platform_constants_obj: _ = v8::Object::new(scope);
     let key_aix: _ = v8::String::new(scope, "aix").unwrap();
@@ -278,7 +278,7 @@ pub fn setup_os_api(
     let val_netbsd: _ = v8::String::new(scope, "netbsd").unwrap();
     platform_constants_obj.set(scope, key_netbsd.into(), val_netbsd.into());
     let platform_key: _ = v8::String::new(scope, "platform").unwrap();
-    os_obj.set(scope, platform_key.into(), platform_constants_obj.into());
+    constants_obj.set(scope, platform_key.into(), platform_constants_obj.into());
     // 设置到全局
     let global: _ = context.global(scope);
     let os_key: _ = v8::String::new(scope, "os").unwrap();
@@ -290,7 +290,12 @@ fn os_arch_callback(
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let arch: _ = std::env::consts::ARCH;
+    let arch = match std::env::consts::ARCH {
+        "x86_64" => "x64",
+        "aarch64" => "arm64",
+        "x86" => "ia32",
+        other => other,
+    };
     retval.set(v8::String::new(scope, arch).unwrap().into());
 }
 fn os_platform_callback(
@@ -298,7 +303,11 @@ fn os_platform_callback(
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let platform: _ = std::env::consts::OS;
+    let platform = match std::env::consts::OS {
+        "macos" => "darwin",
+        "windows" => "win32",
+        other => other,
+    };
     retval.set(v8::String::new(scope, platform).unwrap().into());
 }
 fn os_type_callback(
