@@ -4,10 +4,10 @@
 // v0.3.248: 使用 fired timer 队列简化架构
 
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, oneshot};
@@ -86,6 +86,7 @@ impl IoCompletionQueue {
             q.push(IoCompletion { id, ok, payload });
         }
         self.pending_ops.fetch_sub(1, Ordering::SeqCst);
+        get_async_timer_manager().wake();
     }
 
     pub fn drain(&self) -> Vec<IoCompletion> {
@@ -186,6 +187,70 @@ enum TimerCommand {
     ShutdownWithAck(oneshot::Sender<()>),
 }
 
+/// Thread-safe event loop waker using Condvar
+#[derive(Debug)]
+pub struct EventLoopWaker {
+    mutex: Mutex<bool>,
+    condvar: Condvar,
+}
+
+impl EventLoopWaker {
+    pub fn new() -> Self {
+        Self {
+            mutex: Mutex::new(false),
+            condvar: Condvar::new(),
+        }
+    }
+
+    pub fn wake(&self) {
+        if let Ok(mut lock) = self.mutex.lock() {
+            *lock = true;
+            self.condvar.notify_all();
+        }
+    }
+
+    pub fn reset(&self) {
+        if let Ok(mut lock) = self.mutex.lock() {
+            *lock = false;
+        }
+    }
+
+    /// Wait for a wake event with a timeout.
+    /// Returns true if woken before timeout, false if timed out.
+    pub fn wait_timeout(&self, timeout: Duration) -> bool {
+        if let Ok(mut lock) = self.mutex.lock() {
+            if *lock {
+                *lock = false;
+                return true;
+            }
+            if timeout.is_zero() {
+                return false;
+            }
+            match self.condvar.wait_timeout(lock, timeout) {
+                Ok((mut guard, result)) => {
+                    let was_woken = *guard;
+                    *guard = false;
+                    was_woken || !result.timed_out()
+                }
+                Err(poisoned) => {
+                    let mut guard = poisoned.into_inner().0;
+                    let was_woken = *guard;
+                    *guard = false;
+                    was_woken
+                }
+            }
+        } else {
+            false
+        }
+    }
+}
+
+impl Default for EventLoopWaker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// 异步定时器管理器
 /// 使用 tokio 异步通道和独立运行时处理定时器
 pub struct AsyncTimerManager {
@@ -206,6 +271,180 @@ pub struct AsyncTimerManager {
     scheduled_timer_count: Arc<AtomicU64>,
     // 可检测的命令队列容量；0 用于稳定表示队列已满
     command_queue_size: usize,
+    // 事件循环唤醒器，用于定时器到期或 IO 完成时通知挂起线程
+    waker: Arc<EventLoopWaker>,
+}
+
+fn handle_timer_command(
+    cmd: TimerCommand,
+    scheduled_timers: &mut HashMap<u64, TimerEntry>,
+    timer_heap: &mut BTreeSet<(Instant, u64, u64)>,
+    scheduled_count: &Arc<AtomicU64>,
+    waker: &Arc<EventLoopWaker>,
+) -> bool {
+    match cmd {
+        TimerCommand::ScheduleTimeout {
+            timer_id,
+            deadline,
+            delay,
+            sequence,
+        } => {
+            let is_new = !scheduled_timers.contains_key(&timer_id);
+            if let Some(old) = scheduled_timers.insert(
+                timer_id,
+                TimerEntry {
+                    deadline,
+                    delay,
+                    remaining: 1,
+                    sequence,
+                },
+            ) {
+                timer_heap.remove(&(old.deadline, old.sequence, timer_id));
+            }
+            timer_heap.insert((deadline, sequence, timer_id));
+            if is_new {
+                scheduled_count.fetch_add(1, Ordering::SeqCst);
+            }
+            true
+        }
+        TimerCommand::ScheduleInterval {
+            timer_id,
+            deadline,
+            delay,
+            repeat_count,
+            sequence,
+        } => {
+            let repeats = if repeat_count == 0 {
+                u32::MAX
+            } else {
+                repeat_count
+            };
+            let is_new = !scheduled_timers.contains_key(&timer_id);
+            if let Some(old) = scheduled_timers.insert(
+                timer_id,
+                TimerEntry {
+                    deadline,
+                    delay,
+                    remaining: repeats,
+                    sequence,
+                },
+            ) {
+                timer_heap.remove(&(old.deadline, old.sequence, timer_id));
+            }
+            timer_heap.insert((deadline, sequence, timer_id));
+            if is_new {
+                scheduled_count.fetch_add(1, Ordering::SeqCst);
+            }
+            true
+        }
+        TimerCommand::Cancel { timer_id } => {
+            if let Some(entry) = scheduled_timers.remove(&timer_id) {
+                timer_heap.remove(&(entry.deadline, entry.sequence, timer_id));
+                scheduled_count.fetch_sub(1, Ordering::SeqCst);
+            }
+            true
+        }
+        TimerCommand::CancelWithAck { timer_id, ack } => {
+            let removed = if let Some(entry) = scheduled_timers.remove(&timer_id) {
+                timer_heap.remove(&(entry.deadline, entry.sequence, timer_id));
+                scheduled_count.fetch_sub(1, Ordering::SeqCst);
+                true
+            } else {
+                false
+            };
+            let _ = ack.send(removed);
+            true
+        }
+        TimerCommand::Clear => {
+            let count = scheduled_timers.len() as u64;
+            scheduled_timers.clear();
+            timer_heap.clear();
+            scheduled_count.fetch_sub(count, Ordering::SeqCst);
+            waker.wake();
+            true
+        }
+        TimerCommand::ClearWithAck(sender) => {
+            let count = scheduled_timers.len() as u64;
+            scheduled_timers.clear();
+            timer_heap.clear();
+            scheduled_count.fetch_sub(count, Ordering::SeqCst);
+            let _ = sender.send(());
+            waker.wake();
+            true
+        }
+        TimerCommand::Shutdown => {
+            let count = scheduled_timers.len() as u64;
+            scheduled_timers.clear();
+            timer_heap.clear();
+            scheduled_count.fetch_sub(count, Ordering::SeqCst);
+            waker.wake();
+            false
+        }
+        TimerCommand::ShutdownWithAck(sender) => {
+            let count = scheduled_timers.len() as u64;
+            scheduled_timers.clear();
+            timer_heap.clear();
+            scheduled_count.fetch_sub(count, Ordering::SeqCst);
+            let _ = sender.send(());
+            waker.wake();
+            false
+        }
+    }
+}
+
+fn fire_due_timers(
+    scheduled_timers: &mut HashMap<u64, TimerEntry>,
+    timer_heap: &mut BTreeSet<(Instant, u64, u64)>,
+    now: Instant,
+    fired_timers: &Arc<RwLock<Vec<u64>>>,
+    scheduled_count: &Arc<AtomicU64>,
+    waker: &Arc<EventLoopWaker>,
+) {
+    let mut fired_ids = Vec::new();
+    let mut to_reschedule = Vec::new();
+
+    while let Some(&(deadline, sequence, timer_id)) = timer_heap.iter().next() {
+        if deadline <= now {
+            timer_heap.remove(&(deadline, sequence, timer_id));
+            if let Some(entry) = scheduled_timers.remove(&timer_id) {
+                fired_ids.push(timer_id);
+                if entry.remaining > 1 {
+                    let remaining = if entry.remaining == u32::MAX {
+                        u32::MAX
+                    } else {
+                        entry.remaining - 1
+                    };
+                    to_reschedule.push((timer_id, entry.delay, remaining, sequence));
+                } else {
+                    scheduled_count.fetch_sub(1, Ordering::SeqCst);
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
+    for (timer_id, delay, remaining, sequence) in to_reschedule {
+        let next_deadline = Instant::now() + delay;
+        scheduled_timers.insert(
+            timer_id,
+            TimerEntry {
+                deadline: next_deadline,
+                delay,
+                remaining,
+                sequence,
+            },
+        );
+        timer_heap.insert((next_deadline, sequence, timer_id));
+    }
+
+    if !fired_ids.is_empty() {
+        {
+            let mut fired = fired_timers.write().unwrap();
+            fired.extend(fired_ids);
+        }
+        waker.wake();
+    }
 }
 
 impl AsyncTimerManager {
@@ -224,149 +463,101 @@ impl AsyncTimerManager {
         // v0.3.339: 创建已调度定时器计数（共享状态）
         let scheduled_timer_count = Arc::new(AtomicU64::new(0));
         let scheduled_count_clone = scheduled_timer_count.clone();
+        let waker = Arc::new(EventLoopWaker::new());
+        let waker_clone = waker.clone();
 
         // 创建工作线程
         let worker_thread = thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
-            // 使用简单的 HashMap 存储定时器（不再需要回调）
             let mut scheduled_timers: HashMap<u64, TimerEntry> = HashMap::new();
+            let mut timer_heap: BTreeSet<(Instant, u64, u64)> = BTreeSet::new();
 
             rt.block_on(async move {
-                let mut interval = tokio::time::interval(Duration::from_millis(1));
-
                 loop {
-                    tokio::select! {
-                        _ = interval.tick() => {
+                    let next_deadline = timer_heap.iter().next().map(|(d, _, _)| *d);
+
+                    match next_deadline {
+                        Some(deadline) => {
                             let now = Instant::now();
-                            let mut due_timers = Vec::new();
-                            let mut to_reschedule = Vec::new();
-                            let mut to_remove = Vec::new();
+                            if deadline <= now {
+                                fire_due_timers(
+                                    &mut scheduled_timers,
+                                    &mut timer_heap,
+                                    now,
+                                    &fired_timers_clone,
+                                    &scheduled_count_clone,
+                                    &waker_clone,
+                                );
+                                continue;
+                            }
 
-                            for (id, entry) in &scheduled_timers {
-                                if entry.deadline <= now {
-                                    due_timers.push((*id, *entry));
+                            let sleep_dur = deadline.duration_since(now);
+                            tokio::select! {
+                                _ = tokio::time::sleep(sleep_dur) => {
+                                    let now = Instant::now();
+                                    fire_due_timers(
+                                        &mut scheduled_timers,
+                                        &mut timer_heap,
+                                        now,
+                                        &fired_timers_clone,
+                                        &scheduled_count_clone,
+                                        &waker_clone,
+                                    );
                                 }
-                            }
-
-                            due_timers.sort_by(|(left_id, left), (right_id, right)| {
-                                left.deadline
-                                    .cmp(&right.deadline)
-                                    .then_with(|| left.sequence.cmp(&right.sequence))
-                                    .then_with(|| left_id.cmp(right_id))
-                            });
-
-                            let mut fired_ids = Vec::with_capacity(due_timers.len());
-                            for (id, entry) in due_timers {
-                                fired_ids.push(id);
-
-                                if entry.remaining > 1 {
-                                    let remaining = if entry.remaining == u32::MAX {
-                                        u32::MAX
-                                    } else {
-                                        entry.remaining - 1
-                                    };
-                                    // 重复定时器，准备重新调度
-                                    to_reschedule.push((id, entry.delay, remaining));
-                                } else {
-                                    // 非重复定时器，标记移除
-                                    to_remove.push(id);
-                                }
-                            }
-
-                            let fired_count = fired_ids.len();
-
-                            // 更新 fired 定时器队列
-                            if fired_count > 0 {
-                                let mut fired = fired_timers_clone.write().unwrap();
-                                fired.extend(fired_ids);
-                            }
-
-                            // 移除到期的非重复定时器
-                            for id in &to_remove {
-                                scheduled_timers.remove(id);
-                                scheduled_count_clone.fetch_sub(1, Ordering::SeqCst);
-                            }
-
-                            // 重新调度重复定时器
-                            for (id, delay, remaining) in to_reschedule {
-                                let next_time = Instant::now() + delay;
-                                if let Some(entry) = scheduled_timers.get_mut(&id) {
-                                    entry.deadline = next_time;
-                                    entry.remaining = remaining;
+                                cmd = cmd_rx.recv() => {
+                                    match cmd {
+                                        Some(command) => {
+                                            if !handle_timer_command(
+                                                command,
+                                                &mut scheduled_timers,
+                                                &mut timer_heap,
+                                                &scheduled_count_clone,
+                                                &waker_clone,
+                                            ) {
+                                                break;
+                                            }
+                                            while let Ok(command) = cmd_rx.try_recv() {
+                                                if !handle_timer_command(
+                                                    command,
+                                                    &mut scheduled_timers,
+                                                    &mut timer_heap,
+                                                    &scheduled_count_clone,
+                                                    &waker_clone,
+                                                ) {
+                                                    return;
+                                                }
+                                            }
+                                        }
+                                        None => break,
+                                    }
                                 }
                             }
                         }
-                        cmd = cmd_rx.recv() => {
-                            match cmd {
-                                Some(TimerCommand::ScheduleTimeout { timer_id, deadline, delay, sequence }) => {
-                                    let is_new = !scheduled_timers.contains_key(&timer_id);
-                                    scheduled_timers.insert(timer_id, TimerEntry {
-                                        deadline,
-                                        delay,
-                                        remaining: 1,
-                                        sequence,
-                                    });
-                                    if is_new {
-                                        scheduled_count_clone.fetch_add(1, Ordering::SeqCst);
-                                    }
-                                    // v0.3.261: Removed immediate firing - let the interval tick handle it
-                                    // This avoids a race condition where the callback isn't stored yet
-                                }
-                                Some(TimerCommand::ScheduleInterval { timer_id, deadline, delay, repeat_count, sequence }) => {
-                                    let repeats = if repeat_count == 0 { u32::MAX } else { repeat_count };
-                                    let is_new = !scheduled_timers.contains_key(&timer_id);
-                                    scheduled_timers.insert(timer_id, TimerEntry {
-                                        deadline,
-                                        delay,
-                                        remaining: repeats,
-                                        sequence,
-                                    });
-                                    if is_new {
-                                        scheduled_count_clone.fetch_add(1, Ordering::SeqCst);
-                                    }
-                                }
-                                Some(TimerCommand::Cancel { timer_id }) => {
-                                    if scheduled_timers.remove(&timer_id).is_some() {
-                                        scheduled_count_clone.fetch_sub(1, Ordering::SeqCst);
-                                    }
-                                }
-                                Some(TimerCommand::CancelWithAck { timer_id, ack }) => {
-                                    let removed = scheduled_timers.remove(&timer_id).is_some();
-                                    if removed {
-                                        scheduled_count_clone.fetch_sub(1, Ordering::SeqCst);
-                                    }
-                                    let _ = ack.send(removed);
-                                }
-                                Some(TimerCommand::Clear) => {
-                                    let count = scheduled_timers.len() as u64;
-                                    scheduled_timers.clear();
-                                    scheduled_count_clone.fetch_sub(count, Ordering::SeqCst);
-                                }
-                                Some(TimerCommand::ClearWithAck(sender)) => {
-                                    let count = scheduled_timers.len() as u64;
-                                    scheduled_timers.clear();
-                                    scheduled_count_clone.fetch_sub(count, Ordering::SeqCst);
-                                    // v0.3.261: Send acknowledgement after clearing
-                                    let _ = sender.send(());
-                                }
-                                Some(TimerCommand::Shutdown) => {
-                                    let count = scheduled_timers.len() as u64;
-                                    scheduled_timers.clear();
-                                    scheduled_count_clone.fetch_sub(count, Ordering::SeqCst);
+                        None => match cmd_rx.recv().await {
+                            Some(command) => {
+                                if !handle_timer_command(
+                                    command,
+                                    &mut scheduled_timers,
+                                    &mut timer_heap,
+                                    &scheduled_count_clone,
+                                    &waker_clone,
+                                ) {
                                     break;
                                 }
-                                Some(TimerCommand::ShutdownWithAck(sender)) => {
-                                    let count = scheduled_timers.len() as u64;
-                                    scheduled_timers.clear();
-                                    scheduled_count_clone.fetch_sub(count, Ordering::SeqCst);
-                                    let _ = sender.send(());
-                                    break;
-                                }
-                                None => {
-                                    break;
+                                while let Ok(command) = cmd_rx.try_recv() {
+                                    if !handle_timer_command(
+                                        command,
+                                        &mut scheduled_timers,
+                                        &mut timer_heap,
+                                        &scheduled_count_clone,
+                                        &waker_clone,
+                                    ) {
+                                        return;
+                                    }
                                 }
                             }
-                        }
+                            None => break,
+                        },
                     }
                 }
             });
@@ -380,6 +571,7 @@ impl AsyncTimerManager {
             fired_timers,
             scheduled_timer_count,
             command_queue_size,
+            waker,
         }
     }
 
@@ -446,8 +638,11 @@ impl AsyncTimerManager {
     /// preserves event-loop ordering while avoiding a race where the main thread
     /// exits before the worker processes a freshly sent schedule command.
     pub fn mark_timer_fired(&self, timer_id: u64) {
-        let mut fired = self.fired_timers.write().unwrap();
-        fired.push(timer_id);
+        {
+            let mut fired = self.fired_timers.write().unwrap();
+            fired.push(timer_id);
+        }
+        self.waker.wake();
     }
 
     /// 安排一个重复定时器
@@ -515,6 +710,7 @@ impl AsyncTimerManager {
         // Also clear fired timers to prevent stale timers from previous tests
         let mut fired = self.fired_timers.write().unwrap();
         fired.clear();
+        self.waker.wake();
     }
 
     /// v0.3.261: 清除已触发的定时器列表
@@ -533,11 +729,13 @@ impl AsyncTimerManager {
         fired.clear();
         // Wait for the worker to acknowledge the clear
         let _ = rx.blocking_recv();
+        self.waker.wake();
     }
 
     /// 关闭定时器管理器
     pub fn shutdown(&self) {
         let _ = self.cmd_tx.try_send(TimerCommand::Shutdown);
+        self.waker.wake();
     }
 
     /// 关闭定时器管理器并等待工作线程确认
@@ -552,6 +750,7 @@ impl AsyncTimerManager {
             tokio::task::yield_now().await;
         }
 
+        self.waker.wake();
         Ok(())
     }
 
@@ -574,6 +773,21 @@ impl AsyncTimerManager {
     /// 用于事件循环判断是否需要继续等待
     pub fn has_scheduled_timers(&self) -> bool {
         self.scheduled_timer_count.load(Ordering::SeqCst) > 0
+    }
+
+    /// 唤醒正在等待定时器或事件的线程
+    pub fn wake(&self) {
+        self.waker.wake();
+    }
+
+    /// 等待事件循环唤醒或超时
+    pub fn wait_timeout(&self, timeout: Duration) -> bool {
+        self.waker.wait_timeout(timeout)
+    }
+
+    /// 获取底层唤醒器引用
+    pub fn waker(&self) -> &Arc<EventLoopWaker> {
+        &self.waker
     }
 }
 

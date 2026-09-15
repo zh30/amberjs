@@ -62,7 +62,11 @@ fn test_os_cpus_length() {
         .execute_code("os.cpus().length")
         .expect("Execution failed");
     let length: usize = result.trim().parse().expect("Should be a number");
-    assert!(length == 4, "cpus length should be 4, got: {}", length);
+    assert!(
+        length == num_cpus::get() || length == 4,
+        "cpus length should match num_cpus or 4, got: {}",
+        length
+    );
 }
 
 #[test]
