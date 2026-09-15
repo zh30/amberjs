@@ -301,7 +301,7 @@ dependencies = [
  "oauth2",
  "once_cell",
  "openssl",
- "opentelemetry 0.21.0",
+ "opentelemetry 0.23.0",
  "opentelemetry-http",
  "opentelemetry-jaeger",
  "opentelemetry-prometheus",

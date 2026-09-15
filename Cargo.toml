@@ -171,7 +171,7 @@ filetime = "0.2"
 
 # Stage 30.5: Observability dependencies
 prometheus = { version = "0.13", optional = true }
-opentelemetry = { version = "0.21", optional = true }
+opentelemetry = { version = "0.23", optional = true }
 opentelemetry_sdk = { version = "0.21", optional = true }
 opentelemetry-prometheus = { version = "0.14", optional = true }
 opentelemetry-jaeger = { version = "0.22", optional = true }
