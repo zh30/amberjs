@@ -1,6 +1,6 @@
 [package]
 name = "beejs"
-version = "1.11.0"
+version = "1.12.0"
 edition = "2021"
 autobins = false
 authors = ["Henry Zhang"]
@@ -192,10 +192,11 @@ sys-info = "0.9"
 # TextEncoder/TextDecoder encoding support
 encoding_rs = "0.8"
 
-# Stage 54.2: ONNX Runtime dependencies
-# onnxruntime = "0.0.14"  # 暂时禁用，需要系统 ONNX Runtime 库
-# candle-core = "0.7"      # 暂时禁用，版本冲突
-# candle-nn = "0.7"        # 暂时禁用，版本冲突
+# Stage 54.2 & Task 1.1: Native Local AI Inference (Candle / GGUF / SafeTensors)
+candle-core = { version = "0.8.2", default-features = false }
+candle-transformers = { version = "0.8.2", default-features = false }
+candle-nn = { version = "0.8.2", default-features = false }
+tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
 
 # Stage 54.3: PyTorch TorchScript dependencies
 tch = { version = "0.11", optional = true }  # 可选依赖，支持条件编译
@@ -286,6 +287,8 @@ cloudnative = ["dep:kube", "dep:kube-runtime", "dep:k8s-openapi"]
 enterprise = ["dep:elasticsearch", "dep:git2", "dep:schemars"]
 observability = ["dep:prometheus", "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-prometheus", "dep:opentelemetry-jaeger", "dep:opentelemetry-http", "dep:tracing-opentelemetry"]
 ai = []
+metal = ["candle-core/metal", "candle-nn/metal", "candle-transformers/metal"]
+cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 benchmarks = []
 
 [profile.dev]

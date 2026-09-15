@@ -5,6 +5,59 @@
 use anyhow::Result;
 use rusty_v8 as v8;
 
+/// Helper to extract contiguous f32 slice from V8 ArrayBufferView or Array
+fn extract_f32_slice(scope: &mut v8::PinScope, val: v8::Local<v8::Value>) -> Option<Vec<f32>> {
+    if val.is_typed_array() {
+        if let Ok(view) = v8::Local::<v8::ArrayBufferView>::try_from(val) {
+            let ab = view.buffer(scope)?;
+            let store = ab.get_backing_store();
+            if let Some(ptr) = store.data() {
+                let byte_offset = view.byte_offset();
+                let byte_length = view.byte_length();
+                let count = byte_length / std::mem::size_of::<f32>();
+                let slice = unsafe {
+                    let p = (ptr.as_ptr() as *const u8).add(byte_offset) as *const f32;
+                    std::slice::from_raw_parts(p, count)
+                };
+                return Some(slice.to_vec());
+            }
+        }
+    } else if val.is_array() {
+        if let Ok(arr) = v8::Local::<v8::Array>::try_from(val) {
+            let mut out = Vec::with_capacity(arr.length() as usize);
+            for i in 0..arr.length() {
+                if let Some(item) = arr.get_index(scope, i) {
+                    if let Some(n) = item.to_number(scope) {
+                        out.push(n.value() as f32);
+                    }
+                }
+            }
+            return Some(out);
+        }
+    }
+    None
+}
+
+/// Helper to wrap contiguous f32 slice into a V8 Float32Array
+fn create_v8_float32_array<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+    data: &[f32],
+) -> Option<v8::Local<'s, v8::Float32Array>> {
+    let byte_len = data.len() * std::mem::size_of::<f32>();
+    let buffer = v8::ArrayBuffer::new(scope, byte_len);
+    let store = buffer.get_backing_store();
+    if let Some(ptr) = store.data() {
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                data.as_ptr() as *const u8,
+                ptr.as_ptr() as *mut u8,
+                byte_len,
+            );
+        }
+    }
+    v8::Float32Array::new(scope, buffer, 0, data.len())
+}
+
 /// 设置全局与模块化 `bee:ai` API
 pub fn setup_ai_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
@@ -49,43 +102,244 @@ pub fn setup_ai_api(
                         dimensions: dims,
                         normalize,
                     };
-                    let vec = crate::ai_engine::embed_text(&text, &opts);
-                    let arr = v8::Array::new(scope, vec.len() as i32);
-                    for (i, &val) in vec.iter().enumerate() {
-                        let num = v8::Number::new(scope, val as f64);
-                        arr.set_index(scope, i as u32, num.into());
+                    let vec = crate::ai_engine::candle_embed(&text, &opts);
+                    if let Some(f32_arr) = create_v8_float32_array(scope, &vec) {
+                        retval.set(f32_arr.into());
+                    } else {
+                        let arr = v8::Array::new(scope, vec.len() as i32);
+                        for (i, &val) in vec.iter().enumerate() {
+                            let num = v8::Number::new(scope, val as f64);
+                            arr.set_index(scope, i as u32, num.into());
+                        }
+                        retval.set(arr.into());
                     }
-                    retval.set(arr.into());
                 }
                 "similarity" => {
-                    let a_val = args.get(1);
-                    let b_val = args.get(2);
-                    let mut vec_a = Vec::new();
-                    let mut vec_b = Vec::new();
-
-                    if a_val.is_array() {
-                        let arr = v8::Local::<v8::Array>::try_from(a_val).unwrap();
-                        for i in 0..arr.length() {
-                            if let Some(item) = arr.get_index(scope, i) {
-                                if let Some(n) = item.to_number(scope) {
-                                    vec_a.push(n.value() as f32);
-                                }
-                            }
-                        }
-                    }
-                    if b_val.is_array() {
-                        let arr = v8::Local::<v8::Array>::try_from(b_val).unwrap();
-                        for i in 0..arr.length() {
-                            if let Some(item) = arr.get_index(scope, i) {
-                                if let Some(n) = item.to_number(scope) {
-                                    vec_b.push(n.value() as f32);
-                                }
-                            }
-                        }
-                    }
-
-                    let sim = crate::ai_engine::cosine_similarity(&vec_a, &vec_b);
+                    let vec_a = extract_f32_slice(scope, args.get(1)).unwrap_or_default();
+                    let vec_b = extract_f32_slice(scope, args.get(2)).unwrap_or_default();
+                    let sim = crate::ai_engine::candle_cosine_similarity(&vec_a, &vec_b);
                     retval.set(v8::Number::new(scope, sim as f64).into());
+                }
+                "load_model" => {
+                    let path = if args.length() > 1 {
+                        args.get(1).to_rust_string_lossy(scope)
+                    } else {
+                        String::new()
+                    };
+                    let opts_json = if args.length() > 2 && args.get(2).is_string() {
+                        args.get(2).to_rust_string_lossy(scope)
+                    } else {
+                        "{}".to_string()
+                    };
+                    match crate::ai_engine::CandleModel::load(&path, &opts_json) {
+                        Ok(arc_model) => {
+                            let m = arc_model.lock().unwrap();
+                            let info = serde_json::json!({
+                                "modelId": m.id,
+                                "path": m.path,
+                                "device": format!("{:?}", m.device),
+                                "contextLength": m.context_length,
+                                "eosTokenId": m.eos_token_id
+                            });
+                            if let Some(s) = v8::String::new(scope, &info.to_string()) {
+                                retval.set(s.into());
+                            }
+                        }
+                        Err(e) => {
+                            let err_msg = format!("Failed to load model: {}", e);
+                            let s = v8::String::new(scope, &err_msg).unwrap();
+                            let err = v8::Exception::error(scope, s);
+                            scope.throw_exception(err);
+                        }
+                    }
+                }
+                "model_generate" => {
+                    let model_id = if args.length() > 1 && args.get(1).is_number() {
+                        args.get(1)
+                            .to_integer(scope)
+                            .map(|i| i.value() as u64)
+                            .unwrap_or(0)
+                    } else {
+                        0
+                    };
+                    let prompt = if args.length() > 2 {
+                        args.get(2).to_rust_string_lossy(scope)
+                    } else {
+                        String::new()
+                    };
+                    let opts_json = if args.length() > 3 && args.get(3).is_string() {
+                        args.get(3).to_rust_string_lossy(scope)
+                    } else {
+                        "{}".to_string()
+                    };
+                    let opts: crate::ai_engine::GenerateOptions =
+                        serde_json::from_str(&opts_json).unwrap_or_default();
+                    if let Some(model_arc) = crate::ai_engine::get_model(model_id) {
+                        let mut model = model_arc.lock().unwrap();
+                        match model.generate(&prompt, &opts) {
+                            Ok(res) => {
+                                let res_json = serde_json::to_string(&res).unwrap_or_default();
+                                if let Some(s) = v8::String::new(scope, &res_json) {
+                                    retval.set(s.into());
+                                }
+                            }
+                            Err(e) => {
+                                let err_msg = format!("Model generate error: {}", e);
+                                let s = v8::String::new(scope, &err_msg).unwrap();
+                                let err = v8::Exception::error(scope, s);
+                                scope.throw_exception(err);
+                            }
+                        }
+                    } else {
+                        match crate::ai_engine::EdgeGenerator::generate(&prompt, &opts) {
+                            Ok(res) => {
+                                let res_json = serde_json::to_string(&res).unwrap_or_default();
+                                if let Some(s) = v8::String::new(scope, &res_json) {
+                                    retval.set(s.into());
+                                }
+                            }
+                            Err(e) => {
+                                let err_msg = format!("AI generate failed: {}", e);
+                                let s = v8::String::new(scope, &err_msg).unwrap();
+                                let err = v8::Exception::error(scope, s);
+                                scope.throw_exception(err);
+                            }
+                        }
+                    }
+                }
+                "model_generate_stream" => {
+                    let model_id = if args.length() > 1 && args.get(1).is_number() {
+                        args.get(1)
+                            .to_integer(scope)
+                            .map(|i| i.value() as u64)
+                            .unwrap_or(0)
+                    } else {
+                        0
+                    };
+                    let prompt = if args.length() > 2 {
+                        args.get(2).to_rust_string_lossy(scope)
+                    } else {
+                        String::new()
+                    };
+                    let opts_json = if args.length() > 3 && args.get(3).is_string() {
+                        args.get(3).to_rust_string_lossy(scope)
+                    } else {
+                        "{}".to_string()
+                    };
+                    let opts: crate::ai_engine::GenerateOptions =
+                        serde_json::from_str(&opts_json).unwrap_or_default();
+                    let mut chunks = Vec::new();
+                    if let Some(model_arc) = crate::ai_engine::get_model(model_id) {
+                        let mut model = model_arc.lock().unwrap();
+                        let _ = model.generate_stream(&prompt, &opts, |chunk| {
+                            chunks.push(chunk.to_string());
+                            true
+                        });
+                    } else {
+                        let _ = crate::ai_engine::EdgeGenerator::generate_stream(
+                            &prompt,
+                            &opts,
+                            |chunk| {
+                                chunks.push(chunk.to_string());
+                                true
+                            },
+                        );
+                    }
+                    let chunks_json =
+                        serde_json::to_string(&chunks).unwrap_or_else(|_| "[]".to_string());
+                    if let Some(s) = v8::String::new(scope, &chunks_json) {
+                        retval.set(s.into());
+                    }
+                }
+                "tensor_matmul" => {
+                    let a_data = extract_f32_slice(scope, args.get(1));
+                    let m = args
+                        .get(2)
+                        .to_integer(scope)
+                        .map(|i| i.value() as usize)
+                        .unwrap_or(0);
+                    let k1 = args
+                        .get(3)
+                        .to_integer(scope)
+                        .map(|i| i.value() as usize)
+                        .unwrap_or(0);
+                    let b_data = extract_f32_slice(scope, args.get(4));
+                    let k2 = args
+                        .get(5)
+                        .to_integer(scope)
+                        .map(|i| i.value() as usize)
+                        .unwrap_or(0);
+                    let n = args
+                        .get(6)
+                        .to_integer(scope)
+                        .map(|i| i.value() as usize)
+                        .unwrap_or(0);
+                    if let (Some(a), Some(b)) = (a_data, b_data) {
+                        match crate::ai_engine::candle_matmul(&a, m, k1, &b, k2, n) {
+                            Ok(res) => {
+                                if let Some(f32_arr) = create_v8_float32_array(scope, &res) {
+                                    retval.set(f32_arr.into());
+                                }
+                            }
+                            Err(e) => {
+                                let s =
+                                    v8::String::new(scope, &format!("Candle matmul error: {}", e))
+                                        .unwrap();
+                                scope.throw_exception(v8::Exception::error(scope, s));
+                            }
+                        }
+                    }
+                }
+                "tensor_softmax" => {
+                    let data = extract_f32_slice(scope, args.get(1));
+                    let shape_val = args.get(2);
+                    let mut shape = Vec::new();
+                    if shape_val.is_array() {
+                        if let Ok(arr) = v8::Local::<v8::Array>::try_from(shape_val) {
+                            for i in 0..arr.length() {
+                                if let Some(item) = arr.get_index(scope, i) {
+                                    if let Some(num) = item.to_integer(scope) {
+                                        shape.push(num.value() as usize);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if let Some(d) = data {
+                        if shape.is_empty() {
+                            shape.push(d.len());
+                        }
+                        match crate::ai_engine::candle_softmax(&d, &shape) {
+                            Ok(res) => {
+                                if let Some(f32_arr) = create_v8_float32_array(scope, &res) {
+                                    retval.set(f32_arr.into());
+                                }
+                            }
+                            Err(e) => {
+                                let s =
+                                    v8::String::new(scope, &format!("Candle softmax error: {}", e))
+                                        .unwrap();
+                                scope.throw_exception(v8::Exception::error(scope, s));
+                            }
+                        }
+                    }
+                }
+                "tensor_dot" => {
+                    let a_data = extract_f32_slice(scope, args.get(1));
+                    let b_data = extract_f32_slice(scope, args.get(2));
+                    if let (Some(a), Some(b)) = (a_data, b_data) {
+                        if let Ok(dot) = crate::ai_engine::candle_dot(&a, &b) {
+                            retval.set(v8::Number::new(scope, dot as f64).into());
+                        }
+                    }
+                }
+                "tensor_norm" => {
+                    let data = extract_f32_slice(scope, args.get(1));
+                    if let Some(d) = data {
+                        if let Ok(norm) = crate::ai_engine::candle_norm(&d) {
+                            retval.set(v8::Number::new(scope, norm as f64).into());
+                        }
+                    }
                 }
                 "generate" => {
                     let prompt = if args.length() > 1 {
@@ -160,7 +414,7 @@ pub fn setup_ai_api(
             const dims = options.dimensions || 64;
             const norm = options.normalize !== false;
             const raw = globalThis.__bee_ai_native('embed', text, dims, norm);
-            const floatArray = new Float32Array(raw);
+            const floatArray = raw instanceof Float32Array ? raw : new Float32Array(raw);
             if (options.asTensor && typeof Tensor !== 'undefined') {
                 return new Tensor(floatArray, [floatArray.length], 'float32');
             }
@@ -298,6 +552,15 @@ pub fn setup_ai_api(
                     throw new Error(`Dimension mismatch in matmul: [${m}x${k1}] and [${k2}x${n}]`);
                 }
 
+                if (globalThis.__bee_ai_native) {
+                    try {
+                        const accelerated = globalThis.__bee_ai_native('tensor_matmul', this.data, m, k1, other.data, k2, n);
+                        if (accelerated instanceof Float32Array) {
+                            return new Tensor(accelerated, [m, n], this.dtype);
+                        }
+                    } catch (_) {}
+                }
+
                 const out = new Float32Array(m * n);
                 const a = this.data;
                 const b = other.data;
@@ -324,6 +587,12 @@ pub fn setup_ai_api(
                 if (this.length !== other.length) {
                     throw new Error(`Tensors must have same length for dot product, got ${this.length} and ${other.length}`);
                 }
+                if (globalThis.__bee_ai_native) {
+                    try {
+                        const accelerated = globalThis.__bee_ai_native('tensor_dot', this.data, other.data);
+                        if (typeof accelerated === 'number' && !isNaN(accelerated)) return accelerated;
+                    } catch (_) {}
+                }
                 let sum = 0.0;
                 const a = this.data;
                 const b = other.data;
@@ -335,6 +604,12 @@ pub fn setup_ai_api(
 
             // L2 范数
             norm() {
+                if (globalThis.__bee_ai_native) {
+                    try {
+                        const accelerated = globalThis.__bee_ai_native('tensor_norm', this.data);
+                        if (typeof accelerated === 'number' && !isNaN(accelerated)) return accelerated;
+                    } catch (_) {}
+                }
                 let sum = 0.0;
                 const a = this.data;
                 for (let i = 0; i < this.length; i++) {
@@ -395,7 +670,14 @@ pub fn setup_ai_api(
 
             // Softmax 归一化
             softmax(axis = -1) {
-                // 当前对最内层 axis 实行数值稳定 softmax
+                if (globalThis.__bee_ai_native && (axis === -1 || axis === this.ndim - 1)) {
+                    try {
+                        const accelerated = globalThis.__bee_ai_native('tensor_softmax', this.data, this.shape);
+                        if (accelerated instanceof Float32Array) {
+                            return new Tensor(accelerated, this.shape, this.dtype);
+                        }
+                    } catch (_) {}
+                }
                 const out = new Float32Array(this.length);
                 const step = axis === -1 || axis === this.ndim - 1 ? this.shape[this.ndim - 1] : this.length;
                 for (let i = 0; i < this.length; i += step) {
@@ -446,6 +728,7 @@ pub fn setup_ai_api(
         class LLM {
             constructor(modelName, options = {}) {
                 this.model = modelName;
+                this._modelId = options._modelId || null;
                 this.device = options.device || 'cpu';
                 this.temperature = options.temperature ?? 0.7;
                 this.maxTokens = options.maxTokens ?? 512;
@@ -453,9 +736,20 @@ pub fn setup_ai_api(
                 this._isReady = true;
             }
 
-            // 静态工厂函数异步加载模型
+            // 静态工厂函数异步加载本地模型 (GGUF / SafeTensors)
             static async load(modelPathOrName, options = {}) {
-                // 模拟内核轻量级模型加载/握手
+                if (globalThis.__bee_ai_native) {
+                    try {
+                        const raw = globalThis.__bee_ai_native('load_model', String(modelPathOrName), JSON.stringify(options));
+                        const parsed = JSON.parse(raw);
+                        return new LLM(modelPathOrName, {
+                            ...options,
+                            _modelId: parsed.modelId,
+                            device: parsed.device || options.device || 'cpu',
+                            contextLength: parsed.contextLength || 4096
+                        });
+                    } catch (_) {}
+                }
                 await new Promise(resolve => setTimeout(resolve, 1));
                 return new LLM(modelPathOrName, options);
             }
@@ -465,6 +759,17 @@ pub fn setup_ai_api(
                 if (typeof prompt !== 'string') {
                     throw new TypeError('Prompt must be a string');
                 }
+                if (this._modelId && globalThis.__bee_ai_native) {
+                    const raw = globalThis.__bee_ai_native('model_generate', this._modelId, prompt, JSON.stringify({ ...options, model: this.model }));
+                    const parsed = JSON.parse(raw);
+                    return {
+                        text: parsed.text,
+                        tokens: parsed.tokens_generated,
+                        finishReason: parsed.finish_reason,
+                        schemaValid: options.schema ? true : false,
+                        model: this.model
+                    };
+                }
                 return generate(prompt, { ...options, model: this.model });
             }
 
@@ -472,6 +777,14 @@ pub fn setup_ai_api(
             async *generateStream(prompt, options = {}) {
                 if (typeof prompt !== 'string') {
                     throw new TypeError('Prompt must be a string');
+                }
+                if (this._modelId && globalThis.__bee_ai_native) {
+                    const raw = globalThis.__bee_ai_native('model_generate_stream', this._modelId, prompt, JSON.stringify({ ...options, model: this.model }));
+                    const chunks = JSON.parse(raw);
+                    for (const chunk of chunks) {
+                        yield chunk;
+                    }
+                    return;
                 }
                 for await (const chunk of generateStream(prompt, { ...options, model: this.model })) {
                     yield chunk;

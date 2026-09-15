@@ -11,15 +11,14 @@
 
 | Framework | Bun v1.4.1 (RSS) | Node.js v22 (RSS) | Beejs v0.4.0 (RSS) | Lowest Idle RSS Winner |
 |---|---|---|---|---|
-| **Http** | 70.4 MB | 69.7 MB | 25.2 MB | 🏆 **Beejs** |
 
 ## 📈 2. Detailed Lifecycle Metrics (Baseline -> Peak -> Settled)
 
 | Runtime | Framework | Baseline RSS | Peak Under Load | Settled Idle RSS | Net Memory Retained | Recovery Ratio | Throughput |
 |---|---|---|---|---|---|---|---|
-| `bee` | **http** | 21.0 MB | 29.1 MB | **25.2 MB** | +4.2 MB | 48.4% | 54698 req/s |
-| `node` | **http** | 43.5 MB | 69.5 MB | **69.7 MB** | +26.2 MB | 0.0% | 67551 req/s |
-| `bun` | **http** | 21.4 MB | 70.5 MB | **70.4 MB** | +49.0 MB | 0.1% | 72963 req/s |
+| ? | ? | ERROR | ERROR | ERROR | ERROR | ERROR | N/A |
+| ? | ? | ERROR | ERROR | ERROR | ERROR | ERROR | N/A |
+| ? | ? | ERROR | ERROR | ERROR | ERROR | ERROR | N/A |
 
 ## 🔬 3. Key Observations & Architecture Analysis
 - **Idle Memory Reclamation**: Measuring memory 3 minutes (or cooldown) after sustained traffic exposes whether runtimes release heap pages to the OS or retain slab allocators.

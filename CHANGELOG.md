@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.0] - 2026-09-15
+
+### Added
+- **`bee:ai` Native Local AI Inference Engine (HuggingFace Candle & GGUF Integration)**:
+  - Deep integration with HuggingFace Candle (`0.8.2`) and Tokenizers (`0.21`), providing embedded zero-dependency local model inference without requiring external Python or daemon processes.
+  - Zero-copy tensor bridge: direct physical memory sharing between V8 `ArrayBuffer` (`BackingStore`) and Candle `Tensor`, eliminating serialization and IPC overhead.
+  - Native quantized GGUF model loader with automatic architecture detection for Llama, Mistral, Qwen 2, Qwen 2.5, and more.
+  - Hardware acceleration pipeline: direct Apple Silicon Metal support (`--features metal`), Linux CUDA acceleration (`--features cuda`), and universal multi-threaded CPU fallback with SIMD vectorization.
+  - Asynchronous streaming token generation with native JS AsyncIterator protocol (`for await (const chunk of model.generateStream(prompt))`).
+  - High-performance dense semantic embeddings (`candle_embeddings`) with cosine similarity and V8 bindings.
+  - Added runnable AI examples: `examples/ai/local_llm_inference.js` and `examples/ai/agent_tool_calling.js`.
+  - Added integration test suite `tests/ai_candle_inference_tests.rs` (6/6 PASS) verifying model loading, streaming generation, KV-cache decoding, tensor math, embeddings, and Metal device detection.
+
 ## [1.11.0] - 2026-09-14
 
 ### Added

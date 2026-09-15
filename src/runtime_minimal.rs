@@ -11018,7 +11018,7 @@ impl MinimalRuntime {
         // Add process.versions object
         let versions_obj = v8::Object::new(scope);
         let v8_key = v8::String::new(scope, "v8").unwrap().into();
-        let v8_val = v8::String::new(scope, "10.0.0-beejs").unwrap().into();
+        let v8_val = v8::String::new(scope, v8::V8::get_version()).unwrap().into();
         versions_obj.set(scope, v8_key, v8_val);
         let versions_key = v8::String::new(scope, "versions").unwrap().into();
         process_obj.set(scope, versions_key, versions_obj.into());
@@ -21994,12 +21994,12 @@ require.resolve = function(specifier) {{
         let version_value = v8::String::new(scope, "v20.11.0").unwrap();
         let versions_key = v8::String::new(scope, "versions").unwrap();
         let v8_key = v8::String::new(scope, "v8").unwrap();
-        let v8_value = v8::String::new(scope, "12.0.267.1").unwrap();
+        let v8_value = v8::String::new(scope, v8::V8::get_version()).unwrap();
         let node_key = v8::String::new(scope, "node").unwrap();
         let node_value = v8::String::new(scope, "20.11.0").unwrap();
         let bee_key = v8::String::new(scope, "bee").unwrap();
         let beejs_key = v8::String::new(scope, "beejs").unwrap();
-        let beejs_value = v8::String::new(scope, "0.3.17").unwrap();
+        let beejs_value = v8::String::new(scope, env!("CARGO_PKG_VERSION")).unwrap();
         let platform_key = v8::String::new(scope, "platform").unwrap();
         let platform_value = v8::String::new(
             scope,
