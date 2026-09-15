@@ -216,7 +216,7 @@ colored = "2.0"     # Terminal colors and formatting
 # Stage 83: Enterprise Kubernetes & DevOps dependencies
 kube = { version = "0.87", features = ["runtime", "derive"], optional = true }
 k8s-openapi = { version = "0.20", default-features = false, features = ["schemars", "v1_28"], optional = true }
-kube-runtime = { version = "0.87", optional = true }
+kube-runtime = { version = "4.2", optional = true }
 schemars = { version = "0.8", features = ["derive"], optional = true }
 elasticsearch = { version = "9.1.0-alpha.1", default-features = false, optional = true }
 git2 = { version = "0.18", optional = true }
