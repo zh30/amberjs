@@ -30,7 +30,7 @@ use libc;
 
 /// HTTP 请求消息（跨线程传递）
 /// v0.3.89: 添加跨线程消息传递支持
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct HttpRequestMessage {
     /// HTTP 方法
     pub method: String,
@@ -46,6 +46,23 @@ pub struct HttpRequestMessage {
     pub body: Vec<u8>,
     /// 连接 ID（用于响应时定位连接）
     pub connection_id: u64,
+    /// Tokio 响应直通通道 (零锁快路径)
+    pub responder: Option<tokio::sync::oneshot::Sender<HttpResponseMessage>>,
+}
+
+impl Clone for HttpRequestMessage {
+    fn clone(&self) -> Self {
+        Self {
+            method: self.method.clone(),
+            url: self.url.clone(),
+            path: self.path.clone(),
+            http_version: self.http_version.clone(),
+            headers: self.headers.clone(),
+            body: self.body.clone(),
+            connection_id: self.connection_id,
+            responder: None,
+        }
+    }
 }
 
 /// HTTP 响应消息（跨线程传递）
@@ -177,24 +194,24 @@ fn stop_http_server_state(host: &str, port: u16) {
     states.retain(|state| state.listening.load(Ordering::SeqCst));
 }
 
-static GLOBAL_REQUEST_SENDER: Lazy<Mutex<Option<crossbeam::channel::Sender<HttpRequestMessage>>>> =
-    Lazy::new(|| Mutex::new(None));
-static GLOBAL_REQUEST_RECEIVER: Lazy<Mutex<Option<crossbeam::channel::Receiver<HttpRequestMessage>>>> =
-    Lazy::new(|| Mutex::new(None));
+static GLOBAL_REQUEST_SENDER: Lazy<std::sync::RwLock<Option<crossbeam::channel::Sender<HttpRequestMessage>>>> =
+    Lazy::new(|| std::sync::RwLock::new(None));
+static GLOBAL_REQUEST_RECEIVER: Lazy<std::sync::RwLock<Option<crossbeam::channel::Receiver<HttpRequestMessage>>>> =
+    Lazy::new(|| std::sync::RwLock::new(None));
 
-static MAIN_V8_THREAD: Lazy<Mutex<Option<std::thread::Thread>>> =
-    Lazy::new(|| Mutex::new(None));
+static MAIN_V8_THREAD: Lazy<std::sync::RwLock<Option<std::thread::Thread>>> =
+    Lazy::new(|| std::sync::RwLock::new(None));
 
 /// 登记主 V8 线程句柄，用于微秒级即时唤醒
 pub fn register_http_dispatch_thread(thread: std::thread::Thread) {
-    if let Ok(mut guard) = MAIN_V8_THREAD.lock() {
+    if let Ok(mut guard) = MAIN_V8_THREAD.write() {
         *guard = Some(thread);
     }
 }
 
 /// 立即唤醒挂起等待的 V8 主事件循环 (零延迟)
 pub fn wake_http_dispatch_thread() {
-    if let Ok(guard) = MAIN_V8_THREAD.lock() {
+    if let Ok(guard) = MAIN_V8_THREAD.read() {
         if let Some(ref thread) = *guard {
             thread.unpark();
         }
@@ -246,10 +263,10 @@ pub fn init_http_server_channel() -> Arc<Mutex<Option<HttpServerMessageChannel>>
     unsafe {
         if HTTP_SERVER_CHANNEL.is_none() {
             let channel = HttpServerMessageChannel::new(32768);
-            if let Ok(mut tx_guard) = GLOBAL_REQUEST_SENDER.lock() {
+            if let Ok(mut tx_guard) = GLOBAL_REQUEST_SENDER.write() {
                 *tx_guard = Some(channel.request_sender.clone());
             }
-            if let Ok(mut rx_guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+            if let Ok(mut rx_guard) = GLOBAL_REQUEST_RECEIVER.write() {
                 *rx_guard = Some(channel.request_receiver.clone());
             }
             HTTP_SERVER_CHANNEL = Some(Arc::new(Mutex::new(Some(channel))));
@@ -282,10 +299,10 @@ pub fn reset_http_server_channel() {
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             let channel = HttpServerMessageChannel::new(32768);
-            if let Ok(mut tx_guard) = GLOBAL_REQUEST_SENDER.lock() {
+            if let Ok(mut tx_guard) = GLOBAL_REQUEST_SENDER.write() {
                 *tx_guard = Some(channel.request_sender.clone());
             }
-            if let Ok(mut rx_guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+            if let Ok(mut rx_guard) = GLOBAL_REQUEST_RECEIVER.write() {
                 *rx_guard = Some(channel.request_receiver.clone());
             }
             *channel_guard = Some(channel);
@@ -323,7 +340,7 @@ pub fn send_http_response(response: HttpResponseMessage) {
 #[allow(static_mut_refs)]
 #[deprecated(since = "0.3.90", note = "Use try_recv_http_request instead")]
 pub fn get_http_request_receiver() -> Option<crossbeam::channel::Receiver<HttpRequestMessage>> {
-    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.read() {
         if let Some(ref rx) = *guard {
             return Some(rx.clone());
         }
@@ -342,7 +359,7 @@ pub fn get_http_request_receiver() -> Option<crossbeam::channel::Receiver<HttpRe
 /// 尝试接收 HTTP 请求（非阻塞快路径）
 #[allow(static_mut_refs)]
 pub fn try_recv_http_request() -> Option<HttpRequestMessage> {
-    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.read() {
         if let Some(ref rx) = *guard {
             return rx.try_recv().ok();
         }
@@ -397,7 +414,6 @@ pub fn unregister_tokio_response_waiter(connection_id: u64) {
     unregister_http_response_waiter(connection_id);
 }
 
-static FALLBACK_HTTP_CONNECTION_ID: AtomicU64 = AtomicU64::new(1);
 static PENDING_ASYNC_HTTP_RESPONSES: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug)]
@@ -427,7 +443,7 @@ pub fn has_pending_async_http_responses() -> bool {
 
 /// True when the request channel has at least one queued message.
 pub fn has_pending_http_requests() -> bool {
-    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+    if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.read() {
         if let Some(ref rx) = *guard {
             return !rx.is_empty();
         }
@@ -444,49 +460,110 @@ pub fn has_pending_http_requests() -> bool {
     false
 }
 
+static HTTP_CONNECTION_COUNTER: AtomicU64 = AtomicU64::new(1);
+
 /// Allocate a process-wide connection/request id for response matching.
 pub fn allocate_http_connection_id() -> u64 {
-    if let Some(channel_arc) = get_http_server_channel() {
-        if let Ok(guard) = channel_arc.lock() {
-            if let Some(ref channel) = *guard {
-                return channel.next_connection_id();
-            }
-        }
-    }
-    FALLBACK_HTTP_CONNECTION_ID.fetch_add(1, Ordering::SeqCst)
+    HTTP_CONNECTION_COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
+/// Drain queued HTTP requests using the caller's existing V8 scope.
+/// Safe to call from `execute_code` (do not nest `pump_http_messages`).
 /// Drain queued HTTP requests using the caller's existing V8 scope.
 /// Safe to call from `execute_code` (do not nest `pump_http_messages`).
 pub fn pump_pending_http_requests_in_scope(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
 ) -> usize {
-    let fast_rx = if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.lock() {
+    let fast_rx = if let Ok(guard) = GLOBAL_REQUEST_RECEIVER.read() {
         guard.clone()
     } else {
         None
     };
 
+    let Some(rx) = fast_rx else {
+        return 0;
+    };
+
+    let Ok(mut first_req) = rx.try_recv() else {
+        return 0;
+    };
+
+    v8::scope!(let batch_scope, scope);
+    let atoms = V8HttpAtoms::new(batch_scope);
+    let protos = get_http_prototypes(batch_scope, context, &atoms);
+    let handler = get_global_request_handler_local(batch_scope, context, &atoms);
+
     let mut processed = 0;
-    if let Some(rx) = fast_rx {
-        while let Ok(request) = rx.try_recv() {
-            dispatch_http_request_in_scope(scope, context, &request);
-            processed += 1;
-            if processed >= 256 {
-                break;
-            }
-        }
-    } else {
-        while let Some(request) = try_recv_http_request() {
-            dispatch_http_request_in_scope(scope, context, &request);
-            processed += 1;
-            if processed >= 256 {
-                break;
-            }
+    dispatch_http_request_in_scope_fast(batch_scope, context, &mut first_req, &atoms, &protos, handler);
+    processed += 1;
+
+    while let Ok(mut request) = rx.try_recv() {
+        dispatch_http_request_in_scope_fast(batch_scope, context, &mut request, &atoms, &protos, handler);
+        processed += 1;
+        if processed >= 512 {
+            break;
         }
     }
     processed
+}
+
+/// Fast in-scope HTTP dispatch with pre-interned atoms and direct responder
+pub fn dispatch_http_request_in_scope_fast<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    context: &v8::Local<v8::Context>,
+    request: &mut HttpRequestMessage,
+    atoms: &V8HttpAtoms<'a>,
+    protos: &V8HttpPrototypes<'a>,
+    handler: Option<v8::Local<'a, v8::Function>>,
+) {
+    v8::scope!(let req_scope, scope);
+    match process_http_request_in_v8_inner(request, req_scope, context, handler, atoms, protos) {
+        HttpDispatchResult::Response(mut response) => {
+            if !response.headers.contains_key("Content-Length") {
+                response.headers.insert(
+                    "Content-Length".to_string(),
+                    response.body.len().to_string(),
+                );
+            }
+            if let Some(responder) = request.responder.take() {
+                let _ = responder.send(response);
+            } else {
+                send_http_response(response);
+            }
+        }
+        HttpDispatchResult::Pending => {
+            if let Some(responder) = request.responder.take() {
+                register_tokio_response_waiter(request.connection_id, responder);
+            }
+        }
+        HttpDispatchResult::NoHandler => {
+            let resp = create_http_response(
+                request.connection_id,
+                404,
+                "No handler",
+                "text/plain",
+            );
+            if let Some(responder) = request.responder.take() {
+                let _ = responder.send(resp);
+            } else {
+                send_http_response(resp);
+            }
+        }
+        HttpDispatchResult::Error => {
+            let resp = create_http_response(
+                request.connection_id,
+                500,
+                "Handler error",
+                "text/plain",
+            );
+            if let Some(responder) = request.responder.take() {
+                let _ = responder.send(resp);
+            } else {
+                send_http_response(resp);
+            }
+        }
+    }
 }
 
 /// Dispatch one request to the JS handler and send the matching response.
@@ -495,36 +572,11 @@ pub fn dispatch_http_request_in_scope(
     context: &v8::Local<v8::Context>,
     request: &HttpRequestMessage,
 ) {
-    v8::scope!(let req_scope, scope);
-    let handler = get_global_request_handler(req_scope, context);
-    match process_http_request_in_v8(request, req_scope, context, handler) {
-        HttpDispatchResult::Response(mut response) => {
-            if !response.headers.contains_key("Content-Length") {
-                response.headers.insert(
-                    "Content-Length".to_string(),
-                    response.body.len().to_string(),
-                );
-            }
-            send_http_response(response);
-        }
-        HttpDispatchResult::Pending => {}
-        HttpDispatchResult::NoHandler => {
-            send_http_response(create_http_response(
-                request.connection_id,
-                404,
-                "No handler",
-                "text/plain",
-            ));
-        }
-        HttpDispatchResult::Error => {
-            send_http_response(create_http_response(
-                request.connection_id,
-                500,
-                "Handler error",
-                "text/plain",
-            ));
-        }
-    }
+    let mut req_clone = request.clone();
+    let atoms = V8HttpAtoms::new(scope);
+    let protos = get_http_prototypes(scope, context, &atoms);
+    let handler = get_global_request_handler_local(scope, context, &atoms);
+    dispatch_http_request_in_scope_fast(scope, context, &mut req_clone, &atoms, &protos, handler);
 }
 
 /// v0.3.90: 创建简单的 HTTP 响应消息
@@ -866,23 +918,46 @@ pub fn setup_http_api(
         const EE = globalThis.EventEmitter || function() {};
         const proto = (EE.prototype || Object.prototype);
 
+        function getSocket() {
+            if (!this._socket) {
+                this._socket = new Socket();
+            }
+            return this._socket;
+        }
+        function setSocket(s) {
+            this._socket = s;
+        }
+
         function IncomingMessage() {
             if (typeof EE === 'function') EE.call(this);
             this._events = Object.create(null);
             this._eventsCount = 0;
-            this._dataListeners = [];
-            this._endListeners = [];
             this.headers = Object.create(null);
-            this.rawHeaders = [];
             this.url = '/';
             this.method = 'GET';
             this.httpVersion = '1.1';
             this.complete = false;
-            this.socket = new Socket();
-            this.connection = this.socket;
         }
         IncomingMessage.prototype = Object.create(proto);
         IncomingMessage.prototype.constructor = IncomingMessage;
+        Object.defineProperty(IncomingMessage.prototype, 'socket', { get: getSocket, set: setSocket, configurable: true, enumerable: true });
+        Object.defineProperty(IncomingMessage.prototype, 'connection', { get: getSocket, set: setSocket, configurable: true, enumerable: true });
+        Object.defineProperty(IncomingMessage.prototype, 'rawHeaders', {
+            get() {
+                if (!this._rawHeaders) {
+                    this._rawHeaders = [];
+                    if (this.headers) {
+                        for (const k of Object.keys(this.headers)) {
+                            this._rawHeaders.push(k, this.headers[k]);
+                        }
+                    }
+                }
+                return this._rawHeaders;
+            },
+            set(v) { this._rawHeaders = v; },
+            configurable: true,
+            enumerable: true
+        });
         IncomingMessage.prototype.on = function(event, listener) {
             if (typeof listener === 'function') {
                 if (event === 'data') {
@@ -915,6 +990,7 @@ pub fn setup_http_api(
             this._events = Object.create(null);
             this._eventsCount = 0;
             this.headers = Object.create(null);
+            this._headersArray = [];
             this.statusCode = 200;
             this.statusMessage = 'OK';
             this._body = '';
@@ -923,14 +999,16 @@ pub fn setup_http_api(
             this._asyncPending = false;
             this.headersSent = false;
             this._connectionId = 0;
-            this.socket = new Socket();
-            this.connection = this.socket;
         }
         ServerResponse.prototype = Object.create(proto);
         ServerResponse.prototype.constructor = ServerResponse;
+        Object.defineProperty(ServerResponse.prototype, 'socket', { get: getSocket, set: setSocket, configurable: true, enumerable: true });
+        Object.defineProperty(ServerResponse.prototype, 'connection', { get: getSocket, set: setSocket, configurable: true, enumerable: true });
         ServerResponse.prototype.setHeader = function(name, value) {
             if (!this.headers) this.headers = Object.create(null);
             this.headers[name] = value;
+            if (!this._headersArray) this._headersArray = [];
+            this._headersArray.push(name, value);
             return this;
         };
         ServerResponse.prototype.getHeader = function(name) {
@@ -957,6 +1035,15 @@ pub fn setup_http_api(
                 const lower = String(name).toLowerCase();
                 for (const k in this.headers) {
                     if (k.toLowerCase() === lower) delete this.headers[k];
+                }
+            }
+            if (this._headersArray) {
+                const lower = String(name).toLowerCase();
+                for (let i = 0; i < this._headersArray.length; i += 2) {
+                    if (String(this._headersArray[i]).toLowerCase() === lower) {
+                        this._headersArray.splice(i, 2);
+                        i -= 2;
+                    }
                 }
             }
             return this;
@@ -1121,6 +1208,53 @@ pub fn setup_http_api(
                 server.on('request', requestListener);
             }
             return server;
+        };
+
+        function FastIncomingMessage(method, url, path, httpVersion, headers, complete, body) {
+            if (typeof EE === 'function') EE.call(this);
+            this._events = Object.create(null);
+            this._eventsCount = 0;
+            this.method = method;
+            this.url = url;
+            this.path = path;
+            this.httpVersion = httpVersion;
+            this.headers = headers;
+            this.complete = complete;
+            this.body = body;
+            this._rawBody = body;
+        }
+        FastIncomingMessage.prototype = IncomingMessage.prototype;
+
+        function FastServerResponse(req, connId) {
+            if (typeof EE === 'function') EE.call(this);
+            this._events = Object.create(null);
+            this._eventsCount = 0;
+            this.req = req;
+            this.headers = Object.create(null);
+            this._headersArray = [];
+            this.statusCode = 200;
+            this.statusMessage = 'OK';
+            this._body = '';
+            this._ended = false;
+            this._responseSent = false;
+            this._asyncPending = false;
+            this.headersSent = false;
+            this._connectionId = connId;
+        }
+        FastServerResponse.prototype = ServerResponse.prototype;
+
+        globalThis.__dispatchHttpRequest = function(method, url, path, httpVersion, headers, body, connId) {
+            const req = new FastIncomingMessage(method, url, path, httpVersion, headers, true, body);
+            const res = new FastServerResponse(req, connId);
+            if (typeof globalThis._httpServerRequestHandler === 'function') {
+                globalThis._httpServerRequestHandler(req, res);
+                if (body && typeof req.emit === 'function') {
+                    req.emit('data', body);
+                    req.emit('end');
+                }
+                return res;
+            }
+            return null;
         };
     })();
     "#;
@@ -2553,25 +2687,34 @@ pub fn http_res_end_callback(
     let this: _ = args.this();
     let data: _ = args.get(0);
 
-    // 处理 end() 的数据参数，存储到 _body
+    // 处理 end() 的数据参数，存储到 _endData 避免双重字符串拷贝
     if !data.is_undefined() && !data.is_null() {
+        let end_data_key = v8::String::new(scope, "_endData").unwrap();
+        this.set(scope, end_data_key.into(), data);
+
         let body_key: _ = v8::String::new(scope, "_body").unwrap();
-        // 获取现有 body
+        // 获取现有 body (仅在先前有 write 时合并)
         let existing_body = this
             .get(scope, body_key.into())
             .unwrap_or(v8::undefined(scope).into());
 
         let existing_rust = if existing_body.is_string() {
             let existing_str = existing_body.to_string(scope).unwrap();
-            existing_str.to_rust_string_lossy(scope)
+            if existing_str.length() > 0 {
+                existing_str.to_rust_string_lossy(scope)
+            } else {
+                String::new()
+            }
         } else {
             String::new()
         };
 
-        let data_rust = extract_http_body_string(scope, data);
-        let combined_rust = format!("{}{}", existing_rust, data_rust);
-        let combined = v8::String::new(scope, &combined_rust).unwrap();
-        this.set(scope, body_key.into(), combined.into());
+        if !existing_rust.is_empty() {
+            let data_rust = extract_http_body_string(scope, data);
+            let combined_rust = format!("{}{}", existing_rust, data_rust);
+            let combined = v8::String::new(scope, &combined_rust).unwrap();
+            this.set(scope, body_key.into(), combined.into());
+        }
     }
 
     let ended_key = v8::String::new(scope, "_ended").unwrap();
@@ -2707,6 +2850,27 @@ impl HttpServerState {
     }
 }
 
+fn intern_header_name(name: &str) -> String {
+    let trimmed = name.trim();
+    if trimmed.eq_ignore_ascii_case("host") {
+        "host".to_string()
+    } else if trimmed.eq_ignore_ascii_case("connection") {
+        "connection".to_string()
+    } else if trimmed.eq_ignore_ascii_case("user-agent") {
+        "user-agent".to_string()
+    } else if trimmed.eq_ignore_ascii_case("accept") {
+        "accept".to_string()
+    } else if trimmed.eq_ignore_ascii_case("content-type") {
+        "content-type".to_string()
+    } else if trimmed.eq_ignore_ascii_case("content-length") {
+        "content-length".to_string()
+    } else if trimmed.eq_ignore_ascii_case("accept-encoding") {
+        "accept-encoding".to_string()
+    } else {
+        trimmed.to_ascii_lowercase()
+    }
+}
+
 /// 解析 HTTP 请求
 pub fn parse_http_request(data: &[u8]) -> Option<HttpServerRequest> {
     let request_str = std::str::from_utf8(data).ok()?;
@@ -2720,22 +2884,50 @@ pub fn parse_http_request(data: &[u8]) -> Option<HttpServerRequest> {
     let mut lines = header_section.split("\r\n");
     let request_line = lines.next()?;
     let mut request_parts = request_line.splitn(3, ' ');
-    let method = request_parts.next()?.to_string();
-    let url = request_parts.next()?.to_string();
-    let http_version = request_parts.next()?.to_string();
+    let method = match request_parts.next()? {
+        "GET" => "GET".to_string(),
+        "POST" => "POST".to_string(),
+        "HEAD" => "HEAD".to_string(),
+        "PUT" => "PUT".to_string(),
+        "DELETE" => "DELETE".to_string(),
+        "OPTIONS" => "OPTIONS".to_string(),
+        m => m.to_string(),
+    };
+    let url_raw = request_parts.next()?;
+    let url = if url_raw == "/" {
+        "/".to_string()
+    } else {
+        url_raw.to_string()
+    };
+    let http_version = match request_parts.next()? {
+        "HTTP/1.1" => "HTTP/1.1".to_string(),
+        "HTTP/1.0" => "HTTP/1.0".to_string(),
+        v => v.to_string(),
+    };
 
     // 提取 path（去掉 query string）
-    let path: String = url.split('?').next().unwrap_or(&url).to_string();
+    let path = if url == "/" {
+        "/".to_string()
+    } else {
+        url.split('?').next().unwrap_or(&url).to_string()
+    };
 
     // 解析 headers（直接使用 lowercase 键，避免后续遍历反复小写化）
-    let mut headers = HashMap::new();
+    let mut headers = HashMap::with_capacity(8);
     for line in lines {
         if line.is_empty() {
             continue;
         }
         if let Some((k, v)) = line.split_once(':') {
-            let key = k.trim().to_ascii_lowercase();
-            let value = v.trim().to_string();
+            let key = intern_header_name(k);
+            let val_trimmed = v.trim();
+            let value = if val_trimmed.eq_ignore_ascii_case("keep-alive") {
+                "keep-alive".to_string()
+            } else if val_trimmed.eq_ignore_ascii_case("close") {
+                "close".to_string()
+            } else {
+                val_trimmed.to_string()
+            };
             headers.insert(key, value);
         }
     }
@@ -2792,28 +2984,48 @@ pub fn generate_http_response_v2(
     response: &HttpResponseMessage,
     default_connection: Option<&str>,
 ) -> Vec<u8> {
-    use std::io::Write;
     let mut result = Vec::with_capacity(128 + response.headers.len() * 32 + response.body.len());
 
-    // Status line
-    let _ = write!(
-        result,
-        "HTTP/1.1 {} {}\r\n",
-        response.status_code,
-        http_reason_phrase(response.status_code)
-    );
+    // Ultra-fast static status line
+    match response.status_code {
+        200 => result.extend_from_slice(b"HTTP/1.1 200 OK\r\n"),
+        201 => result.extend_from_slice(b"HTTP/1.1 201 Created\r\n"),
+        204 => result.extend_from_slice(b"HTTP/1.1 204 No Content\r\n"),
+        301 => result.extend_from_slice(b"HTTP/1.1 301 Moved Permanently\r\n"),
+        302 => result.extend_from_slice(b"HTTP/1.1 302 Found\r\n"),
+        304 => result.extend_from_slice(b"HTTP/1.1 304 Not Modified\r\n"),
+        400 => result.extend_from_slice(b"HTTP/1.1 400 Bad Request\r\n"),
+        401 => result.extend_from_slice(b"HTTP/1.1 401 Unauthorized\r\n"),
+        403 => result.extend_from_slice(b"HTTP/1.1 403 Forbidden\r\n"),
+        404 => result.extend_from_slice(b"HTTP/1.1 404 Not Found\r\n"),
+        500 => result.extend_from_slice(b"HTTP/1.1 500 Internal Server Error\r\n"),
+        502 => result.extend_from_slice(b"HTTP/1.1 502 Bad Gateway\r\n"),
+        503 => result.extend_from_slice(b"HTTP/1.1 503 Service Unavailable\r\n"),
+        code => {
+            result.extend_from_slice(b"HTTP/1.1 ");
+            result.extend_from_slice(code.to_string().as_bytes());
+            result.extend_from_slice(b" ");
+            result.extend_from_slice(http_reason_phrase(code).as_bytes());
+            result.extend_from_slice(b"\r\n");
+        }
+    }
 
     let mut has_connection = false;
     for (name, value) in &response.headers {
         if name.eq_ignore_ascii_case("connection") {
             has_connection = true;
         }
-        let _ = write!(result, "{}: {}\r\n", name, value);
+        result.extend_from_slice(name.as_bytes());
+        result.extend_from_slice(b": ");
+        result.extend_from_slice(value.as_bytes());
+        result.extend_from_slice(b"\r\n");
     }
 
     if !has_connection {
         if let Some(conn) = default_connection {
-            let _ = write!(result, "Connection: {}\r\n", conn);
+            result.extend_from_slice(b"Connection: ");
+            result.extend_from_slice(conn.as_bytes());
+            result.extend_from_slice(b"\r\n");
         }
     }
 
@@ -3159,37 +3371,51 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
         request_data.clear();
         let mut connection_close = false;
 
-        // 非阻塞读取请求数据
-        loop {
-            let read_res = tokio::time::timeout(KEEP_ALIVE_TIMEOUT, stream.read(&mut buffer)).await;
-            match read_res {
-                Ok(Ok(0)) => {
+        // 等待下一个请求的首包（活跃 keep-alive 连接尝试 try_read 零定时器快路径）
+        let first_read = match stream {
+            TokioServerIo::Plain(ref mut s) => match s.try_read(&mut buffer) {
+                Ok(0) => Ok(Ok(0)),
+                Ok(n) => Ok(Ok(n)),
+                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    tokio::time::timeout(KEEP_ALIVE_TIMEOUT, s.read(&mut buffer)).await
+                }
+                Err(e) => Ok(Err(e)),
+            },
+            TokioServerIo::Tls(ref mut s) => {
+                tokio::time::timeout(KEEP_ALIVE_TIMEOUT, s.read(&mut buffer)).await
+            }
+        };
+        match first_read {
+            Ok(Ok(0)) | Ok(Err(_)) | Err(_) => {
+                connection_close = true;
+            }
+            Ok(Ok(n)) => {
+                request_data.extend_from_slice(&buffer[..n]);
+            }
+        }
+
+        if connection_close || request_data.is_empty() {
+            break;
+        }
+
+        // 读取剩余请求头（活跃数据传输中直接非阻塞读取，消除重复定时器分配）
+        while !request_data.windows(4).any(|w| w == b"\r\n\r\n") {
+            match stream.read(&mut buffer).await {
+                Ok(0) | Err(_) => {
                     connection_close = true;
                     break;
                 }
-                Ok(Ok(n)) => {
+                Ok(n) => {
                     request_data.extend_from_slice(&buffer[..n]);
-
-                    // 检查是否收到完整的请求头（以 \r\n\r\n 结尾）
-                    if request_data.windows(4).any(|w| w == b"\r\n\r\n") {
-                        break;
-                    }
-
-                    // 防止缓冲区过大
                     if request_data.len() > 1024 * 1024 {
-                        eprintln!("[Beejs] Request too large");
                         connection_close = true;
                         break;
                     }
                 }
-                Ok(Err(_)) | Err(_) => {
-                    connection_close = true;
-                    break;
-                }
             }
         }
 
-        if request_data.is_empty() || connection_close {
+        if connection_close || request_data.is_empty() {
             break;
         }
 
@@ -3214,6 +3440,7 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
             && should_keep_alive(&parsed_request.headers, &parsed_request.http_version);
 
         let connection_id = allocate_http_connection_id();
+        let (resp_tx, resp_rx) = tokio::sync::oneshot::channel::<HttpResponseMessage>();
         let request_msg = HttpRequestMessage {
             method: parsed_request.method,
             url: parsed_request.url,
@@ -3222,13 +3449,11 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
             headers: parsed_request.headers,
             body: parsed_request.body,
             connection_id,
+            responder: Some(resp_tx),
         };
 
-        let (resp_tx, resp_rx) = tokio::sync::oneshot::channel::<HttpResponseMessage>();
-        register_tokio_response_waiter(connection_id, resp_tx);
-
         let mut message_channel_used = false;
-        if let Ok(tx_guard) = GLOBAL_REQUEST_SENDER.lock() {
+        if let Ok(tx_guard) = GLOBAL_REQUEST_SENDER.read() {
             if let Some(ref tx) = *tx_guard {
                 if tx.send(request_msg).is_ok() {
                     message_channel_used = true;
@@ -3238,7 +3463,6 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
         }
 
         if !message_channel_used {
-            unregister_tokio_response_waiter(connection_id);
             let fallback_body = "Beejs HTTP server dispatcher unavailable";
             let response_data = format!(
                 "HTTP/1.1 503 Service Unavailable\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
@@ -3250,8 +3474,9 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
             break;
         }
 
-        match tokio::time::timeout(KEEP_ALIVE_TIMEOUT, resp_rx).await {
-            Ok(Ok(response)) => {
+        // 等待 V8 响应（快路径直通，无需定时器轮盘开销）
+        match resp_rx.await {
+            Ok(response) => {
                 let response_has_close = response.headers.iter().any(|(k, v)| {
                     k.eq_ignore_ascii_case("connection") && v.trim().eq_ignore_ascii_case("close")
                 });
@@ -3259,7 +3484,18 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
                 let connection_header = if keep_alive { "keep-alive" } else { "close" };
 
                 let response_data = generate_http_response_v2(&response, Some(connection_header));
-                if stream.write_all(&response_data).await.is_err() {
+                let write_res = match stream {
+                    TokioServerIo::Plain(ref mut s) => match s.try_write(&response_data) {
+                        Ok(n) if n == response_data.len() => Ok(()),
+                        Ok(n) => s.write_all(&response_data[n..]).await,
+                        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                            s.write_all(&response_data).await
+                        }
+                        Err(e) => Err(e),
+                    },
+                    TokioServerIo::Tls(ref mut s) => s.write_all(&response_data).await,
+                };
+                if write_res.is_err() {
                     break;
                 }
 
@@ -3268,8 +3504,7 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
                     break;
                 }
             }
-            _ => {
-                unregister_tokio_response_waiter(connection_id);
+            Err(_) => {
                 let _ = stream.shutdown().await;
                 break;
             }
@@ -3311,45 +3546,138 @@ fn http_res_remove_header_callback(
 }
 
 // ============================================================================
-// v0.3.91: V8 上下文 HTTP 请求处理（跨线程调用 JavaScript Handler）
+// v1.15.0: Hyper-Zero V8 HTTP 静态原子与零拷贝直通引擎
 // ============================================================================
 
-/// 在 V8 上下文中处理 HTTP 请求消息
-/// 调用 JavaScript request handler 并返回响应
-/// v0.3.91: 新增功能
-///
-/// # 参数
-/// - `request`: HTTP 请求消息（从消息通道接收）
-/// - `scope`: V8 句柄作用域
-/// - `_context`: V8 上下文（预留用于将来使用）
-/// - `request_handler`: 可选的 JavaScript request handler 函数
-///
-/// # 返回
-/// - `Some(HttpResponseMessage)` 如果处理成功
-/// - `None` 如果没有 handler 或处理失败
-pub fn process_http_request_in_v8(
-    request: &HttpRequestMessage,
-    scope: &mut v8::PinScope,
-    context: &v8::Local<v8::Context>,
-    request_handler: Option<v8::Global<v8::Function>>,
-) -> HttpDispatchResult {
-    let Some(handler) = request_handler else {
-        return HttpDispatchResult::NoHandler;
-    };
-    let handler_fn = v8::Local::new(scope, &handler);
+pub struct V8HttpAtoms<'a> {
+    pub method: v8::Local<'a, v8::String>,
+    pub url: v8::Local<'a, v8::String>,
+    pub path: v8::Local<'a, v8::String>,
+    pub http_version: v8::Local<'a, v8::String>,
+    pub headers: v8::Local<'a, v8::String>,
+    pub raw_headers: v8::Local<'a, v8::String>,
+    pub complete: v8::Local<'a, v8::String>,
+    pub body: v8::Local<'a, v8::String>,
+    pub raw_body: v8::Local<'a, v8::String>,
+    pub data_listeners: v8::Local<'a, v8::String>,
+    pub end_listeners: v8::Local<'a, v8::String>,
+    pub socket: v8::Local<'a, v8::String>,
+    pub connection: v8::Local<'a, v8::String>,
+    pub req: v8::Local<'a, v8::String>,
+    pub status_code: v8::Local<'a, v8::String>,
+    pub status_message: v8::Local<'a, v8::String>,
+    pub res_body: v8::Local<'a, v8::String>,
+    pub ended: v8::Local<'a, v8::String>,
+    pub response_sent: v8::Local<'a, v8::String>,
+    pub async_pending: v8::Local<'a, v8::String>,
+    pub headers_sent: v8::Local<'a, v8::String>,
+    pub connection_id: v8::Local<'a, v8::String>,
+    pub remote_address: v8::Local<'a, v8::String>,
+    pub remote_port: v8::Local<'a, v8::String>,
+    pub encrypted: v8::Local<'a, v8::String>,
+    pub headers_array: v8::Local<'a, v8::String>,
+    pub end_data: v8::Local<'a, v8::String>,
+    pub ok_str: v8::Local<'a, v8::String>,
+    pub empty_str: v8::Local<'a, v8::String>,
+    pub localhost_str: v8::Local<'a, v8::String>,
+    pub handler_key: v8::Local<'a, v8::String>,
+    pub get_str: v8::Local<'a, v8::String>,
+    pub post_str: v8::Local<'a, v8::String>,
+    pub slash_str: v8::Local<'a, v8::String>,
+    pub http_1_1_str: v8::Local<'a, v8::String>,
+    pub host_key: v8::Local<'a, v8::String>,
+    pub connection_key: v8::Local<'a, v8::String>,
+    pub user_agent_key: v8::Local<'a, v8::String>,
+    pub accept_key: v8::Local<'a, v8::String>,
+    pub content_type_key: v8::Local<'a, v8::String>,
+    pub content_length_key: v8::Local<'a, v8::String>,
+    pub keep_alive_val: v8::Local<'a, v8::String>,
+    pub close_val: v8::Local<'a, v8::String>,
+    pub text_plain_val: v8::Local<'a, v8::String>,
+    pub app_json_val: v8::Local<'a, v8::String>,
+    pub dispatch_fn_key: v8::Local<'a, v8::String>,
+}
 
-    // 获取全局 http 模块原型
+impl<'a> V8HttpAtoms<'a> {
+    pub fn new(scope: &mut v8::PinScope<'a, '_>) -> Self {
+        Self {
+            method: v8::String::new(scope, "method").unwrap(),
+            url: v8::String::new(scope, "url").unwrap(),
+            path: v8::String::new(scope, "path").unwrap(),
+            http_version: v8::String::new(scope, "httpVersion").unwrap(),
+            headers: v8::String::new(scope, "headers").unwrap(),
+            raw_headers: v8::String::new(scope, "rawHeaders").unwrap(),
+            complete: v8::String::new(scope, "complete").unwrap(),
+            body: v8::String::new(scope, "body").unwrap(),
+            raw_body: v8::String::new(scope, "_rawBody").unwrap(),
+            data_listeners: v8::String::new(scope, "_dataListeners").unwrap(),
+            end_listeners: v8::String::new(scope, "_endListeners").unwrap(),
+            socket: v8::String::new(scope, "socket").unwrap(),
+            connection: v8::String::new(scope, "connection").unwrap(),
+            req: v8::String::new(scope, "req").unwrap(),
+            status_code: v8::String::new(scope, "statusCode").unwrap(),
+            status_message: v8::String::new(scope, "statusMessage").unwrap(),
+            res_body: v8::String::new(scope, "_body").unwrap(),
+            ended: v8::String::new(scope, "_ended").unwrap(),
+            response_sent: v8::String::new(scope, "_responseSent").unwrap(),
+            async_pending: v8::String::new(scope, "_asyncPending").unwrap(),
+            headers_sent: v8::String::new(scope, "headersSent").unwrap(),
+            connection_id: v8::String::new(scope, "_connectionId").unwrap(),
+            remote_address: v8::String::new(scope, "remoteAddress").unwrap(),
+            remote_port: v8::String::new(scope, "remotePort").unwrap(),
+            encrypted: v8::String::new(scope, "encrypted").unwrap(),
+            headers_array: v8::String::new(scope, "_headersArray").unwrap(),
+            end_data: v8::String::new(scope, "_endData").unwrap(),
+            ok_str: v8::String::new(scope, "OK").unwrap(),
+            empty_str: v8::String::new(scope, "").unwrap(),
+            localhost_str: v8::String::new(scope, "127.0.0.1").unwrap(),
+            handler_key: v8::String::new(scope, "_httpServerRequestHandler").unwrap(),
+            get_str: v8::String::new(scope, "GET").unwrap(),
+            post_str: v8::String::new(scope, "POST").unwrap(),
+            slash_str: v8::String::new(scope, "/").unwrap(),
+            http_1_1_str: v8::String::new(scope, "HTTP/1.1").unwrap(),
+            host_key: v8::String::new(scope, "host").unwrap(),
+            connection_key: v8::String::new(scope, "connection").unwrap(),
+            user_agent_key: v8::String::new(scope, "user-agent").unwrap(),
+            accept_key: v8::String::new(scope, "accept").unwrap(),
+            content_type_key: v8::String::new(scope, "content-type").unwrap(),
+            content_length_key: v8::String::new(scope, "content-length").unwrap(),
+            keep_alive_val: v8::String::new(scope, "keep-alive").unwrap(),
+            close_val: v8::String::new(scope, "close").unwrap(),
+            text_plain_val: v8::String::new(scope, "text/plain").unwrap(),
+            app_json_val: v8::String::new(scope, "application/json").unwrap(),
+            dispatch_fn_key: v8::String::new(scope, "__dispatchHttpRequest").unwrap(),
+        }
+    }
+}
+
+pub struct V8HttpPrototypes<'a> {
+    pub im_proto: Option<v8::Local<'a, v8::Value>>,
+    pub sr_proto: Option<v8::Local<'a, v8::Value>>,
+    pub sock_proto: Option<v8::Local<'a, v8::Value>>,
+    pub dispatch_fn: Option<v8::Local<'a, v8::Function>>,
+}
+
+pub fn get_http_prototypes<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    context: &v8::Local<v8::Context>,
+    atoms: &V8HttpAtoms<'a>,
+) -> V8HttpPrototypes<'a> {
     let global = context.global(scope);
     let http_key = v8::String::new(scope, "http").unwrap();
     let http_obj_val = global.get(scope, http_key.into());
 
-    let (im_proto, sr_proto, sock_proto) = if let Some(http_val) = http_obj_val {
+    let dispatch_fn = global
+        .get(scope, atoms.dispatch_fn_key.into())
+        .and_then(|v| v8::Local::<v8::Function>::try_from(v).ok());
+
+    if let Some(http_val) = http_obj_val {
         if let Ok(http_obj) = v8::Local::<v8::Object>::try_from(http_val) {
             let im_key = v8::String::new(scope, "IncomingMessage").unwrap();
             let sr_key = v8::String::new(scope, "ServerResponse").unwrap();
             let proto_key = v8::String::new(scope, "prototype").unwrap();
+            let sock_key = atoms.socket;
 
-            let sock_key = v8::String::new(scope, "Socket").unwrap();
             let im_p = http_obj.get(scope, im_key.into()).and_then(|c| {
                 v8::Local::<v8::Function>::try_from(c)
                     .ok()?
@@ -3365,131 +3693,390 @@ pub fn process_http_request_in_v8(
                     .ok()?
                     .get(scope, proto_key.into())
             });
-            (im_p, sr_proto_from_p(sr_p), sock_p)
+            return V8HttpPrototypes {
+                im_proto: im_p,
+                sr_proto: sr_p,
+                sock_proto: sock_p,
+                dispatch_fn,
+            };
+        }
+    }
+    V8HttpPrototypes {
+        im_proto: None,
+        sr_proto: None,
+        sock_proto: None,
+        dispatch_fn,
+    }
+}
+
+pub fn get_global_request_handler_local<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    context: &v8::Local<v8::Context>,
+    atoms: &V8HttpAtoms<'a>,
+) -> Option<v8::Local<'a, v8::Function>> {
+    let global = context.global(scope);
+    let handler_val = global.get(scope, atoms.handler_key.into())?;
+    if !handler_val.is_function() {
+        return None;
+    }
+    v8::Local::<v8::Function>::try_from(handler_val).ok()
+}
+
+pub fn extract_http_body_bytes(scope: &mut v8::PinScope, data: v8::Local<v8::Value>) -> Vec<u8> {
+    if data.is_string() {
+        if let Some(s) = data.to_string(scope) {
+            let len = s.utf8_length(scope);
+            let mut vec = vec![0u8; len];
+            s.write_utf8_v2(scope, &mut vec, v8::WriteFlags::empty(), None);
+            return vec;
+        }
+    }
+    if data.is_array_buffer_view() || data.is_typed_array() {
+        if let Ok(ab_view) = v8::Local::<v8::ArrayBufferView>::try_from(data) {
+            let mut vec = vec![0u8; ab_view.byte_length()];
+            ab_view.copy_contents(&mut vec);
+            return vec;
+        }
+    }
+    if data.is_array_buffer() {
+        if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(data) {
+            let bs = ab.get_backing_store();
+            if let Some(ptr) = bs.data() {
+                let slice = unsafe { std::slice::from_raw_parts(ptr.as_ptr() as *const u8, ab.byte_length()) };
+                return slice.to_vec();
+            }
+        }
+    }
+    if data.is_object() {
+        if let Ok(obj) = v8::Local::<v8::Object>::try_from(data) {
+            let buf_key = v8::String::new(scope, "_buffer").unwrap();
+            if let Some(buf_val) = obj.get(scope, buf_key.into()) {
+                if buf_val.is_array_buffer() {
+                    if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(buf_val) {
+                        let len_key = v8::String::new(scope, "length").unwrap();
+                        let len = obj
+                            .get(scope, len_key.into())
+                            .and_then(|v| v.to_integer(scope))
+                            .map(|i| i.value() as usize)
+                            .unwrap_or_else(|| ab.byte_length());
+                        let bs = ab.get_backing_store();
+                        if let Some(ptr) = bs.data() {
+                            let actual_len = len.min(ab.byte_length());
+                            let slice = unsafe { std::slice::from_raw_parts(ptr.as_ptr() as *const u8, actual_len) };
+                            return slice.to_vec();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    data.to_string(scope)
+        .map(|s| s.to_rust_string_lossy(scope).into_bytes())
+        .unwrap_or_default()
+}
+
+pub fn extract_http_response_from_res_fast<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    res_obj: v8::Local<v8::Object>,
+    connection_id: u64,
+    atoms: &V8HttpAtoms<'a>,
+) -> HttpResponseMessage {
+    let status_code = res_obj
+        .get(scope, atoms.status_code.into())
+        .and_then(|v| v.to_int32(scope))
+        .map(|i| i.value() as u16)
+        .unwrap_or(200);
+
+    // Fast-path body: check _endData first (avoiding string roundtrip)
+    let body_bytes = if let Some(end_data_val) = res_obj.get(scope, atoms.end_data.into()) {
+        if !end_data_val.is_undefined() && !end_data_val.is_null() {
+            extract_http_body_bytes(scope, end_data_val)
         } else {
-            (None, None, None)
+            let body_val = res_obj
+                .get(scope, atoms.res_body.into())
+                .unwrap_or_else(|| atoms.empty_str.into());
+            body_val
+                .to_string(scope)
+                .map(|s| s.to_rust_string_lossy(scope).into_bytes())
+                .unwrap_or_default()
         }
     } else {
-        (None, None, None)
+        let body_val = res_obj
+            .get(scope, atoms.res_body.into())
+            .unwrap_or_else(|| atoms.empty_str.into());
+        body_val
+            .to_string(scope)
+            .map(|s| s.to_rust_string_lossy(scope).into_bytes())
+            .unwrap_or_default()
     };
 
-    // 创建请求对象 (IncomingMessage)
+    // Fast-path headers: check _headersArray [k1, v1, k2, v2, ...] first
+    let mut response_headers = HashMap::with_capacity(8);
+    let mut headers_parsed = false;
+    if let Some(arr_val) = res_obj.get(scope, atoms.headers_array.into()) {
+        if let Ok(arr) = v8::Local::<v8::Array>::try_from(arr_val) {
+            let len = arr.length();
+            if len > 0 {
+                let mut i = 0;
+                while i + 1 < len {
+                    if let (Some(k_val), Some(v_val)) = (arr.get_index(scope, i), arr.get_index(scope, i + 1)) {
+                        if let (Some(k_str), Some(v_str)) = (k_val.to_string(scope), v_val.to_string(scope)) {
+                            response_headers.insert(k_str.to_rust_string_lossy(scope), v_str.to_rust_string_lossy(scope));
+                        }
+                    }
+                    i += 2;
+                }
+                headers_parsed = true;
+            }
+        }
+    }
+
+    // Fallback headers reflection if _headersArray was empty or not populated
+    if !headers_parsed {
+        if let Some(headers_val) = res_obj.get(scope, atoms.headers.into()) {
+            if let Ok(headers_obj) = v8::Local::<v8::Object>::try_from(headers_val) {
+                let props = headers_obj
+                    .get_property_names(scope, Default::default())
+                    .unwrap_or_else(|| v8::Array::new(scope, 0));
+                for i in 0..props.length() {
+                    if let Some(key_val) = props.get_index(scope, i) {
+                        if let Some(key_str) = key_val.to_string(scope) {
+                            let key = key_str.to_rust_string_lossy(scope);
+                            if let Some(value_val) = headers_obj.get(scope, key_val) {
+                                if let Some(value_str) = value_val.to_string(scope) {
+                                    response_headers.insert(key, value_str.to_rust_string_lossy(scope));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if !response_headers.contains_key("Content-Type") {
+        response_headers.insert(
+            "Content-Type".to_string(),
+            "text/plain; charset=utf-8".to_string(),
+        );
+    }
+    if !response_headers.contains_key("Content-Length") {
+        response_headers.insert("Content-Length".to_string(), body_bytes.len().to_string());
+    }
+
+    HttpResponseMessage {
+        connection_id,
+        status_code,
+        headers: response_headers,
+        body: body_bytes,
+    }
+}
+
+pub fn extract_http_response_from_res(
+    scope: &mut v8::PinScope,
+    res_obj: v8::Local<v8::Object>,
+    connection_id: u64,
+) -> HttpResponseMessage {
+    let atoms = V8HttpAtoms::new(scope);
+    extract_http_response_from_res_fast(scope, res_obj, connection_id, &atoms)
+}
+
+#[allow(dead_code)]
+fn emit_incoming_request_body_events<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    req_obj: v8::Local<v8::Object>,
+    body_text: &str,
+    atoms: &V8HttpAtoms<'a>,
+) {
+    if !body_text.is_empty() {
+        if let Some(list_val) = req_obj.get(scope, atoms.data_listeners.into()) {
+            if let Ok(list) = v8::Local::<v8::Array>::try_from(list_val) {
+                if list.length() > 0 {
+                    let chunk = v8::String::new(scope, body_text).unwrap();
+                    for i in 0..list.length() {
+                        if let Some(listener) = list.get_index(scope, i) {
+                            if let Ok(func) = v8::Local::<v8::Function>::try_from(listener) {
+                                let _ = func.call(scope, req_obj.into(), &[chunk.into()]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if let Some(list_val) = req_obj.get(scope, atoms.end_listeners.into()) {
+        if let Ok(list) = v8::Local::<v8::Array>::try_from(list_val) {
+            if list.length() > 0 {
+                for i in 0..list.length() {
+                    if let Some(listener) = list.get_index(scope, i) {
+                        if let Ok(func) = v8::Local::<v8::Function>::try_from(listener) {
+                            let _ = func.call(scope, req_obj.into(), &[]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn process_http_request_in_v8_inner<'a>(
+    request: &HttpRequestMessage,
+    scope: &mut v8::PinScope<'a, '_>,
+    _context: &v8::Local<v8::Context>,
+    request_handler: Option<v8::Local<'a, v8::Function>>,
+    atoms: &V8HttpAtoms<'a>,
+    protos: &V8HttpPrototypes<'a>,
+) -> HttpDispatchResult {
+    let method_val = if request.method == "GET" {
+        atoms.get_str
+    } else if request.method == "POST" {
+        atoms.post_str
+    } else {
+        v8::String::new(scope, &request.method).unwrap()
+    };
+
+    let url_val = if request.url == "/" {
+        atoms.slash_str
+    } else {
+        v8::String::new(scope, &request.url).unwrap()
+    };
+
+    let path_val = if request.path == "/" {
+        atoms.slash_str
+    } else {
+        v8::String::new(scope, &request.path).unwrap()
+    };
+
+    let headers_obj = v8::Object::new(scope);
+    for (name, value) in &request.headers {
+        let name_key = if name == "host" {
+            atoms.host_key
+        } else if name == "connection" {
+            atoms.connection_key
+        } else if name == "user-agent" {
+            atoms.user_agent_key
+        } else if name == "accept" {
+            atoms.accept_key
+        } else if name == "content-type" {
+            atoms.content_type_key
+        } else if name == "content-length" {
+            atoms.content_length_key
+        } else {
+            v8::String::new(scope, name).unwrap()
+        };
+        let value_val = if value == "keep-alive" {
+            atoms.keep_alive_val
+        } else if value == "close" {
+            atoms.close_val
+        } else {
+            v8::String::new(scope, value).unwrap()
+        };
+        headers_obj.set(scope, name_key.into(), value_val.into());
+    }
+
+    let body_val = if request.body.is_empty() {
+        atoms.empty_str
+    } else {
+        let body_text = String::from_utf8_lossy(&request.body);
+        v8::String::new(scope, &body_text).unwrap()
+    };
+
+    let conn_val = v8::Number::new(scope, request.connection_id as f64);
+
+    // Fast-path: __dispatchHttpRequest in JavaScript (monomorphic JIT hidden classes)
+    if let Some(dispatch_fn) = protos.dispatch_fn {
+        let undefined = v8::undefined(scope).into();
+        let args = [
+            method_val.into(),
+            url_val.into(),
+            path_val.into(),
+            atoms.http_1_1_str.into(),
+            headers_obj.into(),
+            body_val.into(),
+            conn_val.into(),
+        ];
+
+        let call_res = {
+            v8::tc_scope!(let tc_scope, scope);
+            let r = dispatch_fn.call(tc_scope, undefined, &args);
+            if r.is_none() && tc_scope.has_caught() {
+                if let Some(exc) = tc_scope.exception() {
+                    let msg = exc.to_rust_string_lossy(tc_scope);
+                    eprintln!("[Beejs HTTP Dispatch Error] {}", msg);
+                }
+            }
+            r
+        };
+
+        if let Some(res_val) = call_res {
+            if res_val.is_null() {
+                return HttpDispatchResult::NoHandler;
+            }
+            if let Ok(res_obj) = v8::Local::<v8::Object>::try_from(res_val) {
+                let ended = res_obj
+                    .get(scope, atoms.ended.into())
+                    .map(|value| value.boolean_value(scope))
+                    .unwrap_or(false);
+                if !ended {
+                    let true_val = v8::Boolean::new(scope, true);
+                    res_obj.set(scope, atoms.async_pending.into(), true_val.into());
+                    PENDING_ASYNC_HTTP_RESPONSES.fetch_add(1, Ordering::SeqCst);
+                    return HttpDispatchResult::Pending;
+                }
+                return HttpDispatchResult::Response(extract_http_response_from_res_fast(
+                    scope,
+                    res_obj,
+                    request.connection_id,
+                    atoms,
+                ));
+            }
+        }
+        return HttpDispatchResult::Error;
+    }
+
+    // Fallback path: manual dispatch with handler_fn
+    let Some(handler_fn) = request_handler else {
+        return HttpDispatchResult::NoHandler;
+    };
+
     let req_obj = v8::Object::new(scope);
-    if let Some(p) = im_proto {
+    if let Some(p) = protos.im_proto {
         req_obj.set_prototype(scope, p);
     }
+    req_obj.set(scope, atoms.method.into(), method_val.into());
+    req_obj.set(scope, atoms.url.into(), url_val.into());
+    req_obj.set(scope, atoms.path.into(), path_val.into());
+    req_obj.set(scope, atoms.http_version.into(), atoms.http_1_1_str.into());
+    req_obj.set(scope, atoms.headers.into(), headers_obj.into());
 
-    // 设置请求属性
-    let method_key = v8::String::new(scope, "method").unwrap();
-    let method_val = v8::String::new(scope, &request.method).unwrap();
-    req_obj.set(scope, method_key.into(), method_val.into());
-
-    let url_key = v8::String::new(scope, "url").unwrap();
-    let url_val = v8::String::new(scope, &request.url).unwrap();
-    req_obj.set(scope, url_key.into(), url_val.into());
-
-    let path_key = v8::String::new(scope, "path").unwrap();
-    let path_val = v8::String::new(scope, &request.path).unwrap();
-    req_obj.set(scope, path_key.into(), path_val.into());
-
-    let http_version_key = v8::String::new(scope, "httpVersion").unwrap();
-    let http_version_val = v8::String::new(scope, &request.http_version).unwrap();
-    req_obj.set(scope, http_version_key.into(), http_version_val.into());
-
-    // 设置 headers 对象
-    let headers_obj = v8::Object::new(scope);
-    let raw_headers_arr = v8::Array::new(scope, (request.headers.len() * 2) as i32);
-    let mut raw_idx = 0;
-    for (name, value) in &request.headers {
-        let name_key = v8::String::new(scope, name).unwrap();
-        let value_val = v8::String::new(scope, value).unwrap();
-        headers_obj.set(scope, name_key.into(), value_val.into());
-        raw_headers_arr.set_index(scope, raw_idx, name_key.into());
-        raw_headers_arr.set_index(scope, raw_idx + 1, value_val.into());
-        raw_idx += 2;
-    }
-    let headers_key = v8::String::new(scope, "headers").unwrap();
-    req_obj.set(scope, headers_key.into(), headers_obj.into());
-    let raw_headers_key = v8::String::new(scope, "rawHeaders").unwrap();
-    req_obj.set(scope, raw_headers_key.into(), raw_headers_arr.into());
-
-    let complete_key = v8::String::new(scope, "complete").unwrap();
     let complete_val = v8::Boolean::new(scope, true);
-    req_obj.set(scope, complete_key.into(), complete_val.into());
+    req_obj.set(scope, atoms.complete.into(), complete_val.into());
+    req_obj.set(scope, atoms.body.into(), body_val.into());
+    req_obj.set(scope, atoms.raw_body.into(), body_val.into());
 
-    let body_text = String::from_utf8_lossy(&request.body).into_owned();
-    let req_body_key = v8::String::new(scope, "body").unwrap();
-    let req_body_val = v8::String::new(scope, &body_text).unwrap();
-    req_obj.set(scope, req_body_key.into(), req_body_val.into());
-    let req_raw_body_key = v8::String::new(scope, "_rawBody").unwrap();
-    req_obj.set(scope, req_raw_body_key.into(), req_body_val.into());
-    let data_listeners = v8::Array::new(scope, 0);
-    let end_listeners = v8::Array::new(scope, 0);
-    let data_key = v8::String::new(scope, "_dataListeners").unwrap();
-    let req_end_listeners_key = v8::String::new(scope, "_endListeners").unwrap();
-    req_obj.set(scope, data_key.into(), data_listeners.into());
-    req_obj.set(scope, req_end_listeners_key.into(), end_listeners.into());
-
-    // 创建响应对象 (ServerResponse)
     let res_obj = v8::Object::new(scope);
-    if let Some(p) = sr_proto {
+    if let Some(p) = protos.sr_proto {
         res_obj.set_prototype(scope, p);
     }
-
-    // 创建并挂载 Socket 对象
-    let socket_obj = v8::Object::new(scope);
-    if let Some(p) = sock_proto {
-        socket_obj.set_prototype(scope, p);
-    }
-    let remote_addr_key = v8::String::new(scope, "remoteAddress").unwrap();
-    let remote_addr_val = v8::String::new(scope, "127.0.0.1").unwrap();
-    socket_obj.set(scope, remote_addr_key.into(), remote_addr_val.into());
-    let remote_port_key = v8::String::new(scope, "remotePort").unwrap();
-    let remote_port_val = v8::Integer::new(scope, 12345);
-    socket_obj.set(scope, remote_port_key.into(), remote_port_val.into());
-    let enc_key = v8::String::new(scope, "encrypted").unwrap();
-    let enc_val = v8::Boolean::new(scope, false);
-    socket_obj.set(scope, enc_key.into(), enc_val.into());
-
-    let socket_prop_key = v8::String::new(scope, "socket").unwrap();
-    let conn_prop_key = v8::String::new(scope, "connection").unwrap();
-    req_obj.set(scope, socket_prop_key.into(), socket_obj.into());
-    req_obj.set(scope, conn_prop_key.into(), socket_obj.into());
-    res_obj.set(scope, socket_prop_key.into(), socket_obj.into());
-    res_obj.set(scope, conn_prop_key.into(), socket_obj.into());
-    let req_ref_key = v8::String::new(scope, "req").unwrap();
-    res_obj.set(scope, req_ref_key.into(), req_obj.into());
+    res_obj.set(scope, atoms.req.into(), req_obj.into());
 
     let res_headers_obj = v8::Object::new(scope);
-    let res_headers_key = v8::String::new(scope, "headers").unwrap();
-    res_obj.set(scope, res_headers_key.into(), res_headers_obj.into());
+    res_obj.set(scope, atoms.headers.into(), res_headers_obj.into());
+    let res_headers_arr = v8::Array::new(scope, 0);
+    res_obj.set(scope, atoms.headers_array.into(), res_headers_arr.into());
 
-    let status_code_key = v8::String::new(scope, "statusCode").unwrap();
     let status_code_val = v8::Integer::new(scope, 200);
-    res_obj.set(scope, status_code_key.into(), status_code_val.into());
+    res_obj.set(scope, atoms.status_code.into(), status_code_val.into());
+    res_obj.set(scope, atoms.status_message.into(), atoms.ok_str.into());
+    res_obj.set(scope, atoms.res_body.into(), atoms.empty_str.into());
 
-    let status_msg_key = v8::String::new(scope, "statusMessage").unwrap();
-    let status_msg_val = v8::String::new(scope, "OK").unwrap();
-    res_obj.set(scope, status_msg_key.into(), status_msg_val.into());
-
-    let body_key = v8::String::new(scope, "_body").unwrap();
-    let empty_body = v8::String::new(scope, "").unwrap();
-    res_obj.set(scope, body_key.into(), empty_body.into());
-
-    let ended_key = v8::String::new(scope, "_ended").unwrap();
     let false_val = v8::Boolean::new(scope, false);
-    res_obj.set(scope, ended_key.into(), false_val.into());
-    let sent_key = v8::String::new(scope, "_responseSent").unwrap();
-    res_obj.set(scope, sent_key.into(), false_val.into());
-    let async_key = v8::String::new(scope, "_asyncPending").unwrap();
-    res_obj.set(scope, async_key.into(), false_val.into());
-    let headers_sent_key = v8::String::new(scope, "headersSent").unwrap();
-    res_obj.set(scope, headers_sent_key.into(), false_val.into());
-    let conn_key = v8::String::new(scope, "_connectionId").unwrap();
-    let conn_val = v8::Number::new(scope, request.connection_id as f64);
-    res_obj.set(scope, conn_key.into(), conn_val.into());
+    res_obj.set(scope, atoms.ended.into(), false_val.into());
+    res_obj.set(scope, atoms.response_sent.into(), false_val.into());
+    res_obj.set(scope, atoms.async_pending.into(), false_val.into());
+    res_obj.set(scope, atoms.headers_sent.into(), false_val.into());
+    res_obj.set(scope, atoms.connection_id.into(), conn_val.into());
 
-    // 调用 request handler: handler(req, res)
     let this_val = v8::undefined(scope).into();
     let args = [req_obj.into(), res_obj.into()];
 
@@ -3500,10 +4087,6 @@ pub fn process_http_request_in_v8(
             if let Some(exc) = tc_scope.exception() {
                 let msg = exc.to_rust_string_lossy(tc_scope);
                 eprintln!("[Beejs HTTP Handler Error] {}", msg);
-                if let Some(stack) = tc_scope.stack_trace() {
-                    let stack_str = stack.to_rust_string_lossy(tc_scope);
-                    eprintln!("{}", stack_str);
-                }
             }
         }
         r
@@ -3512,158 +4095,35 @@ pub fn process_http_request_in_v8(
         return HttpDispatchResult::Error;
     }
 
-    emit_incoming_request_body_events(scope, req_obj, &body_text);
-
     let ended = res_obj
-        .get(scope, ended_key.into())
+        .get(scope, atoms.ended.into())
         .map(|value| value.boolean_value(scope))
         .unwrap_or(false);
     if !ended {
         let true_val = v8::Boolean::new(scope, true);
-        res_obj.set(scope, async_key.into(), true_val.into());
+        res_obj.set(scope, atoms.async_pending.into(), true_val.into());
         PENDING_ASYNC_HTTP_RESPONSES.fetch_add(1, Ordering::SeqCst);
         return HttpDispatchResult::Pending;
     }
 
-    HttpDispatchResult::Response(extract_http_response_from_res(
+    HttpDispatchResult::Response(extract_http_response_from_res_fast(
         scope,
         res_obj,
         request.connection_id,
+        atoms,
     ))
 }
 
-fn sr_proto_from_p<'a>(p: Option<v8::Local<'a, v8::Value>>) -> Option<v8::Local<'a, v8::Value>> {
-    p
-}
-
-#[allow(dead_code)]
-fn http_req_on_callback(
+pub fn process_http_request_in_v8(
+    request: &HttpRequestMessage,
     scope: &mut v8::PinScope,
-    args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
-) {
-    let this = args.this();
-    let event = args
-        .get(0)
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
-    let listener = args.get(1);
-    if listener.is_function() {
-        let key_name = if event == "data" {
-            "_dataListeners"
-        } else if event == "end" {
-            "_endListeners"
-        } else {
-            retval.set(this.into());
-            return;
-        };
-        let key = v8::String::new(scope, key_name).unwrap();
-        let list = this
-            .get(scope, key.into())
-            .and_then(|value| v8::Local::<v8::Array>::try_from(value).ok())
-            .unwrap_or_else(|| v8::Array::new(scope, 0));
-        let index = list.length();
-        list.set_index(scope, index, listener);
-        this.set(scope, key.into(), list.into());
-    }
-    retval.set(this.into());
-}
-
-fn emit_incoming_request_body_events(
-    scope: &mut v8::PinScope,
-    req_obj: v8::Local<v8::Object>,
-    body_text: &str,
-) {
-    let data_key = v8::String::new(scope, "_dataListeners").unwrap();
-    if let Some(list_val) = req_obj.get(scope, data_key.into()) {
-        if let Ok(list) = v8::Local::<v8::Array>::try_from(list_val) {
-            if !body_text.is_empty() {
-                let chunk = v8::String::new(scope, body_text).unwrap();
-                for i in 0..list.length() {
-                    if let Some(listener) = list.get_index(scope, i) {
-                        if let Ok(func) = v8::Local::<v8::Function>::try_from(listener) {
-                            let _ = func.call(scope, req_obj.into(), &[chunk.into()]);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    let end_key = v8::String::new(scope, "_endListeners").unwrap();
-    if let Some(list_val) = req_obj.get(scope, end_key.into()) {
-        if let Ok(list) = v8::Local::<v8::Array>::try_from(list_val) {
-            for i in 0..list.length() {
-                if let Some(listener) = list.get_index(scope, i) {
-                    if let Ok(func) = v8::Local::<v8::Function>::try_from(listener) {
-                        let _ = func.call(scope, req_obj.into(), &[]);
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn extract_http_response_from_res(
-    scope: &mut v8::PinScope,
-    res_obj: v8::Local<v8::Object>,
-    connection_id: u64,
-) -> HttpResponseMessage {
-    let status_code_key = v8::String::new(scope, "statusCode").unwrap();
-    let status_code_val = res_obj
-        .get(scope, status_code_key.into())
-        .unwrap_or(v8::Integer::new(scope, 200).into());
-    let status_code = status_code_val
-        .to_int32(scope)
-        .map(|i| i.value() as u16)
-        .unwrap_or(200);
-
-    let body_key = v8::String::new(scope, "_body").unwrap();
-    let body_val = res_obj
-        .get(scope, body_key.into())
-        .unwrap_or(v8::String::new(scope, "").unwrap().into());
-    let body_str = body_val
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
-
-    let mut response_headers = HashMap::new();
-    let res_headers_key = v8::String::new(scope, "headers").unwrap();
-    if let Some(headers_val) = res_obj.get(scope, res_headers_key.into()) {
-        if let Ok(headers_obj) = v8::Local::<v8::Object>::try_from(headers_val) {
-            let props = headers_obj
-                .get_property_names(scope, Default::default())
-                .unwrap_or(v8::Array::new(scope, 0));
-            for i in 0..props.length() {
-                if let Some(key_val) = props.get_index(scope, i) {
-                    if let Some(key_str) = key_val.to_string(scope) {
-                        let key = key_str.to_rust_string_lossy(scope);
-                        if let Some(value_val) = headers_obj.get(scope, key_val) {
-                            if let Some(value_str) = value_val.to_string(scope) {
-                                response_headers.insert(key, value_str.to_rust_string_lossy(scope));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if !response_headers.contains_key("Content-Type") {
-        response_headers.insert(
-            "Content-Type".to_string(),
-            "text/plain; charset=utf-8".to_string(),
-        );
-    }
-    if !response_headers.contains_key("Content-Length") {
-        response_headers.insert("Content-Length".to_string(), body_str.len().to_string());
-    }
-
-    HttpResponseMessage {
-        connection_id,
-        status_code,
-        headers: response_headers,
-        body: body_str.into_bytes(),
-    }
+    context: &v8::Local<v8::Context>,
+    request_handler: Option<v8::Global<v8::Function>>,
+) -> HttpDispatchResult {
+    let atoms = V8HttpAtoms::new(scope);
+    let protos = get_http_prototypes(scope, context, &atoms);
+    let handler_local = request_handler.as_ref().map(|h| v8::Local::new(scope, h));
+    process_http_request_in_v8_inner(request, scope, context, handler_local, &atoms, &protos)
 }
 
 /// 在 V8 上下文中处理 HTTP 请求（获取 response 对象）

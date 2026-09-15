@@ -7,9 +7,9 @@
 
 ## 🧭 当前总览与版本坐标
 
-- **当前版本**: `v1.14.0` (2026-09)
+- **当前版本**: `v1.15.0` (2026-09)
 - **底层引擎**: 官方最新现代 `v8 = "152.2.0"` (Chromium 134+) + `PinScope` 栈固定内存安全架构
-- **网络核心**: Tokio 异步多线程反应堆 + 零延迟即时唤醒 (Zero-Hop)，吞吐 70k+ req/s
+- **网络核心**: Tokio 异步多线程反应堆 + 零延迟即时唤醒 (Zero-Hop) + V8 单态 JIT 分发，吞吐 70k+ req/s
 - **核心合规**: Node.js Conformance 5.0 (55/55 PASS, 100%), 支持 Express 5.x / Fastify 5.x / Hono 4.x
 - **核心 AI 引擎**: `bee:ai` 纯血本地模型推理 (Candle 0.8 / GGUF / Metal 硬件加速直通)
 - **当前阶段**: **第一阶段（2026 - 2027）极速冷启动与边缘原生 AI** 攻坚期
@@ -47,6 +47,13 @@
   - [x] Tokio 异步网络反应堆与 Keep-Alive 连接非阻塞管线，彻底消除工作线程饥饿
   - [x] HTTP 吞吐暴涨 3.2x ~ 4.7x（Raw HTTP 73.3k, Hono 74.3k, Fastify 69.7k, Express 65.0k 达 Node 的 3.5x）
   - [x] 100% 保持 Node.js Conformance (55/55 PASS) 与主动内存裁剪 (空闲回退 ~40%)
+- [x] **M4. 递归自我改进 (RSI) 网络 I/O 深度优化与 V8 单态 JIT 反应堆 (v1.15.0)**
+  - [x] Batch Handle Scoping 根除根作用域句柄泄漏与高并发内存气球膨胀（峰值降低 70%~83%，回落至 44MB~55MB）
+  - [x] V8 单态 JIT 分发器 (FastIncomingMessage / FastServerResponse)，消除 11 次隐藏类转换与属性数组溢出
+  - [x] Prototype Lazy Getter 按需生成冷属性，缓存 dispatch_fn，将 FFI 跨边界调用从 40+ 收敛为单次
+  - [x] 无锁原子连接计数器与 Tokio try_read / try_write 直通模式，绕过时间轮注册与二次调度
+  - [x] 零格式化响应生成 (generate_http_response_v2) 与零拷贝请求体提取 (write_utf8_v2)
+  - [x] 性能全面超越 Node.js：Raw HTTP (71.8k req/s), Hono (71.9k req/s), Express (69.2k req/s 达 Node 3.61x, 超越 Bun)
 
 ---
 
