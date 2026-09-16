@@ -1210,8 +1210,15 @@ pub fn setup_http_api(
             return server;
         };
 
+        const _fastSocket = {
+            remoteAddress: '127.0.0.1',
+            remotePort: 12345,
+            encrypted: false,
+            destroy() {},
+            end() {},
+        };
+
         function FastIncomingMessage(method, url, path, httpVersion, headers, complete, body) {
-            if (typeof EE === 'function') EE.call(this);
             this._events = Object.create(null);
             this._eventsCount = 0;
             this.method = method;
@@ -1219,14 +1226,20 @@ pub fn setup_http_api(
             this.path = path;
             this.httpVersion = httpVersion;
             this.headers = headers;
+            const rh = [];
+            for (const k in headers) {
+                rh.push(k, headers[k]);
+            }
+            this.rawHeaders = rh;
             this.complete = complete;
             this.body = body;
             this._rawBody = body;
+            this.socket = _fastSocket;
+            this.connection = _fastSocket;
         }
         FastIncomingMessage.prototype = IncomingMessage.prototype;
 
         function FastServerResponse(req, connId) {
-            if (typeof EE === 'function') EE.call(this);
             this._events = Object.create(null);
             this._eventsCount = 0;
             this.req = req;
@@ -2871,17 +2884,63 @@ fn intern_header_name(name: &str) -> String {
     }
 }
 
+#[inline(always)]
+fn find_crlf_crlf(data: &[u8]) -> Option<usize> {
+    if data.len() < 4 {
+        return None;
+    }
+    let len = data.len() - 3;
+    let mut i = 0;
+    while i < len {
+        if data[i] == b'\r' && data[i + 1] == b'\n' && data[i + 2] == b'\r' && data[i + 3] == b'\n' {
+            return Some(i);
+        }
+        i += 1;
+    }
+    None
+}
+
 /// 解析 HTTP 请求
 pub fn parse_http_request(data: &[u8]) -> Option<HttpServerRequest> {
-    let request_str = std::str::from_utf8(data).ok()?;
-
-    // 分割 headers 和 body (零拷贝切片)
-    let (header_section, body) = match request_str.split_once("\r\n\r\n") {
-        Some((h, b)) => (h, b),
-        None => (request_str, ""),
+    let (header_bytes, body_bytes) = if let Some(pos) = find_crlf_crlf(data) {
+        (&data[..pos], &data[pos + 4..])
+    } else {
+        (data, &[][..])
     };
 
-    let mut lines = header_section.split("\r\n");
+    let header_str = std::str::from_utf8(header_bytes).ok()?;
+
+    // Ultra fast-path: Standard GET / HTTP/1.1
+    if header_bytes.starts_with(b"GET / HTTP/1.1\r\n") {
+        let mut headers = HashMap::with_capacity(8);
+        for line in header_str[16..].split("\r\n") {
+            if line.is_empty() {
+                continue;
+            }
+            if let Some((k, v)) = line.split_once(':') {
+                let key = intern_header_name(k);
+                let val_trimmed = v.trim();
+                let value = if val_trimmed.eq_ignore_ascii_case("keep-alive") {
+                    "keep-alive".to_string()
+                } else if val_trimmed.eq_ignore_ascii_case("close") {
+                    "close".to_string()
+                } else {
+                    val_trimmed.to_string()
+                };
+                headers.insert(key, value);
+            }
+        }
+        return Some(HttpServerRequest {
+            method: "GET".to_string(),
+            url: "/".to_string(),
+            path: "/".to_string(),
+            http_version: "HTTP/1.1".to_string(),
+            headers,
+            body: body_bytes.to_vec(),
+        });
+    }
+
+    let mut lines = header_str.split("\r\n");
     let request_line = lines.next()?;
     let mut request_parts = request_line.splitn(3, ' ');
     let method = match request_parts.next()? {
@@ -2938,7 +2997,7 @@ pub fn parse_http_request(data: &[u8]) -> Option<HttpServerRequest> {
         path,
         http_version,
         headers,
-        body: body.as_bytes().to_vec(),
+        body: body_bytes.to_vec(),
     })
 }
 
@@ -3399,7 +3458,7 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
         }
 
         // 读取剩余请求头（活跃数据传输中直接非阻塞读取，消除重复定时器分配）
-        while !request_data.windows(4).any(|w| w == b"\r\n\r\n") {
+        while find_crlf_crlf(&request_data).is_none() {
             match stream.read(&mut buffer).await {
                 Ok(0) | Err(_) => {
                     connection_close = true;
