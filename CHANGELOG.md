@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **Release Assets workflow**: CI uses thin LTO (Cargo.toml fat LTO unchanged), caches cargo registry only (no `target/` upload), installs Windows OpenSSL via vcpkg instead of Chocolatey, links Linux with lld, and cross-compiles `x86_64-apple-darwin` on `macos-latest`. Same five archives, checksums, SBOM, and cosign.
+
 ## [1.16.0] - 2026-09-16
 
 ### Added
