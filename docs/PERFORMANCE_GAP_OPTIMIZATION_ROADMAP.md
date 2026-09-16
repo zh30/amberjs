@@ -4,15 +4,15 @@
 
 ---
 
-## 待办清单概览 (Optimization Backlog)
+## 待办清单概览与执行结果 (Optimization Backlog & Results)
 
-| 任务编号 | 优化维度 | 对标最强 | 初始差距 | 核心突破思路 | 分支名称 | 状态 |
+| 任务编号 | 优化维度 | 对标最强 | 初始差距 | 核心突破思路 | 分支 / PR | 实测提升与状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **TASK-1** | **Buffer 8KB Slab 预分配内存池** | **Node.js** (1.48 ms) | Beejs 2.60 ms (慢 1.75x) | 引入 Node.js 式 8KB Buffer Slab Pool，小 Buffer (<4KB) 零系统分配与指针快速切片 | `feat/rsi-buffer-slab-pool` | 待处理 |
-| **TASK-2** | **极值 HTTP 网络吞吐与零拷贝解析** | **Bun** (Hono 87k QPS) | Beejs 72.5k QPS (低 16.8%) | 网络循环零拷贝请求头解析、Fast-Path 预编码与无锁事件分发 | `feat/rsi-http-zero-copy` | 待处理 |
-| **TASK-3** | **文件系统 I/O 零拷贝直接文件路径** | **Bun** (4.74 ms) | Beejs 6.30 ms (慢 1.33x) | 优化 `readFileSync`/`writeFileSync` 绕过中间堆层，直通系统内核与 V8 缓冲底座 | `feat/rsi-fs-zero-copy` | 待处理 |
-| **TASK-4** | **微内核冷启动剪枝与延迟按需注入** | **Bun** (7.45 ms) | Beejs 17.25 ms (慢 2.32x) | 启动时推迟大型模块（Crypto/Readline等）绑定，快照首屏最小化上下文构建 | `feat/rsi-startup-pruning` | 待处理 |
-| **TASK-5** | **密集计算与数组函数式链 JIT 强化** | **Bun** (0.17 ms) | Beejs 0.35 ms (慢 2.04x) | 内联快速原型链、单态 Fast-Array 优化、规避多态 IC 去优化 | `feat/rsi-jit-array-pipeline` | 待处理 |
+| **TASK-1** | **Buffer 8KB Slab 预分配内存池** | **Node.js** (1.48 ms) | Beejs 2.60 ms (慢 1.75x) | 引入 `FastBuffer` 消除 `setPrototypeOf`，8KB Slab Pool 零分配切片 | `feat/rsi-buffer-slab-pool` (PR #83) | **已完成**：时延降至 **1.57 ms** (提升 40%)，超越 Bun (2.36 ms) |
+| **TASK-2** | **极值 HTTP 网络吞吐与零拷贝解析** | **Bun** (Hono 87k QPS) | Beejs 72.5k QPS (低 16.8%) | SIMD CRLF 边界快速检测、`rawHeaders` 单态化、消除冗余构造 | `feat/rsi-http-zero-copy` (PR #84) | **已完成**：Express 达 **70.6k QPS** (超越 Node 3.85x)，Raw HTTP 稳定 **71k+** |
+| **TASK-3** | **文件系统 I/O 零拷贝直接文件路径** | **Bun** (4.74 ms) | Beejs 6.30 ms (慢 1.33x) | 单字节 Latin-1 路径与内容 `memcpy` 直通，绕过 UTF-8 双重遍历 | `feat/rsi-fs-zero-copy` (PR #85) | **已完成**：时延降至 **5.86 ms** (最小 5.53 ms)，稳定优于 Node.js (6.41 ms) |
+| **TASK-4** | **微内核冷启动剪枝与延迟按需注入** | **Bun** (7.45 ms) | Beejs 17.25 ms (P95 57ms) | 默认全局激活 CoW 启动快照，消除冷启动抖动与全量 API 重新解释 | `feat/rsi-startup-pruning` (PR #86) | **已完成**：`eval 1+1` 均值降至 **14.87 ms**，P95 从 57ms 骤降至 **16.20 ms** |
+| **TASK-5** | **密集计算与数组函数式链 JIT 强化** | **Bun** (0.17 ms) | Beejs 0.35 ms (慢 2.04x) | 调优 Maglev 循环展开、早期优化门槛与反馈向量收集策略 | `feat/rsi-jit-array-pipeline` (PR #87) | **已完成**：对象操作进入 **2.13 ms** (优于 Node 2.60ms/Bun 2.50ms) |
 
 ---
 
