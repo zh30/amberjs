@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 
 pub const SNAPSHOT_MAGIC: &[u8; 8] = b"BEEJS_V3";
-static CLI_STARTUP_SNAPSHOT: AtomicBool = AtomicBool::new(false);
+static CLI_STARTUP_SNAPSHOT: AtomicBool = AtomicBool::new(true);
 
 /// Enable startup snapshot for `bee run` (no-op when disabled via env).
 pub fn enable_startup_snapshot_for_cli() {
