@@ -15,6 +15,7 @@ else
   cargo build -q
   BEE="${BEE_BIN:-$ROOT/target/debug/bee}"
 fi
+"$BEE" --version >/dev/null 2>&1 || true
 
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 UNAME="$(uname -srm)"
