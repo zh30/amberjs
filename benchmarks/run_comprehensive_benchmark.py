@@ -3,10 +3,11 @@
 Comprehensive Benchmark Suite for Beejs vs Node.js vs Bun
 Measures:
 1. Cold Start & Short-lived CLI Latency
-2. In-Process Microbenchmark Throughput (12 Core Workloads)
+2. In-Process Microbenchmark Throughput (24 Core Workloads)
 3. HTTP Server & Web Framework Throughput & Latency (HTTP, Hono, Express, Fastify)
 4. Resident Memory Footprint (Baseline RSS, Peak RSS, Settled RSS)
 5. Node.js Conformance 5.0 Suite Metrics
+6. Client I/O, SQLite, and bee:ai Tensor operators
 """
 
 import subprocess
@@ -15,10 +16,12 @@ import os
 import sys
 import json
 import statistics
+import threading
 import urllib.request
 import urllib.parse
 import urllib.error
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -130,31 +133,96 @@ def run_bench_part1_startup(meta):
             
     return results
 
-def run_bench_part2_microbenchmarks():
-    print("\n========================================================")
-    print("▶ Phase 2: In-Process Microbenchmark Suite (12 Workloads)")
-    print("========================================================")
-    bench_file = ROOT / "benchmarks" / "comprehensive_bench.js"
-    
+def parse_json_array(stdout: str):
+    start = stdout.find("[")
+    end = stdout.rfind("]")
+    if start < 0 or end < start:
+        raise ValueError("no JSON array found in benchmark stdout")
+    json_text = stdout[start : end + 1]
+    try:
+        data = json.loads(json_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid benchmark JSON: {exc}") from exc
+    if not isinstance(data, list):
+        raise ValueError("benchmark JSON is not an array")
+    return data
+
+
+def run_js_json_suite(label, bench_file, env=None, bee_only=False):
     runs = {}
-    for rt, cmd in [("bee", [str(BEE_BIN), "run", str(bench_file)]),
-                    ("node", ["node", str(bench_file)]),
-                    ("bun", ["bun", str(bench_file)])]:
-        print(f"  • Running on {rt.upper()} (5 samples per workload)...")
-        res = subprocess.run(cmd, capture_output=True, text=True)
+    cmds = [("bee", [str(BEE_BIN), "run", str(bench_file)])]
+    if not bee_only:
+        cmds.extend(
+            [
+                ("node", ["node", str(bench_file)]),
+                ("bun", ["bun", str(bench_file)]),
+            ]
+        )
+    for rt, cmd in cmds:
+        print(f"  • {label} on {rt.upper()}...")
+        res = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=180)
         if res.returncode != 0:
-            print(f"    ❌ Error running {rt}: {res.stderr}")
+            print(f"    ❌ Error running {rt}: {(res.stderr or res.stdout)[-400:]}")
             continue
         try:
-            # Extract JSON output
-            json_text = res.stdout[res.stdout.find("["):res.stdout.rfind("]") + 1]
-            data = json.loads(json_text)
+            data = parse_json_array(res.stdout)
             runs[rt] = data
-            print(f"    ✓ {rt.upper()}: Completed all 12 workloads successfully")
+            skipped = sum(1 for item in data if item.get("skipped"))
+            print(f"    ✓ {rt.upper()}: {len(data)} workloads ({skipped} skipped)")
         except Exception as e:
             print(f"    ❌ Failed to parse JSON from {rt}: {e}")
-            
     return runs
+
+
+def run_bench_part2_microbenchmarks():
+    print("\n========================================================")
+    print("▶ Phase 2: In-Process Microbenchmark Suite (24 Workloads)")
+    print("========================================================")
+    return run_js_json_suite(
+        "microbenchmarks", ROOT / "benchmarks" / "comprehensive_bench.js"
+    )
+
+
+class _FetchBenchHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = b"ok"
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format, *args):
+        return
+
+
+def run_bench_part5_extended_io():
+    print("\n========================================================")
+    print("▶ Phase 5: Client Fetch, SQLite, and Persistence I/O")
+    print("========================================================")
+    port = 19199
+    server = HTTPServer(("127.0.0.1", port), _FetchBenchHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    env = os.environ.copy()
+    env["BENCH_URL"] = f"http://127.0.0.1:{port}/"
+    try:
+        return run_js_json_suite(
+            "extended I/O", ROOT / "benchmarks" / "extended_io_bench.js", env=env
+        )
+    finally:
+        server.shutdown()
+
+
+def run_bench_part6_ai_tensors():
+    print("\n========================================================")
+    print("▶ Phase 6: bee:ai Tensor Operator Acceleration")
+    print("========================================================")
+    return run_js_json_suite(
+        "AI tensors",
+        ROOT / "benchmarks" / "ai_tensor_bench.js",
+        bee_only=True,
+    )
 
 def wait_for_server(url: str, timeout_sec: float = 8.0) -> bool:
     parsed = urllib.parse.urlparse(url)
@@ -303,7 +371,43 @@ def run_bench_part4_conformance():
         "duration_sec": round(dur, 2)
     }
 
-def generate_markdown_report(sys_info, p1_data, p2_data, p3_data, p4_data):
+def format_micro_table(p2_data, title):
+    rows = []
+    bee_items = {item["name"]: item for item in p2_data.get("bee", [])}
+    node_items = {item["name"]: item for item in p2_data.get("node", [])}
+    bun_items = {item["name"]: item for item in p2_data.get("bun", [])}
+    names = list(bee_items.keys()) or list(node_items.keys()) or list(bun_items.keys())
+    rows.append(f"| {title} | Beejs 耗时 (ms) | Node.js 耗时 (ms) | Bun 耗时 (ms) | Beejs 吞吐 (ops/s) | 相对表现评价 |")
+    rows.append("| --- | --- | --- | --- | --- | --- |")
+    for name in names:
+        b = bee_items.get(name, {})
+        n = node_items.get(name, {})
+        u = bun_items.get(name, {})
+        if b.get("skipped"):
+            rows.append(f"| **{name}** | SKIP | — | — | — | {b.get('error', 'skipped')} |")
+            continue
+        b_ms = b.get("avgMs", 0) or 0
+        n_ms = n.get("avgMs", 0) or 0
+        u_ms = u.get("avgMs", 0) or 0
+        b_ops = b.get("opsSec", 0) or 0
+        eval_tag = []
+        if n_ms > 0:
+            if b_ms < n_ms:
+                eval_tag.append(f"比 Node 快 {n_ms/b_ms:.2f}x")
+            elif b_ms / n_ms < 1.15:
+                eval_tag.append(f"与 Node 接近 ({b_ms/n_ms:.2f}x)")
+            else:
+                eval_tag.append(f"比 Node 慢 {b_ms/n_ms:.2f}x")
+        if u_ms > 0 and b_ms < u_ms:
+            eval_tag.append(f"比 Bun 快 {u_ms/b_ms:.2f}x")
+        tag_str = ", ".join(eval_tag) if eval_tag else "与主流表现相当"
+        n_cell = f"{n_ms:.2f}" if n_ms else ("SKIP" if n.get("skipped") else "—")
+        u_cell = f"{u_ms:.2f}" if u_ms else ("SKIP" if u.get("skipped") else "—")
+        rows.append(f"| **{name}** | **{b_ms:.2f}** | {n_cell} | {u_cell} | **{b_ops:,.1f}** | {tag_str} |")
+    return rows
+
+
+def generate_markdown_report(sys_info, p1_data, p2_data, p3_data, p4_data, p5_data=None, p6_data=None):
     md = []
     md.append("# Beejs 全面基准性能测试综合评估报告 (Comprehensive Benchmark Report)")
     md.append("")
@@ -398,37 +502,9 @@ def generate_markdown_report(sys_info, p1_data, p2_data, p3_data, p4_data):
     # 3. Phase 2: Microbenchmarks
     md.append("## 🚀 3. 运行态微基准计算吞吐对比 (In-Process Runtime Workloads)")
     md.append("")
-    md.append("执行 `benchmarks/comprehensive_bench.js` 中的 12 项典型运行时操作（涵盖 JIT、TypedArrays、对象内存、JSON 编解码、加密与事件机制）：")
+    md.append("执行 `benchmarks/comprehensive_bench.js` 中的 **24 项**典型运行时操作（涵盖 JIT、集合、编码、Web Crypto、流、Wasm、异步 I/O 与压缩）：")
     md.append("")
-    md.append("| 基准项目 (12 Core Workloads) | Beejs 耗时 (ms) | Node.js 耗时 (ms) | Bun 耗时 (ms) | Beejs 吞吐 (ops/s) | 相对表现评价 |")
-    md.append("|---|---|---|---|---|---|")
-    
-    # Align microbenchmarks
-    bee_items = {item["name"]: item for item in p2_data.get("bee", [])}
-    node_items = {item["name"]: item for item in p2_data.get("node", [])}
-    bun_items = {item["name"]: item for item in p2_data.get("bun", [])}
-    
-    for name in bee_items.keys():
-        b = bee_items[name]
-        n = node_items.get(name, {})
-        u = bun_items.get(name, {})
-        
-        b_ms = b.get("avgMs", 0)
-        n_ms = n.get("avgMs", 0)
-        u_ms = u.get("avgMs", 0)
-        b_ops = b.get("opsSec", 0)
-        
-        eval_tag = []
-        if n_ms > 0:
-            if b_ms < n_ms:
-                eval_tag.append(f"比 Node 快 {n_ms/b_ms:.2f}x")
-            else:
-                eval_tag.append(f"与 Node 接近 ({b_ms/n_ms:.2f}x)")
-        if u_ms > 0 and b_ms < u_ms:
-            eval_tag.append(f"比 Bun 快 {u_ms/b_ms:.2f}x")
-            
-        tag_str = ", ".join(eval_tag) if eval_tag else "与主流表现相当"
-        md.append(f"| **{name}** | **{b_ms:.2f}** | {n_ms:.2f} | {u_ms:.2f} | **{b_ops:,.1f}** | {tag_str} |")
+    md.extend(format_micro_table(p2_data, "基准项目 (24 Core Workloads)"))
     md.append("")
     
     # 4. Phase 3: HTTP & Web Frameworks
@@ -462,9 +538,25 @@ def generate_markdown_report(sys_info, p1_data, p2_data, p3_data, p4_data):
     md.append(f"- **完整套件执行时间**: `{p4_data['duration_sec']}s`")
     md.append("- **涵盖测试模块**: `Express 5.x`, `Fastify 5.x`, `Hono 4.x`, `http2`, `Stream.Duplex.from`, `AsyncLocalStorage.snapshot`, `Crypto`, `Fetch`, `Worker Threads`, `Zlib`, `FS Jail`, `Sandbox Permissions` 等全部现代 Node 标准接口。")
     md.append("")
+
+    md.append("## 🔌 6. 客户端 Fetch 与嵌入式 SQLite (Extended I/O)")
+    md.append("")
+    if p5_data:
+        md.extend(format_micro_table(p5_data, "扩展 I/O 工作负载"))
+    else:
+        md.append("_未采集_")
+    md.append("")
+
+    md.append("## 🧠 7. bee:ai Tensor 算子加速比 (Native vs Pure JS)")
+    md.append("")
+    if p6_data:
+        md.extend(format_micro_table(p6_data, "AI Tensor 工作负载"))
+    else:
+        md.append("_未采集_")
+    md.append("")
     
-    # 6. Conclusion
-    md.append("## 💡 6. 综合架构洞察与建议")
+    # 8. Conclusion
+    md.append("## 💡 8. 综合架构洞察与建议")
     md.append("")
     md.append("1. **V8 152.2.0 + PinScope 改造红利完全释放**：")
     md.append("   - 迁移至现代 V8 与栈固定 PinScope 之后，去除了所有的冗余借用与包装层开销，使得纯 JS 对象分配、事件循环和函数执行性能显著跃升。")
@@ -492,19 +584,23 @@ def main():
     p2 = run_bench_part2_microbenchmarks()
     p3 = run_bench_part3_http_frameworks()
     p4 = run_bench_part4_conformance()
+    p5 = run_bench_part5_extended_io()
+    p6 = run_bench_part6_ai_tensors()
     
     full_results = {
         "system_info": sys_info,
         "phase1_startup": p1,
         "phase2_microbenchmarks": p2,
         "phase3_http_frameworks": p3,
-        "phase4_conformance": p4
+        "phase4_conformance": p4,
+        "phase5_extended_io": p5,
+        "phase6_ai_tensors": p6,
     }
     
     OUTPUT_JSON.write_text(json.dumps(full_results, indent=2))
     print(f"\n[✓] Raw JSON results saved to: {OUTPUT_JSON}")
     
-    report_md = generate_markdown_report(sys_info, p1, p2, p3, p4)
+    report_md = generate_markdown_report(sys_info, p1, p2, p3, p4, p5, p6)
     OUTPUT_MD.write_text(report_md)
     print(f"[✓] Comprehensive Markdown report saved to: {OUTPUT_MD}")
     print("\nBenchmark run completed successfully!")
