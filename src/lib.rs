@@ -297,10 +297,10 @@ pub fn initialize_v8() -> Result<()> {
         // 参考 Bun 和 Node.js 的优化策略
         let mut v8_flags: Vec<String> = vec![
             // JIT 编译器优化（生产环境高性能配置）
-            "--opt".to_string(),                      // 启用 TurboFan JIT 优化
-            "--turbo-inlining".to_string(),           // 深度函数内联优化
-            "--concurrent-recompilation".to_string(), // 启用后台多线程 JIT 编译
-            "--max-old-space-size=4096".to_string(),  // 4GB 老生代堆
+            "--opt".to_string(),                         // 启用 TurboFan JIT 优化
+            "--turbo-inlining".to_string(),              // 深度函数内联优化
+            "--concurrent-recompilation".to_string(),    // 启用后台多线程 JIT 编译
+            "--max-old-space-size=4096".to_string(),     // 4GB 老生代堆
             "--min-semi-space-size=16".to_string(), // 16MB 初始新生代空间，避免数组与对象微基准的频繁 GC 抖动
             "--max-semi-space-size=64".to_string(), // 64MB 最大新生代空间
             "--turbo-fast-api-calls".to_string(),   // 快速 C++/Rust API 调用
@@ -313,11 +313,11 @@ pub fn initialize_v8() -> Result<()> {
             "--turbo-loop-variable".to_string(),    // 循环变量诱导消除
             "--turbo-allocation-folding".to_string(), // 堆分配折叠优化
             "--invocation-count-for-feedback-allocation=2".to_string(), // 极速收集反馈向量
-            "--invocation-count-for-early-optimization=4".to_string(),  // 极速早期优化门槛
-            "--invocation-count-for-maglev=16".to_string(),             // 极速跃升至 Maglev 优化 JIT
-            "--invocation-count-for-maglev-osr=16".to_string(),         // 极速 Maglev 循环栈替换
-            "--invocation-count-for-osr=32".to_string(),                // 极速 TurboFan OSR
-            "--invocation-count-for-turbofan=64".to_string(),           // 极速跃升至 TurboFan 顶级 JIT
+            "--invocation-count-for-early-optimization=4".to_string(), // 极速早期优化门槛
+            "--invocation-count-for-maglev=16".to_string(), // 极速跃升至 Maglev 优化 JIT
+            "--invocation-count-for-maglev-osr=16".to_string(), // 极速 Maglev 循环栈替换
+            "--invocation-count-for-osr=32".to_string(), // 极速 TurboFan OSR
+            "--invocation-count-for-turbofan=64".to_string(), // 极速跃升至 TurboFan 顶级 JIT
         ];
         if let Ok(extra) = std::env::var("V8_FLAGS") {
             v8_flags.push(extra);
