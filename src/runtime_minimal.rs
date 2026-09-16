@@ -8932,6 +8932,22 @@ impl MinimalRuntime {
         // Tests leave `http_server_keep_alive` false so listen() returns.
         if http_server_keep_alive {
             crate::nodejs_core::http::register_http_dispatch_thread(std::thread::current());
+            // Post-startup compilation memory compaction (purge require/AST leftovers before load)
+            scope.low_memory_notification();
+            #[cfg(target_os = "macos")]
+            unsafe {
+                extern "C" {
+                    fn malloc_zone_pressure_relief(
+                        zone: *mut std::ffi::c_void,
+                        goal: usize,
+                    ) -> usize;
+                    fn malloc_default_zone() -> *mut std::ffi::c_void;
+                }
+                let zone = malloc_default_zone();
+                if !zone.is_null() {
+                    malloc_zone_pressure_relief(zone, 0);
+                }
+            }
             let mut idle_ticks: u32 = 0;
             let mut last_trim_time = std::time::Instant::now();
             loop {
@@ -8968,9 +8984,9 @@ impl MinimalRuntime {
                 } else {
                     idle_ticks = idle_ticks.saturating_add(1);
                     // Phase 3: Active Idle Memory Trimming (Aligning with Bun v1.4.1)
-                    // When idle for >100ms (after traffic cools down)
-                    if idle_ticks >= 100
-                        && last_trim_time.elapsed() >= std::time::Duration::from_millis(500)
+                    // When idle for >50 ticks (after traffic cools down)
+                    if idle_ticks >= 50
+                        && last_trim_time.elapsed() >= std::time::Duration::from_millis(250)
                     {
                         for _ in 0..3 {
                             scope.low_memory_notification();
