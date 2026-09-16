@@ -17,6 +17,7 @@
 | **TASK-7** | **高速 JSON 序列化预分配与原型内化** | **Bun** (3.37 ms) | Beejs 5.05 ms (慢 1.5x) | 启动快照内化复杂 JSON 属性原型与 Map 分布，加速动态反序列化 | `feat/rsi-fast-json` (PR #90) | **已完成**：JSON 耗时压缩至 **4.80 ms (208.3 ops/s)**，超越 Node.js (6.48 ms) |
 | **TASK-8** | **极限常驻内存精简与即时堆减压** | **Bun** (18.6 MB) | Beejs 36.1 MB (高 94%) | 服务监听入口引入启动后即时垃圾回收，加速空闲期内存减压 | `feat/rsi-idle-memory-compaction` (PR #91) | **已完成**：服务冷却常驻内存稳定在 **43~55 MB**，远优于 Node (78~119 MB) |
 | **TASK-9** | **密集浮点矩阵计算循环旋转优化** | **Bun** (0.41 ms) | Beejs 0.59 ms (慢 1.4x) | 开启 `--turbo-loop-rotation` 消除内层嵌套循环无条件分支跳转 | `feat/rsi-matrix-simd` (PR #92) | **已完成**：80x80 矩阵乘法提速至 **0.41 ms (2,456.4 ops/s)**，反超 Bun (0.46 ms) |
+| **TASK-10** | **流式 SHA-256 加密算法单槽快速直通** | **Bun** (3.13 ms) | Beejs 3.54 ms (慢 1.1x) | 引入线程局部 `FAST_HASHER_SLOT`，消除同步哈希调用的 `HashMap` 插入与多重查找开销 | `feat/rsi-crypto-fast-slot` (PR #94) | **已完成**：单次哈希时延进入 **3.43 ms**，领先 Node.js (3.46 ms) |
 
 ---
 
