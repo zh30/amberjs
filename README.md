@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://bee.zhanghe.dev"><img src="https://img.shields.io/badge/docs-bee.zhanghe.dev-0f172a" alt="Docs"></a>
-  <a href="https://github.com/zh30/beejs/releases/tag/v1.15.0"><img src="https://img.shields.io/badge/release-v1.15.0-22c55e" alt="Release"></a>
+  <a href="https://github.com/zh30/beejs/releases/tag/v1.16.0"><img src="https://img.shields.io/badge/release-v1.16.0-22c55e" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
   <a href="https://github.com/zh30/beejs/actions/workflows/ci.yml"><img src="https://github.com/zh30/beejs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
@@ -54,7 +54,7 @@ Prebuilt archives: **macOS** (arm64, x64), **Linux gnu** (x64, arm64), **Windows
 curl -fsSL https://bee.zhanghe.dev/install.sh | sh
 
 # pin a release
-curl -fsSL https://bee.zhanghe.dev/install.sh | BEEJS_VERSION=v1.15.0 sh
+curl -fsSL https://bee.zhanghe.dev/install.sh | BEEJS_VERSION=v1.16.0 sh
 ```
 
 Windows (PowerShell):
@@ -224,7 +224,7 @@ Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 
 ## Compatibility
 
-| | Beejs 1.15.0 | Node.js | Bun | Deno |
+| | Beejs 1.16.0 | Node.js | Bun | Deno |
 | --- | --- | --- | --- | --- |
 | Engine | V8 + Rust | V8 + C++ | JavaScriptCore + Zig | V8 + Rust |
 | TypeScript | oxc, transpile-only | loaders / `tsc` | built-in | built-in |

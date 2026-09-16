@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.16.0] - 2026-09-16
+
+### Added
+- **Wasm Engine 2.0 zero-copy memory**: `WebAssembly.Memory` / ArrayBuffer virtual-address sharing, mmap module load, `require('bee:wasm')`.
+- **Production bundler and SEA**: oxc-backed `bee bundle` and `bee compile` single-file executables.
+- **Full-spectrum benchmark suite 2.0**: 24 in-process workloads plus Fetch/SQLite and `bee:ai.Tensor` phases.
+
+### Performance
+- **URL / URLSearchParams**: JIT-friendly `url_fast.js`, removed BeeURL wrapper. 20k parse **234ms → 7.28ms** (faster than Node).
+- **fetch()**: HTTP/1.1 keep-alive fast path, no Tokio `block_on` on string GET. 100 sequential localhost GETs **1452ms → 6.51ms** (faster than Node).
+- **ReadableStream**: JS enqueue/read hot path. 5k chunks **4.53ms → 0.92ms** (faster than Node).
+
+---
+
 ## [1.15.0] - 2026-09-15
 
 ### Added

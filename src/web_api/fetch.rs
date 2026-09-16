@@ -455,21 +455,17 @@ fn set_fetch_response_retval(
     response_obj.set(scope, type_key.into(), type_val);
 
     let redirected_key: _ = v8::String::new(scope, "redirected").unwrap();
-    let redirected_val: v8::Local<v8::Value> =
-        v8::Boolean::new(scope, response.redirected).into();
+    let redirected_val: v8::Local<v8::Value> = v8::Boolean::new(scope, response.redirected).into();
     response_obj.set(scope, redirected_key.into(), redirected_val);
 
     let body_used_key: _ = v8::String::new(scope, "bodyUsed").unwrap();
-    let body_used_val: v8::Local<v8::Value> =
-        v8::Boolean::new(scope, response.body_used).into();
+    let body_used_val: v8::Local<v8::Value> = v8::Boolean::new(scope, response.body_used).into();
     response_obj.set(scope, body_used_key.into(), body_used_val);
 
     attach_response_clone_method(scope, response_obj);
 
-    let headers_obj = create_headers_object_with_entries(
-        scope,
-        response.headers.into_iter().collect::<Vec<_>>(),
-    );
+    let headers_obj =
+        create_headers_object_with_entries(scope, response.headers.into_iter().collect::<Vec<_>>());
     let headers_key: _ = v8::String::new(scope, "headers").unwrap();
     response_obj.set(scope, headers_key.into(), headers_obj.into());
     retval.set(response_obj.into());

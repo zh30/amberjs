@@ -38,7 +38,10 @@
             read() {
                 if (stream._errored) return Promise.reject(stream._errored);
                 if (stream._queue.length > 0) {
-                    return Promise.resolve({ value: stream._queue.shift(), done: false });
+                    return Promise.resolve({
+                        value: stream._queue.shift(),
+                        done: false,
+                    });
                 }
                 if (stream._closed) {
                     return Promise.resolve({ value: undefined, done: true });
@@ -47,18 +50,30 @@
                     var pulled = stream._source.pull(stream._controller);
                     if (pulled && typeof pulled.then === "function") {
                         return pulled.then(() => {
-                            if (stream._errored) return Promise.reject(stream._errored);
+                            if (stream._errored)
+                                return Promise.reject(stream._errored);
                             if (stream._queue.length > 0) {
-                                return { value: stream._queue.shift(), done: false };
+                                return {
+                                    value: stream._queue.shift(),
+                                    done: false,
+                                };
                             }
-                            if (stream._closed) return { value: undefined, done: true };
+                            if (stream._closed)
+                                return { value: undefined, done: true };
                             return { value: undefined, done: true };
                         });
                     }
                     if (stream._queue.length > 0) {
-                        return Promise.resolve({ value: stream._queue.shift(), done: false });
+                        return Promise.resolve({
+                            value: stream._queue.shift(),
+                            done: false,
+                        });
                     }
-                    if (stream._closed) return Promise.resolve({ value: undefined, done: true });
+                    if (stream._closed)
+                        return Promise.resolve({
+                            value: undefined,
+                            done: true,
+                        });
                 }
                 return Promise.resolve({ value: undefined, done: true });
             },
@@ -75,7 +90,9 @@
                 stream._locked = false;
             },
             get closed() {
-                return stream._closed ? Promise.resolve() : new Promise(() => {});
+                return stream._closed
+                    ? Promise.resolve()
+                    : new Promise(() => {});
             },
         };
     };
@@ -97,7 +114,9 @@
     ReadableStream.prototype.pipeTo = function (writable) {
         var reader = this.getReader();
         if (!writable || typeof writable.getWriter !== "function") {
-            return Promise.reject(new TypeError("pipeTo requires a WritableStream"));
+            return Promise.reject(
+                new TypeError("pipeTo requires a WritableStream"),
+            );
         }
         var writer = writable.getWriter();
         function pump() {

@@ -21,7 +21,8 @@
         return out;
     }
     function URLSearchParams(init) {
-        if (!(this instanceof URLSearchParams)) return new URLSearchParams(init);
+        if (!(this instanceof URLSearchParams))
+            return new URLSearchParams(init);
         this._list = [];
         if (init == null || init === "") return;
         if (typeof init === "string") this._list = parseQuery(init);
@@ -87,7 +88,8 @@
     };
     URLSearchParams.prototype.forEach = function (cb, thisArg) {
         var list = this._list;
-        for (var i = 0; i < list.length; i++) cb.call(thisArg, list[i][1], list[i][0], this);
+        for (var i = 0; i < list.length; i++)
+            cb.call(thisArg, list[i][1], list[i][0], this);
     };
     function resolveRelative(input, base) {
         var colon = base.indexOf("://");
@@ -95,40 +97,72 @@
         var pathStart = base.indexOf("/", colon + 3);
         var qBase = base.indexOf("?");
         var hBase = base.indexOf("#");
-        var originEnd = pathStart >= 0 ? pathStart : qBase >= 0 ? qBase : hBase >= 0 ? hBase : base.length;
+        var originEnd =
+            pathStart >= 0
+                ? pathStart
+                : qBase >= 0
+                  ? qBase
+                  : hBase >= 0
+                    ? hBase
+                    : base.length;
         var origin = base.slice(0, originEnd);
         var basePath =
             pathStart >= 0
-                ? base.slice(pathStart, qBase >= 0 ? qBase : hBase >= 0 ? hBase : base.length)
+                ? base.slice(
+                      pathStart,
+                      qBase >= 0 ? qBase : hBase >= 0 ? hBase : base.length,
+                  )
                 : "/";
         var c0 = input.charCodeAt(0);
         if (c0 === 47) return origin + input;
         if (c0 === 63) return origin + basePath + input;
         if (c0 === 35) {
-            return origin + basePath + (qBase >= 0 ? base.slice(qBase, hBase >= 0 ? hBase : base.length) : "") + input;
+            return (
+                origin +
+                basePath +
+                (qBase >= 0
+                    ? base.slice(qBase, hBase >= 0 ? hBase : base.length)
+                    : "") +
+                input
+            );
         }
         var slash = basePath.lastIndexOf("/");
         return origin + basePath.slice(0, slash + 1) + input;
     }
     function URL(input, base) {
         input = String(input);
-        if (base != null && input.indexOf("://") < 0) input = resolveRelative(input, String(base));
+        if (base != null && input.indexOf("://") < 0)
+            input = resolveRelative(input, String(base));
         var scheme = input.indexOf("://");
         if (scheme <= 0) throw new TypeError("Invalid URL");
         var afterHost = scheme + 3;
         var pathStart = input.indexOf("/", afterHost);
         var qIdx = input.indexOf("?", afterHost);
         var hashIdx = input.indexOf("#", afterHost);
-        var endPath = qIdx >= 0 && (hashIdx < 0 || qIdx < hashIdx) ? qIdx : hashIdx >= 0 ? hashIdx : input.length;
-        this.pathname = pathStart >= 0 && pathStart <= endPath ? input.slice(pathStart, endPath) : "/";
-        this.search = qIdx >= 0 ? input.slice(qIdx, hashIdx >= 0 ? hashIdx : input.length) : "";
+        var endPath =
+            qIdx >= 0 && (hashIdx < 0 || qIdx < hashIdx)
+                ? qIdx
+                : hashIdx >= 0
+                  ? hashIdx
+                  : input.length;
+        this.pathname =
+            pathStart >= 0 && pathStart <= endPath
+                ? input.slice(pathStart, endPath)
+                : "/";
+        this.search =
+            qIdx >= 0
+                ? input.slice(qIdx, hashIdx >= 0 ? hashIdx : input.length)
+                : "";
         this.hash = hashIdx >= 0 ? input.slice(hashIdx) : "";
         this.href = input;
         this.protocol = input.slice(0, scheme + 1);
         var hostEnd = pathStart >= 0 ? pathStart : endPath;
         var hostport = input.slice(afterHost, hostEnd);
         this.host = hostport;
-        if (hostport.charCodeAt(0) !== 91) {
+        if (hostport.charCodeAt(0) === 91) {
+            this.hostname = hostport;
+            this.port = "";
+        } else {
             var colon = hostport.lastIndexOf(":");
             if (colon >= 0) {
                 this.hostname = hostport.slice(0, colon);
@@ -137,9 +171,6 @@
                 this.hostname = hostport;
                 this.port = "";
             }
-        } else {
-            this.hostname = hostport;
-            this.port = "";
         }
         this.origin = this.protocol + "//" + hostport;
         this.username = "";
