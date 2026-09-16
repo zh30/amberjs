@@ -10,7 +10,7 @@
 
 | 任务编号 | 优化维度 | 对标 | 初始差距 | 核心突破思路 | 分支 | 实测与状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **TASK-URL** | WHATWG `URL` / `URLSearchParams` 构造与查询串吞吐 | Node 12.30 ms | Beejs 234.21 ms（慢 **19.6x**） | 停止用慢速 Rust `FunctionTemplate` 覆盖 V8 15 已有的原生 URL；Node 风格 `url.parse` 仍走兼容层 | `feat/rsi-url-native` | 待启动 |
+| **TASK-URL** | WHATWG `URL` / `URLSearchParams` 构造与查询串吞吐 | Node 12.38 ms | Beejs 234.21 ms（慢 **19.6x**） | 去掉 BeeURL 二次包装；用 JIT 友好的 `url_fast.js` 解析绝对 URL | `feat/rsi-url-native` | **已完成**：8.17 ms，比 Node 快 **1.51x**（相对基线提升 28.7x）。Conformance 55/55 |
 | **TASK-FETCH** | `fetch()` 串行客户端 GET | Node 30.58 ms / 100 req | Beejs 1451.62 ms（慢 **43.7x**） | 去掉 V8 线程 `block_on` 热路径；短请求免重权限克隆；复用连接池；轻量 Response | `feat/rsi-fetch-fastpath` | 待启动 |
 | **TASK-STREAM** | `ReadableStream` 生产/消费 5k chunk | Node 1.19 ms | Beejs 4.53 ms（慢 **4.4x**） | 默认 enqueue/read 热路径改 JS 实现，避免每 chunk 一次 Rust FFI | `feat/rsi-stream-js-hotpath` | 待启动 |
 

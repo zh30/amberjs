@@ -9571,6 +9571,11 @@ impl MinimalRuntime {
     }
 
     fn setup_live_url_search_params(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
+        // V8 native URL already has live searchParams. The BeeURL wrapper around
+        // NativeURL was the TASK-URL 19x regression.
+        let _ = scope;
+        return Ok(());
+        #[allow(unreachable_code)]
         let bootstrap = r##"
 (function () {
   const NativeURL = globalThis.URL;

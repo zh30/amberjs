@@ -196,25 +196,16 @@ impl UrlSearchParams {
 /// Setup URL API in V8 context
 pub fn setup_url_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
-    context: &v8::Local<v8::Context>,
+    _context: &v8::Local<v8::Context>,
 ) -> Result<()> {
-    // Create URL constructor
-    let url_template: _ = v8::FunctionTemplate::new(scope, url_constructor_callback);
-    let url_constructor: _ = url_template.get_function(scope).unwrap();
-    // Set URL to global
-    let global: _ = context.global(scope);
-    let url_key: _ = v8::String::new(scope, "URL").unwrap();
-    global.set(scope, url_key.into(), url_constructor.into());
-    // Setup URLSearchParams constructor
-    let search_params_template: _ =
-        v8::FunctionTemplate::new(scope, url_search_params_constructor_callback);
-    let search_params_constructor: _ = search_params_template.get_function(scope).unwrap();
-    let search_params_key: _ = v8::String::new(scope, "URLSearchParams").unwrap();
-    global.set(
-        scope,
-        search_params_key.into(),
-        search_params_constructor.into(),
-    );
+    // rusty_v8 does not expose WHATWG URL on the global. Install a JIT-friendly
+    // JS implementation. Do not wrap it again in BeeURL (see runtime_minimal).
+    let url_js = include_str!("url_fast.js");
+    if let Some(code) = v8::String::new(scope, url_js) {
+        if let Some(script) = v8::Script::compile(scope, code, None) {
+            let _ = script.run(scope);
+        }
+    }
     Ok(())
 }
 /// URL constructor callback
