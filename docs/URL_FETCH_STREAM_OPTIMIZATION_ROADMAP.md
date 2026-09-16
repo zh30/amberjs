@@ -12,7 +12,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | **TASK-URL** | WHATWG `URL` / `URLSearchParams` 构造与查询串吞吐 | Node 12.38 ms | Beejs 234.21 ms（慢 **19.6x**） | 去掉 BeeURL 二次包装；用 JIT 友好的 `url_fast.js` 解析绝对 URL | `feat/rsi-url-native` | **已完成**：8.17 ms，比 Node 快 **1.51x**（相对基线提升 28.7x）。Conformance 55/55 |
 | **TASK-FETCH** | `fetch()` 串行客户端 GET | Node 18.19 ms / 100 req | Beejs 1451.62 ms（慢 **43.7x**） | 字符串 GET 走线程局部 HTTP/1.1 keep-alive，避免 Tokio `block_on` | `feat/rsi-fetch-fastpath` | **已完成**：8.22 ms，比 Node 快 **2.21x**（相对基线提升 176x）。Conformance 55/55 |
-| **TASK-STREAM** | `ReadableStream` 生产/消费 5k chunk | Node 1.19 ms | Beejs 4.53 ms（慢 **4.4x**） | 默认 enqueue/read 热路径改 JS 实现，避免每 chunk 一次 Rust FFI | `feat/rsi-stream-js-hotpath` | 待启动 |
+| **TASK-STREAM** | `ReadableStream` 生产/消费 5k chunk | Node 1.28 ms | Beejs 4.53 ms（慢 **4.4x**） | 默认 enqueue/read 热路径改 JS 实现，避免每 chunk 一次 Rust FFI | `feat/rsi-stream-js-hotpath` | **已完成**：0.95 ms，比 Node 快 **1.35x**（相对基线提升 4.8x）。Conformance 55/55 |
 
 ---
 

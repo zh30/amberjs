@@ -2679,6 +2679,14 @@ pub fn setup_streams_api(
     setup_text_decoder_stream(scope, *context);
     setup_text_encoder_stream(scope, *context);
 
+    // JIT-friendly ReadableStream hot path (enqueue/read without per-chunk Rust FFI).
+    let streams_fast = include_str!("streams_fast.js");
+    if let Some(code) = v8::String::new(scope, streams_fast) {
+        if let Some(script) = v8::Script::compile(scope, code, None) {
+            let _ = script.run(scope);
+        }
+    }
+
     // Modern Web Streams enhancements (ReadableStream.from, Symbol.asyncIterator) (v1.5.0)
     let streams_helper_js = r#"
     (function() {
