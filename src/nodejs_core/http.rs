@@ -194,10 +194,12 @@ fn stop_http_server_state(host: &str, port: u16) {
     states.retain(|state| state.listening.load(Ordering::SeqCst));
 }
 
-static GLOBAL_REQUEST_SENDER: Lazy<std::sync::RwLock<Option<crossbeam::channel::Sender<HttpRequestMessage>>>> =
-    Lazy::new(|| std::sync::RwLock::new(None));
-static GLOBAL_REQUEST_RECEIVER: Lazy<std::sync::RwLock<Option<crossbeam::channel::Receiver<HttpRequestMessage>>>> =
-    Lazy::new(|| std::sync::RwLock::new(None));
+static GLOBAL_REQUEST_SENDER: Lazy<
+    std::sync::RwLock<Option<crossbeam::channel::Sender<HttpRequestMessage>>>,
+> = Lazy::new(|| std::sync::RwLock::new(None));
+static GLOBAL_REQUEST_RECEIVER: Lazy<
+    std::sync::RwLock<Option<crossbeam::channel::Receiver<HttpRequestMessage>>>,
+> = Lazy::new(|| std::sync::RwLock::new(None));
 
 static MAIN_V8_THREAD: Lazy<std::sync::RwLock<Option<std::thread::Thread>>> =
     Lazy::new(|| std::sync::RwLock::new(None));
@@ -495,11 +497,25 @@ pub fn pump_pending_http_requests_in_scope(
     let handler = get_global_request_handler_local(batch_scope, context, &atoms);
 
     let mut processed = 0;
-    dispatch_http_request_in_scope_fast(batch_scope, context, &mut first_req, &atoms, &protos, handler);
+    dispatch_http_request_in_scope_fast(
+        batch_scope,
+        context,
+        &mut first_req,
+        &atoms,
+        &protos,
+        handler,
+    );
     processed += 1;
 
     while let Ok(mut request) = rx.try_recv() {
-        dispatch_http_request_in_scope_fast(batch_scope, context, &mut request, &atoms, &protos, handler);
+        dispatch_http_request_in_scope_fast(
+            batch_scope,
+            context,
+            &mut request,
+            &atoms,
+            &protos,
+            handler,
+        );
         processed += 1;
         if processed >= 512 {
             break;
@@ -538,12 +554,7 @@ pub fn dispatch_http_request_in_scope_fast<'a>(
             }
         }
         HttpDispatchResult::NoHandler => {
-            let resp = create_http_response(
-                request.connection_id,
-                404,
-                "No handler",
-                "text/plain",
-            );
+            let resp = create_http_response(request.connection_id, 404, "No handler", "text/plain");
             if let Some(responder) = request.responder.take() {
                 let _ = responder.send(resp);
             } else {
@@ -551,12 +562,8 @@ pub fn dispatch_http_request_in_scope_fast<'a>(
             }
         }
         HttpDispatchResult::Error => {
-            let resp = create_http_response(
-                request.connection_id,
-                500,
-                "Handler error",
-                "text/plain",
-            );
+            let resp =
+                create_http_response(request.connection_id, 500, "Handler error", "text/plain");
             if let Some(responder) = request.responder.take() {
                 let _ = responder.send(resp);
             } else {
@@ -2892,7 +2899,8 @@ fn find_crlf_crlf(data: &[u8]) -> Option<usize> {
     let len = data.len() - 3;
     let mut i = 0;
     while i < len {
-        if data[i] == b'\r' && data[i + 1] == b'\n' && data[i + 2] == b'\r' && data[i + 3] == b'\n' {
+        if data[i] == b'\r' && data[i + 1] == b'\n' && data[i + 2] == b'\r' && data[i + 3] == b'\n'
+        {
             return Some(i);
         }
         i += 1;
@@ -3801,7 +3809,9 @@ pub fn extract_http_body_bytes(scope: &mut v8::PinScope, data: v8::Local<v8::Val
         if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(data) {
             let bs = ab.get_backing_store();
             if let Some(ptr) = bs.data() {
-                let slice = unsafe { std::slice::from_raw_parts(ptr.as_ptr() as *const u8, ab.byte_length()) };
+                let slice = unsafe {
+                    std::slice::from_raw_parts(ptr.as_ptr() as *const u8, ab.byte_length())
+                };
                 return slice.to_vec();
             }
         }
@@ -3821,7 +3831,9 @@ pub fn extract_http_body_bytes(scope: &mut v8::PinScope, data: v8::Local<v8::Val
                         let bs = ab.get_backing_store();
                         if let Some(ptr) = bs.data() {
                             let actual_len = len.min(ab.byte_length());
-                            let slice = unsafe { std::slice::from_raw_parts(ptr.as_ptr() as *const u8, actual_len) };
+                            let slice = unsafe {
+                                std::slice::from_raw_parts(ptr.as_ptr() as *const u8, actual_len)
+                            };
                             return slice.to_vec();
                         }
                     }
@@ -3878,9 +3890,16 @@ pub fn extract_http_response_from_res_fast<'a>(
             if len > 0 {
                 let mut i = 0;
                 while i + 1 < len {
-                    if let (Some(k_val), Some(v_val)) = (arr.get_index(scope, i), arr.get_index(scope, i + 1)) {
-                        if let (Some(k_str), Some(v_str)) = (k_val.to_string(scope), v_val.to_string(scope)) {
-                            response_headers.insert(k_str.to_rust_string_lossy(scope), v_str.to_rust_string_lossy(scope));
+                    if let (Some(k_val), Some(v_val)) =
+                        (arr.get_index(scope, i), arr.get_index(scope, i + 1))
+                    {
+                        if let (Some(k_str), Some(v_str)) =
+                            (k_val.to_string(scope), v_val.to_string(scope))
+                        {
+                            response_headers.insert(
+                                k_str.to_rust_string_lossy(scope),
+                                v_str.to_rust_string_lossy(scope),
+                            );
                         }
                     }
                     i += 2;
@@ -3903,7 +3922,8 @@ pub fn extract_http_response_from_res_fast<'a>(
                             let key = key_str.to_rust_string_lossy(scope);
                             if let Some(value_val) = headers_obj.get(scope, key_val) {
                                 if let Some(value_str) = value_val.to_string(scope) {
-                                    response_headers.insert(key, value_str.to_rust_string_lossy(scope));
+                                    response_headers
+                                        .insert(key, value_str.to_rust_string_lossy(scope));
                                 }
                             }
                         }

@@ -343,7 +343,11 @@ fn get_path_fast<'a>(
 ) -> (std::borrow::Cow<'a, str>, Option<*const libc::c_char>) {
     if let Some(s) = val.to_string(scope) {
         let is_one_byte = s.contains_only_onebyte();
-        let len = if is_one_byte { s.length() } else { s.utf8_length(scope) };
+        let len = if is_one_byte {
+            s.length()
+        } else {
+            s.utf8_length(scope)
+        };
         if len > 0 && len < 511 {
             if is_one_byte {
                 s.write_one_byte_v2(scope, 0, &mut buf[..len], v8::WriteFlags::empty());

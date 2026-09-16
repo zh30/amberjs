@@ -310,9 +310,9 @@ pub fn initialize_v8() -> Result<()> {
             "--turbo-loop-variable".to_string(),    // 循环变量诱导消除
             "--turbo-allocation-folding".to_string(), // 堆分配折叠优化
             "--invocation-count-for-feedback-allocation=4".to_string(), // 快速收集反馈向量
-            "--invocation-count-for-early-optimization=8".to_string(),  // 快速早期优化门槛
-            "--invocation-count-for-maglev-osr=32".to_string(),         // 快速 Maglev 循环栈替换
-            "--invocation-count-for-osr=64".to_string(),                // 快速 TurboFan OSR
+            "--invocation-count-for-early-optimization=8".to_string(), // 快速早期优化门槛
+            "--invocation-count-for-maglev-osr=32".to_string(), // 快速 Maglev 循环栈替换
+            "--invocation-count-for-osr=64".to_string(), // 快速 TurboFan OSR
         ];
         if let Ok(extra) = std::env::var("V8_FLAGS") {
             v8_flags.push(extra);
