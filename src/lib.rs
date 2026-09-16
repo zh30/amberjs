@@ -309,6 +309,7 @@ pub fn initialize_v8() -> Result<()> {
             "--maglev-inlining".to_string(),        // Maglev 激进函数内联
             "--maglev-optimistic-peeled-loops".to_string(), // 激进循环展开优化
             "--turbo-loop-peeling".to_string(),     // TurboFan 循环剥皮优化
+            "--turbo-loop-rotation".to_string(),    // TurboFan 循环旋转（消除无条件跳转）
             "--turbo-loop-variable".to_string(),    // 循环变量诱导消除
             "--turbo-allocation-folding".to_string(), // 堆分配折叠优化
             "--invocation-count-for-feedback-allocation=2".to_string(), // 极速收集反馈向量
