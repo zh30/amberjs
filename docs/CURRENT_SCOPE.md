@@ -83,6 +83,9 @@ Current preview scope:
 - Web API modules under `src/web_api/` are installed into the runtime, including areas such as fetch, WebSocket, Web Crypto, URL, events, FormData, Abort, Blob, timers, encoding, performance, streams, compression, structured clone, workers, service workers, broadcast channels, and message channels. Treat these as API-specific preview work, not blanket Web platform compatibility.
 - Watch and hot reload code paths exist through `bee run --watch`, `bee test --watch`, `src/watcher.rs`, and `src/watcher_websocket.rs`.
 - Agent host surface: `bee run --sandbox --export-tools`, `bee session` (stdin JSON-RPC), and `bee mcp` (MCP stdio). Models stay external. `feature=ai` is not a product LLM and may not compile.
+- Production-grade Module Bundler 2.0 (`bee bundle`): oxc AST-backed recursive dependency graph resolution, TypeScript/TSX compilation, module scope isolation, CommonJS/JSON interop, and minified single `.js` output.
+- Single Executable Application compiler (`bee compile`): bundles and embeds self-contained JS/TS code with the Beejs runtime binary into a single, zero-dependency native executable.
+- Package installer (`bee install`): package.json dependency resolution with package-lock.json integrity validation.
 
 ### Experimental
 
@@ -90,7 +93,7 @@ Experimental means the capability exists as code, command surface, module surfac
 
 Current experimental scope:
 
-- `bee bundle` (concatenates local static imports; not a bundler), `bee debug`, `bee serve` HTTP health/fetch handler, `bee init`, `bee create`, `bee add`, `bee remove`, `bee install`, `bee prune`, `bee bunx`, and `bee upgrade`.
+- `bee debug`, `bee serve` HTTP health/fetch handler, `bee init`, `bee create`, `bee add`, `bee remove`, `bee prune`, `bee bunx`, and `bee upgrade`.
 - N-API hello loader: `process.dlopen` calls `napi_register_module_v1` so a C hello addon can export `hello()`. Not a Node ABI compatibility commitment; Prisma/sharp are out of scope.
 - `bee test --parallel` is rejected (exit code 2). V8 isolates are not shared across threads.
 - Lightweight package-management and project setup behavior, including resolver, lifecycle, supply-chain, and package execution paths.
