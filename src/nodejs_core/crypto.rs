@@ -909,7 +909,10 @@ fn create_hash_callback(
     let slotted = FAST_HASHER_SLOT.with(|slot| {
         let mut s = slot.borrow_mut();
         if s.is_none() {
-            *s = Some(FastHasherSlot { id: hash_id, hasher });
+            *s = Some(FastHasherSlot {
+                id: hash_id,
+                hasher,
+            });
             true
         } else {
             false
