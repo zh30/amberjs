@@ -358,7 +358,13 @@ impl std::hash::Hasher for FastU32Hasher {
 type FastU32HashMap<V> =
     std::collections::HashMap<u32, V, std::hash::BuildHasherDefault<FastU32Hasher>>;
 
+struct FastHasherSlot {
+    id: u32,
+    hasher: StreamingHasher,
+}
+
 thread_local! {
+    static FAST_HASHER_SLOT: std::cell::RefCell<Option<FastHasherSlot>> = const { std::cell::RefCell::new(None) };
     static ACTIVE_HASHERS: std::cell::RefCell<FastU32HashMap<StreamingHasher>> = std::cell::RefCell::new(FastU32HashMap::default());
     static ACTIVE_HMACS: std::cell::RefCell<FastU32HashMap<StreamingHmac>> = std::cell::RefCell::new(FastU32HashMap::default());
     static NEXT_CRYPTO_ID: std::cell::Cell<u32> = std::cell::Cell::new(1);
@@ -898,15 +904,27 @@ fn create_hash_callback(
     let algo_val: _ = v8::String::new(scope, &algorithm).unwrap();
     hash_obj.set(scope, algo_key.into(), algo_val.into());
 
-    let hasher = StreamingHasher::new(&algorithm).unwrap();
     let hash_id = next_crypto_id();
-    ACTIVE_HASHERS.with(|m| {
-        let mut map = m.borrow_mut();
-        if map.len() > 10000 {
-            map.clear();
+    let hasher = StreamingHasher::new(&algorithm).unwrap();
+    let slotted = FAST_HASHER_SLOT.with(|slot| {
+        let mut s = slot.borrow_mut();
+        if s.is_none() {
+            *s = Some(FastHasherSlot { id: hash_id, hasher });
+            true
+        } else {
+            false
         }
-        map.insert(hash_id, hasher);
     });
+    if !slotted {
+        let hasher = StreamingHasher::new(&algorithm).unwrap();
+        ACTIVE_HASHERS.with(|m| {
+            let mut map = m.borrow_mut();
+            if map.len() > 10000 {
+                map.clear();
+            }
+            map.insert(hash_id, hasher);
+        });
+    }
 
     let id_key = v8::String::new(scope, "_hash_id").unwrap();
     let id_val = v8::Integer::new(scope, hash_id as i32);
@@ -938,11 +956,23 @@ fn hash_update_callback(
     let res =
         with_bytes_from_update_value(scope, args.get(0), string_encoding.as_deref(), |bytes| {
             if hash_id != 0 {
-                ACTIVE_HASHERS.with(|m| {
-                    if let Some(hasher) = m.borrow_mut().get_mut(&hash_id) {
-                        hasher.update(bytes);
+                let updated = FAST_HASHER_SLOT.with(|slot| {
+                    let mut s = slot.borrow_mut();
+                    if let Some(ref mut entry) = *s {
+                        if entry.id == hash_id {
+                            entry.hasher.update(bytes);
+                            return true;
+                        }
                     }
+                    false
                 });
+                if !updated {
+                    ACTIVE_HASHERS.with(|m| {
+                        if let Some(hasher) = m.borrow_mut().get_mut(&hash_id) {
+                            hasher.update(bytes);
+                        }
+                    });
+                }
             }
         });
 
@@ -982,7 +1012,22 @@ fn hash_copy_callback(
         .unwrap_or(0);
 
     let new_id = if hash_id != 0 {
-        let cloned = ACTIVE_HASHERS.with(|m| m.borrow().get(&hash_id).cloned());
+        let cloned = {
+            let fast_cloned = FAST_HASHER_SLOT.with(|slot| {
+                let s = slot.borrow();
+                if let Some(ref entry) = *s {
+                    if entry.id == hash_id {
+                        return Some(entry.hasher.clone());
+                    }
+                }
+                None
+            });
+            if let Some(h) = fast_cloned {
+                Some(h)
+            } else {
+                ACTIVE_HASHERS.with(|m| m.borrow().get(&hash_id).cloned())
+            }
+        };
         if let Some(hasher) = cloned {
             let nid = next_crypto_id();
             ACTIVE_HASHERS.with(|m| m.borrow_mut().insert(nid, hasher));
@@ -1021,13 +1066,27 @@ fn hash_digest_callback(
 
     let mut raw_bytes = [0u8; 64];
     let (has_bytes, byte_len) = if hash_id != 0 {
-        ACTIVE_HASHERS
-            .with(|m| {
-                m.borrow_mut()
-                    .remove(&hash_id)
-                    .map(|h| (true, h.finalize_into(&mut raw_bytes)))
-            })
-            .unwrap_or((false, 0))
+        let fast_taken = FAST_HASHER_SLOT.with(|slot| {
+            let mut s = slot.borrow_mut();
+            if let Some(ref entry) = *s {
+                if entry.id == hash_id {
+                    let taken = s.take().unwrap();
+                    return Some((true, taken.hasher.finalize_into(&mut raw_bytes)));
+                }
+            }
+            None
+        });
+        if let Some(res) = fast_taken {
+            res
+        } else {
+            ACTIVE_HASHERS
+                .with(|m| {
+                    m.borrow_mut()
+                        .remove(&hash_id)
+                        .map(|h| (true, h.finalize_into(&mut raw_bytes)))
+                })
+                .unwrap_or((false, 0))
+        }
     } else {
         (false, 0)
     };
