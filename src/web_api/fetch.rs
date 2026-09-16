@@ -2,7 +2,10 @@
 // Provides fetch(), Request, Response, Headers API
 
 use std::collections::HashMap;
+use std::io::{Read, Write};
+use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use anyhow::Result;
 use rusty_v8 as v8;
@@ -55,6 +58,7 @@ fn get_fetch_runtime() -> &'static Runtime {
 
 /// Shared Reqwest Client with persistent connection pooling
 static FETCH_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+static FETCH_BLOCKING_CLIENT: OnceLock<reqwest::blocking::Client> = OnceLock::new();
 
 fn get_fetch_client() -> &'static reqwest::Client {
     FETCH_CLIENT.get_or_init(|| {
@@ -65,6 +69,195 @@ fn get_fetch_client() -> &'static reqwest::Client {
             .pool_max_idle_per_host(32)
             .build()
             .expect("Failed to initialize fetch client")
+    })
+}
+
+fn get_blocking_fetch_client() -> &'static reqwest::blocking::Client {
+    FETCH_BLOCKING_CLIENT.get_or_init(|| {
+        reqwest::blocking::Client::builder()
+            .user_agent(format!("Beejs/{}", env!("CARGO_PKG_VERSION")))
+            .timeout(std::time::Duration::from_secs(30))
+            .pool_idle_timeout(std::time::Duration::from_secs(90))
+            .pool_max_idle_per_host(32)
+            .redirect(reqwest::redirect::Policy::limited(20))
+            .build()
+            .expect("Failed to initialize blocking fetch client")
+    })
+}
+
+thread_local! {
+    static HTTP1_CONN: std::cell::RefCell<Option<(String, TcpStream)>> = const { std::cell::RefCell::new(None) };
+}
+
+fn connect_http_stream(host: &str, port: u16) -> Result<TcpStream> {
+    let stream = if host == "127.0.0.1" || host == "localhost" {
+        TcpStream::connect(std::net::SocketAddr::from(([127, 0, 0, 1], port)))?
+    } else {
+        TcpStream::connect((host, port))?
+    };
+    stream.set_nodelay(true)?;
+    stream.set_read_timeout(Some(Duration::from_secs(30)))?;
+    Ok(stream)
+}
+
+fn parse_http_url(url: &str) -> Option<(String, u16, String)> {
+    let rest = url.strip_prefix("http://")?;
+    let (hostport, path) = match rest.find('/') {
+        Some(i) => (&rest[..i], &rest[i..]),
+        None => (rest, "/"),
+    };
+    let (host, port) = if let Some(colon) = hostport.rfind(':') {
+        let port: u16 = hostport[colon + 1..].parse().ok()?;
+        (&hostport[..colon], port)
+    } else {
+        (hostport, 80)
+    };
+    Some((host.to_string(), port, path.to_string()))
+}
+
+fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
+    let (host, port, path) = parse_http_url(url)
+        .ok_or_else(|| anyhow::anyhow!("http1 fast path requires http:// URL"))?;
+    let endpoint = format!("{}:{}", host, port);
+    let request = format!(
+        "GET {} HTTP/1.1\r\nHost: {}\r\nConnection: keep-alive\r\nAccept: */*\r\n\r\n",
+        path, host
+    );
+
+    HTTP1_CONN.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        let mut stream = match slot.take() {
+            Some((ep, s)) if ep == endpoint => s,
+            Some((_, old)) => {
+                drop(old);
+                connect_http_stream(&host, port)?
+            }
+            None => connect_http_stream(&host, port)?,
+        };
+        if stream.write_all(request.as_bytes()).is_err() {
+            stream = connect_http_stream(&host, port)?;
+            stream.write_all(request.as_bytes())?;
+        }
+        stream.flush()?;
+
+        let mut buf = Vec::with_capacity(1024);
+        let mut tmp = [0u8; 512];
+        let header_end;
+        loop {
+            let n = stream.read(&mut tmp)?;
+            if n == 0 {
+                return Err(anyhow::anyhow!("connection closed before headers"));
+            }
+            buf.extend_from_slice(&tmp[..n]);
+            if let Some(pos) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+                header_end = pos + 4;
+                break;
+            }
+            if buf.len() > 64 * 1024 {
+                return Err(anyhow::anyhow!("headers too large"));
+            }
+        }
+        let header_text = String::from_utf8_lossy(&buf[..header_end]);
+        let mut status: u16 = 200;
+        let mut content_length: Option<usize> = None;
+        let mut headers = HashMap::new();
+        for (i, line) in header_text.split("\r\n").enumerate() {
+            if i == 0 {
+                let mut parts = line.split_whitespace();
+                let _ = parts.next();
+                if let Some(code) = parts.next() {
+                    status = code.parse().unwrap_or(200);
+                }
+                continue;
+            }
+            if line.is_empty() {
+                continue;
+            }
+            if let Some((k, v)) = line.split_once(':') {
+                let key = k.trim().to_ascii_lowercase();
+                let val = v.trim().to_string();
+                if key == "content-length" {
+                    content_length = val.parse().ok();
+                }
+                headers.insert(key, val);
+            }
+        }
+        let mut body = buf[header_end..].to_vec();
+        if let Some(len) = content_length {
+            while body.len() < len {
+                let n = stream.read(&mut tmp)?;
+                if n == 0 {
+                    break;
+                }
+                body.extend_from_slice(&tmp[..n]);
+            }
+            body.truncate(len);
+        }
+        *slot = Some((endpoint, stream));
+        Ok(FetchResponse {
+            url: url.to_string(),
+            status,
+            status_text: if status == 200 {
+                "OK".to_string()
+            } else {
+                String::new()
+            },
+            ok: (200..300).contains(&status),
+            headers,
+            body: Some(body),
+            body_used: false,
+            redirected: false,
+            response_type: "basic".to_string(),
+        })
+    })
+}
+
+fn execute_simple_get(url: &str) -> Result<FetchResponse> {
+    if crate::permissions::has_restrictions() {
+        crate::permissions::check_global_permission(
+            crate::permissions::PermissionKind::Network,
+            crate::permissions::PermissionAction::Connect,
+            crate::permissions::ResourceId::Url(url.to_string()),
+        )
+        .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+    }
+    if url.starts_with("http://") {
+        if let Ok(response) = http1_keepalive_get(url) {
+            return Ok(response);
+        }
+    }
+    let response = get_blocking_fetch_client()
+        .get(url)
+        .send()
+        .map_err(|error| anyhow::anyhow!("failed to fetch {}: {}", url, error))?;
+    let status = response.status().as_u16();
+    let status_text = response
+        .status()
+        .canonical_reason()
+        .unwrap_or("Unknown")
+        .to_string();
+    let ok = response.status().is_success();
+    let final_url = response.url().to_string();
+    let mut headers = HashMap::new();
+    for (key, value) in response.headers().iter() {
+        if let Ok(v) = value.to_str() {
+            headers.insert(key.as_str().to_string(), v.to_string());
+        }
+    }
+    let body = response
+        .bytes()
+        .map_err(|error| anyhow::anyhow!("failed to read body: {}", error))?
+        .to_vec();
+    Ok(FetchResponse {
+        url: final_url,
+        status,
+        status_text,
+        ok,
+        headers,
+        body: Some(body),
+        body_used: false,
+        redirected: false,
+        response_type: "basic".to_string(),
     })
 }
 
@@ -229,6 +422,59 @@ pub fn setup_fetch_api(
     Ok(())
 }
 /// Main fetch function callback
+fn set_fetch_response_retval(
+    scope: &mut v8::PinScope,
+    retval: &mut v8::ReturnValue,
+    response: FetchResponse,
+) {
+    let response_obj: _ = v8::Object::new(scope);
+    let ok_key: _ = v8::String::new(scope, "ok").unwrap();
+    let ok_key_val: _ = v8::Boolean::new(scope, response.ok).into();
+    response_obj.set(scope, ok_key.into(), ok_key_val);
+    let status_key: _ = v8::String::new(scope, "status").unwrap();
+    let status_key_val: _ = v8::Integer::new(scope, response.status as i32).into();
+    response_obj.set(scope, status_key.into(), status_key_val);
+    let status_text_key: _ = v8::String::new(scope, "statusText").unwrap();
+    let status_text_val: v8::Local<v8::Value> = v8::String::new(scope, &response.status_text)
+        .unwrap()
+        .into();
+    response_obj.set(scope, status_text_key.into(), status_text_val);
+
+    let url_key: _ = v8::String::new(scope, "url").unwrap();
+    let url_val: _ = v8::String::new(scope, &response.url).unwrap().into();
+    response_obj.set(scope, url_key.into(), url_val);
+
+    let body_vec = response.body.unwrap_or_default();
+    store_response_body(scope, response_obj, response.url.clone(), body_vec);
+    attach_response_body_methods(scope, response_obj);
+
+    let type_key: _ = v8::String::new(scope, "type").unwrap();
+    let type_val: v8::Local<v8::Value> = v8::String::new(scope, &response.response_type)
+        .unwrap()
+        .into();
+    response_obj.set(scope, type_key.into(), type_val);
+
+    let redirected_key: _ = v8::String::new(scope, "redirected").unwrap();
+    let redirected_val: v8::Local<v8::Value> =
+        v8::Boolean::new(scope, response.redirected).into();
+    response_obj.set(scope, redirected_key.into(), redirected_val);
+
+    let body_used_key: _ = v8::String::new(scope, "bodyUsed").unwrap();
+    let body_used_val: v8::Local<v8::Value> =
+        v8::Boolean::new(scope, response.body_used).into();
+    response_obj.set(scope, body_used_key.into(), body_used_val);
+
+    attach_response_clone_method(scope, response_obj);
+
+    let headers_obj = create_headers_object_with_entries(
+        scope,
+        response.headers.into_iter().collect::<Vec<_>>(),
+    );
+    let headers_key: _ = v8::String::new(scope, "headers").unwrap();
+    response_obj.set(scope, headers_key.into(), headers_obj.into());
+    retval.set(response_obj.into());
+}
+
 fn fetch_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -296,6 +542,21 @@ fn fetch_callback(
         let error: _ = v8::String::new(scope, "Invalid URL").unwrap();
         let error_obj: _ = v8::Exception::error(scope, error);
         scope.throw_exception(error_obj.into());
+        return;
+    }
+
+    // Fast path: string URL, default GET, no init object — avoid Tokio block_on.
+    if input.is_string() && !init.is_object() {
+        match execute_simple_get(&url_str) {
+            Ok(response) => {
+                set_fetch_response_retval(scope, &mut retval, response);
+            }
+            Err(e) => {
+                let error: _ = v8::String::new(scope, &format!("Fetch error: {}", e)).unwrap();
+                let error_obj: _ = v8::Exception::error(scope, error);
+                scope.throw_exception(error_obj.into());
+            }
+        }
         return;
     }
 
@@ -389,63 +650,7 @@ fn fetch_callback(
         &redirect_clone,
     ));
     match result {
-        Ok(response) => {
-            // Convert response to V8 object
-            let response_obj: _ = v8::Object::new(scope);
-            let ok_key: _ = v8::String::new(scope, "ok").unwrap();
-            let ok_key_val: _ = v8::Boolean::new(scope, response.ok).into();
-            response_obj.set(scope, ok_key.into(), ok_key_val);
-            let status_key: _ = v8::String::new(scope, "status").unwrap();
-            let status_key_val: _ = v8::Integer::new(scope, response.status as i32).into();
-            response_obj.set(scope, status_key.into(), status_key_val);
-            let status_text_key: _ = v8::String::new(scope, "statusText").unwrap();
-            let status_text_val: v8::Local<v8::Value> =
-                v8::String::new(scope, &response.status_text)
-                    .unwrap()
-                    .into();
-            response_obj.set(scope, status_text_key.into(), status_text_val);
-
-            // Add url property
-            let url_key: _ = v8::String::new(scope, "url").unwrap();
-            let url_val: _ = v8::String::new(scope, &response.url).unwrap().into();
-            response_obj.set(scope, url_key.into(), url_val);
-
-            // Store body in cache for json() and text() methods
-            let body_vec = response.body.unwrap_or_default();
-            store_response_body(scope, response_obj, response.url.clone(), body_vec);
-            attach_response_body_methods(scope, response_obj);
-
-            // v0.3.348: Add type property (response type) - use actual response type
-            let type_key: _ = v8::String::new(scope, "type").unwrap();
-            let type_val: v8::Local<v8::Value> = v8::String::new(scope, &response.response_type)
-                .unwrap()
-                .into();
-            response_obj.set(scope, type_key.into(), type_val);
-
-            // v0.3.348: Add redirected property - use actual redirect status
-            let redirected_key: _ = v8::String::new(scope, "redirected").unwrap();
-            let redirected_val: v8::Local<v8::Value> =
-                v8::Boolean::new(scope, response.redirected).into();
-            response_obj.set(scope, redirected_key.into(), redirected_val);
-
-            // v0.3.351: Add bodyUsed property
-            let body_used_key: _ = v8::String::new(scope, "bodyUsed").unwrap();
-            let body_used_val: v8::Local<v8::Value> =
-                v8::Boolean::new(scope, response.body_used).into();
-            response_obj.set(scope, body_used_key.into(), body_used_val);
-
-            // v0.3.348: Add clone() method
-            attach_response_clone_method(scope, response_obj);
-
-            // Add headers (v0.3.348: enhanced with proper Headers object)
-            let headers_obj = create_headers_object_with_entries(
-                scope,
-                response.headers.into_iter().collect::<Vec<_>>(),
-            );
-            let headers_key: _ = v8::String::new(scope, "headers").unwrap();
-            response_obj.set(scope, headers_key.into(), headers_obj.into());
-            retval.set(response_obj.into());
-        }
+        Ok(response) => set_fetch_response_retval(scope, &mut retval, response),
         Err(e) => {
             let error: _ = v8::String::new(scope, &format!("Fetch error: {}", e)).unwrap();
             let error_obj: _ = v8::Exception::error(scope, error);

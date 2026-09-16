@@ -21,7 +21,6 @@ import urllib.request
 import urllib.parse
 import urllib.error
 from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -183,17 +182,59 @@ def run_bench_part2_microbenchmarks():
     )
 
 
-class _FetchBenchHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        body = b"ok"
-        self.send_response(200)
-        self.send_header("Content-Type", "text/plain")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+def _start_keepalive_http_server(port: int):
+    import socket
 
-    def log_message(self, format, *args):
-        return
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(("127.0.0.1", port))
+    sock.listen(128)
+    sock.settimeout(0.5)
+    stop = threading.Event()
+    reply = (
+        b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n"
+        b"Content-Length: 2\r\nConnection: keep-alive\r\n\r\nok"
+    )
+
+    def handle(conn):
+        try:
+            conn.settimeout(2)
+            buf = b""
+            while not stop.is_set():
+                try:
+                    chunk = conn.recv(4096)
+                except socket.timeout:
+                    continue
+                if not chunk:
+                    break
+                buf += chunk
+                while b"\r\n\r\n" in buf:
+                    conn.sendall(reply)
+                    buf = buf.split(b"\r\n\r\n", 1)[1]
+        except Exception:
+            pass
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    def accept_loop():
+        while not stop.is_set():
+            try:
+                conn, _ = sock.accept()
+            except socket.timeout:
+                continue
+            except Exception:
+                break
+            threading.Thread(target=handle, args=(conn,), daemon=True).start()
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+    threading.Thread(target=accept_loop, daemon=True).start()
+    return stop
 
 
 def run_bench_part5_extended_io():
@@ -201,9 +242,7 @@ def run_bench_part5_extended_io():
     print("▶ Phase 5: Client Fetch, SQLite, and Persistence I/O")
     print("========================================================")
     port = 19199
-    server = HTTPServer(("127.0.0.1", port), _FetchBenchHandler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+    stop = _start_keepalive_http_server(port)
     env = os.environ.copy()
     env["BENCH_URL"] = f"http://127.0.0.1:{port}/"
     try:
@@ -211,7 +250,7 @@ def run_bench_part5_extended_io():
             "extended I/O", ROOT / "benchmarks" / "extended_io_bench.js", env=env
         )
     finally:
-        server.shutdown()
+        stop.set()
 
 
 def run_bench_part6_ai_tensors():
