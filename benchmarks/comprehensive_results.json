@@ -5,154 +5,154 @@
     "node_version": "v22.22.3",
     "bun_version": "1.4.1",
     "bee_version": "bee 1.15.0",
-    "timestamp": "2026-09-16T03:42:44.714031+00:00"
+    "timestamp": "2026-09-16T05:38:13.415976+00:00"
   },
   "phase1_startup": {
     "eval '1 + 1'": {
       "bee": {
-        "mean_ms": 13.98,
-        "min_ms": 13.21,
-        "max_ms": 15.41,
-        "stddev_ms": 0.51,
-        "p95_ms": 15.41
+        "mean_ms": 20.03,
+        "min_ms": 14.2,
+        "max_ms": 85.25,
+        "stddev_ms": 15.8,
+        "p95_ms": 85.25
       },
       "node": {
-        "mean_ms": 24.03,
-        "min_ms": 22.42,
-        "max_ms": 25.45,
-        "stddev_ms": 0.91,
-        "p95_ms": 25.45
+        "mean_ms": 25.35,
+        "min_ms": 22.78,
+        "max_ms": 29.6,
+        "stddev_ms": 1.6,
+        "p95_ms": 29.6
       },
       "bun": {
-        "mean_ms": 6.46,
-        "min_ms": 6.11,
-        "max_ms": 7.49,
-        "stddev_ms": 0.35,
-        "p95_ms": 7.49
+        "mean_ms": 6.87,
+        "min_ms": 6.17,
+        "max_ms": 10.36,
+        "stddev_ms": 0.86,
+        "p95_ms": 10.36
       }
     },
     "eval '1 + 1' (--warm)": {
       "bee": {
-        "mean_ms": 14.09,
-        "min_ms": 13.51,
-        "max_ms": 14.73,
-        "stddev_ms": 0.33,
-        "p95_ms": 14.73
+        "mean_ms": 13.93,
+        "min_ms": 13.34,
+        "max_ms": 15.77,
+        "stddev_ms": 0.54,
+        "p95_ms": 15.77
       },
       "node": {
-        "mean_ms": 23.99,
-        "min_ms": 22.59,
-        "max_ms": 25.2,
-        "stddev_ms": 0.62,
-        "p95_ms": 25.2
+        "mean_ms": 24.54,
+        "min_ms": 22.3,
+        "max_ms": 26.97,
+        "stddev_ms": 1.14,
+        "p95_ms": 26.97
       },
       "bun": {
-        "mean_ms": 6.39,
-        "min_ms": 6.03,
-        "max_ms": 7.6,
+        "mean_ms": 6.58,
+        "min_ms": 6.08,
+        "max_ms": 7.39,
         "stddev_ms": 0.34,
-        "p95_ms": 7.6
+        "p95_ms": 7.39
       }
     },
     "eval console.log('hello')": {
       "bee": {
-        "mean_ms": 13.97,
-        "min_ms": 13.35,
-        "max_ms": 14.98,
-        "stddev_ms": 0.46,
-        "p95_ms": 14.98
+        "mean_ms": 14.65,
+        "min_ms": 13.5,
+        "max_ms": 17.1,
+        "stddev_ms": 1.03,
+        "p95_ms": 17.1
       },
       "node": {
-        "mean_ms": 25.33,
-        "min_ms": 23.82,
-        "max_ms": 26.67,
-        "stddev_ms": 0.82,
-        "p95_ms": 26.67
+        "mean_ms": 25.17,
+        "min_ms": 23.29,
+        "max_ms": 27.31,
+        "stddev_ms": 1.11,
+        "p95_ms": 27.31
       },
       "bun": {
-        "mean_ms": 6.48,
-        "min_ms": 6.08,
-        "max_ms": 7.3,
-        "stddev_ms": 0.32,
-        "p95_ms": 7.3
+        "mean_ms": 6.7,
+        "min_ms": 6.14,
+        "max_ms": 9.42,
+        "stddev_ms": 0.72,
+        "p95_ms": 9.42
       }
     },
     "run hello_world.js": {
       "bee": {
-        "mean_ms": 15.27,
-        "min_ms": 14.62,
-        "max_ms": 18.17,
-        "stddev_ms": 0.77,
-        "p95_ms": 18.17
+        "mean_ms": 15.8,
+        "min_ms": 14.58,
+        "max_ms": 17.41,
+        "stddev_ms": 0.74,
+        "p95_ms": 17.41
       },
       "node": {
-        "mean_ms": 25.25,
-        "min_ms": 24.06,
-        "max_ms": 27.2,
-        "stddev_ms": 0.85,
-        "p95_ms": 27.2
+        "mean_ms": 26.92,
+        "min_ms": 24.54,
+        "max_ms": 30.37,
+        "stddev_ms": 1.42,
+        "p95_ms": 30.37
       },
       "bun": {
-        "mean_ms": 7.32,
-        "min_ms": 6.82,
-        "max_ms": 8.79,
-        "stddev_ms": 0.5,
-        "p95_ms": 8.79
+        "mean_ms": 7.67,
+        "min_ms": 6.96,
+        "max_ms": 14.12,
+        "stddev_ms": 1.54,
+        "p95_ms": 14.12
       }
     },
     "run hello_world.js (--warm)": {
       "bee": {
-        "mean_ms": 15.14,
-        "min_ms": 14.64,
-        "max_ms": 16.0,
-        "stddev_ms": 0.38,
-        "p95_ms": 16.0
+        "mean_ms": 15.48,
+        "min_ms": 14.85,
+        "max_ms": 16.66,
+        "stddev_ms": 0.51,
+        "p95_ms": 16.66
       },
       "node": {
-        "mean_ms": 25.49,
-        "min_ms": 23.4,
-        "max_ms": 27.75,
-        "stddev_ms": 1.22,
-        "p95_ms": 27.75
+        "mean_ms": 26.52,
+        "min_ms": 25.06,
+        "max_ms": 29.48,
+        "stddev_ms": 1.16,
+        "p95_ms": 29.48
       },
       "bun": {
-        "mean_ms": 7.4,
-        "min_ms": 6.75,
-        "max_ms": 8.9,
-        "stddev_ms": 0.55,
-        "p95_ms": 8.9
+        "mean_ms": 7.85,
+        "min_ms": 7.1,
+        "max_ms": 9.49,
+        "stddev_ms": 0.64,
+        "p95_ms": 9.49
       }
     },
     "run TypeScript (.ts)": {
       "bee": {
-        "mean_ms": 7.97,
-        "min_ms": 7.53,
-        "max_ms": 8.75,
-        "stddev_ms": 0.34,
-        "p95_ms": 8.75
+        "mean_ms": 8.56,
+        "min_ms": 7.78,
+        "max_ms": 9.44,
+        "stddev_ms": 0.43,
+        "p95_ms": 9.44
       },
       "bun": {
-        "mean_ms": 5.58,
-        "min_ms": 5.37,
-        "max_ms": 6.25,
-        "stddev_ms": 0.2,
-        "p95_ms": 6.25
+        "mean_ms": 6.49,
+        "min_ms": 5.47,
+        "max_ms": 8.72,
+        "stddev_ms": 0.65,
+        "p95_ms": 8.72
       }
     },
     "test runner (math.test.js)": {
       "bee": {
-        "mean_ms": 16.21,
-        "min_ms": 14.66,
-        "max_ms": 18.04,
-        "stddev_ms": 0.89,
-        "p95_ms": 18.04
+        "mean_ms": 16.08,
+        "min_ms": 14.59,
+        "max_ms": 20.42,
+        "stddev_ms": 1.33,
+        "p95_ms": 20.42
       },
       "bun": {
-        "mean_ms": 481.16,
-        "min_ms": 459.06,
-        "max_ms": 552.73,
-        "stddev_ms": 26.84,
-        "p95_ms": 552.73
+        "mean_ms": 523.17,
+        "min_ms": 484.65,
+        "max_ms": 606.44,
+        "stddev_ms": 36.87,
+        "p95_ms": 606.44
       }
     }
   },
@@ -160,377 +160,377 @@
     "bee": [
       {
         "name": "1. JIT / Fibonacci (500k ops)",
-        "avgMs": 8.481733400000001,
-        "minMs": 5.817084000000001,
-        "maxMs": 11.779875000000004,
-        "opsSec": 117.90042823086138
+        "avgMs": 8.284891599999998,
+        "minMs": 5.7644579999999905,
+        "maxMs": 11.499249999999996,
+        "opsSec": 120.70163959658811
       },
       {
         "name": "2. JIT / Primes Sieve (100k)",
-        "avgMs": 0.33127499999999943,
-        "minMs": 0.30954200000000043,
-        "maxMs": 0.34508299999999537,
-        "opsSec": 3018.6401026337685
+        "avgMs": 0.31868320000000094,
+        "minMs": 0.3016669999999948,
+        "maxMs": 0.3359999999999985,
+        "opsSec": 3137.9125099785524
       },
       {
         "name": "3. JIT / Matrix Multiply (80x80)",
-        "avgMs": 0.4145586000000009,
-        "minMs": 0.26458399999999926,
-        "maxMs": 0.6817080000000004,
-        "opsSec": 2412.204209489317
+        "avgMs": 0.4204750000000047,
+        "minMs": 0.2617079999999987,
+        "maxMs": 0.6559170000000165,
+        "opsSec": 2378.2626791128814
       },
       {
         "name": "4. Objects / Alloc & Property Access (50k)",
-        "avgMs": 2.127616800000004,
-        "minMs": 1.1081670000000088,
-        "maxMs": 3.7883330000000086,
-        "opsSec": 470.0094490699632
+        "avgMs": 1.8231831999999968,
+        "minMs": 1.59537499999999,
+        "maxMs": 2.002416000000011,
+        "opsSec": 548.4912322579551
       },
       {
         "name": "5. Arrays / Filter-Map-Reduce (20k)",
-        "avgMs": 0.4587331999999975,
-        "minMs": 0.28929100000000574,
-        "maxMs": 1.1010840000000002,
-        "opsSec": 2179.9163435304126
+        "avgMs": 0.35444160000000124,
+        "minMs": 0.3226669999999956,
+        "maxMs": 0.41320799999999736,
+        "opsSec": 2821.3392558886894
       },
       {
         "name": "6. JSON / Stringify & Parse (50 iters)",
-        "avgMs": 5.254824999999997,
-        "minMs": 4.818583000000004,
-        "maxMs": 6.123999999999995,
-        "opsSec": 190.3012945245561
+        "avgMs": 4.727317000000005,
+        "minMs": 4.136708999999996,
+        "maxMs": 5.055500000000009,
+        "opsSec": 211.53648041796203
       },
       {
         "name": "7. String & RegExp (10k iters)",
-        "avgMs": 2.450258400000004,
-        "minMs": 2.3957920000000286,
-        "maxMs": 2.497250000000008,
-        "opsSec": 408.12022111627016
+        "avgMs": 2.494641600000006,
+        "minMs": 2.4042080000000112,
+        "maxMs": 2.6102909999999895,
+        "opsSec": 400.8591855439265
       },
       {
         "name": "8. Buffer / Alloc, Fill, Slice (1k x 16KB)",
-        "avgMs": 1.8019083999999963,
-        "minMs": 1.2288330000000087,
-        "maxMs": 2.2587090000000103,
-        "opsSec": 554.9671670324651
+        "avgMs": 1.6590498000000025,
+        "minMs": 1.2749999999999773,
+        "maxMs": 1.9717500000000143,
+        "opsSec": 602.7546611319314
       },
       {
         "name": "9. Crypto / SHA-256 (500 x 16KB)",
-        "avgMs": 3.518957999999998,
-        "minMs": 3.4540409999999895,
-        "maxMs": 3.5953330000000108,
-        "opsSec": 284.1750313587149
+        "avgMs": 3.603266800000006,
+        "minMs": 3.420375000000007,
+        "maxMs": 3.709666999999996,
+        "opsSec": 277.5259384067809
       },
       {
         "name": "10. Crypto / randomBytes (500 x 1KB)",
-        "avgMs": 0.3409582000000057,
-        "minMs": 0.3185410000000104,
-        "maxMs": 0.35974999999999113,
-        "opsSec": 2932.910837750737
+        "avgMs": 0.3375918000000013,
+        "minMs": 0.31841700000001083,
+        "maxMs": 0.3487920000000031,
+        "opsSec": 2962.157256189268
       },
       {
         "name": "11. EventEmitter / emit & listen (50k)",
-        "avgMs": 0.37629119999999716,
-        "minMs": 0.2805409999999995,
-        "maxMs": 0.4346249999999827,
-        "opsSec": 2657.516306520077
+        "avgMs": 0.35477500000000645,
+        "minMs": 0.2800410000000113,
+        "maxMs": 0.3919169999999781,
+        "opsSec": 2818.687900782135
       },
       {
         "name": "12. File System / Sync Read & Write (100 x 32KB)",
-        "avgMs": 5.993275,
-        "minMs": 5.757959,
-        "maxMs": 6.236457999999999,
-        "opsSec": 166.8536818350568
+        "avgMs": 5.7631416,
+        "minMs": 5.588000000000022,
+        "maxMs": 5.9254999999999995,
+        "opsSec": 173.5164723351583
       }
     ],
     "node": [
       {
         "name": "1. JIT / Fibonacci (500k ops)",
-        "avgMs": 8.718349999999997,
-        "minMs": 8.112707999999998,
-        "maxMs": 10.357790999999999,
-        "opsSec": 114.70060275166749
+        "avgMs": 8.916766999999997,
+        "minMs": 8.119916999999987,
+        "maxMs": 11.367125000000001,
+        "opsSec": 112.14827078020546
       },
       {
         "name": "2. JIT / Primes Sieve (100k)",
-        "avgMs": 0.2987831999999969,
-        "minMs": 0.2610419999999891,
-        "maxMs": 0.3308329999999984,
-        "opsSec": 3346.9083937785335
+        "avgMs": 0.28065019999999946,
+        "minMs": 0.2504169999999988,
+        "maxMs": 0.3265839999999969,
+        "opsSec": 3563.154417848275
       },
       {
         "name": "3. JIT / Matrix Multiply (80x80)",
-        "avgMs": 0.5306665999999979,
-        "minMs": 0.39074999999999704,
-        "maxMs": 0.7142079999999993,
-        "opsSec": 1884.4223472892472
+        "avgMs": 0.5190832000000029,
+        "minMs": 0.3827090000000055,
+        "maxMs": 0.7432079999999956,
+        "opsSec": 1926.4734439488593
       },
       {
         "name": "4. Objects / Alloc & Property Access (50k)",
-        "avgMs": 2.1503168000000015,
-        "minMs": 1.7248749999999973,
-        "maxMs": 2.6436669999999935,
-        "opsSec": 465.047754823847
+        "avgMs": 2.2219334000000033,
+        "minMs": 1.6257500000000107,
+        "maxMs": 2.7301669999999945,
+        "opsSec": 450.0584941024778
       },
       {
         "name": "5. Arrays / Filter-Map-Reduce (20k)",
-        "avgMs": 0.5526082000000031,
-        "minMs": 0.2980000000000018,
-        "maxMs": 1.5109999999999957,
-        "opsSec": 1809.6003642363512
+        "avgMs": 0.5881418000000025,
+        "minMs": 0.2979169999999982,
+        "maxMs": 1.7189170000000047,
+        "opsSec": 1700.2702409520898
       },
       {
         "name": "6. JSON / Stringify & Parse (50 iters)",
-        "avgMs": 6.593175199999996,
-        "minMs": 6.477875000000012,
-        "maxMs": 6.902208999999999,
-        "opsSec": 151.67198954458252
+        "avgMs": 6.1395914000000005,
+        "minMs": 5.953665999999998,
+        "maxMs": 6.520125000000007,
+        "opsSec": 162.87728854399006
       },
       {
         "name": "7. String & RegExp (10k iters)",
-        "avgMs": 5.950325000000004,
-        "minMs": 5.758542000000006,
-        "maxMs": 6.105249999999984,
-        "opsSec": 168.0580472495199
+        "avgMs": 5.913208200000002,
+        "minMs": 5.792207999999988,
+        "maxMs": 6.130625000000009,
+        "opsSec": 169.11293602007783
       },
       {
         "name": "8. Buffer / Alloc, Fill, Slice (1k x 16KB)",
-        "avgMs": 1.6227168000000005,
-        "minMs": 1.3144169999999917,
-        "maxMs": 2.0608749999999816,
-        "opsSec": 616.2504757453671
+        "avgMs": 1.667533199999997,
+        "minMs": 1.078708000000006,
+        "maxMs": 2.7300419999999974,
+        "opsSec": 599.6882101058029
       },
       {
         "name": "9. Crypto / SHA-256 (500 x 16KB)",
-        "avgMs": 3.396357999999992,
-        "minMs": 3.3122909999999877,
-        "maxMs": 3.494540999999998,
-        "opsSec": 294.4330368000082
+        "avgMs": 3.3756416000000002,
+        "minMs": 3.267583000000002,
+        "maxMs": 3.4626250000000027,
+        "opsSec": 296.2399799789172
       },
       {
         "name": "10. Crypto / randomBytes (500 x 1KB)",
-        "avgMs": 0.6259000000000015,
-        "minMs": 0.5526669999999854,
-        "maxMs": 0.6978750000000105,
-        "opsSec": 1597.6993129892917
+        "avgMs": 0.6131750000000068,
+        "minMs": 0.5588750000000005,
+        "maxMs": 0.664416000000017,
+        "opsSec": 1630.8557915766119
       },
       {
         "name": "11. EventEmitter / emit & listen (50k)",
-        "avgMs": 0.4672500000000014,
-        "minMs": 0.46220800000000395,
-        "maxMs": 0.4749999999999943,
-        "opsSec": 2140.181915462808
+        "avgMs": 0.4435165999999981,
+        "minMs": 0.4188750000000141,
+        "maxMs": 0.4657500000000141,
+        "opsSec": 2254.7070391502916
       },
       {
         "name": "12. File System / Sync Read & Write (100 x 32KB)",
-        "avgMs": 6.442649800000003,
-        "minMs": 5.999291000000028,
-        "maxMs": 7.291083000000015,
-        "opsSec": 155.21563813696648
+        "avgMs": 5.934816800000021,
+        "minMs": 5.815667000000019,
+        "maxMs": 6.075834000000043,
+        "opsSec": 168.49719775680293
       }
     ],
     "bun": [
       {
         "name": "1. JIT / Fibonacci (500k ops)",
-        "avgMs": 6.222433599999999,
-        "minMs": 5.859249999999999,
-        "maxMs": 6.933042,
-        "opsSec": 160.7088262058755
+        "avgMs": 6.0105249999999995,
+        "minMs": 5.831624999999999,
+        "maxMs": 6.376542000000001,
+        "opsSec": 166.37481750762205
       },
       {
         "name": "2. JIT / Primes Sieve (100k)",
-        "avgMs": 0.26053300000000235,
-        "minMs": 0.2340420000000023,
-        "maxMs": 0.2832910000000055,
-        "opsSec": 3838.2853611634264
+        "avgMs": 0.25994179999999717,
+        "minMs": 0.24408399999999375,
+        "maxMs": 0.28220799999999713,
+        "opsSec": 3847.014985662217
       },
       {
         "name": "3. JIT / Matrix Multiply (80x80)",
-        "avgMs": 0.4110420000000019,
-        "minMs": 0.3847500000000039,
-        "maxMs": 0.5002500000000012,
-        "opsSec": 2432.841412799654
+        "avgMs": 0.43626679999999995,
+        "minMs": 0.40529200000000287,
+        "maxMs": 0.5100410000000011,
+        "opsSec": 2292.1753385772195
       },
       {
         "name": "4. Objects / Alloc & Property Access (50k)",
-        "avgMs": 2.5394918000000017,
-        "minMs": 1.5682090000000102,
-        "maxMs": 3.2699580000000026,
-        "opsSec": 393.7795743227048
+        "avgMs": 2.4944245999999994,
+        "minMs": 1.463832999999994,
+        "maxMs": 3.1990830000000017,
+        "opsSec": 400.89405789214885
       },
       {
         "name": "5. Arrays / Filter-Map-Reduce (20k)",
-        "avgMs": 0.17307519999999954,
-        "minMs": 0.16424999999999557,
-        "maxMs": 0.1798339999999996,
-        "opsSec": 5777.835299338107
+        "avgMs": 0.18754159999999728,
+        "minMs": 0.17549999999999955,
+        "maxMs": 0.19512499999999022,
+        "opsSec": 5332.150306918649
       },
       {
         "name": "6. JSON / Stringify & Parse (50 iters)",
-        "avgMs": 3.4355584000000023,
-        "minMs": 3.252750000000006,
-        "maxMs": 3.8325829999999996,
-        "opsSec": 291.07349768817767
+        "avgMs": 3.2821666000000023,
+        "minMs": 3.0826670000000007,
+        "maxMs": 3.483707999999993,
+        "opsSec": 304.67679489517667
       },
       {
         "name": "7. String & RegExp (10k iters)",
-        "avgMs": 1.8903249999999958,
-        "minMs": 1.8108749999999958,
-        "maxMs": 2.0788340000000005,
-        "opsSec": 529.0095618478316
+        "avgMs": 1.9084414000000067,
+        "minMs": 1.8424580000000077,
+        "maxMs": 2.125583000000006,
+        "opsSec": 523.9877944379097
       },
       {
         "name": "8. Buffer / Alloc, Fill, Slice (1k x 16KB)",
-        "avgMs": 2.2324749999999938,
-        "minMs": 1.8799169999999918,
-        "maxMs": 2.571040999999994,
-        "opsSec": 447.9333475178906
+        "avgMs": 2.446383400000002,
+        "minMs": 2.0320409999999924,
+        "maxMs": 2.7700000000000102,
+        "opsSec": 408.76667165089464
       },
       {
         "name": "9. Crypto / SHA-256 (500 x 16KB)",
-        "avgMs": 3.1337999999999964,
-        "minMs": 3.0154579999999953,
-        "maxMs": 3.2686250000000143,
-        "opsSec": 319.1014104282345
+        "avgMs": 3.037958199999997,
+        "minMs": 2.962208000000004,
+        "maxMs": 3.1184159999999963,
+        "opsSec": 329.1684526798298
       },
       {
         "name": "10. Crypto / randomBytes (500 x 1KB)",
-        "avgMs": 0.24787479999998824,
-        "minMs": 0.23374999999998636,
-        "maxMs": 0.2595829999999921,
-        "opsSec": 4034.2947326636167
+        "avgMs": 0.3367835999999954,
+        "minMs": 0.2372090000000071,
+        "maxMs": 0.6677919999999915,
+        "opsSec": 2969.265724340537
       },
       {
         "name": "11. EventEmitter / emit & listen (50k)",
-        "avgMs": 0.75335859999999,
-        "minMs": 0.6673749999999927,
-        "maxMs": 0.8973749999999825,
-        "opsSec": 1327.389107922858
+        "avgMs": 0.8386417999999992,
+        "minMs": 0.7236249999999984,
+        "maxMs": 1.0299170000000117,
+        "opsSec": 1192.404194496388
       },
       {
         "name": "12. File System / Sync Read & Write (100 x 32KB)",
-        "avgMs": 5.259283199999999,
-        "minMs": 4.47720799999999,
-        "maxMs": 6.592500000000001,
-        "opsSec": 190.13997953181152
+        "avgMs": 4.678833400000002,
+        "minMs": 4.442500000000024,
+        "maxMs": 4.840666999999996,
+        "opsSec": 213.72849052500985
       }
     ]
   },
   "phase3_http_frameworks": {
     "Raw HTTP": {
       "bee": {
-        "requests_per_sec": 71558.4,
+        "requests_per_sec": 72761.6,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 357844,
-        "baseline_rss_mb": 34.1,
-        "peak_rss_mb": 76.7,
-        "settled_rss_mb": 44.7
+        "total_requests": 363847,
+        "baseline_rss_mb": 33.8,
+        "peak_rss_mb": 76.4,
+        "settled_rss_mb": 44.4
       },
       "node": {
-        "requests_per_sec": 77011.2,
+        "requests_per_sec": 76204.8,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 385068,
-        "baseline_rss_mb": 43.5,
+        "total_requests": 381027,
+        "baseline_rss_mb": 43.8,
         "peak_rss_mb": 68.0,
         "settled_rss_mb": 68.0
       },
       "bun": {
-        "requests_per_sec": 81657.6,
+        "requests_per_sec": 80096,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 408238,
-        "baseline_rss_mb": 21.0,
-        "peak_rss_mb": 62.5,
-        "settled_rss_mb": 62.5
+        "total_requests": 400576,
+        "baseline_rss_mb": 21.1,
+        "peak_rss_mb": 62.0,
+        "settled_rss_mb": 62.0
       }
     },
     "Hono 4.x": {
       "bee": {
-        "requests_per_sec": 72070.4,
+        "requests_per_sec": 71532.8,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 360357,
-        "baseline_rss_mb": 36.7,
-        "peak_rss_mb": 81.8,
-        "settled_rss_mb": 50.0
+        "total_requests": 357677,
+        "baseline_rss_mb": 36.3,
+        "peak_rss_mb": 82.1,
+        "settled_rss_mb": 50.3
       },
       "node": {
-        "requests_per_sec": 74272,
+        "requests_per_sec": 74169.6,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 371350,
-        "baseline_rss_mb": 58.8,
-        "peak_rss_mb": 78.5,
-        "settled_rss_mb": 78.5
+        "total_requests": 370801,
+        "baseline_rss_mb": 58.3,
+        "peak_rss_mb": 77.5,
+        "settled_rss_mb": 77.5
       },
       "bun": {
-        "requests_per_sec": 87148.8,
+        "requests_per_sec": 79852.8,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 435727,
+        "total_requests": 399270,
         "baseline_rss_mb": 18.6,
-        "peak_rss_mb": 40.5,
-        "settled_rss_mb": 40.6
+        "peak_rss_mb": 40.8,
+        "settled_rss_mb": 40.8
       }
     },
     "Express 5.x": {
       "bee": {
-        "requests_per_sec": 70188.8,
+        "requests_per_sec": 69011.2,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 350998,
-        "baseline_rss_mb": 51.1,
-        "peak_rss_mb": 88.4,
-        "settled_rss_mb": 56.3
+        "total_requests": 345000,
+        "baseline_rss_mb": 45.7,
+        "peak_rss_mb": 88.9,
+        "settled_rss_mb": 57.2
       },
       "node": {
-        "requests_per_sec": 18913.6,
-        "latency_avg_ms": 1.16,
+        "requests_per_sec": 18974.4,
+        "latency_avg_ms": 1.17,
         "p99_latency_ms": 3,
-        "total_requests": 94546,
-        "baseline_rss_mb": 57.8,
-        "peak_rss_mb": 120.4,
-        "settled_rss_mb": 120.4
+        "total_requests": 94869,
+        "baseline_rss_mb": 58.0,
+        "peak_rss_mb": 119.5,
+        "settled_rss_mb": 119.5
       },
       "bun": {
-        "requests_per_sec": 66441.6,
+        "requests_per_sec": 66275.2,
         "latency_avg_ms": 0.02,
         "p99_latency_ms": 1,
-        "total_requests": 332206,
-        "baseline_rss_mb": 38.8,
-        "peak_rss_mb": 102.5,
-        "settled_rss_mb": 102.5
+        "total_requests": 331361,
+        "baseline_rss_mb": 38.7,
+        "peak_rss_mb": 94.4,
+        "settled_rss_mb": 94.4
       }
     },
     "Fastify 5.x": {
       "bee": {
-        "requests_per_sec": 70022.4,
+        "requests_per_sec": 68704,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 350109,
-        "baseline_rss_mb": 43.8,
+        "total_requests": 343552,
+        "baseline_rss_mb": 43.7,
         "peak_rss_mb": 87.9,
-        "settled_rss_mb": 56.0
+        "settled_rss_mb": 55.9
       },
       "node": {
-        "requests_per_sec": 76140.8,
+        "requests_per_sec": 74400,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 380659,
-        "baseline_rss_mb": 62.5,
-        "peak_rss_mb": 79.5,
-        "settled_rss_mb": 79.5
+        "total_requests": 372039,
+        "baseline_rss_mb": 62.0,
+        "peak_rss_mb": 79.4,
+        "settled_rss_mb": 79.4
       },
       "bun": {
-        "requests_per_sec": 79392,
+        "requests_per_sec": 77689.6,
         "latency_avg_ms": 0.01,
         "p99_latency_ms": 0,
-        "total_requests": 396942,
-        "baseline_rss_mb": 41.0,
-        "peak_rss_mb": 89.2,
-        "settled_rss_mb": 89.2
+        "total_requests": 388413,
+        "baseline_rss_mb": 41.1,
+        "peak_rss_mb": 87.9,
+        "settled_rss_mb": 87.9
       }
     }
   },
@@ -538,6 +538,6 @@
     "passed": 55,
     "total": 55,
     "pass_rate_pct": 100.0,
-    "duration_sec": 2.17
+    "duration_sec": 2.27
   }
 }
