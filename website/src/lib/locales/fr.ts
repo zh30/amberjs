@@ -1,4 +1,5 @@
 import type { TranslationSchema } from "./types";
+import { BEEJS_VERSION } from "../version";
 
 export const fr: TranslationSchema = {
   nav: {
@@ -24,7 +25,7 @@ export const fr: TranslationSchema = {
   footer: {
     statusLabel: "État du Système",
     statusValue: "Opérationnel",
-    stage: "v1.16.0",
+    stage: BEEJS_VERSION,
     contact: "Contact",
     email: "support@bee.zhanghe.dev",
     rights: "Tous droits réservés.",
@@ -35,10 +36,10 @@ export const fr: TranslationSchema = {
     copyright: `© ${new Date().getFullYear()} Beejs. Open-source sous licence MIT.`,
   },
   home: {
-    heroBadge: "Version Officielle v1.0.0",
-    heroBadgeSub: "Prêt pour la Production · Runtime Edge AI-Native",
+    heroBadge: BEEJS_VERSION,
+    heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream RSI",
     heroBanner:
-      "🚀 Sortie de v1.0.0 : Première version prête pour la production, ère AI-Native — Lire l’annonce",
+      "Beejs v1.16.0 : Wasm 2.0, bee bundle / compile, et hot paths URL/fetch/ReadableStream.",
     heroBannerLink: "/blog/v1.16.0",
     heroTitlePrefix: "Le Runtime Ultra-Performant pour ",
     heroTitleAccent: "JavaScript & TypeScript",
@@ -52,10 +53,10 @@ export const fr: TranslationSchema = {
     copiedBtn: "Copié",
     latestArticle: {
       badge: "Sortie Officielle",
-      title: "Beejs v1.0.0 : L’ère du runtime Edge AI-Native commence",
-      desc: "Support natif des tenseurs bee:ai, pipelines d’agents, snapshot mmap zéro-copie et 100% de conformité aux tests officiels Node.js.",
-      readTime: "6 min de lecture",
-      date: "2026-09-06",
+      title: "Beejs v1.16.0 : Wasm 2.0, packaging et hot paths web",
+      desc: "WebAssembly.Memory zéro-copie, bee bundle / compile (Preview), suite 2.0, et RSI URL / fetch / ReadableStream. Conformance 5.0 reste à 55/55.",
+      readTime: "4 min de lecture",
+      date: "2026-09-16",
       link: "/blog/v1.16.0",
       action: "Lire l’Article Complet",
     },
@@ -439,7 +440,7 @@ export const fr: TranslationSchema = {
         title: "Présentation",
         subtitle: "Runtime Rust + V8 pour JavaScript et TypeScript.",
         body: [
-          "Beejs v1.0.0 est la première version majeure officielle pour la production, avec accélération de tenseurs bee:ai, pipelines d’agents, snapshot mmap zéro-copie et 100% de conformité Node.js.",
+          "Beejs v1.16.0 est un runtime JavaScript/TypeScript en Rust + V8, un binaire : bee. Node Conformance 5.0 = 55/55 fixtures — ce n’est pas une compatibilité Node drop-in.",
           "Le dépôt conserve également les rapports d’étapes historiques et les modules soumis à feature-flags. Ces documents éclairent l’évolution architecturale, mais la promesse publique s’appuie sur le build Cargo par défaut.",
         ],
         cards: [

@@ -6,6 +6,7 @@ id: "server-mode"
 ---
 
 Beejs 提供了双重现代 Web 服务构建范式：
+
 1. **现代化 Web 标准服务 (`bee serve [file]`)**：基于符合 W3C / WinterCG 规范的 `Request` / `Response` 与 `fetch(req)` 导出模型；
 2. **Node.js 兼容服务 (`bee run server.ts`)**：基于 `node:http` 与底层 Rust Tokio 无锁多 Worker 线程池模型。
 
@@ -41,7 +42,7 @@ export default {
     if (url.pathname === "/api/info") {
       return new Response(JSON.stringify({
         runtime: "beejs",
-        version: "v1.0.0",
+        version: "v1.16.0",
         arch: process.arch,
         platform: process.platform
       }), {
@@ -65,6 +66,7 @@ $ bee serve app.ts --port 8080 --host 0.0.0.0
 ```
 
 终端输出：
+
 ```text
 🚀 Starting Beejs Web Server on http://0.0.0.0:8080
 📄 Serving application: app.ts
@@ -72,6 +74,7 @@ $ bee serve app.ts --port 8080 --host 0.0.0.0
 ```
 
 ### 1.3 核心技术亮点
+
 - **零胶水代码**：运行时直接将底层 TCP HTTP 报文解构映射为标准的 `Request` 实例，Headers 与 Body 均无缝桥接；
 - **原生异步微任务支持**：支持 `async` 函数与 Promise，在事件循环中自适应执行微任务检查点；
 - **完整的 Body Mixin**：`Request` 与 `Response` 均完整实现 `req.text()`, `req.json()`, `req.arrayBuffer()`；
@@ -110,6 +113,7 @@ server.listen(3000, () => {
 ```
 
 启动命令：
+
 ```bash
 bee run server.ts
 ```
@@ -119,9 +123,11 @@ bee run server.ts
 ## 3. 多 Worker 线程池并发架构 (`--workers`)
 
 ### 传统单线程事件循环的局限
+
 在传统单线程事件循环（如单进程 Node.js）中，一旦某个请求执行密集的 JSON 序列化、密码学哈希或张量推理，事件循环便会发生卡顿，导致正在排队的所有并发请求延迟剧增。
 
 ### Beejs 的无锁多 Isolate 线程池
+
 Beejs 在底层支持**多 Worker 线程池并发模型**：
 
 ```text
@@ -145,6 +151,7 @@ Beejs 在底层支持**多 Worker 线程池并发模型**：
 ```
 
 ### 启用多 Worker 模式
+
 在运行脚本时，通过 `-W` 或 `--workers` 指定工作线程数量：
 
 ```bash
@@ -153,12 +160,14 @@ $ bee run --workers 8 server.ts
 ```
 
 或者在生产环境中设置环境变量：
+
 ```bash
 export BEE_WORKERS=8
 bee run server.ts
 ```
 
 **核心优势**：
+
 - **真多核并行**：各个 Worker 运行在独立且互不干扰的 V8 Isolate 中，CPU 密集型任务完全并行，不抢占主事件循环；
 - **零请求创建开销**：所有 Worker 在进程启动时预热完成，请求到达时仅通过内存中的无锁队列唤醒，消除了反复创建销毁线程的系统开销。
 
@@ -177,6 +186,7 @@ npx autocannon -c 100 -d 10 http://localhost:3000/api/users
 ```
 
 ### 生产优化技巧
+
 1. **轻量服务优先选择 `bee serve`**：Fetch API 模型没有传统 Event Emitter 流包装开销，在微服务与边缘计算场景拥有更高的每秒请求处理量（RPS）；
 2. **合理规划 Worker 数量**：在纯 I/O 服务中，Worker 数量建议设为 `CPU核心数` 至 `CPU核心数 * 2`；在重度密集计算时，建议严格等于物理核心数；
 3. **搭配安全沙箱**：生产对外暴露的不可信脚本建议添加 `--sandbox` 和 `--max-memory 512`，有效抵御内存泄漏与越权文件访问。

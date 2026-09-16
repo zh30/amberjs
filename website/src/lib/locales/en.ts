@@ -1,4 +1,5 @@
 import type { TranslationSchema } from "./types";
+import { BEEJS_VERSION } from "../version";
 
 export const en: TranslationSchema = {
   nav: {
@@ -24,7 +25,7 @@ export const en: TranslationSchema = {
   footer: {
     statusLabel: "System Status",
     statusValue: "Operational",
-    stage: "v1.16.0",
+    stage: BEEJS_VERSION,
     contact: "Contact",
     email: "support@bee.zhanghe.dev",
     rights: "All rights reserved.",
@@ -35,7 +36,7 @@ export const en: TranslationSchema = {
     copyright: `© ${new Date().getFullYear()} Beejs. Open-source under MIT.`,
   },
   home: {
-    heroBadge: "v1.16.0",
+    heroBadge: BEEJS_VERSION,
     heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream RSI",
     heroBanner:
       "Beejs v1.16.0: Wasm 2.0, bee bundle / compile, and URL/fetch/ReadableStream hot paths.",

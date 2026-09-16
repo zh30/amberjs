@@ -6,6 +6,7 @@ id: "server-mode"
 ---
 
 Beejs offers two high-performance paradigms for building web services:
+
 1. **Modern Standard Web Serving (`bee serve [file]`)**: Built on W3C / WinterCG standard `Request` / `Response` and `export default { fetch(req) }` model;
 2. **Node.js Compatible Serving (`bee run server.ts`)**: Built on `node:http` backed by a lockless multi-Worker thread pool in Rust Tokio.
 
@@ -41,7 +42,7 @@ export default {
     if (url.pathname === "/api/info") {
       return new Response(JSON.stringify({
         runtime: "beejs",
-        version: "v1.0.0",
+        version: "v1.16.0",
         arch: process.arch,
         platform: process.platform
       }), {
@@ -65,6 +66,7 @@ $ bee serve app.ts --port 8080 --host 0.0.0.0
 ```
 
 Console output:
+
 ```text
 🚀 Starting Beejs Web Server on http://0.0.0.0:8080
 📄 Serving application: app.ts
@@ -72,6 +74,7 @@ Console output:
 ```
 
 ### 1.3 Key Highlights
+
 - **Zero Glue Overhead**: Directly bridges incoming HTTP packets to standard `Request` instances without unnecessary wrapper streams;
 - **Async & Promise Support**: Supports asynchronous handlers and drains microtasks automatically in the event loop;
 - **Full Body Mixin**: `Request` and `Response` fully implement `req.text()`, `req.json()`, and `req.arrayBuffer()`;
@@ -110,6 +113,7 @@ server.listen(3000, () => {
 ```
 
 Run command:
+
 ```bash
 bee run server.ts
 ```
@@ -119,9 +123,11 @@ bee run server.ts
 ## 3. Multi-Worker Thread Pool Architecture (`--workers`)
 
 ### The Single-Thread Bottleneck
+
 In conventional single-threaded runtimes, when a request triggers heavy JSON serialization, cryptography, or tensor inference, the event loop stalls and stalls all incoming requests.
 
 ### Beejs Lockless Multi-Isolate Model
+
 Beejs features a built-in **multi-Worker thread pool** in Rust:
 
 ```text
@@ -144,19 +150,22 @@ Beejs features a built-in **multi-Worker thread pool** in Rust:
 ```
 
 ### Launching Workers
+
 Specify the number of worker isolates with `-W` or `--workers`:
 
 ```bash
-$ bee run --workers 8 server.ts
+bee run --workers 8 server.ts
 ```
 
 Or via environment variable:
+
 ```bash
 export BEE_WORKERS=8
 bee run server.ts
 ```
 
 **Benefits**:
+
 - **True Multi-Core Parallelism**: Isolates execute independently in parallel on separate OS threads without blocking one another;
 - **Zero Startup Penalty**: Workers are pre-warmed at boot time, eliminating thread creation overhead per request.
 
@@ -175,6 +184,7 @@ npx autocannon -c 100 -d 10 http://localhost:3000/api/users
 ```
 
 ### Optimization Tips
+
 1. **Prefer `bee serve` for Microservices**: The Fetch API model avoids EventEmitter and streaming buffer wrapper overhead, yielding higher RPS;
 2. **Calibrate Workers**: For I/O services, set workers to `cores` ~ `2 * cores`; for CPU/tensor-heavy workloads, match the physical core count;
 3. **Enforce Resource Quotas**: For public-facing endpoints, combine with `--sandbox` and `--max-memory 512` to prevent memory leaks and unauthorized disk access.

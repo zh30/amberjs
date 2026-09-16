@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLang } from "../lib/i18n";
+import { BEEJS_VERSION } from "../lib/version";
 
 const featureIcons = [
   <Server
@@ -393,7 +394,7 @@ export default function HomeComponent() {
                     <div>
                       <div className="flex items-center justify-between text-xs font-mono mb-1.5">
                         <span className="text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1.5">
-                          <span>Beejs v1.16.0 (Rust)</span>
+                          <span>Beejs {BEEJS_VERSION} (Rust)</span>
                           {bench.isBeeWinner ? (
                             <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold">
                               #1

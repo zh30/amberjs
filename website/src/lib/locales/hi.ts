@@ -1,4 +1,5 @@
 import type { TranslationSchema } from "./types";
+import { BEEJS_VERSION } from "../version";
 
 export const hi: TranslationSchema = {
   nav: {
@@ -24,7 +25,7 @@ export const hi: TranslationSchema = {
   footer: {
     statusLabel: "सिस्टम स्थिति",
     statusValue: "सक्रिय",
-    stage: "v1.16.0",
+    stage: BEEJS_VERSION,
     contact: "संपर्क",
     email: "support@bee.zhanghe.dev",
     rights: "सर्वाधिकार सुरक्षित।",
@@ -35,10 +36,10 @@ export const hi: TranslationSchema = {
     copyright: `© ${new Date().getFullYear()} Beejs. MIT लाइसेंस के तहत ओपन-सोर्स।`,
   },
   home: {
-    heroBadge: "v1.0.0 आधिकारिक संस्करण",
-    heroBadgeSub: "प्रोडक्शन-तैयार · AI-Native एज रनटाइम",
+    heroBadge: BEEJS_VERSION,
+    heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream RSI",
     heroBanner:
-      "🚀 Beejs v1.0.0 रिलीज़: पहला प्रोडक्शन-ग्रेड संस्करण, AI-Native एज युग — घोषणा पढ़ें",
+      "Beejs v1.16.0: Wasm 2.0, bee bundle / compile, और URL/fetch/ReadableStream hot paths.",
     heroBannerLink: "/blog/v1.16.0",
     heroTitlePrefix: "उच्च-प्रदर्शन ",
     heroTitleAccent: "JavaScript और TypeScript रनटाइम",
@@ -52,10 +53,10 @@ export const hi: TranslationSchema = {
     copiedBtn: "कॉपी हो गया",
     latestArticle: {
       badge: "आधिकारिक रिलीज़",
-      title: "Beejs v1.0.0: AI-Native एज रनटाइम युग की शुरुआत",
-      desc: "नेटिव bee:ai टेंसर कंप्यूटिंग, एजेंट पाइपलाइन, जीरो-कॉपी mmap स्नैपशॉट और 100% Node.js टेस्ट पास दर के साथ आधिकारिक प्रोडक्शन रिलीज़।",
-      readTime: "6 मिनट पठन",
-      date: "2026-09-06",
+      title: "Beejs v1.16.0: Wasm 2.0, पैकेजिंग और web hot paths",
+      desc: "ज़ीरो-कॉपी WebAssembly.Memory, bee bundle / compile (Preview), सूट 2.0, और URL / fetch / ReadableStream RSI. Conformance 5.0 अभी भी 55/55।",
+      readTime: "4 मिनट पठन",
+      date: "2026-09-16",
       link: "/blog/v1.16.0",
       action: "पूरा लेख पढ़ें",
     },
@@ -424,7 +425,7 @@ export const hi: TranslationSchema = {
         title: "अवलोकन",
         subtitle: "JavaScript और TypeScript के लिए Rust + V8 रनटाइम।",
         body: [
-          "Beejs v1.0.0 पहला प्रोडक्शन-ग्रेड आधिकारिक रिलीज़ है, जिसमें नेटिव bee:ai टेंसर कंप्यूटिंग, एजेंट पाइपलाइन, जीरो-कॉपी mmap स्नैपशॉट और 100% Node.js अनुकूलता शामिल हैं।",
+          "Beejs v1.16.0 एक Rust + V8 JavaScript/TypeScript रनटाइम है, एक बाइनरी: bee. Node Conformance 5.0 = 55/55 fixtures — यह drop-in Node अनुकूलता नहीं है।",
           "रिपॉजिटरी में ऐतिहासिक स्टेज रिपोर्ट और फ़ीचर-गेटेड मॉड्यूल भी हैं। वे दस्तावेज़ डिज़ाइन इतिहास के लिए उपयोगी हैं, लेकिन सार्वजनिक रिलीज़ डिफ़ॉल्ट Cargo बिल्ड का पालन करती है।",
         ],
         cards: [

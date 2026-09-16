@@ -1,4 +1,5 @@
 import type { TranslationSchema } from "./types";
+import { BEEJS_VERSION } from "../version";
 
 export const zh: TranslationSchema = {
   nav: {
@@ -24,7 +25,7 @@ export const zh: TranslationSchema = {
   footer: {
     statusLabel: "系统状态",
     statusValue: "运行中",
-    stage: "v1.16.0",
+    stage: BEEJS_VERSION,
     contact: "联系",
     email: "support@bee.zhanghe.dev",
     rights: "保留所有权利。",
@@ -35,7 +36,7 @@ export const zh: TranslationSchema = {
     copyright: `© ${new Date().getFullYear()} Beejs. 基于 MIT 协议开源。`,
   },
   home: {
-    heroBadge: "v1.16.0",
+    heroBadge: BEEJS_VERSION,
     heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream 热路径",
     heroBanner:
       "Beejs v1.16.0：Wasm 2.0、bee bundle / compile，以及 URL / fetch / ReadableStream 热路径。",
