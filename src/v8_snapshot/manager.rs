@@ -42,7 +42,12 @@ impl SnapshotManager {
         let warmup_source = r#"
             (function(){
               void Object; void Array; void Promise; void Map; void Set;
-              void JSON.stringify; void JSON.parse;
+              const sample = { id: 1, title: 'warmup', price: 9.99, active: true, items: [{ a: 1, b: 'sub' }] };
+              const jsonStr = JSON.stringify(sample);
+              JSON.parse(jsonStr);
+              const arr = [1, 2, 3, 4, 5];
+              arr.push(6);
+              arr.filter(x => x % 2 === 0).map(x => x * 2).reduce((a, b) => a + b, 0);
               return 'beejs-warmup-ok';
             })();
         "#;
