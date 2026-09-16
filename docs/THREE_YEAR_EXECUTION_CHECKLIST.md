@@ -62,6 +62,7 @@
 > **战略目标**：打破启动时延与重量级依赖的桎梏，实现 `< 0.5ms` 亚毫秒冷启动与端侧零拷贝 AI 推理。
 
 ### 任务 1.1: `bee:ai` 纯血本地模型推理加速 (Candle / GGUF / Metal 集成)
+
 - **目标版本**: `v1.12.0`
 - **核心模块**: `src/nodejs_core/ai.rs`, `src/weights/`, `Cargo.toml`
 - **待执行清单**:
@@ -75,6 +76,7 @@
   - [x] 增加示例 `examples/ai/local_llm_inference.js` 与 `examples/ai/agent_tool_calling.js`
 
 ### 任务 1.2: V8 Snapshot CoW 预热池 (突破 < 0.5ms 极致冷启动)
+
 - **目标版本**: `v1.13.0`
 - **核心模块**: `src/v8_snapshot/`, `src/isolate_prewarmer.rs`, `src/runtime_minimal.rs`
 - **待执行清单**:
@@ -86,6 +88,7 @@
   - [x] 编写并发 Isolate 内存占用与回收测试 `tests/v8_cow_snapshot_tests.rs` (6/6 全部通过)
 
 ### 任务 1.3: WebAssembly 与 V8 内存零拷贝互通 (Wasm Engine 2.0)
+
 - **目标版本**: `v1.15.0`
 - **核心模块**: `src/web_api/wasm.rs`, `src/web_api/shared_array_buffer.rs`, `src/wasm/mod.rs`
 - **待执行清单**:
@@ -95,6 +98,7 @@
   - [x] 新增 Wasm 零拷贝数据传递基准与集成测试 `tests/wasm_zero_copy_tests.rs` (7/7 全部通过)
 
 ### 任务 1.4: 生产级独立打包器与轻量包管理 (`bee bundle` & `bee install`)
+
 - **目标版本**: `v1.15.0`
 - **核心模块**: `src/package_manager.rs`, `src/main.rs`, `src/typescript/`
 - **待执行清单**:
@@ -110,6 +114,7 @@
 > **战略目标**：突破单语言界限，构建内核级安全隔离、跨语言无缝调用的万能运行时。
 
 ### 任务 2.1: Linux Landlock + eBPF 内核级主权硬隔离沙箱 (Fail-Closed Sandbox 2.0)
+
 - **目标版本**: `v2.0.0`
 - **核心模块**: `src/capability/`, `src/permissions/`, `src/security/`
 - **待执行清单**:
@@ -120,6 +125,7 @@
   - [ ] 编写沙箱防逃逸与内核隔离回归测试 `tests/sandbox_landlock_ebpf_tests.rs`
 
 ### 任务 2.2: 完备的 Node-API (N-API / C++ Addon) 原生模块兼容生态
+
 - **目标版本**: `v2.1.0`
 - **核心模块**: `src/napi/`, `src/nodejs_core/child_process.rs`
 - **待执行清单**:
@@ -129,6 +135,7 @@
   - [ ] 建立 N-API 自动化兼容性测试套件 `tests/napi_suite_tests.rs`
 
 ### 任务 2.3: Rust-Powered 异构多语言互操作矩阵 (Polyglot Bridge)
+
 - **目标版本**: `v2.2.0`
 - **核心模块**: `src/multilang/`, `src/ffi/`
 - **待执行清单**:
@@ -138,6 +145,7 @@
   - [ ] 提供跨语言无拷贝共享内存抽象层
 
 ### 任务 2.4: Linux Native `io_uring` 高性能异步网络引擎
+
 - **目标版本**: `v2.3.0`
 - **核心模块**: `src/event_loop.rs`, `src/nodejs_core/net.rs`, `src/nodejs_core/http.rs`
 - **待执行清单**:
@@ -153,6 +161,7 @@
 > **战略目标**：上升为云边协同基础设施，实现计算状态全球无损热迁移与 AI 自主运维。
 
 ### 任务 3.1: 全球分布式 Isolate 实时热迁移织网 (BeeGrid Architecture)
+
 - **目标版本**: `v3.0.0`
 - **核心模块**: `src/cloud_native/`, `src/checkpoint/`, `src/kv/`
 - **待执行清单**:
@@ -162,6 +171,7 @@
   - [ ] 编写跨节点 Isolate 热迁移与状态一致性恢复测试套件
 
 ### 任务 3.2: AI 驱动的自进化运行时 (AIOps Self-Tuning JIT & GC)
+
 - **目标版本**: `v3.1.0`
 - **核心模块**: `src/observability/`, `src/performance_analyzer.rs`, `src/memory/`
 - **待执行清单**:
@@ -171,6 +181,7 @@
   - [ ] 编写自适应 GC 调优压测与效果验证用例
 
 ### 任务 3.3: 确定性沙箱与 Agent 可追溯回放引擎 (Deterministic Agent Replay)
+
 - **目标版本**: `v3.2.0`
 - **核心模块**: `src/capability/`, `src/debugger/`, `src/security/`
 - **待执行清单**:
