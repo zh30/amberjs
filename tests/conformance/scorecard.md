@@ -1,6 +1,6 @@
 # Beejs Node conformance scorecard
 
-Generated: 2026-09-16T03:04Z
+Generated: 2026-09-16T03:12Z
 
 | Fixture | Result | Notes |
 |---------|--------|-------|

@@ -305,14 +305,18 @@ pub fn initialize_v8() -> Result<()> {
             "--max-semi-space-size=64".to_string(), // 64MB 最大新生代空间
             "--turbo-fast-api-calls".to_string(),   // 快速 C++/Rust API 调用
             "--harmony".to_string(),                // ECMAScript 高性能特性
+            "--turbo-inline-array-builtins".to_string(), // 深度内联 Array.prototype 算子
+            "--maglev-inlining".to_string(),        // Maglev 激进函数内联
             "--maglev-optimistic-peeled-loops".to_string(), // 激进循环展开优化
             "--turbo-loop-peeling".to_string(),     // TurboFan 循环剥皮优化
             "--turbo-loop-variable".to_string(),    // 循环变量诱导消除
             "--turbo-allocation-folding".to_string(), // 堆分配折叠优化
-            "--invocation-count-for-feedback-allocation=4".to_string(), // 快速收集反馈向量
-            "--invocation-count-for-early-optimization=8".to_string(), // 快速早期优化门槛
-            "--invocation-count-for-maglev-osr=32".to_string(), // 快速 Maglev 循环栈替换
-            "--invocation-count-for-osr=64".to_string(), // 快速 TurboFan OSR
+            "--invocation-count-for-feedback-allocation=2".to_string(), // 极速收集反馈向量
+            "--invocation-count-for-early-optimization=4".to_string(),  // 极速早期优化门槛
+            "--invocation-count-for-maglev=16".to_string(),             // 极速跃升至 Maglev 优化 JIT
+            "--invocation-count-for-maglev-osr=16".to_string(),         // 极速 Maglev 循环栈替换
+            "--invocation-count-for-osr=32".to_string(),                // 极速 TurboFan OSR
+            "--invocation-count-for-turbofan=64".to_string(),           // 极速跃升至 TurboFan 顶级 JIT
         ];
         if let Ok(extra) = std::env::var("V8_FLAGS") {
             v8_flags.push(extra);
