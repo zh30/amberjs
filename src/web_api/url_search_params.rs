@@ -915,6 +915,12 @@ pub fn setup_url_search_params_api(
     context: &v8::Context,
 ) {
     let global = context.global(scope);
+    let existing_key = v8::String::new(scope, "URLSearchParams").unwrap();
+    if let Some(existing) = global.get(scope, existing_key.into()) {
+        if existing.is_function() {
+            return;
+        }
+    }
 
     // Create constructor template
     let constructor_template = v8::FunctionTemplate::new(scope, url_search_params_constructor);

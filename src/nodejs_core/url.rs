@@ -9,17 +9,178 @@ pub fn setup_url_api(
     context: &v8::Local<v8::Context>,
 ) -> Result<()> {
     let global: _ = context.global(scope);
-    // URL构造函数
-    let url_constructor: _ = v8::FunctionTemplate::new(scope, url_constructor_callback);
-    let url_func: _ = url_constructor.get_function(scope).unwrap();
-    let url_key: _ = v8::String::new(scope, "URL").unwrap();
-    global.set(scope, url_key.into(), url_func.into());
-    // URLSearchParams构造函数
-    let search_params_constructor: _ =
-        v8::FunctionTemplate::new(scope, search_params_constructor_callback);
-    let search_params_func: _ = search_params_constructor.get_function(scope).unwrap();
-    let search_params_key: _ = v8::String::new(scope, "URLSearchParams").unwrap();
-    global.set(scope, search_params_key.into(), search_params_func.into());
+    // JIT-friendly WHATWG URL / URLSearchParams. The previous FunctionTemplate
+    // constructors crossed into Rust on every `new URL()`, which was ~20x slower
+    // than Node on the 20k URL microbench.
+    let url_js = r#"
+    (function() {
+        function parseQuery(qs) {
+            var out = [];
+            if (qs == null || qs === '') return out;
+            var s = String(qs);
+            if (s.charCodeAt(0) === 63) s = s.slice(1);
+            if (!s) return out;
+            var parts = s.split('&');
+            for (var i = 0; i < parts.length; i++) {
+                var p = parts[i];
+                if (!p) continue;
+                var eq = p.indexOf('=');
+                if (eq === -1) out.push([p, '']);
+                else out.push([p.slice(0, eq), p.slice(eq + 1)]);
+            }
+            return out;
+        }
+        function URLSearchParams(init) {
+            if (!(this instanceof URLSearchParams)) return new URLSearchParams(init);
+            this._list = [];
+            if (init == null || init === '') return;
+            if (typeof init === 'string') this._list = parseQuery(init);
+            else if (Array.isArray(init)) {
+                for (var i = 0; i < init.length; i++) {
+                    this._list.push([String(init[i][0]), String(init[i][1])]);
+                }
+            } else if (typeof init === 'object') {
+                var keys = Object.keys(init);
+                for (var k = 0; k < keys.length; k++) {
+                    this._list.push([keys[k], String(init[keys[k]])]);
+                }
+            }
+        }
+        URLSearchParams.prototype.get = function(name) {
+            name = String(name);
+            var list = this._list;
+            for (var i = 0; i < list.length; i++) {
+                if (list[i][0] === name) return list[i][1];
+            }
+            return null;
+        };
+        URLSearchParams.prototype.set = function(name, value) {
+            name = String(name);
+            value = String(value);
+            var list = this._list;
+            var found = false;
+            var next = [];
+            for (var i = 0; i < list.length; i++) {
+                if (list[i][0] === name) {
+                    if (!found) { next.push([name, value]); found = true; }
+                } else next.push(list[i]);
+            }
+            if (!found) next.push([name, value]);
+            this._list = next;
+        };
+        URLSearchParams.prototype.append = function(name, value) {
+            this._list.push([String(name), String(value)]);
+        };
+        URLSearchParams.prototype.delete = function(name) {
+            name = String(name);
+            var list = this._list;
+            var next = [];
+            for (var i = 0; i < list.length; i++) {
+                if (list[i][0] !== name) next.push(list[i]);
+            }
+            this._list = next;
+        };
+        URLSearchParams.prototype.has = function(name) {
+            return this.get(name) !== null;
+        };
+        URLSearchParams.prototype.toString = function() {
+            var list = this._list;
+            var s = '';
+            for (var i = 0; i < list.length; i++) {
+                if (i) s += '&';
+                s += list[i][0] + '=' + list[i][1];
+            }
+            return s;
+        };
+        URLSearchParams.prototype.forEach = function(cb, thisArg) {
+            var list = this._list;
+            for (var i = 0; i < list.length; i++) cb.call(thisArg, list[i][1], list[i][0], this);
+        };
+        function parseAbs(input, base) {
+            input = String(input);
+            if (base && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(input)) {
+                var b = parseAbs(String(base), null);
+                if (input.charCodeAt(0) === 47) input = b.origin + input;
+                else if (input.charCodeAt(0) === 63) input = b.origin + b.pathname + input;
+                else if (input.charCodeAt(0) === 35) input = b.origin + b.pathname + b.search + input;
+                else {
+                    var slash = b.pathname.lastIndexOf('/');
+                    input = b.origin + b.pathname.slice(0, slash + 1) + input;
+                }
+            }
+            var schemeEnd = input.indexOf('://');
+            if (schemeEnd <= 0) throw new TypeError('Invalid URL');
+            var protocol = input.slice(0, schemeEnd + 1);
+            var rest = input.slice(schemeEnd + 3);
+            var hash = '';
+            var hashIdx = rest.indexOf('#');
+            if (hashIdx >= 0) { hash = rest.slice(hashIdx); rest = rest.slice(0, hashIdx); }
+            var search = '';
+            var qIdx = rest.indexOf('?');
+            if (qIdx >= 0) { search = rest.slice(qIdx); rest = rest.slice(0, qIdx); }
+            var pathname = '/';
+            var slashIdx = rest.indexOf('/');
+            var hostport = rest;
+            if (slashIdx >= 0) {
+                hostport = rest.slice(0, slashIdx);
+                pathname = rest.slice(slashIdx);
+            }
+            var hostname = hostport;
+            var port = '';
+            if (hostport.charCodeAt(0) === 91) {
+                var end = hostport.indexOf(']');
+                hostname = hostport.slice(0, end + 1);
+                if (hostport.charCodeAt(end + 1) === 58) port = hostport.slice(end + 2);
+            } else {
+                var c = hostport.lastIndexOf(':');
+                if (c >= 0) { hostname = hostport.slice(0, c); port = hostport.slice(c + 1); }
+            }
+            var host = port ? (hostname + ':' + port) : hostname;
+            var origin = protocol + '//' + host;
+            return {
+                href: origin + pathname + search + hash,
+                protocol: protocol,
+                hostname: hostname,
+                port: port,
+                host: host,
+                pathname: pathname,
+                search: search,
+                hash: hash,
+                origin: origin,
+                username: '',
+                password: ''
+            };
+        }
+        function URL(input, base) {
+            if (!(this instanceof URL)) return new URL(input, base);
+            var p = parseAbs(input, base);
+            this.href = p.href;
+            this.protocol = p.protocol;
+            this.hostname = p.hostname;
+            this.port = p.port;
+            this.host = p.host;
+            this.pathname = p.pathname;
+            this.search = p.search;
+            this.hash = p.hash;
+            this.origin = p.origin;
+            this.username = '';
+            this.password = '';
+            this.searchParams = new URLSearchParams(p.search);
+        }
+        URL.prototype.toString = function() { return this.href; };
+        URL.prototype.toJSON = function() { return this.href; };
+        URL.canParse = function(input, base) {
+            try { parseAbs(input, base); return true; } catch (e) { return false; }
+        };
+        globalThis.URL = URL;
+        globalThis.URLSearchParams = URLSearchParams;
+    })();
+    "#;
+    if let Some(code) = v8::String::new(scope, url_js) {
+        if let Some(script) = v8::Script::compile(scope, code, None) {
+            let _ = script.run(scope);
+        }
+    }
     // url对象
     let url_obj: _ = v8::Object::new(scope);
     // url.parse
@@ -41,6 +202,7 @@ pub fn setup_url_api(
     global.set(scope, url_module_key.into(), url_obj.into());
     Ok(())
 }
+#[allow(dead_code)]
 fn url_constructor_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
