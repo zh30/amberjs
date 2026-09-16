@@ -10,11 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.16.0] - 2026-09-16
 
 ### Added
+
 - **Wasm Engine 2.0 zero-copy memory**: `WebAssembly.Memory` / ArrayBuffer virtual-address sharing, mmap module load, `require('bee:wasm')`.
 - **Production bundler and SEA**: oxc-backed `bee bundle` and `bee compile` single-file executables.
 - **Full-spectrum benchmark suite 2.0**: 24 in-process workloads plus Fetch/SQLite and `bee:ai.Tensor` phases.
 
 ### Performance
+
 - **URL / URLSearchParams**: JIT-friendly `url_fast.js`, removed BeeURL wrapper. 20k parse **234ms → 7.28ms** (faster than Node).
 - **fetch()**: HTTP/1.1 keep-alive fast path, no Tokio `block_on` on string GET. 100 sequential localhost GETs **1452ms → 6.51ms** (faster than Node).
 - **ReadableStream**: JS enqueue/read hot path. 5k chunks **4.53ms → 0.92ms** (faster than Node).
@@ -24,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.15.0] - 2026-09-15
 
 ### Added
+
 - **Recursive Self-Improvement (RSI) Deep Network I/O Engine & V8 Monomorphic JIT Dispatch**:
   - **Batch Handle Scoping to Eliminate Memory Ballooning**: Introduced `v8::scope!(let batch_scope, scope)` inside `pump_pending_http_requests_in_scope`, ensuring all temporary handles generated during a batch pump are dropped immediately upon batch exit instead of accumulating on the root `scope`.
   - Peak RSS during high-concurrency bursts slashed by **70% ~ 83%** (Fastify 534 MB &rarr; **87.7 MB**, Raw HTTP 435 MB &rarr; **76.5 MB**; cooldown **44.5 MB ~ 55.8 MB**, beating Node.js).
@@ -49,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.14.0] - 2026-09-15
 
 ### Added
+
 - **Tokio Zero-Hop Non-Blocking Network I/O Engine**:
   - Rebuilt `node:http` and `node:https` on top of an asynchronous multi-threaded Tokio reactor, completely retiring the blocking thread-per-connection pattern.
   - 32-way sharded response waiter registry (`RESPONSE_WAITERS_SHARDS`) using fine-grained locks to eliminate global thread contention.
@@ -70,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.12.0] - 2026-09-15
 
 ### Added
+
 - **`bee:ai` Native Local AI Inference Engine (HuggingFace Candle & GGUF Integration)**:
   - Deep integration with HuggingFace Candle (`0.8.2`) and Tokenizers (`0.21`), providing embedded zero-dependency local model inference without requiring external Python or daemon processes.
   - Zero-copy tensor bridge: direct physical memory sharing between V8 `ArrayBuffer` (`BackingStore`) and Candle `Tensor`, eliminating serialization and IPC overhead.
@@ -83,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.11.0] - 2026-09-14
 
 ### Added
+
 - **Node.js Conformance 5.0 & Mainstream Framework Compatibility**:
   - Full compatibility support and smoke verification for modern server frameworks: **Express 5.x**, **Fastify 5.x**, and **Hono 4.x** (`@hono/node-server`).
   - Conformance test harness expanded to 55 fixtures with a 100% pass rate (55/55 PASS).
@@ -102,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.10.0] - 2026-09-14
 
 ### Added
+
 - **Modern V8 Engine Upgrade**: Full migration from legacy rusty_v8 to modern official `v8 = "152.2.0"` (Chromium 134+).
 - **Stack-pinned Scope Architecture**: Standardized on `v8::PinScope` across all core runtime modules, Web APIs, and Node.js compat layers.
 - **Modern V8 Macro Suite**: Upgraded to official `v8::scope!`, `v8::callback_scope!`, and `v8::tc_scope!` macros.
@@ -109,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unlocked Modern Toolchain**: Removed legacy pinned `serde = "=1.0.197"` and historical swc locks, restoring ecosystem upgrade flexibility.
 
 ### Changed
+
 - ArrayBuffer and BackingStore memory handling safe rewrite with `Option<NonNull<c_void>>` and `detach(None)`.
 - ESM dynamic import and synthetic module callbacks migrated to safe Rust signatures.
 - Evaluator startup latency improved to 14.95ms (1.76x faster than Node.js).
@@ -117,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.9.1] - 2026-09-10
 
 ### Added
+
 - rustls HTTP/1.1 for `bee serve --https` (requires `--cert` / `--key` PEM).
 - Inspector `Runtime.evaluate` on the isolate and `--inspect-brk` pause until resume.
 - Minimal N-API hello loader (`process.dlopen` → `napi_register_module_v1`).
@@ -125,6 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cargo deny` advisories/licenses job; rustc pinned to 1.97.1.
 
 ### Changed
+
 - Windows MSVC Release job is fail-closed and must attach `bee.exe` zip.
 - `cargo-audit` no longer `continue-on-error`.
 - CI feature matrix is `benchmarks` and `observability` only.
@@ -134,12 +144,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VS Code extension launch uses `bee run --inspect-brk` and current GitHub Release asset names.
 
 ### Fixed
+
 - Unix-only `libc` (`isatty`, `posix_memalign`/`madvise`) cfg-gated for the Windows default path.
 - `bee serve` health JSON version uses `CARGO_PKG_VERSION`.
 
 ## [1.9.0] - 2026-09-09
 
 ### Added
+
 - WinterTC baseline on the default runtime: `DOMException`, `URLPattern`, `navigator`, queuing strategies, `ReadableStream.from`, `bee:sockets`, `wintercg`/`wintertc` export conditions, and `import.meta.main` / `env` / `resolve`.
 - Real rustls TLS for `secureTransport: "on"` and `startTls()`, including untrusted-certificate rejection.
 - `v*` GitHub Release archives for linux gnu x64/arm64, macOS arm64/x64, and Windows x64, with SHA-256 checksums, CycloneDX SBOM, and cosign signatures.
@@ -148,6 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Website WinterTC docs (English and Chinese) in the docs nav.
 
 ### Changed
+
 - PR CI fails closed on `cargo check --features` for `ai`, `benchmarks`, and `observability`.
 - CI runs WinterTC as its own test step, smokes Windows, and runs library tests on macOS.
 - `docker.yml` publishes `ghcr.io/zh30/beejs` on `v*` tags and `main`.
@@ -157,6 +170,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.0] - 2026-09-09
 
 ### Added
+
 - Multi-Agent message bus (`bee:bus`) with topic wildcards, request-reply RPC, middleware, and DLQ.
 - Streaming structured JSON / token grammar engine (`bee:grammar`) including `parsePartialJSON` and SSE chunk parsing.
 - Agent state checkpoint / time-travel snapshots (`bee:checkpoint`).
@@ -164,6 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2026-09-04
 
 ### Added
+
 - **Native Test Runner 2.0 (Zero-Argument Discovery & Watch Mode)**:
   - Added recursive test file discovery when `bee test` is invoked with zero arguments, scanning for `*.test.js`, `*.test.ts`, `*_test.js`, and `*_test.ts`.
   - Added intelligent noise-filtering to exclude non-test directories (`manual/`, `node_modules/`, `__snapshots__/`, `.git/`, `target/`, `dist/`).
@@ -181,6 +196,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Conformance scorecard achieved **35/35 (100% Pass Rate)** in `tests/conformance/scorecard.md`.
 
 ### Changed
+
 - **Buffer & Zlib Harmonization**:
   - Refactored `zlib.gzipSync`, `gunzipSync`, `deflateSync`, `inflateSync` to return standard `Buffer` instances and accept `Buffer`/`Uint8Array` inputs without string coercion.
 - **Crypto & Timing Safe Equal**:
@@ -189,6 +205,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated workspace version to `0.4.0` in `Cargo.toml`, `Cargo.lock`, `README.md`, and `docs/CURRENT_SCOPE.md`.
 
 ### Fixed
+
 - **ArrayBuffer Pointer Safety**:
   - Fixed panic in `Buffer.from(arrayBuffer)` on 0-length ArrayBuffers where rusty_v8 backing store pointer is NULL.
 - **Sandbox Permission Denial**:
@@ -199,6 +216,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-09-04
 
 ### Added
+
 - **Multi-Isolate Native Concurrency (Worker Threads & Web Workers 2.0)**:
   - Implemented `WorkerHost` in `src/web_api/worker_host.rs` with dedicated OS threads and independent V8 Isolates.
   - Implemented Node.js `worker_threads` module (`Worker`, `parentPort`, `isMainThread`, `workerData`).
@@ -215,6 +233,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Expanded conformance suite to 30/30 (100% Pass Rate).
 
 ### Fixed
+
 - **Fetch Response Binary Integrity**:
   - Fixed `body_value_to_bytes` in `src/web_api/fetch.rs` to extract raw binary bytes from Uint8Array/ArrayBuffer without UTF-8 re-encoding.
 
@@ -223,6 +242,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-09-04
 
 ### Added
+
 - **Instant Cold Start & V8 Snapshot Optimizations**:
   - Optimized V8 startup snapshot and isolate initialization for sub-millisecond cold starts.
 - **Agent Tool Sandbox**:
@@ -236,4 +256,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.2] - 2026-09-02
 
 ### Added
+
 - Initial public release of Beejs runtime with basic CLI, V8 execution engine, TypeScript support, and core Web APIs (`fetch`, `console`, `URL`).
