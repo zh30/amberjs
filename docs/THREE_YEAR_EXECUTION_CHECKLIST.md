@@ -100,12 +100,12 @@
 ### 任务 1.4: 生产级独立打包器与轻量包管理 (`bee bundle` & `bee install`)
 
 - **目标版本**: `v1.15.0`
-- **核心模块**: `src/package_manager.rs`, `src/main.rs`, `src/typescript/`
+- **核心模块**: `src/package_manager.rs`, `src/main.rs`, `src/typescript/`, `src/tooling/bundler.rs`, `src/tooling/compiler.rs`
 - **待执行清单**:
-  - [ ] 重构 `bee bundle`：基于 oxc 模块解析器，支持将 TS/JS 源码与本地依赖打包为单个自包含 `.js` 文件
-  - [ ] 支持 `bee compile <entry.ts> -o <binary>`：将 JS/TS 代码与精简运行时头打包为单一独立系统可执行文件 (Single Executable Application)
-  - [ ] 完善 `bee install`：支持解析 `package.json` 与标准 lockfile，实现高速并行依赖下载与符号链接缓存
-  - [ ] 将打包与包管理特性在 `docs/CURRENT_SCOPE.md` 中由 Experimental 晋级为 Preview/Stable
+  - [x] 重构 `bee bundle`：基于 oxc 模块解析器，支持将 TS/JS 源码与本地依赖打包为单个自包含 `.js` 文件
+  - [x] 支持 `bee compile <entry.ts> -o <binary>`：将 JS/TS 代码与精简运行时头打包为单一独立系统可执行文件 (Single Executable Application)
+  - [x] 完善 `bee install`：支持解析 `package.json` 与标准 lockfile，实现高速并行依赖下载与符号链接缓存
+  - [x] 将打包与包管理特性在 `docs/CURRENT_SCOPE.md` 中由 Experimental 晋级为 Preview/Stable (Preview)
 
 ---
 

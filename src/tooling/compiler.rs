@@ -97,22 +97,17 @@ pub fn compile_binary(entry_file: &Path, output_path: &Path) -> Result<()> {
         return Err(anyhow!("Entry file '{}' not found", entry_file.display()));
     }
 
-    let source = fs::read_to_string(entry_file)
-        .map_err(|e| anyhow!("Failed to read '{}': {}", entry_file.display(), e))?;
-
-    // If TS, transpile to JS first
-    let file_str = entry_file.to_string_lossy();
-    let runnable_code = if entry_file
-        .extension()
-        .map_or(false, |ext| ext == "ts" || ext == "tsx" || ext == "mts")
-    {
-        match crate::typescript::compile_typescript(&source, &file_str) {
-            Ok(output) => output.js_code,
-            Err(e) => return Err(anyhow!("TypeScript compilation failed: {}", e)),
-        }
-    } else {
-        source
+    // Bundle the entry file and all its dependencies into a self-contained JS bundle
+    let bundle_opts = crate::tooling::bundler::BundleOptions {
+        entry: entry_file.to_path_buf(),
+        outfile: None,
+        minify: false,
+        sourcemap: false,
+        target: "es2022".to_string(),
+        import_map: None,
     };
+    let bundle_out = crate::tooling::bundler::bundle_project(&bundle_opts)?;
+    let runnable_code = bundle_out.code;
 
     let runtime_binary = resolve_runtime_binary()?;
 
@@ -154,6 +149,14 @@ pub fn compile_binary(entry_file: &Path, output_path: &Path) -> Result<()> {
         let mut perms = fs::metadata(output_path)?.permissions();
         perms.set_mode(0o755);
         fs::set_permissions(output_path, perms)?;
+    }
+
+    // Re-sign with ad-hoc signature on macOS so Gatekeeper allows execution
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("codesign")
+            .args(["--sign", "-", "--force", output_path.to_str().unwrap_or("")])
+            .output();
     }
 
     println!(
