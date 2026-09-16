@@ -17322,7 +17322,7 @@ impl MinimalRuntime {
                     | "url" | "querystring" | "dns" | "child_process" | "tcp_async" | "stream"
                     | "stream/promises" | "timers" | "timers/promises"
                     | "readline" | "performance" | "perf_hooks" | "assert" | "assert/strict"
-                    | "diagnostics_channel" | "async_hooks" | "wasm"
+                    | "diagnostics_channel" | "async_hooks" | "wasm" | "bee:wasm"
                     | "ai" | "bee:ai" | "replay" | "bee:replay" | "weights" | "bee:weights"
                     | "security" | "bee:security" | "permissions" | "bee:permissions"
                     | "kv" | "bee:kv" | "tools" | "bee:tools" | "sandbox" | "bee:sandbox" | "vfs" | "bee:vfs"

@@ -6,6 +6,29 @@ use rusty_v8 as v8;
 use std::ffi::CStr;
 use std::fs::File;
 
+#[allow(unused_unsafe)]
+unsafe extern "C" fn noop_backing_store_deleter(
+    _data: *mut std::ffi::c_void,
+    _byte_length: usize,
+    _deleter_data: *mut std::ffi::c_void,
+) {
+    unsafe {
+        let _ = _data;
+    }
+}
+
+unsafe extern "C" fn mmap_backing_store_deleter(
+    _data: *mut std::ffi::c_void,
+    _byte_length: usize,
+    deleter_data: *mut std::ffi::c_void,
+) {
+    if !deleter_data.is_null() {
+        unsafe {
+            drop(Box::from_raw(deleter_data as *mut memmap2::Mmap));
+        }
+    }
+}
+
 fn to_raw_ptr(scope: &mut v8::PinScope, val: v8::Local<v8::Value>) -> usize {
     if val.is_big_int() {
         if let Ok(bi) = v8::Local::<v8::BigInt>::try_from(val) {
@@ -35,6 +58,13 @@ fn extract_target_ptr(scope: &mut v8::PinScope, arg: v8::Local<v8::Value>) -> us
                 return data.as_ptr() as usize;
             }
         }
+    } else if arg.is_shared_array_buffer() {
+        if let Ok(sab) = v8::Local::<v8::SharedArrayBuffer>::try_from(arg) {
+            let store = sab.get_backing_store();
+            if let Some(data) = store.data() {
+                return data.as_ptr() as usize;
+            }
+        }
     } else if arg.is_object() {
         if let Ok(obj) = v8::Local::<v8::Object>::try_from(arg) {
             // Check if it's WebAssembly.Memory (has .buffer property)
@@ -47,19 +77,32 @@ fn extract_target_ptr(scope: &mut v8::PinScope, arg: v8::Local<v8::Value>) -> us
                             return data.as_ptr() as usize;
                         }
                     }
+                } else if buf_val.is_shared_array_buffer() {
+                    if let Ok(sab) = v8::Local::<v8::SharedArrayBuffer>::try_from(buf_val) {
+                        let store = sab.get_backing_store();
+                        if let Some(data) = store.data() {
+                            return data.as_ptr() as usize;
+                        }
+                    }
                 }
             }
             // Check if it's bee:ai.Tensor (has .data property)
             let data_key = v8::String::new(scope, "data").unwrap();
             if let Some(tensor_data) = obj.get(scope, data_key.into()) {
-                if tensor_data.is_array_buffer_view() {
-                    return extract_target_ptr(scope, tensor_data);
+                if tensor_data.is_array_buffer_view() || tensor_data.is_object() {
+                    let ptr = extract_target_ptr(scope, tensor_data);
+                    if ptr != 0 {
+                        return ptr;
+                    }
                 }
             }
             // Check if it has a .ptr property
             let ptr_key = v8::String::new(scope, "ptr").unwrap();
             if let Some(p_val) = obj.get(scope, ptr_key.into()) {
-                return to_raw_ptr(scope, p_val);
+                let ptr = to_raw_ptr(scope, p_val);
+                if ptr != 0 {
+                    return ptr;
+                }
             }
         }
     } else if arg.is_big_int() || arg.is_number() {
@@ -360,7 +403,7 @@ pub fn setup_wasm_api(
     )
     .unwrap();
 
-    // 10. wasm.loadModuleMmap(path) -> Promise<WebAssembly.Module>
+    // 10. wasm.loadModuleMmap(path) -> Promise<WebAssembly.Module> (Truly Zero-Copy)
     let load_module_mmap_fn = v8::Function::new(
         scope,
         |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
@@ -398,9 +441,20 @@ pub fn setup_wasm_api(
                 }
             };
 
-            // Wrap mmap data into a V8 ArrayBuffer with zero heap copy overhead
-            let boxed_slice = mmap[..].to_vec().into_boxed_slice();
-            let backing_store = v8::ArrayBuffer::new_backing_store_from_boxed_slice(boxed_slice);
+            // Truly zero-copy ArrayBuffer backed directly by OS mmap page
+            let mmap_box = Box::new(mmap);
+            let ptr = mmap_box.as_ptr() as *mut std::ffi::c_void;
+            let len = mmap_box.len();
+            let deleter_data = Box::into_raw(mmap_box) as *mut std::ffi::c_void;
+
+            let backing_store = unsafe {
+                v8::ArrayBuffer::new_backing_store_from_ptr(
+                    ptr,
+                    len,
+                    mmap_backing_store_deleter,
+                    deleter_data,
+                )
+            };
             let array_buffer =
                 v8::ArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
 
@@ -430,6 +484,183 @@ pub fn setup_wasm_api(
     )
     .unwrap();
 
+    // 11. wasm.createBufferFromPointer(ptr, byteLength, shared) -> ArrayBuffer | SharedArrayBuffer
+    let create_buffer_from_pointer_fn = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
+            if args.length() < 2 {
+                let err = v8::String::new(
+                    scope,
+                    "createBufferFromPointer requires 2 arguments (ptr, byteLength)",
+                )
+                .unwrap();
+                let exc = v8::Exception::type_error(scope, err);
+                scope.throw_exception(exc);
+                return;
+            }
+            let ptr = to_raw_ptr(scope, args.get(0));
+            let len = args.get(1).integer_value(scope).unwrap_or(0) as usize;
+            if ptr == 0 {
+                let err = v8::String::new(scope, "createBufferFromPointer: null pointer provided")
+                    .unwrap();
+                let exc = v8::Exception::error(scope, err);
+                scope.throw_exception(exc);
+                return;
+            }
+            let shared = if args.length() > 2 {
+                args.get(2).boolean_value(scope)
+            } else {
+                false
+            };
+
+            if shared {
+                let backing_store = unsafe {
+                    v8::SharedArrayBuffer::new_backing_store_from_ptr(
+                        ptr as *mut std::ffi::c_void,
+                        len,
+                        noop_backing_store_deleter,
+                        std::ptr::null_mut(),
+                    )
+                };
+                let sab =
+                    v8::SharedArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
+                rv.set(sab.into());
+            } else {
+                let backing_store = unsafe {
+                    v8::ArrayBuffer::new_backing_store_from_ptr(
+                        ptr as *mut std::ffi::c_void,
+                        len,
+                        noop_backing_store_deleter,
+                        std::ptr::null_mut(),
+                    )
+                };
+                let ab = v8::ArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
+                rv.set(ab.into());
+            }
+        },
+    )
+    .unwrap();
+
+    // 12. wasm.sliceZeroCopy(target, byteOffset, byteLength) -> ArrayBuffer | SharedArrayBuffer
+    let slice_zero_copy_fn = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
+            if args.length() < 1 {
+                let err =
+                    v8::String::new(scope, "sliceZeroCopy requires at least 1 argument (target)")
+                        .unwrap();
+                let exc = v8::Exception::type_error(scope, err);
+                scope.throw_exception(exc);
+                return;
+            }
+            let base_ptr = extract_target_ptr(scope, args.get(0));
+            if base_ptr == 0 {
+                let err = v8::String::new(scope, "sliceZeroCopy: target has invalid null pointer")
+                    .unwrap();
+                let exc = v8::Exception::error(scope, err);
+                scope.throw_exception(exc);
+                return;
+            }
+            let offset = if args.length() > 1 {
+                args.get(1).integer_value(scope).unwrap_or(0) as usize
+            } else {
+                0
+            };
+            let len = if args.length() > 2 && !args.get(2).is_null_or_undefined() {
+                args.get(2).integer_value(scope).unwrap_or(0) as usize
+            } else {
+                let arg0 = args.get(0);
+                if arg0.is_array_buffer_view() {
+                    if let Ok(view) = v8::Local::<v8::ArrayBufferView>::try_from(arg0) {
+                        view.byte_length().saturating_sub(offset)
+                    } else {
+                        0
+                    }
+                } else if arg0.is_array_buffer() {
+                    if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(arg0) {
+                        ab.byte_length().saturating_sub(offset)
+                    } else {
+                        0
+                    }
+                } else if arg0.is_shared_array_buffer() {
+                    if let Ok(sab) = v8::Local::<v8::SharedArrayBuffer>::try_from(arg0) {
+                        sab.byte_length().saturating_sub(offset)
+                    } else {
+                        0
+                    }
+                } else if arg0.is_object() {
+                    if let Ok(obj) = v8::Local::<v8::Object>::try_from(arg0) {
+                        let buffer_key = v8::String::new(scope, "buffer").unwrap();
+                        if let Some(buf_val) = obj.get(scope, buffer_key.into()) {
+                            if buf_val.is_array_buffer() {
+                                if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(buf_val) {
+                                    ab.byte_length().saturating_sub(offset)
+                                } else {
+                                    0
+                                }
+                            } else if buf_val.is_shared_array_buffer() {
+                                if let Ok(sab) =
+                                    v8::Local::<v8::SharedArrayBuffer>::try_from(buf_val)
+                                {
+                                    sab.byte_length().saturating_sub(offset)
+                                } else {
+                                    0
+                                }
+                            } else {
+                                0
+                            }
+                        } else {
+                            0
+                        }
+                    } else {
+                        0
+                    }
+                } else {
+                    0
+                }
+            };
+
+            let is_shared = args.get(0).is_shared_array_buffer()
+                || (args.get(0).is_object() && {
+                    if let Ok(obj) = v8::Local::<v8::Object>::try_from(args.get(0)) {
+                        let buffer_key = v8::String::new(scope, "buffer").unwrap();
+                        obj.get(scope, buffer_key.into())
+                            .map(|b| b.is_shared_array_buffer())
+                            .unwrap_or(false)
+                    } else {
+                        false
+                    }
+                });
+
+            let final_ptr = base_ptr + offset;
+            if is_shared {
+                let backing_store = unsafe {
+                    v8::SharedArrayBuffer::new_backing_store_from_ptr(
+                        final_ptr as *mut std::ffi::c_void,
+                        len,
+                        noop_backing_store_deleter,
+                        std::ptr::null_mut(),
+                    )
+                };
+                let sab =
+                    v8::SharedArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
+                rv.set(sab.into());
+            } else {
+                let backing_store = unsafe {
+                    v8::ArrayBuffer::new_backing_store_from_ptr(
+                        final_ptr as *mut std::ffi::c_void,
+                        len,
+                        noop_backing_store_deleter,
+                        std::ptr::null_mut(),
+                    )
+                };
+                let ab = v8::ArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
+                rv.set(ab.into());
+            }
+        },
+    )
+    .unwrap();
+
     // Attach native binding bag
     let native_obj = v8::Object::new(scope);
     let k_ptr = v8::String::new(scope, "ptr").unwrap();
@@ -442,6 +673,8 @@ pub fn setup_wasm_api(
     let k_read_str = v8::String::new(scope, "readString").unwrap();
     let k_write_str = v8::String::new(scope, "writeString").unwrap();
     let k_mmap = v8::String::new(scope, "loadModuleMmap").unwrap();
+    let k_create_buf = v8::String::new(scope, "createBufferFromPointer").unwrap();
+    let k_slice = v8::String::new(scope, "sliceZeroCopy").unwrap();
 
     native_obj.set(scope, k_ptr.into(), ptr_fn.into());
     native_obj.set(scope, k_copy.into(), copy_memory_fn.into());
@@ -453,6 +686,12 @@ pub fn setup_wasm_api(
     native_obj.set(scope, k_read_str.into(), read_string_fn.into());
     native_obj.set(scope, k_write_str.into(), write_string_fn.into());
     native_obj.set(scope, k_mmap.into(), load_module_mmap_fn.into());
+    native_obj.set(
+        scope,
+        k_create_buf.into(),
+        create_buffer_from_pointer_fn.into(),
+    );
+    native_obj.set(scope, k_slice.into(), slice_zero_copy_fn.into());
 
     let k_bee_wasm_native = v8::String::new(scope, "__bee_wasm_native").unwrap();
     global.set(scope, k_bee_wasm_native.into(), native_obj.into());
@@ -461,6 +700,110 @@ pub fn setup_wasm_api(
     let js_code = r#"
     (function() {
         const native = globalThis.__bee_wasm_native;
+
+        // 1. Prototype extensions for WebAssembly.Memory, ArrayBuffer, TypedArrays
+        if (typeof WebAssembly !== 'undefined' && WebAssembly.Memory) {
+            Object.defineProperty(WebAssembly.Memory.prototype, 'ptr', {
+                get() {
+                    return native.ptr(this);
+                },
+                configurable: true,
+                enumerable: false
+            });
+
+            WebAssembly.Memory.prototype.getPointer = function() {
+                return native.ptr(this);
+            };
+
+            WebAssembly.Memory.prototype.createZeroCopyBuffer = function(byteOffset = 0, byteLength) {
+                return native.sliceZeroCopy(this, byteOffset, byteLength);
+            };
+
+            WebAssembly.Memory.prototype.asUint8Array = function(byteOffset = 0, length) {
+                const buf = this.createZeroCopyBuffer(byteOffset, length);
+                return new Uint8Array(buf);
+            };
+
+            WebAssembly.Memory.prototype.asFloat32Array = function(byteOffset = 0, length) {
+                const len = length !== undefined ? length * 4 : undefined;
+                const buf = this.createZeroCopyBuffer(byteOffset, len);
+                return new Float32Array(buf);
+            };
+
+            WebAssembly.Memory.prototype.asFloat64Array = function(byteOffset = 0, length) {
+                const len = length !== undefined ? length * 8 : undefined;
+                const buf = this.createZeroCopyBuffer(byteOffset, len);
+                return new Float64Array(buf);
+            };
+
+            WebAssembly.Memory.prototype.asInt32Array = function(byteOffset = 0, length) {
+                const len = length !== undefined ? length * 4 : undefined;
+                const buf = this.createZeroCopyBuffer(byteOffset, len);
+                return new Int32Array(buf);
+            };
+
+            WebAssembly.Memory.prototype.asInt8Array = function(byteOffset = 0, length) {
+                const buf = this.createZeroCopyBuffer(byteOffset, length);
+                return new Int8Array(buf);
+            };
+
+            WebAssembly.Memory.prototype.asUint32Array = function(byteOffset = 0, length) {
+                const len = length !== undefined ? length * 4 : undefined;
+                const buf = this.createZeroCopyBuffer(byteOffset, len);
+                return new Uint32Array(buf);
+            };
+        }
+
+        if (typeof ArrayBuffer !== 'undefined') {
+            Object.defineProperty(ArrayBuffer.prototype, 'ptr', {
+                get() {
+                    return native.ptr(this);
+                },
+                configurable: true,
+                enumerable: false
+            });
+
+            ArrayBuffer.prototype.getPointer = function() {
+                return native.ptr(this);
+            };
+
+            ArrayBuffer.prototype.createZeroCopyView = function(byteOffset = 0, byteLength) {
+                return native.sliceZeroCopy(this, byteOffset, byteLength);
+            };
+        }
+
+        if (typeof SharedArrayBuffer !== 'undefined') {
+            Object.defineProperty(SharedArrayBuffer.prototype, 'ptr', {
+                get() {
+                    return native.ptr(this);
+                },
+                configurable: true,
+                enumerable: false
+            });
+
+            SharedArrayBuffer.prototype.getPointer = function() {
+                return native.ptr(this);
+            };
+
+            SharedArrayBuffer.prototype.createZeroCopyView = function(byteOffset = 0, byteLength) {
+                return native.sliceZeroCopy(this, byteOffset, byteLength);
+            };
+        }
+
+        const TypedArrayProto = Object.getPrototypeOf(Uint8Array.prototype);
+        if (TypedArrayProto) {
+            Object.defineProperty(TypedArrayProto, 'ptr', {
+                get() {
+                    return native.ptr(this);
+                },
+                configurable: true,
+                enumerable: false
+            });
+
+            TypedArrayProto.getPointer = function() {
+                return native.ptr(this);
+            };
+        }
 
         class MemoryView {
             constructor(target, byteLength, byteOffset = 0) {
@@ -481,6 +824,26 @@ pub fn setup_wasm_api(
 
             get byteLength() {
                 return this._byteLength;
+            }
+
+            asArrayBuffer(shared = false) {
+                return native.createBufferFromPointer(this._ptr, this._byteLength, shared);
+            }
+
+            asUint8Array() {
+                return new Uint8Array(this.asArrayBuffer());
+            }
+
+            asFloat32Array() {
+                return new Float32Array(this.asArrayBuffer());
+            }
+
+            asFloat64Array() {
+                return new Float64Array(this.asArrayBuffer());
+            }
+
+            asInt32Array() {
+                return new Int32Array(this.asArrayBuffer());
             }
 
             getUint8(offset) {
@@ -560,6 +923,67 @@ pub fn setup_wasm_api(
                 maximum,
                 shared: true
             });
+        }
+
+        function shareMemory(memory) {
+            if (!memory || !(memory instanceof WebAssembly.Memory)) {
+                throw new TypeError('shareMemory requires a WebAssembly.Memory instance');
+            }
+            const ptr = native.ptr(memory);
+            return {
+                ptr,
+                get byteLength() { return memory.buffer.byteLength; },
+                get buffer() { return memory.buffer; },
+                get uint8() { return new Uint8Array(memory.buffer); },
+                get int8() { return new Int8Array(memory.buffer); },
+                get uint32() { return new Uint32Array(memory.buffer); },
+                get int32() { return new Int32Array(memory.buffer); },
+                get float32() { return new Float32Array(memory.buffer); },
+                get float64() { return new Float64Array(memory.buffer); },
+                createBuffer(offset = 0, length) {
+                    return native.sliceZeroCopy(memory, offset, length);
+                },
+                view(type = 'u8', offset = 0, length) {
+                    return createZeroCopyTypedArray(memory, type, offset, length);
+                }
+            };
+        }
+
+        function createZeroCopyBuffer(target, byteOffset = 0, byteLength) {
+            return native.sliceZeroCopy(target, byteOffset, byteLength);
+        }
+
+        function createZeroCopyTypedArray(target, type = 'u8', byteOffset = 0, length) {
+            let byteLen = undefined;
+            if (length !== undefined && length !== null) {
+                switch (type) {
+                    case 'u16':
+                    case 'i16': byteLen = length * 2; break;
+                    case 'u32':
+                    case 'i32':
+                    case 'f32': byteLen = length * 4; break;
+                    case 'f64':
+                    case 'u64':
+                    case 'i64': byteLen = length * 8; break;
+                    case 'u8':
+                    case 'i8':
+                    default: byteLen = length; break;
+                }
+            }
+            const buf = native.sliceZeroCopy(target, byteOffset, byteLen);
+            switch (type) {
+                case 'i8': return new Int8Array(buf);
+                case 'u16': return new Uint16Array(buf);
+                case 'i16': return new Int16Array(buf);
+                case 'u32': return new Uint32Array(buf);
+                case 'i32': return new Int32Array(buf);
+                case 'f32': return new Float32Array(buf);
+                case 'f64': return new Float64Array(buf);
+                case 'u64': return new BigUint64Array(buf);
+                case 'i64': return new BigInt64Array(buf);
+                case 'u8':
+                default: return new Uint8Array(buf);
+            }
         }
 
         function wrapPointer(ptr, byteLength, type = 'u8') {
@@ -663,12 +1087,17 @@ pub fn setup_wasm_api(
             readString: native.readString,
             writeString: native.writeString,
             loadModuleMmap: native.loadModuleMmap,
+            createBufferFromPointer: native.createBufferFromPointer,
+            sliceZeroCopy: native.sliceZeroCopy,
+            createZeroCopyBuffer,
+            createZeroCopyTypedArray,
             createSharedMemory,
+            shareMemory,
             wrapPointer,
             linkTensor,
             createTensorFromMemory,
             MemoryView,
-            version: '1.5.0'
+            version: '2.0.0'
         };
 
         globalThis.__bee_wasm = wasm;

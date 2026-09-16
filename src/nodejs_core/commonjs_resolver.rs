@@ -70,6 +70,7 @@ const BUILTIN_MODULES: &[&str] = &[
     "bee:sandbox",
     "bee:vfs",
     "bee:test",
+    "bee:wasm",
     "db",
     "ffi",
     "pool",

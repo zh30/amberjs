@@ -87,12 +87,12 @@
 
 ### 任务 1.3: WebAssembly 与 V8 内存零拷贝互通 (Wasm Engine 2.0)
 - **目标版本**: `v1.15.0`
-- **核心模块**: `src/web_api/wasm.rs`, `src/web_api/shared_array_buffer.rs`
+- **核心模块**: `src/web_api/wasm.rs`, `src/web_api/shared_array_buffer.rs`, `src/wasm/mod.rs`
 - **待执行清单**:
-  - [ ] 评估整合 `wasmtime` 引擎或增强 V8 内置 WebAssembly 内存外置能力
-  - [ ] 暴露 `WebAssembly.Memory` 与 V8 `ArrayBuffer` 的直接虚拟地址共享
-  - [ ] 确保在 Rust/C Wasm 模块与 JS 代码间传递大图像、向量、音频 Buffer 时零序列化、零纳秒开销
-  - [ ] 新增 Wasm 零拷贝数据传递基准与集成测试 `tests/wasm_zero_copy_tests.rs`
+  - [x] 评估整合 `wasmtime` 引擎或增强 V8 内置 WebAssembly 内存外置能力
+  - [x] 暴露 `WebAssembly.Memory` 与 V8 `ArrayBuffer` 的直接虚拟地址共享
+  - [x] 确保在 Rust/C Wasm 模块与 JS 代码间传递大图像、向量、音频 Buffer 时零序列化、零纳秒开销
+  - [x] 新增 Wasm 零拷贝数据传递基准与集成测试 `tests/wasm_zero_copy_tests.rs` (7/7 全部通过)
 
 ### 任务 1.4: 生产级独立打包器与轻量包管理 (`bee bundle` & `bee install`)
 - **目标版本**: `v1.15.0`
