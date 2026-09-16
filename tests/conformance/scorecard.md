@@ -1,9 +1,9 @@
 # Beejs Node conformance scorecard
 
-Generated: 2026-09-16T01:57Z
+Generated: 2026-09-16T02:32Z
 
 | Fixture | Result | Notes |
-| --------- | -------- | ------- |
+|---------|--------|-------|
 | assert_basics.js | PASS |
 | async_hooks.js | PASS |
 | async_local_storage_snapshot.js | PASS |

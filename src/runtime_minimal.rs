@@ -2786,7 +2786,11 @@ fn setup_buffer_module(scope: &mut v8::PinScope) {
         return _origFill.call(this, val, start, end, enc);
     };
 
-    const _bufProto = Buffer.prototype;
+    // FastBuffer avoids Object.setPrototypeOf on every allocation and slice
+    class FastBuffer extends Uint8Array {}
+    Object.setPrototypeOf(FastBuffer.prototype, Buffer.prototype);
+    FastBuffer.prototype.constructor = FastBuffer;
+
     Buffer.prototype.subarray = function subarray(start, end) {
         const len = this.length;
         let s = start | 0;
@@ -2795,13 +2799,10 @@ fn setup_buffer_module(scope: &mut v8::PinScope) {
         if (e < 0) { e += len; if (e < 0) e = 0; }
         if (e > len) e = len;
         if (s > e) s = e;
-        const res = new Uint8Array(this.buffer, this.byteOffset + s, e - s);
-        Object.setPrototypeOf(res, _bufProto);
-        return res;
+        return new FastBuffer(this.buffer, this.byteOffset + s, e - s);
     };
     Buffer.prototype.slice = Buffer.prototype.subarray;
 
-    const _origAllocUnsafe = Buffer.allocUnsafe;
     let poolSize = 8192;
     let poolOffset = 0;
     let allocPool = null;
@@ -2812,27 +2813,66 @@ fn setup_buffer_module(scope: &mut v8::PinScope) {
     }
     createPool();
 
+    const _origAlloc = Buffer.alloc;
+    const _origAllocUnsafe = Buffer.allocUnsafe;
+    const _origFrom = Buffer.from;
+
     Buffer.allocUnsafe = function allocUnsafe(size) {
         size = size | 0;
         if (size <= 0) {
-            const b = new Uint8Array(0);
-            Object.setPrototypeOf(b, _bufProto);
-            return b;
+            return new FastBuffer(0);
         }
         if (size < (Buffer.poolSize >>> 1)) {
             if (size > (poolSize - poolOffset)) {
                 createPool();
             }
-            const b = new Uint8Array(allocPool, poolOffset, size);
-            Object.setPrototypeOf(b, _bufProto);
+            const b = new FastBuffer(allocPool, poolOffset, size);
             poolOffset += size;
             poolOffset = (poolOffset + 7) & ~7;
             return b;
         }
-        return _origAllocUnsafe(size);
+        return new FastBuffer(size);
     };
+
+    Buffer.alloc = function alloc(size, fill, enc) {
+        size = size | 0;
+        if (size <= 0) {
+            return new FastBuffer(0);
+        }
+        if (fill === undefined || fill === 0) {
+            return new FastBuffer(size);
+        }
+        const buf = new FastBuffer(size);
+        buf.fill(fill, 0, size, enc);
+        return buf;
+    };
+
+    Buffer.from = function from(val, enc) {
+        if (typeof val === 'string') {
+            const strLen = val.length;
+            if (strLen < 2048 && (!enc || enc === 'utf8' || enc === 'utf-8')) {
+                const maxBytes = (strLen * 3) | 0;
+                if (maxBytes < (poolSize - poolOffset)) {
+                    const b = new FastBuffer(allocPool, poolOffset, maxBytes);
+                    const written = b.write(val, 'utf8');
+                    const res = new FastBuffer(allocPool, poolOffset, written);
+                    poolOffset = (poolOffset + written + 7) & ~7;
+                    return res;
+                } else if (maxBytes < (Buffer.poolSize >>> 1)) {
+                    createPool();
+                    const b = new FastBuffer(allocPool, poolOffset, maxBytes);
+                    const written = b.write(val, 'utf8');
+                    const res = new FastBuffer(allocPool, poolOffset, written);
+                    poolOffset = (poolOffset + written + 7) & ~7;
+                    return res;
+                }
+            }
+        }
+        return _origFrom(val, enc);
+    };
+
     Buffer.allocUnsafeSlow = function allocUnsafeSlow(size) {
-        return _origAllocUnsafe(size);
+        return new FastBuffer(size | 0);
     };
     Buffer.poolSize = 8192;
 })();
