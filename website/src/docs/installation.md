@@ -1,6 +1,6 @@
 ---
-title: "Installation & Setup"
-subtitle: "Quickly install Beejs on macOS and Linux, or compile from source"
+title: "Installation"
+subtitle: "Install a v1.16.0 binary, or build from source"
 group: "Getting Started"
 id: "installation"
 ---
@@ -11,6 +11,9 @@ On macOS or Linux, run the official one-line install script in your terminal:
 
 ```bash
 curl -fsSL https://bee.zhanghe.dev/install.sh | sh
+
+# pin a release
+curl -fsSL https://bee.zhanghe.dev/install.sh | BEEJS_VERSION=v1.16.0 sh
 ```
 
 On Windows (PowerShell):
@@ -26,6 +29,7 @@ brew install zh30/tap/bee
 ```
 
 ### What the Install Script Does
+
 1. **Detects Environment**: Automatically identifies your OS (macOS / Linux) and CPU architecture (Apple Silicon `arm64` or Intel `x86_64`).
 2. **Fetches Prebuilt Archive**: Downloads the release archive optimized with `-O3` and verifies binary integrity.
 3. **Deploys Binary**: Unpacks the `bee` executable into `~/.bee/bin/bee`.
@@ -44,13 +48,14 @@ Verify that `bee` is properly installed and accessible:
 bee --version
 
 # Evaluate a quick JavaScript snippet
-bee eval "console.log('🐝 Beejs is ready! Node compat: ' + process.version);"
+bee eval "1 + 1"
 ```
 
 You should see output similar to:
+
 ```text
-bee 1.0.0
-🐝 Beejs is ready! Node compat: v24.0.0
+bee 1.16.0
+2
 ```
 
 ---
@@ -75,22 +80,27 @@ bee 1.0.0
 To customize Beejs, debug internal subsystems, or build for non-standard architectures, compile directly using the Rust toolchain.
 
 ### 1. Prerequisites
+
 Ensure you have the following installed:
-- **Rust** 1.80.0+ ([rustup.rs](https://rustup.rs))
+
+- **Rust** **1.97.1** (pinned in this repo; [rustup.rs](https://rustup.rs))
 - **Clang / LLVM** (required for V8 C++ bindings)
 - **Python 3** (build helper scripts)
 
 On Ubuntu / Debian:
+
 ```bash
 sudo apt update && sudo apt install -y build-essential clang llvm git curl cmake python3
 ```
 
 On macOS:
+
 ```bash
 xcode-select --install
 ```
 
 ### 2. Clone and Build
+
 ```bash
 git clone https://github.com/zh30/beejs.git
 cd beejs
@@ -103,6 +113,7 @@ cargo build --release
 ```
 
 ### 3. Install to Global PATH
+
 ```bash
 sudo cp ./target/release/bee /usr/local/bin/
 bee --version
@@ -120,6 +131,7 @@ bee --version
 | `BEE_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
 
 Example for `~/.zshrc` or Dockerfile:
+
 ```bash
 export BEE_WORKERS=8
 export BEE_LOG=warn

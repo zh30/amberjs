@@ -1,96 +1,96 @@
 ---
-title: "概览与设计理念"
-subtitle: "面向高并发 I/O、边缘计算与 AI 原生任务的高性能 JavaScript/TypeScript 运行时"
+title: "概览"
+subtitle: "Rust + V8 的 JavaScript/TypeScript 运行时。一个二进制：bee。"
 group: "开始"
 id: "introduction"
 ---
 
-## 什么是 Beejs？
+## Beejs 是什么？
 
-**Beejs** 是一个采用 **Rust** 与 **Google V8** 引擎从零构建的现代化 JavaScript / TypeScript 运行时。
+**Beejs** 是用 **Rust** 和 **Google V8** 构建的 JavaScript / TypeScript 运行时，发布形态是单一可执行文件 `bee`。
 
-在过去十余年间，Node.js 奠定了服务端 JavaScript 的繁荣基石，而 Deno 与 Bun 则开创了现代一体化工具链的新纪元。然而，随着边缘计算、微服务高密度无服务器架构（Serverless）以及 AI Agent 智能体的爆发，现代服务端工作负载面临着全新的挑战：
+它面向 **Agent 工具与沙箱脚本**：不用 `tsc` 就能跑 TypeScript，内置 Jest 风格测试，通过 MCP / JSON-RPC 托管工具，并用 `bee:ai` 做进程内张量。它 **不是** Node.js 的即插即用替代品。
 
-- **极致冷启动需求**：Serverless 与边缘计算要求运行时在 20ms 以内完成初始化并响应请求；
-- **重度张量与向量计算**：AI 应用需要原生处理高维向量、Embedding 与流式模型推理，而不愿受制于庞大冗余的 Python 运行环境；
-- **高并发零拷贝 I/O**：面对每秒数万并发请求，避免内存冗余拷贝与上下文切换是压榨单机性能的关键；
-- **细粒度确定性沙箱**：AI Agent 自主执行代码要求严格的权限控制、虚拟时钟与确定性随机种子。
+适合这些场景：
 
-Beejs 正是为解决这些现代工作负载痛点而诞生的下一代生产级运行时。
+- **一个二进制** 覆盖 `run` / `eval` / `test` / `repl` / `mcp`
+- **不用 `tsc` 的 TypeScript**（oxc 只做类型擦除）
+- **能力沙箱**（`--sandbox`、`--seed`、`--freeze-time`）
+- **进程内张量** `bee:ai`（不需要 Python sidecar）
+
+最近的参照物：Deno（V8 + Rust，权限模型）和 Bun（一体化 CLI）。Beejs 保留 V8，加上 Agent / MCP 宿主，并且每个命令都标了 Stable / Preview / Experimental。
 
 ---
 
-## 核心系统架构
-
-Beejs 的底层设计遵循“第一性原理”，将 Rust 的内存安全与零成本抽象、Google V8 的极致执行性能、以及 oxc 亚毫秒编译管线深度融为一体：
+## 架构
 
 ```text
-+-----------------------------------------------------------------------+
-|                       应用层 (JavaScript / TypeScript)                |
-|           React / TSX  ·  HTTP APIs  ·  Agent Pipelines  ·  Tests     |
-+-----------------------------------------------------------------------+
-|                                运行时 API                             |
-|   +--------------------+  +--------------------+  +----------------+  |
-|   |  Node.js 兼容层     |  |   Web 标准 API     |  | 原生 AI (bee:ai)|  |
-|   | (fs, http, buffer) |  | (fetch, Streams)   |  | (Tensor, LLM)   |  |
-|   +--------------------+  +--------------------+  +----------------+  |
-+-----------------------------------------------------------------------+
-|                       多 Worker 无锁线程池 (Multi-Isolate)             |
-|   [Worker 1] <--- Lockless Channel ---> [Worker 2] ... [Worker N]     |
-+-----------------------------------------------------------------------+
-|                       核心引擎层 (Core Engine)                         |
-|   +--------------------------+     +-------------------------------+  |
-|   |     Google V8 引擎       |     |   oxc TS/TSX 原生转译管线     |  |
-|   | (JIT, WASM, GC, mmap 2.0)|     | (类型擦除, Decorator, using)  |  |
-|   +--------------------------+     +-------------------------------+  |
-+-----------------------------------------------------------------------+
-|                   宿主运行时与系统抽象 (Rust Host & Tokio)             |
-|  - Rust SIMD 向量化 Buffer          - 确定性沙箱与 ResourceBroker      |
-|  - 高精度时间轮 (Timing Wheel)       - 双层全内存模块 Stat 绕过缓存     |
-+-----------------------------------------------------------------------+
++-------------------------------------------------------------------+
+|  应用层  —  JS / TS  ·  测试  ·  MCP 工具  ·  HTTP fetch          |
++-------------------------------------------------------------------+
+|  运行时 API                                                       |
+|    Node 兼容（fs, http, buffer, …）                               |
+|    Web API（fetch, Streams, URL, Web Crypto）                     |
+|    bee:ai（Tensor, LLM, AgentPipeline）                           |
++-------------------------------------------------------------------+
+|  引擎  —  V8 isolate  ·  oxc TS/TSX  ·  Tokio I/O                 |
++-------------------------------------------------------------------+
+|  宿主  —  能力经纪  ·  快照  ·  Wasm backing store                |
++-------------------------------------------------------------------+
 ```
 
 ---
 
-## 核心优势一览
+## v1.16.0 里有什么
 
-### 1. 亚毫秒级 V8 快照与极致冷启动 (<18ms)
-传统 Node.js 启动时需要解析加载内置模块并进行大量 V8 堆初始化。Beejs 采用 **V8 Snapshot 2.0 + mmap** 技术，在编译期将上下文与内置 API 序列化为二进制快照，运行时通过 `memmap2` 零拷贝映射，多进程间 Copy-on-Write 共享内存，CLI 启动耗时不到 18ms，较 Node.js 提升 **1.93 倍**。
+| 能力 | 状态 | 说明 |
+| :--- | :--- | :--- |
+| `bee run` / `eval` / `repl` | **Stable** | JS 始终可用；TS/TSX 走 oxc（契约仍是 Preview） |
+| `bee test` | **Stable** | Jest 风格 `describe` / `test` / `expect` |
+| `bee:ai` | **Stable** | 进程内 Tensor / LLM / AgentPipeline |
+| `--sandbox` / MCP / session | **Preview** | 默认拒绝 I/O，可冻结时钟与 PRNG |
+| `bee serve` | **Preview** | WinterCG `fetch` 处理器；`--https` 是 rustls HTTP/1.1 |
+| `bee bundle` / `bee compile` | **Preview** | oxc 图打包；SEA trailer `BEE_STANDALONE` |
+| `bee:wasm` | **Preview** | Memory / ArrayBuffer 零拷贝 |
+| 包管理（`init`/`install`/`x`） | **Experimental** | 轻量实现，不是完整 npm |
+| Node API | **Preview** | 按 API 计。Conformance 5.0 为 **55/55** |
 
-### 2. Rust SIMD 零拷贝 Buffer（全引擎第一）
-利用 CPU 向量化指令（AVX2 / NEON），Beejs 对 `node:buffer` 的内存分配、填充与切片操作进行了底层优化。在 100,000 次 64KB 缓冲区操作基准测试中，Beejs 仅耗时 **2.09ms**，吞吐速度超越主流所有竞品。
-
-### 3. 双层全内存模块解析缓存 (4.6M ops/s)
-模块加载是大型微服务启动的性能瓶颈。Beejs 采用创新的双层内存缓存机制，完全绕过操作系统文件系统的 `stat` 系统调用，在 `require()` 高频调用下达到 **4,601,226 ops/s** 的惊人解析吞吐，比 Node.js 快 **4.1 倍**。
-
-### 4. 原生 TypeScript 6.0 & TSX 无配置执行
-内置基于 Rust 的 `oxc` 编译器。运行 `.ts`、`.tsx`、`.mts` 文件无需预先安装 `tsc`、`ts-node` 或配置复杂 `tsconfig.json`。亚毫秒级完成类型擦除，并原生支持 Stage 3 装饰器、`using` 显式资源管理与 JSX 自动转换。
-
-### 5. 原生 Agentic AI 引擎 (`bee:ai`)
-无需配置 Python 或外部 C++ 动态链接库。Beejs 原生内置 `bee:ai` 模块，直接在 V8 中以 `Float32Array` 支撑零拷贝张量（`Tensor`）、本地轻量模型流式推理（`LLM`）与智能体执行管线（`AgentPipeline`）。
-
----
-
-## 与主流运行时横向对比
-
-| 核心特性 | Beejs v1.0.0 | Node.js v24 | Bun v1.4 | Deno v2.x |
-| :--- | :---: | :---: | :---: | :---: |
-| **底层引擎** | Google V8 + Rust | Google V8 + C++ | JavaScriptCore + Zig | Google V8 + Rust |
-| **CLI 冷启动时间** | **< 18 ms** | ~35 ms | ~15 ms | ~25 ms |
-| **TypeScript / TSX** | **内置 oxc (零配置)** | 需 flag / 外部依赖 | 内置转译器 | 内置 SWC |
-| **Buffer 100k SIMD** | **2.09 ms (#1 最快)** | 4.80 ms | 2.50 ms | 4.20 ms |
-| **模块解析吞吐** | **4.61M ops/s** | 1.12M ops/s | 3.88M ops/s | 2.10M ops/s |
-| **并发 HTTP 架构** | **多 Worker 线程池** | 单线程 / Cluster | 多线程事件循环 | 多线程 / Tokio |
-| **原生 AI 引擎** | **内置 `bee:ai`** | 依赖 npm / node-gyp | 实验性 C bindings | 需外部 WebGPU |
-| **细粒度确定性沙箱** | **支持 (种子/时钟/审计)** | 需操作系统级容器 | 无细粒度沙箱 | 支持权限控制 |
-| **Node.js 兼容性** | **100% (51/51 套件)** | 官方原生 | 高度兼容 | 高度兼容 |
+用户侧能力边界以仓库里的 [Current Scope](https://github.com/zh30/beejs/blob/main/docs/CURRENT_SCOPE.md) 为准。历史阶段报告不是产品承诺。
 
 ---
 
-## 路线图与设计边界
+## 对比
 
-Beejs 致力于打造“**小而精、强而专**”的极速运行时：
+| | Beejs 1.16.0 | Node.js | Bun | Deno |
+| :--- | :--- | :--- | :--- | :--- |
+| 引擎 | V8 + Rust | V8 + C++ | JSC + Zig | V8 + Rust |
+| TypeScript | oxc，仅转译 | loaders / `tsc` | 内置 | 内置 |
+| 安全默认 | 可选 `--sandbox` | 无 | 无 | 权限开关 |
+| Node API | 增量 Preview | 原生 | 目标 drop-in | 兼容层 |
+| 测试 | 内置 `bee test` | 外部 | `bun test` | `deno test` |
+| 原生 AI | `bee:ai` | — | — | — |
+| 符合度记分牌 | 55/55 fixtures | 原生 | 高 | 高 |
 
-- **聚焦目标**：高吞吐 API 服务、微服务网关、边缘无服务器计算、实时流处理、AI Agent 工具执行环境。
-- **构建承诺**：公开发布的功能均经过 369 项 Rust 集成测试与 51 项 Node.js 官方一致性测试验证。
-- **下一步规划**：持续深化 WebAssembly SIMD 加速、分布式 Worker 共享内存通信、以及轻量嵌入式数据库绑定。
+覆盖是 **按 API** 的，不是「兼容 Node」。当前存在的模块包括 `fs`、`path`、`os`、`url`、`buffer`、`events`、`stream`、`crypto`、`http`、`http2`、`net`、`child_process`（`execSync` / `spawnSync`）、`zlib`、`util`、`worker_threads`。Web：`fetch`、Streams、Web Crypto、URL、`Worker`。
+
+---
+
+## 性能
+
+公开数字必须能在仓库 `benchmarks/` 里复现（硬件、命令、正确性检查）。Apple M2 Max（2026-09-16，Beejs vs Node v22.22.3 vs Bun 1.4.1）：
+
+- URL + URLSearchParams（20k）：Beejs **7.28 ms**，Node 12.54 ms
+- fetch 连续 100 次 GET：Beejs **6.51 ms**，Node 17.00 ms
+- ReadableStream 5k chunks：Beejs **0.92 ms**，Node 1.16 ms
+- Express 5.x：Beejs **约 68k req/s**，Node 约 19k req/s
+- CLI `eval 1+1` 均值：Beejs **18.47 ms**，Node 27.53 ms，Bun 8.03 ms
+
+这是一台机器、一次提交，不是 SLA。Bun 在若干微基准和冷启动上仍然更快。
+
+---
+
+## 接下来
+
+1. [安装](/docs/installation)
+2. [快速开始](/docs/quick-start)
+3. [CLI 参考](/docs/cli-usage)

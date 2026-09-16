@@ -70,7 +70,7 @@ console.log(colors.yellow('⚠ 警告：检测到内存占用超过 80%'));
 // 2. 格式化表格
 const headers = ['名称', '版本', '状态'];
 const rows = [
-  ['beejs', 'v1.0.0', colors.green('Active')],
+  ['beejs', 'v1.16.0', colors.green('Active')],
   ['sqlite', 'v3.45', colors.green('Active')],
 ];
 console.log(table(headers, rows));

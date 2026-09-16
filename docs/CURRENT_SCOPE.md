@@ -1,6 +1,13 @@
 # Current Scope
 
-Last reviewed: 2026-09-10
+Last reviewed: 2026-09-16 (v1.16.0)
+
+v1.16.0 notes:
+
+- Wasm Engine 2.0: zero-copy `WebAssembly.Memory` / `ArrayBuffer` via V8 backing stores, mmap module load, `require('bee:wasm')`.
+- `bee bundle` (oxc) and `bee compile` (SEA trailer `BEE_STANDALONE`) remain **Preview**.
+- URL / `fetch` / `ReadableStream` hot paths rewritten; suite 2.0 numbers are in `benchmarks/`.
+- Node.js Conformance 5.0 is **55/55 PASS**.
 
 Optimization sprint notes (2026-09-10 v1.9.1):
 
@@ -38,7 +45,7 @@ Use these files and checks as the current fact sources:
 
 Current facts from those sources:
 
-- Package version is `1.9.1`.
+- Package version is `1.16.0`.
 - The active Cargo binary is `bee`, built from `src/main.rs`.
 - Default Cargo features are empty: `default = []`.
 - The default runtime path used by the CLI is `src/runtime_minimal.rs`.
@@ -48,11 +55,11 @@ Current facts from those sources:
 
 ### Stable
 
-Stable means the capability is part of the official v1.9.1 release scope, is reachable from the active `bee` binary or default library surface, and is verified by focused smoke tests, Rust integration tests, and conformance suites.
+Stable means the capability is part of the official v1.16.0 release scope, is reachable from the active `bee` binary or default library surface, and is verified by focused smoke tests, Rust integration tests, and conformance suites.
 
 Current stable scope:
 
-- Build Beejs from source with Cargo (`v1.9.1`).
+- Build Beejs from source with Cargo (`v1.16.0`).
 - Inspect the CLI with `bee --help`, `bee --version`, or `bee version`.
 - Evaluate simple JavaScript snippets with `bee eval <code>`.
 - Run JavaScript files with `bee run <file>`.
@@ -143,7 +150,7 @@ cargo check --features observability
 cargo check --features benchmarks
 ```
 
-`enterprise`, `cloudnative`, `multilang`, `tch`, and empty `ai` are not in the v1.9.1 CI matrix.
+`enterprise`, `cloudnative`, `multilang`, `tch`, and empty `ai` are not in the v1.16.0 CI matrix.
 
 If a feature build fails or has not been checked in the current branch, document the related capability as Experimental, not Stable.
 

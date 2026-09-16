@@ -1,6 +1,6 @@
 # Beejs CLI 使用指南
 
-本文档描述 Beejs v1.9.1 默认二进制 `bee` 的当前 CLI 行为。对照 [CURRENT_SCOPE.md](CURRENT_SCOPE.md) 看 Stable / Preview / Experimental。
+本文档描述 Beejs v1.16.0 默认二进制 `bee` 的当前 CLI 行为。对照 [CURRENT_SCOPE.md](CURRENT_SCOPE.md) 看 Stable / Preview / Experimental。
 
 ## 基本命令
 
@@ -124,7 +124,6 @@ bee test examples/testing/math.test.js --update-snapshots
 - **Node.js 模块**：支持 `fs` (`fs.promises`), `crypto`, `events`, `path`, `buffer`, `process`, `timers`, `http`, `net`, `os`, `url`, `querystring`, `stream`, `readline`, `child_process`, CommonJS `require`。
 - **Web API 标准**：支持 `fetch` (带 Headers/Response/bodyUsed), `WebSocket`, `Web Crypto` (AES-GCM, AES-CBC, AES-CTR, ECDSA, ECDH, RSA, SHA-1/256/384/512, wrapKey/unwrapKey), `URL` / `URLSearchParams`, `Streams`, `TextEncoder` / `TextDecoder`, `Blob`, `FormData`, `AbortController`。
 
-
 ## Bundle
 
 ```bash
@@ -197,7 +196,7 @@ cargo build --release
 
 ## 平台范围
 
-v1.9.1 预编译包当前覆盖：
+v1.16.0 预编译包当前覆盖：
 
 - macOS x86_64 (`bee-v<ver>-x86_64-apple-darwin.tar.gz`)
 - macOS arm64 (`bee-v<ver>-aarch64-apple-darwin.tar.gz`)

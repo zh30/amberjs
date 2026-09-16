@@ -70,7 +70,7 @@ console.log(colors.yellow('⚠ Warning: High memory usage detected'));
 // 2. Unicode table formatter
 const headers = ['Package', 'Version', 'Status'];
 const rows = [
-  ['beejs', 'v1.0.0', colors.green('Active')],
+  ['beejs', 'v1.16.0', colors.green('Active')],
   ['sqlite', 'v3.45', colors.green('Active')],
 ];
 console.log(table(headers, rows));

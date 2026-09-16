@@ -1,6 +1,6 @@
 ---
-title: "安装与环境配置"
-subtitle: "快速在 macOS、Linux 上安装 Beejs，或从源码编译构建"
+title: "安装"
+subtitle: "安装 v1.16.0 预编译包，或从源码构建"
 group: "开始"
 id: "installation"
 ---
@@ -11,6 +11,9 @@ id: "installation"
 
 ```bash
 curl -fsSL https://bee.zhanghe.dev/install.sh | sh
+
+# 固定版本
+curl -fsSL https://bee.zhanghe.dev/install.sh | BEEJS_VERSION=v1.16.0 sh
 ```
 
 Windows（PowerShell）：
@@ -26,6 +29,7 @@ brew install zh30/tap/bee
 ```
 
 ### 安装脚本执行过程说明
+
 1. **自动识别硬件与系统**：自动检测你的系统（macOS / Linux）与 CPU 架构（Apple Silicon `arm64`、Intel `x86_64`）；
 2. **下载预编译产物**：从官方发布源下载经过 `-O3` 生产优化的二进制压缩包并校验完整性；
 3. **部署到用户主目录**：将可执行文件 `bee` 解压部署至 `~/.bee/bin/bee`；
@@ -44,13 +48,14 @@ brew install zh30/tap/bee
 bee --version
 
 # 快速运行 JavaScript 代码片段
-bee eval "console.log('🐝 Beejs is ready! Node compat: ' + process.version);"
+bee eval "1 + 1"
 ```
 
-如果看到类似以下输出，说明安装已大功告成：
+看到类似输出即可：
+
 ```text
-bee 1.0.0
-🐝 Beejs is ready! Node compat: v24.0.0
+bee 1.16.0
+2
 ```
 
 ---
@@ -75,22 +80,27 @@ bee 1.0.0
 如果你需要对 Beejs 进行定制化开发、本地调试或在未提供预编译产物的操作系统上运行，可以通过 Rust 工具链从源码编译。
 
 ### 1. 安装编译依赖
+
 确保本地已安装：
-- **Rust** 1.80.0 及以上（推荐使用 [rustup.rs](https://rustup.rs) 安装）
+
+- **Rust** **1.97.1**（仓库已锁定；用 [rustup.rs](https://rustup.rs) 安装）
 - **Clang / LLVM**（V8 编译与 C++ 绑定必需）
 - **Python 3**（构建辅助脚本）
 
 在 Ubuntu / Debian 上安装基础工具：
+
 ```bash
 sudo apt update && sudo apt install -y build-essential clang llvm git curl cmake python3
 ```
 
 在 macOS 上：
+
 ```bash
 xcode-select --install
 ```
 
 ### 2. 克隆仓库并构建
+
 ```bash
 git clone https://github.com/zh30/beejs.git
 cd beejs
@@ -103,6 +113,7 @@ cargo build --release
 ```
 
 ### 3. 安装到全局 PATH
+
 ```bash
 sudo cp ./target/release/bee /usr/local/bin/
 bee --version
@@ -122,6 +133,7 @@ Beejs 支持通过环境变量调整全局运行时行为：
 | `BEE_LOG` | `info` | 设置日志级别（`error`、`warn`、`info`、`debug`、`trace`） |
 
 示例：在 `~/.zshrc` 或生产环境 Dockerfile 中设置：
+
 ```bash
 export BEE_WORKERS=8
 export BEE_LOG=warn

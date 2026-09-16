@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion'
-import { useState } from 'react'
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import {
   ArrowRight,
   BarChart3,
@@ -20,49 +20,63 @@ import {
   Terminal,
   TrendingUp,
   Zap,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { useLang } from '../lib/i18n'
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { useLang } from "../lib/i18n";
 
 const featureIcons = [
-  <Server key="server" className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
+  <Server
+    key="server"
+    className="w-6 h-6 text-amber-600 dark:text-amber-400"
+  />,
   <Zap key="zap" className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
-  <FileCode2 key="filecode" className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
+  <FileCode2
+    key="filecode"
+    className="w-6 h-6 text-amber-600 dark:text-amber-400"
+  />,
   <Lock key="lock" className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
   <Gauge key="gauge" className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
-  <Layers key="layers" className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
-]
+  <Layers
+    key="layers"
+    className="w-6 h-6 text-amber-600 dark:text-amber-400"
+  />,
+];
 
 const subsystemIcons = [
   <Cpu key="v8" className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
-  <FileCode2 key="oxc" className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
+  <FileCode2
+    key="oxc"
+    className="w-5 h-5 text-amber-600 dark:text-amber-400"
+  />,
   <Server key="pool" className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
   <Layers key="node" className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
   <Gauge key="web" className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
   <Package key="pkg" className="w-5 h-5 text-amber-600 dark:text-amber-400" />,
-]
+];
 
-type SandboxTab = 'http' | 'ts' | 'buffer'
+type SandboxTab = "http" | "ts" | "buffer";
 
 export default function HomeComponent() {
-  const { copy } = useLang()
-  const home = copy.home
-  const [copied, setCopied] = useState(false)
-  const [benchmarkFilter, setBenchmarkFilter] = useState<'all' | 'core' | 'io'>('all')
-  const [activeTab, setActiveTab] = useState<SandboxTab>('http')
+  const { copy } = useLang();
+  const home = copy.home;
+  const [copied, setCopied] = useState(false);
+  const [benchmarkFilter, setBenchmarkFilter] = useState<"all" | "core" | "io">(
+    "all",
+  );
+  const [activeTab, setActiveTab] = useState<SandboxTab>("http");
 
-  const installCommand = 'curl -fsSL https://bee.zhanghe.dev/install.sh | sh'
+  const installCommand = "curl -fsSL https://bee.zhanghe.dev/install.sh | sh";
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(installCommand)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    navigator.clipboard.writeText(installCommand);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const filteredBenchmarks = home.benchmarks.filter((item) => {
-    if (benchmarkFilter === 'all') return true
-    return item.category === benchmarkFilter
-  })
+    if (benchmarkFilter === "all") return true;
+    return item.category === benchmarkFilter;
+  });
 
   return (
     <div className="relative overflow-hidden pt-6 pb-24">
@@ -112,7 +126,9 @@ export default function HomeComponent() {
           className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight max-w-5xl mx-auto leading-[1.08] font-display text-zinc-950 dark:text-white"
         >
           {home.heroTitlePrefix}
-          <span className="gradient-amber drop-shadow-sm">{home.heroTitleAccent}</span>
+          <span className="gradient-amber drop-shadow-sm">
+            {home.heroTitleAccent}
+          </span>
           {home.heroTitleSuffix}
         </motion.h1>
 
@@ -150,7 +166,7 @@ export default function HomeComponent() {
           </a>
 
           <Link
-            to="/blog/v1.0.0-official-release"
+            to={home.latestArticle.link}
             className="w-full sm:w-auto px-6 py-4 rounded-full glass-card hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-200 font-medium text-sm transition-all flex items-center justify-center gap-2 border border-zinc-300/80 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700"
           >
             <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
@@ -168,7 +184,9 @@ export default function HomeComponent() {
           <div className="glass-panel rounded-2xl p-2.5 flex items-center justify-between gap-3 text-xs font-mono text-zinc-800 dark:text-zinc-200 border-zinc-300/80 dark:border-zinc-800 hover:border-amber-500/40 transition-all shadow-lg dark:shadow-2xl">
             <div className="flex items-center gap-2.5 px-3 overflow-x-auto truncate">
               <Terminal className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
-              <span className="select-all text-zinc-900 dark:text-zinc-200 font-medium">{installCommand}</span>
+              <span className="select-all text-zinc-900 dark:text-zinc-200 font-medium">
+                {installCommand}
+              </span>
             </div>
             <button
               onClick={handleCopy}
@@ -178,7 +196,9 @@ export default function HomeComponent() {
               {copied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-emerald-700 dark:text-emerald-400 font-bold">{home.copiedBtn}</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                    {home.copiedBtn}
+                  </span>
                 </>
               ) : (
                 <>
@@ -273,7 +293,10 @@ export default function HomeComponent() {
       </section>
 
       {/* Interactive Benchmark Showdown Section */}
-      <section id="benchmarks" className="max-w-6xl mx-auto px-6 pb-28 relative z-10">
+      <section
+        id="benchmarks"
+        className="max-w-6xl mx-auto px-6 pb-28 relative z-10"
+      >
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-card border-amber-500/30 text-xs font-mono text-amber-800 dark:text-amber-300 font-semibold mb-4">
             <TrendingUp className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
@@ -295,31 +318,31 @@ export default function HomeComponent() {
           {/* Filter Tabs */}
           <div className="mt-8 inline-flex p-1.5 rounded-full glass-panel border-zinc-200/80 dark:border-zinc-800">
             <button
-              onClick={() => setBenchmarkFilter('all')}
+              onClick={() => setBenchmarkFilter("all")}
               className={`px-5 py-2 rounded-full text-xs font-semibold font-mono transition-all cursor-pointer ${
-                benchmarkFilter === 'all'
-                  ? 'bg-amber-500 text-zinc-950 shadow-md font-bold'
-                  : 'text-zinc-700 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
+                benchmarkFilter === "all"
+                  ? "bg-amber-500 text-zinc-950 shadow-md font-bold"
+                  : "text-zinc-700 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
               }`}
             >
               {home.benchmarksFilterAll}
             </button>
             <button
-              onClick={() => setBenchmarkFilter('core')}
+              onClick={() => setBenchmarkFilter("core")}
               className={`px-5 py-2 rounded-full text-xs font-semibold font-mono transition-all cursor-pointer ${
-                benchmarkFilter === 'core'
-                  ? 'bg-amber-500 text-zinc-950 shadow-md font-bold'
-                  : 'text-zinc-700 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
+                benchmarkFilter === "core"
+                  ? "bg-amber-500 text-zinc-950 shadow-md font-bold"
+                  : "text-zinc-700 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
               }`}
             >
               {home.benchmarksFilterCore}
             </button>
             <button
-              onClick={() => setBenchmarkFilter('io')}
+              onClick={() => setBenchmarkFilter("io")}
               className={`px-5 py-2 rounded-full text-xs font-semibold font-mono transition-all cursor-pointer ${
-                benchmarkFilter === 'io'
-                  ? 'bg-amber-500 text-zinc-950 shadow-md font-bold'
-                  : 'text-zinc-700 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
+                benchmarkFilter === "io"
+                  ? "bg-amber-500 text-zinc-950 shadow-md font-bold"
+                  : "text-zinc-700 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
               }`}
             >
               {home.benchmarksFilterIo}
@@ -346,11 +369,15 @@ export default function HomeComponent() {
                       <h3 className="text-lg sm:text-xl font-bold text-zinc-950 dark:text-white font-display">
                         {bench.title}
                       </h3>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">{bench.desc}</p>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                        {bench.desc}
+                      </p>
                     </div>
 
                     <span className="shrink-0 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
-                      {bench.isBeeWinner ? home.benchmarksFastest : home.benchmarksParity}
+                      {bench.isBeeWinner
+                        ? home.benchmarksFastest
+                        : home.benchmarksParity}
                     </span>
                   </div>
 
@@ -366,13 +393,18 @@ export default function HomeComponent() {
                     <div>
                       <div className="flex items-center justify-between text-xs font-mono mb-1.5">
                         <span className="text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1.5">
-                          <span>Beejs v1.4.0 (Rust)</span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold">
-                            #1
-                          </span>
+                          <span>Beejs v1.16.0 (Rust)</span>
+                          {bench.isBeeWinner ? (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold">
+                              #1
+                            </span>
+                          ) : null}
                         </span>
                         <span className="text-zinc-950 dark:text-white font-bold">
-                          {bench.beeValue} <span className="text-zinc-600 dark:text-zinc-400 font-normal">({bench.beeOps})</span>
+                          {bench.beeValue}{" "}
+                          <span className="text-zinc-600 dark:text-zinc-400 font-normal">
+                            ({bench.beeOps})
+                          </span>
                         </span>
                       </div>
                       <div className="h-3.5 w-full bg-zinc-200 dark:bg-zinc-900 rounded-full overflow-hidden p-0.5 border border-amber-500/20">
@@ -380,7 +412,7 @@ export default function HomeComponent() {
                           initial={{ width: 0 }}
                           whileInView={{ width: `${bench.beeBar}%` }}
                           viewport={{ once: true }}
-                          transition={{ duration: 0.8, ease: 'easeOut' }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
                           className="h-full bg-gradient-to-r from-amber-500 to-amber-300 rounded-full shadow-sm shadow-amber-500/50"
                         />
                       </div>
@@ -389,9 +421,12 @@ export default function HomeComponent() {
                     {/* Bun Bar */}
                     <div>
                       <div className="flex items-center justify-between text-xs font-mono mb-1.5 text-zinc-700 dark:text-zinc-400">
-                        <span>Bun v1.4 (Zig)</span>
+                        <span>Bun 1.4.1 (Zig)</span>
                         <span className="text-zinc-900 dark:text-zinc-300">
-                          {bench.bunValue} <span className="text-zinc-600 dark:text-zinc-400">({bench.bunOps})</span>
+                          {bench.bunValue}{" "}
+                          <span className="text-zinc-600 dark:text-zinc-400">
+                            ({bench.bunOps})
+                          </span>
                         </span>
                       </div>
                       <div className="h-3 w-full bg-zinc-200 dark:bg-zinc-900 rounded-full overflow-hidden p-0.5 border border-zinc-300/80 dark:border-zinc-800">
@@ -399,7 +434,11 @@ export default function HomeComponent() {
                           initial={{ width: 0 }}
                           whileInView={{ width: `${bench.bunBar}%` }}
                           viewport={{ once: true }}
-                          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
+                          transition={{
+                            duration: 0.8,
+                            ease: "easeOut",
+                            delay: 0.1,
+                          }}
                           className="h-full bg-zinc-600 rounded-full"
                         />
                       </div>
@@ -408,9 +447,12 @@ export default function HomeComponent() {
                     {/* Node Bar */}
                     <div>
                       <div className="flex items-center justify-between text-xs font-mono mb-1.5 text-zinc-700 dark:text-zinc-400">
-                        <span>Node.js v24 (C++)</span>
+                        <span>Node.js v22 (C++)</span>
                         <span className="text-zinc-900 dark:text-zinc-300">
-                          {bench.nodeValue} <span className="text-zinc-600 dark:text-zinc-400">({bench.nodeOps})</span>
+                          {bench.nodeValue}{" "}
+                          <span className="text-zinc-600 dark:text-zinc-400">
+                            ({bench.nodeOps})
+                          </span>
                         </span>
                       </div>
                       <div className="h-3 w-full bg-zinc-200 dark:bg-zinc-900 rounded-full overflow-hidden p-0.5 border border-zinc-300/80 dark:border-zinc-800">
@@ -418,7 +460,11 @@ export default function HomeComponent() {
                           initial={{ width: 0 }}
                           whileInView={{ width: `${bench.nodeBar}%` }}
                           viewport={{ once: true }}
-                          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                          transition={{
+                            duration: 0.8,
+                            ease: "easeOut",
+                            delay: 0.2,
+                          }}
                           className="h-full bg-zinc-700/60 rounded-full"
                         />
                       </div>
@@ -438,7 +484,8 @@ export default function HomeComponent() {
             Built for Modern Workloads
           </h2>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Zero-config TypeScript 6.0, worker concurrency, and zero-overhead memory.
+            Zero-config TypeScript 6.0, worker concurrency, and zero-overhead
+            memory.
           </p>
         </div>
 
@@ -463,31 +510,31 @@ export default function HomeComponent() {
             {/* Code Selector Tabs */}
             <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950/60 border border-zinc-800">
               <button
-                onClick={() => setActiveTab('http')}
+                onClick={() => setActiveTab("http")}
                 className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
-                  activeTab === 'http'
-                    ? 'bg-amber-500 text-zinc-950 font-bold'
-                    : 'text-zinc-400 hover:text-white'
+                  activeTab === "http"
+                    ? "bg-amber-500 text-zinc-950 font-bold"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 Multi-Worker HTTP
               </button>
               <button
-                onClick={() => setActiveTab('ts')}
+                onClick={() => setActiveTab("ts")}
                 className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
-                  activeTab === 'ts'
-                    ? 'bg-amber-500 text-zinc-950 font-bold'
-                    : 'text-zinc-400 hover:text-white'
+                  activeTab === "ts"
+                    ? "bg-amber-500 text-zinc-950 font-bold"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 TypeScript 6.0
               </button>
               <button
-                onClick={() => setActiveTab('buffer')}
+                onClick={() => setActiveTab("buffer")}
                 className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
-                  activeTab === 'buffer'
-                    ? 'bg-amber-500 text-zinc-950 font-bold'
-                    : 'text-zinc-400 hover:text-white'
+                  activeTab === "buffer"
+                    ? "bg-amber-500 text-zinc-950 font-bold"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 SIMD Buffer
@@ -497,102 +544,165 @@ export default function HomeComponent() {
 
           {/* Code Viewer Panel */}
           <div className="p-6 font-mono text-sm leading-relaxed overflow-x-auto text-zinc-100 bg-[#0a0b0e] select-text">
-            {activeTab === 'http' && (
+            {activeTab === "http" && (
               <div>
-                <div className="text-zinc-400 italic">{home.sandboxComment}</div>
+                <div className="text-zinc-400 italic">
+                  {home.sandboxComment}
+                </div>
                 <div>
-                  <span className="text-purple-400">import</span> &#123; <span className="text-blue-300 font-medium">createServer</span> &#125;{' '}
-                  <span className="text-purple-400">from</span>{' '}
+                  <span className="text-purple-400">import</span> &#123;{" "}
+                  <span className="text-blue-300 font-medium">
+                    createServer
+                  </span>{" "}
+                  &#125; <span className="text-purple-400">from</span>{" "}
                   <span className="text-emerald-400">'node:http'</span>;
                 </div>
                 <br />
                 <div>
-                  <span className="text-zinc-400 italic">// Connections dispatched across lock-free worker threads</span>
+                  <span className="text-zinc-400 italic">
+                    // Connections dispatched across lock-free worker threads
+                  </span>
                 </div>
                 <div>
-                  <span className="text-blue-400">const</span> <span className="text-amber-300">server</span> ={' '}
-                  <span className="text-blue-400">createServer</span>((<span className="text-amber-200">req</span>, <span className="text-amber-200">res</span>) =&gt; &#123;
+                  <span className="text-blue-400">const</span>{" "}
+                  <span className="text-amber-300">server</span> ={" "}
+                  <span className="text-blue-400">createServer</span>((
+                  <span className="text-amber-200">req</span>,{" "}
+                  <span className="text-amber-200">res</span>) =&gt; &#123;
                 </div>
                 <div className="pl-4">
-                  <span className="text-amber-200">res</span>.<span className="text-blue-400">writeHead</span>(<span className="text-orange-400">200</span>, &#123;{' '}
-                  <span className="text-emerald-400">'Content-Type'</span>: <span className="text-emerald-400">'application/json'</span> &#125;);
+                  <span className="text-amber-200">res</span>.
+                  <span className="text-blue-400">writeHead</span>(
+                  <span className="text-orange-400">200</span>, &#123;{" "}
+                  <span className="text-emerald-400">'Content-Type'</span>:{" "}
+                  <span className="text-emerald-400">'application/json'</span>{" "}
+                  &#125;);
                 </div>
                 <div className="pl-4">
-                  <span className="text-amber-200">res</span>.<span className="text-blue-400">end</span>(<span className="text-purple-300">JSON</span>.<span className="text-blue-400">stringify</span>(&#123;{' '}
-                  <span className="text-amber-300">runtime</span>: <span className="text-emerald-400">'beejs'</span>,{' '}
-                  <span className="text-amber-300">version</span>: <span className="text-emerald-400">'1.4.0'</span>,{' '}
-                  <span className="text-amber-300">workers</span>: <span className="text-orange-400">8</span> &#125;));
+                  <span className="text-amber-200">res</span>.
+                  <span className="text-blue-400">end</span>(
+                  <span className="text-purple-300">JSON</span>.
+                  <span className="text-blue-400">stringify</span>(&#123;{" "}
+                  <span className="text-amber-300">runtime</span>:{" "}
+                  <span className="text-emerald-400">'beejs'</span>,{" "}
+                  <span className="text-amber-300">version</span>:{" "}
+                  <span className="text-emerald-400">'1.4.0'</span>,{" "}
+                  <span className="text-amber-300">workers</span>:{" "}
+                  <span className="text-orange-400">8</span> &#125;));
                 </div>
                 <div>&#125;);</div>
                 <br />
                 <div>
-                  <span className="text-amber-300">server</span>.<span className="text-blue-400">listen</span>(<span className="text-orange-400">3000</span>, () =&gt; &#123;
+                  <span className="text-amber-300">server</span>.
+                  <span className="text-blue-400">listen</span>(
+                  <span className="text-orange-400">3000</span>, () =&gt; &#123;
                 </div>
                 <div className="pl-4 text-emerald-400">
-                  <span className="text-purple-300">console</span>.<span className="text-blue-400">log</span>(<span className="text-emerald-400">'{home.sandboxLog}'</span>);
+                  <span className="text-purple-300">console</span>.
+                  <span className="text-blue-400">log</span>(
+                  <span className="text-emerald-400">'{home.sandboxLog}'</span>
+                  );
                 </div>
                 <div>&#125;);</div>
               </div>
             )}
 
-            {activeTab === 'ts' && (
+            {activeTab === "ts" && (
               <div>
-                <div className="text-zinc-400 italic">// Native oxc transpilation: Stage 3 Decorators, TSX & Explicit Resource Management</div>
+                <div className="text-zinc-400 italic">
+                  // Native oxc transpilation: Stage 3 Decorators, TSX &
+                  Explicit Resource Management
+                </div>
                 <div>
-                  <span className="text-purple-400">import</span> <span className="text-amber-200">React</span> <span className="text-purple-400">from</span> <span className="text-emerald-400">'react'</span>;
+                  <span className="text-purple-400">import</span>{" "}
+                  <span className="text-amber-200">React</span>{" "}
+                  <span className="text-purple-400">from</span>{" "}
+                  <span className="text-emerald-400">'react'</span>;
                 </div>
                 <br />
                 <div>
-                  <span className="text-blue-400">interface</span> <span className="text-cyan-400">BenchmarkResult</span> &#123;
+                  <span className="text-blue-400">interface</span>{" "}
+                  <span className="text-cyan-400">BenchmarkResult</span> &#123;
                 </div>
                 <div className="pl-4">
-                  <span className="text-amber-200">suite</span>: <span className="text-purple-400">string</span>;
+                  <span className="text-amber-200">suite</span>:{" "}
+                  <span className="text-purple-400">string</span>;
                 </div>
                 <div className="pl-4">
-                  <span className="text-amber-200">throughput</span>: <span className="text-purple-400">number</span>;
+                  <span className="text-amber-200">throughput</span>:{" "}
+                  <span className="text-purple-400">number</span>;
                 </div>
                 <div>&#125;</div>
                 <br />
                 <div>
-                  <span className="text-blue-400">const</span> <span className="text-amber-300">result</span>: <span className="text-cyan-400">BenchmarkResult</span> = &#123;
+                  <span className="text-blue-400">const</span>{" "}
+                  <span className="text-amber-300">result</span>:{" "}
+                  <span className="text-cyan-400">BenchmarkResult</span> =
+                  &#123;
                 </div>
                 <div className="pl-4">
-                  <span className="text-amber-200">suite</span>: <span className="text-emerald-400">'require(module)'</span>,
+                  <span className="text-amber-200">suite</span>:{" "}
+                  <span className="text-emerald-400">'require(module)'</span>,
                 </div>
                 <div className="pl-4">
-                  <span className="text-amber-200">throughput</span>: <span className="text-orange-400">4_601_226</span>,
+                  <span className="text-amber-200">throughput</span>:{" "}
+                  <span className="text-orange-400">4_601_226</span>,
                 </div>
                 <div>&#125;;</div>
                 <br />
                 <div className="text-emerald-400">
-                  <span className="text-purple-300">console</span>.<span className="text-blue-400">log</span>(`🚀 $&#123;result.suite&#125; -&gt; $&#123;result.throughput&#125; ops/s`);
+                  <span className="text-purple-300">console</span>.
+                  <span className="text-blue-400">log</span>(`🚀
+                  $&#123;result.suite&#125; -&gt; $&#123;result.throughput&#125;
+                  ops/s`);
                 </div>
               </div>
             )}
 
-            {activeTab === 'buffer' && (
+            {activeTab === "buffer" && (
               <div>
-                <div className="text-zinc-400 italic">// Zero-copy Rust SIMD buffer operations</div>
+                <div className="text-zinc-400 italic">
+                  // Zero-copy Rust SIMD buffer operations
+                </div>
                 <div>
-                  <span className="text-purple-400">import</span> &#123; <span className="text-purple-300">Buffer</span> &#125; <span className="text-purple-400">from</span> <span className="text-emerald-400">'node:buffer'</span>;
+                  <span className="text-purple-400">import</span> &#123;{" "}
+                  <span className="text-purple-300">Buffer</span> &#125;{" "}
+                  <span className="text-purple-400">from</span>{" "}
+                  <span className="text-emerald-400">'node:buffer'</span>;
                 </div>
                 <br />
                 <div>
-                  <span className="text-blue-400">const</span> <span className="text-amber-300">size</span> = <span className="text-orange-400">64</span> * <span className="text-orange-400">1024</span>;
+                  <span className="text-blue-400">const</span>{" "}
+                  <span className="text-amber-300">size</span> ={" "}
+                  <span className="text-orange-400">64</span> *{" "}
+                  <span className="text-orange-400">1024</span>;
                 </div>
                 <div>
-                  <span className="text-blue-400">const</span> <span className="text-amber-300">buf</span> = <span className="text-purple-300">Buffer</span>.<span className="text-blue-400">allocUnsafe</span>(<span className="text-amber-300">size</span>);
+                  <span className="text-blue-400">const</span>{" "}
+                  <span className="text-amber-300">buf</span> ={" "}
+                  <span className="text-purple-300">Buffer</span>.
+                  <span className="text-blue-400">allocUnsafe</span>(
+                  <span className="text-amber-300">size</span>);
                 </div>
                 <br />
                 <div>
-                  <span className="text-amber-300">buf</span>.<span className="text-blue-400">fill</span>(<span className="text-orange-400">0xaa</span>);
+                  <span className="text-amber-300">buf</span>.
+                  <span className="text-blue-400">fill</span>(
+                  <span className="text-orange-400">0xaa</span>);
                 </div>
                 <div>
-                  <span className="text-blue-400">const</span> <span className="text-amber-300">slice</span> = <span className="text-amber-300">buf</span>.<span className="text-blue-400">subarray</span>(<span className="text-orange-400">0</span>, <span className="text-orange-400">1024</span>);
+                  <span className="text-blue-400">const</span>{" "}
+                  <span className="text-amber-300">slice</span> ={" "}
+                  <span className="text-amber-300">buf</span>.
+                  <span className="text-blue-400">subarray</span>(
+                  <span className="text-orange-400">0</span>,{" "}
+                  <span className="text-orange-400">1024</span>);
                 </div>
                 <br />
                 <div className="text-emerald-400">
-                  <span className="text-purple-300">console</span>.<span className="text-blue-400">log</span>(`⚡ 100,000 SIMD buffer ops in 2.09ms (47,846 ops/s)`);
+                  <span className="text-purple-300">console</span>.
+                  <span className="text-blue-400">log</span>(`⚡ 100,000 SIMD
+                  buffer ops in 2.09ms (47,846 ops/s)`);
                 </div>
               </div>
             )}
@@ -601,9 +711,18 @@ export default function HomeComponent() {
             <div className="mt-6 pt-4 border-t border-zinc-800/80 text-xs text-emerald-400 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>$ bee run {activeTab === 'http' ? 'server.ts' : activeTab === 'ts' ? 'app.tsx' : 'simd_buffer.ts'}</span>
+                <span>
+                  $ bee run{" "}
+                  {activeTab === "http"
+                    ? "server.ts"
+                    : activeTab === "ts"
+                      ? "app.tsx"
+                      : "simd_buffer.ts"}
+                </span>
               </div>
-              <span className="text-zinc-300 font-mono text-[11px]">{home.sandboxBoot}</span>
+              <span className="text-zinc-300 font-mono text-[11px]">
+                {home.sandboxBoot}
+              </span>
             </div>
           </div>
         </motion.div>
@@ -694,7 +813,7 @@ export default function HomeComponent() {
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              to="/blog/v1.0.0-official-release"
+              to={home.latestArticle.link}
               className="w-full sm:w-auto px-8 py-3.5 rounded-full glass-card hover:bg-zinc-200/80 dark:hover:bg-zinc-800/60 text-zinc-800 dark:text-zinc-200 font-semibold text-sm transition-all border border-zinc-300/80 dark:border-zinc-700/60"
             >
               <span>{home.ctaNotesButton}</span>
@@ -703,10 +822,18 @@ export default function HomeComponent() {
         </motion.div>
       </section>
     </div>
-  )
+  );
 }
 
-function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+function FeatureCard({
+  icon,
+  title,
+  desc,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+}) {
   return (
     <div className="glass-card rounded-2xl p-7 border-zinc-200/80 dark:border-zinc-800/80 group hover:border-amber-500/30 transition-all">
       <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-amber-500/20 transition-all">
@@ -715,8 +842,9 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
       <h3 className="text-lg font-bold text-zinc-950 dark:text-white font-display group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">
         {title}
       </h3>
-      <p className="mt-2.5 text-sm text-zinc-700 dark:text-zinc-400 leading-relaxed font-normal">{desc}</p>
+      <p className="mt-2.5 text-sm text-zinc-700 dark:text-zinc-400 leading-relaxed font-normal">
+        {desc}
+      </p>
     </div>
-  )
+  );
 }
-

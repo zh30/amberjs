@@ -1,10 +1,12 @@
 <p align="center">
   <a href="https://bee.zhanghe.dev"><img src="https://bee.zhanghe.dev/logo.png" alt="Beejs" height="96"></a>
 </p>
+
 <h1 align="center">Beejs</h1>
+
 <p align="center">
   A JavaScript and TypeScript runtime in <b>Rust</b> and <b>V8</b>.<br>
-  One binary: <code>bee</code>.
+  One binary: <code>bee</code>. Built for agent tools, not as a Node.js clone.
 </p>
 
 <p align="center">
@@ -16,13 +18,13 @@
 
 <p align="center">
   <a href="https://bee.zhanghe.dev">Website</a>
-  &nbsp;·&nbsp;
+  ·
   <a href="https://bee.zhanghe.dev/docs">Docs</a>
-  &nbsp;·&nbsp;
+  ·
   <a href="docs/CURRENT_SCOPE.md">Current scope</a>
-  &nbsp;·&nbsp;
+  ·
   <a href="https://github.com/zh30/beejs/releases">Releases</a>
-  &nbsp;·&nbsp;
+  ·
   <a href="https://github.com/zh30/beejs/issues">Issues</a>
 </p>
 
@@ -30,27 +32,30 @@
 
 ---
 
-## What is Beejs?
+## What is this?
 
-Beejs ships as a **single executable** named `bee`. At its core is a V8 isolate hosted in Rust (Tokio I/O), with a built-in TypeScript pipeline, a Jest-style test runner, an agent sandbox, and a native `bee:ai` module.
+`bee` runs `.js` / `.ts` / `.tsx` on V8. TypeScript is stripped by [oxc](https://oxc.rs/) — there is no project-wide `tsc` step.
 
-It is **not** a drop-in Node.js replacement. Node and Web APIs are implemented incrementally and tracked in [Current Scope](docs/CURRENT_SCOPE.md). Use Beejs when you want:
+Use it when you want **one binary** that can:
 
-- **One binary** for `run` / `eval` / `test` / `repl` / `mcp`
-- **TypeScript without `tsc`** (oxc transpile-only)
-- **Capability sandbox** for agent tools (`--sandbox`, `--seed`, `--freeze-time`)
-- **In-process tensors and LLM streaming** via `bee:ai` (no Python sidecar)
+- run scripts and a REPL
+- run Jest-style tests
+- host agent tools behind a capability sandbox (`--sandbox`, `--seed`, `--freeze-time`)
+- speak MCP / JSON-RPC over stdio
+- do in-process tensors via `bee:ai` (no Python sidecar)
 
-Closest cousins: [Deno](https://github.com/denoland/deno) (V8 + Rust, secure-by-policy) and [Bun](https://github.com/oven-sh/bun) (all-in-one CLI). Beejs keeps V8, adds an agent/MCP host, and is explicit about what is Stable vs Preview.
+It is **not** a drop-in Node.js replacement. APIs land incrementally and are scored in `tests/conformance/` (**55/55** on Node.js Conformance 5.0). Closest cousins: [Deno](https://github.com/denoland/deno) (V8 + Rust, permissioned) and [Bun](https://github.com/oven-sh/bun) (all-in-one CLI). Beejs keeps V8, adds an agent/MCP host, and labels every command Stable / Preview / Experimental.
+
+The only user-facing capability map is [Current Scope](docs/CURRENT_SCOPE.md). Historical `docs/STAGE_*` numbers are not current facts.
 
 ---
 
 ## Install
 
-Prebuilt archives: **macOS** (arm64, x64), **Linux gnu** (x64, arm64), **Windows** (x64 zip).
+Prebuilt archives: macOS (arm64, x64), Linux gnu (x64, arm64), Windows (x64 zip).
 
 ```sh
-# macOS / Linux (recommended)
+# macOS / Linux
 curl -fsSL https://bee.zhanghe.dev/install.sh | sh
 
 # pin a release
@@ -63,13 +68,11 @@ Windows (PowerShell):
 irm https://bee.zhanghe.dev/install.ps1 | iex
 ```
 
-Homebrew (formula lives in this repo; SHA256 is rewritten on each GitHub Release):
+Homebrew (formula in this repo; SHA256 is rewritten on each GitHub Release):
 
 ```sh
 brew install zh30/tap/bee
 ```
-
-Verify:
 
 ```sh
 bee --version
@@ -78,7 +81,7 @@ bee eval "1 + 1"
 
 ### Build from source
 
-Requires [Rust](https://rustup.rs/) (this repo pins **1.97.1**) and a C++ toolchain for V8.
+Needs [Rust](https://rustup.rs/) (**1.97.1**, pinned) and a C++ toolchain for V8.
 
 ```sh
 git clone https://github.com/zh30/beejs.git
@@ -89,11 +92,10 @@ cargo build --release
 
 ---
 
-## Your first program
-
-Create `hello.ts`:
+## 60-second tour
 
 ```ts
+// hello.ts
 const runtime = "Beejs";
 console.log(`hello from ${runtime}`);
 ```
@@ -101,22 +103,14 @@ console.log(`hello from ${runtime}`);
 ```sh
 bee run hello.ts
 # hello from Beejs
-```
 
-`.ts` / `.tsx` are type-stripped by [oxc](https://oxc.rs/) and executed on V8. There is no project-wide `tsc` check; thrown stacks map back to `.ts` lines when a source map is present.
-
-One-liners and a REPL:
-
-```sh
 bee eval "console.log(crypto.randomUUID())"
 bee repl
 ```
 
----
+Thrown stacks map back to `.ts` lines when a source map is present. There is still no `tsc --noEmit` in the runtime; use that in CI if you want typechecking.
 
-## Test runner
-
-Jest-style `describe` / `test` / `expect`, auto-discovery, watch mode. Stable in v1.15.0.
+Jest-style tests (Stable since v1.15.0):
 
 ```js
 // math.test.js
@@ -135,14 +129,10 @@ bee test --watch
 
 `bee test --parallel` is rejected (exit code 2): V8 isolates are not shared across threads.
 
----
-
-## HTTP (Preview)
-
-`bee serve` loads a module that exports `fetch` (WinterCG-style). TLS is rustls HTTP/1.1 when `--https --cert --key` are set.
+WinterCG-style HTTP (Preview):
 
 ```js
-// app.js  — CommonJS handler used by `bee serve`
+// app.js
 module.exports = {
   fetch() {
     return new Response("ok");
@@ -158,7 +148,7 @@ bee serve app.js --host 127.0.0.1 --port 3000
 
 ## Agents, sandbox, MCP
 
-Default-deny I/O for tool processes, deterministic clocks/PRNG, and stdio MCP.
+Default-deny I/O for tool processes, deterministic clocks/PRNG, stdio MCP.
 
 ```sh
 bee run --sandbox --permission-policy examples/agent/echo.policy.json \
@@ -170,8 +160,6 @@ bee session --sandbox --permission-policy examples/agent/echo.policy.json \
 bee mcp --inspect examples/agent/echo_tool.ts
 ```
 
-Useful flags on `bee run`:
-
 | Flag | Purpose |
 | --- | --- |
 | `--sandbox` | Deny fs / net / env / run, then overlay `--allow-*` |
@@ -179,13 +167,13 @@ Useful flags on `bee run`:
 | `--audit-log <path>` | JSONL of allow/deny decisions |
 | `--seed <u64>` | Deterministic `Math.random` / `crypto.getRandomValues` |
 | `--freeze-time <spec>` | Freeze `Date.now` / `performance.now` |
-| `--inspect` / `--inspect-brk` | CDP on `127.0.0.1:9229` (`Runtime.evaluate`) |
+| `--inspect` / `--inspect-brk` | CDP on `127.0.0.1:9229` |
 
 ---
 
 ## `bee:ai`
 
-Stable builtins — import without a native addon or Python process:
+Stable builtins — no native addon, no Python process:
 
 ```ts
 import { Tensor, LLM, AgentPipeline } from "bee:ai";
@@ -195,13 +183,13 @@ const b = Tensor.from([5, 6, 7, 8], [2, 2]);
 const c = Tensor.matmul(a, b);
 ```
 
-`LLM` (`load`, `generate`, `generateStream`, `embed`) and `AgentPipeline` are documented in the [manual](https://bee.zhanghe.dev/docs). Cargo `feature = "ai"` is empty and is **not** a product LLM.
+`LLM` (`load`, `generate`, `generateStream`, `embed`) and `AgentPipeline` are in the [manual](https://bee.zhanghe.dev/docs). Cargo `feature = "ai"` is empty and is **not** a product LLM.
 
 ---
 
 ## CLI
 
-**Stable**
+**Stable** — everyday commands:
 
 ```text
 bee run <file> [args...]     Run JS (TS/TSX via oxc)
@@ -214,9 +202,17 @@ bee mcp [tool]               MCP stdio server
 bee --version | bee version
 ```
 
-**Preview** — present, contract still tightening: TypeScript, `bee serve --https`, `--inspect` / `--inspect-brk`.
+**Preview** — present, contract still tightening:
 
-**Experimental** — do not treat as product promises: `bee bundle`, `bee debug`, `bee serve` HTTP-only, `bee init` / `create` / `add` / `remove` / `install` / `prune` / `bunx` / `upgrade`, N-API hello `process.dlopen`.
+```text
+bee serve [--https --cert --key]
+bee bundle <entry> [-o dist/bundle.js] [--minify]
+bee compile <file> [-o myapp]
+bee run --inspect / --inspect-brk
+TypeScript / TSX execution
+```
+
+**Experimental** — do not treat as product promises: `bee debug`, `bee init` / `create` / `add` / `remove` / `install` / `prune` / `x` / `upgrade`, N-API hello `process.dlopen`, `fmt` / `lint` / `task` / `bench` / `profile` / `deploy`.
 
 Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 
@@ -234,21 +230,19 @@ Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 | Test runner | built-in `bee test` | external | `bun test` | `deno test` |
 | Native AI | `bee:ai` | — | — | — |
 
-Node modules that exist today include `fs`, `path`, `os`, `url`, `buffer`, `events`, `stream`, `crypto`, `http`, `http2`, `net`, `child_process` (`execSync` / `spawnSync`), `zlib`, `util`, `worker_threads`. Web: `fetch`, Streams, Web Crypto, URL, `Worker`, and related APIs. **Coverage is per-API**, not “Node compatible.” The executable scorecard is `tests/conformance/` (55 fixtures). WinterTC baseline: `DOMException`, `URLPattern`, `ReadableStream.from`, `bee:sockets`, `import.meta.main`.
+Node modules that exist today include `fs`, `path`, `os`, `url`, `buffer`, `events`, `stream`, `crypto`, `http`, `http2`, `net`, `child_process` (`execSync` / `spawnSync`), `zlib`, `util`, `worker_threads`. Web: `fetch`, Streams, Web Crypto, URL, `Worker`. **Coverage is per-API**, not “Node compatible.” WinterTC baseline: `DOMException`, `URLPattern`, `ReadableStream.from`, `bee:sockets`, `import.meta.main`.
 
-The only user-facing capability boundary is [Current Scope](docs/CURRENT_SCOPE.md). Historical `docs/STAGE_*` numbers and “1000x” claims are not current facts.
-
-Performance figures belong in `benchmarks/` with commit, command, hardware, and a correctness check. This README does not reprint them.
+On Apple M2 Max (2026-09-16), suite 2.0 URL / `fetch` / `ReadableStream` beat Node.js; Express on Beejs was ~68k req/s vs Node ~19k. Numbers live in [`benchmarks/`](benchmarks/) with command, hardware, and a correctness check. This README does not reprint them as product SLAs.
 
 ---
 
 ## Editors
 
-- **VS Code**: [tools/vscode-extension](tools/vscode-extension) — `bee lsp` + inspector attach. Install the local `.vsix`; Marketplace is not part of 1.9.1.
+- **VS Code**: [tools/vscode-extension](tools/vscode-extension) — `bee lsp` + inspector attach. Install the local `.vsix`; Marketplace is not shipped.
 - **Zed**: [tools/zed-extension](tools/zed-extension) — Install Dev Extension; `bee` must be on `PATH` or set `lsp.bee-lsp.binary.path`.
 
 ```sh
-bee lsp          # Language Server Protocol on stdin/stdout
+bee lsp
 bee run --inspect-brk app.ts
 ```
 
@@ -261,7 +255,7 @@ bee run --inspect-brk app.ts
 | [Current Scope](docs/CURRENT_SCOPE.md) | Stable / Preview / Experimental / Historical |
 | [Quick start](docs/QUICK_START.md) | Source-first smoke commands |
 | [CLI guide](docs/CLI_USAGE_GUIDE.md) | Flags and examples |
-| [Docs index](docs/README.md) | Everything else |
+| [v1.16.0 notes](docs/releases/v1.16.0.md) | Wasm 2.0, bundle/compile, RSI |
 | [Examples](examples/) | Scripts and tests |
 | [Website](https://bee.zhanghe.dev) | Manual and blog |
 
@@ -276,7 +270,7 @@ cargo clippy --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
 
-See [Agents.md](Agents.md) for module boundaries (`src/main.rs` is the `bee` entry; do not treat every directory under `src/` as a public API).
+See [AGENTS.md](AGENTS.md) for module boundaries (`src/main.rs` is the `bee` entry; do not treat every directory under `src/` as a public API).
 
 ---
 

@@ -1,121 +1,117 @@
 ---
-title: "Complete CLI Command Reference & Sandbox Security"
-subtitle: "Comprehensive subcommands, developer tooling suite, and deterministic Agent sandbox flags"
+title: "CLI reference"
+subtitle: "What bee actually ships in v1.16.0 — Stable, Preview, Experimental"
 group: "Reference & Specs"
 id: "cli-usage"
 ---
 
-Beejs provides an all-in-one developer CLI, integrating script execution, serving, testing, code quality, packaging, and Agent sandbox security.
+`bee --help` is the source of truth. This page groups the same commands by maturity. See [Current Scope](https://github.com/zh30/beejs/blob/main/docs/CURRENT_SCOPE.md) in the repo.
+
+`--verbose` is global and must come **before** the subcommand: `bee --verbose run app.js`.
 
 ---
 
-## 1. Subcommands Cheat Sheet
+## Stable
 
-| Subcommand | Description | Example |
-| :--- | :--- | :--- |
-| **`bee run <file>`** | Execute JS / TS / TSX scripts | `bee run app.ts --watch` |
-| **`bee serve [file]`** | Run modern Web application server | `bee serve --port 8080` |
-| **`bee eval <code>`** | Evaluate inline JavaScript expression | `bee eval "1 + 1"` |
-| **`bee repl`** | Interactive REPL with multiline detection & history | `bee repl` |
-| **`bee task [name]`** | Fast zero-npm task runner for package.json scripts | `bee task build`, `bee run dev` |
-| **`bee fmt [files]`** | Sub-millisecond code formatter powered by OXC | `bee fmt src/ --check` |
-| **`bee lint [files]`** | Ultra-fast AST linter and diagnostics via OXC | `bee lint src/` |
-| **`bee bundle <entry>`**| Production Bundler 2.0 (Minify & Sourcemaps) | `bee bundle src/index.ts -o dist/bundle.js --minify` |
-| **`bee compile <file>`**| Single Executable Application (SEA) compiler | `bee compile app.ts -o myapp` |
-| **`bee test [file]`** | Jest/Vitest compatible testing & coverage | `bee test --coverage` |
-| **`bee bench [file]`** | High-precision microbenchmark test suite | `bee bench benchmarks/` |
-| **`bee profile <file>`**| Generate Chrome DevTools `.cpuprofile` flamecharts | `bee profile app.ts -o app.cpuprofile` |
-| **`bee debug [file]`** | Launch script paused for Chrome DevTools CDP | `bee debug app.ts` |
-| **`bee lsp`** | Launch Language Server Protocol (LSP 3.17) server | `bee lsp` |
-| **`bee types`** | Export TypeScript definitions (AI & Web APIs) | `bee types -o beejs.d.ts` |
-| **`bee session <file>`**| Stdio JSON-RPC interface for Agent hosts | `bee session agent.ts` |
-| **`bee mcp <file>`** | Model Context Protocol (MCP) server | `bee mcp tools.ts` |
-| **`bee init [name]`** | Scaffold a new project and package.json | `bee init my-project` |
-| **`bee install`** | Install project dependencies | `bee install` |
+| Command | What it does |
+| :--- | :--- |
+| `bee run <file> [args...]` | Run JS. `.ts` / `.tsx` go through oxc first (TS contract is Preview). |
+| `bee eval <code>` | Evaluate an expression |
+| `bee repl` | Interactive REPL |
+| `bee test [files...] [--watch]` | Jest-style runner |
+| `bee snapshot [build\|status\|clean]` | V8 startup snapshots |
+| `bee session <tool>` | JSON-RPC over stdin for agent hosts |
+| `bee mcp [tool]` | MCP stdio server |
+| `bee --version` / `bee version` | Version |
+
+### `bee run`
+
+```bash
+bee run app.ts
+bee run app.js -- arg1 arg2
+bee run --watch --debounce 200 app.ts
+bee run --preload ./setup.js app.js
+bee run --sandbox --permission-policy policy.json app.ts
+bee run --inspect-brk app.ts
+```
+
+Useful flags:
+
+| Flag | Purpose |
+| :--- | :--- |
+| `-w, --watch` | Restart on change |
+| `--debounce <ms>` | Watch debounce (default 100) |
+| `-r, --preload <module>` | Load before the entry |
+| `--timeout <ms>` | CPU watchdog |
+| `--max-memory <mb>` | V8 heap cap |
+| `--seed <u64>` | Deterministic `Math.random` |
+| `--freeze-time <spec>` | Freeze `Date.now` / `performance.now` |
+| `--sandbox` | Deny fs / net / env / run, then `--allow-*` |
+| `--permission-policy <file>` | JSON policy (alias `--policy`) |
+| `--inspect` / `--inspect-brk` | CDP on `127.0.0.1:9229` (Preview) |
+
+`bee test --parallel` is rejected (exit code 2).
 
 ---
 
-## 2. Command Details & Flags
+## Preview
 
-### 2.1 `bee run` Script Execution
+Present in the default binary; the contract is still tightening.
 
-```bash
-bee run [OPTIONS] <FILE> [-- ARGS...]
-```
-
-- **`-w, --watch`**: Watch files and hot-reload upon changes;
-- **`--debounce <MS>`**: Debounce delay for reload events (default: `100`ms);
-- **`-r, --preload <MODULE>`**: Preload and evaluate a module before main entry;
-- **`-W, --workers <NUM>`**: Concurrency level of V8 Isolate workers (default: `1`);
-- **`--timeout <MS>`**: Hard CPU timeout watchdog in milliseconds, forcibly terminating infinite loops;
-- **`--max-memory <MB>`**: Physical V8 heap quota limit in megabytes;
-- **`--seed <U64>`**: Seed for Mulberry32 PRNG for 100% deterministic `Math.random()`;
-- **`--freeze-time <TIMESTAMP>`**: Freeze system time to a fixed timestamp or ISO8601 string;
-- **`--import-map <PATH>`**: WICG Import Maps JSON mapping file;
-- **`--inspect [ADDR]`**: Enable Chrome DevTools Protocol endpoint (default: `127.0.0.1:9229`);
-- **`--inspect-brk [ADDR]`**: Enable CDP and break before user script starts.
-
-### 2.2 `bee serve` Modern Web Server
+| Command | What it does |
+| :--- | :--- |
+| `bee serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
+| `bee bundle <entry>` | oxc module graph → one JS file |
+| `bee compile <file>` | Append payload + `BEE_STANDALONE` trailer to a copy of `bee` |
+| TypeScript / TSX | oxc type-strip, not `tsc` |
+| `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
 ```bash
-bee serve [OPTIONS] [FILE]
+bee serve app.js --host 127.0.0.1 --port 3000
+bee bundle src/index.ts -o dist/bundle.js --minify
+bee compile app.ts -o myapp
 ```
 
-- **`FILE`**: Application entry (defaults to auto-detecting `app.ts`, `app.js`, `server.ts`, `server.js`, `index.ts`, `index.js`);
-- **`-p, --port <PORT>`**: Port to bind (default: `3000`);
-- **`-H, --host <HOST>`**: Host address to bind (default: `localhost`);
-- **`--max-memory <MB>`**: Restrict memory consumption for the serving process.
-
-### 2.3 `bee bundle` Bundler 2.0
-
-```bash
-bee bundle [OPTIONS] <ENTRY>
-```
-
-- **`-o, --outfile <FILE>`**: Output bundle path (default: `dist/bundle.js`);
-- **`-m, --minify`**: Minify code and eliminate dead code using OXC;
-- **`-s, --sourcemap`**: Generate v3 SourceMap files;
-- **`--target <ES>`**: Target ECMAScript version (`es2022`, `esnext`);
-- **`--import-map <PATH>`**: Apply bare module resolution maps.
-
-### 2.4 `bee compile` Standalone Binary Compiler
-
-```bash
-bee compile [OPTIONS] <FILE>
-```
-
-- **`-o, --outfile <PATH>`**: Executable binary output path;
-- **`--minify`**: Minify bundled code before binary packaging;
-- **`--include-assets <DIR>`**: Bundle a directory of static assets.
+Details: [bundle & compile](/docs/bundling-compilation).
 
 ---
 
-## 3. Agent Deterministic Sandbox & Granular Permissions
+## Experimental
 
-When executing untrusted code or autonomous Agent outputs, defense-in-depth isolation is critical:
+Do **not** treat these as product promises. They exist on the CLI; behavior may be incomplete.
+
+`debug`, `record`, `replay`, `init`, `create`, `add`, `remove`, `install`, `prune`, `x`, `upgrade`, `fmt`, `lint`, `bench`, `compile` extras, `types`, `task`, `profile`, `lsp`, `deploy`.
+
+Chrome DevTools attach should use `bee run --inspect`, not `bee debug`.
+
+---
+
+## Permission flags
+
+Default is still allow-all unless `--sandbox` or `--deny-*` is set.
 
 ```bash
-# Run with closed sandbox and strict quotas
-$ bee run --sandbox \
-    --timeout 5000 \
-    --max-memory 256 \
-    --seed 42 \
-    --allow-read ./data \
-    agent_workflow.ts
+bee eval --deny-fs "require('fs').readFileSync('secret.txt', 'utf8')"
+bee run --deny-fs --allow-read config.json app.js
+bee eval --deny-net --allow-net example.com "fetch('https://example.com')"
 ```
 
-### 3.1 Deterministic Resource Quotas
-- **`--timeout <ms>`**: Independent watchdog thread triggers `v8::IsolateHandle::terminate_execution()` upon expiration, reliably escaping `while(true)` loops;
-- **`--max-memory <MB>`**: Configures V8 `ResourceConstraints.max_old_generation_size_in_bytes` to prevent OOM memory exhaustion;
-- **`--seed <u64>`**: Mulberry32 PRNG ensures reproducible randomness across replays;
-- **`--freeze-time <time>`**: Fixes timestamps so evaluation does not drift with wall-clock time.
+Policy file (relative paths resolve from the policy file directory):
 
-### 3.2 Granular Whitelisting Options
-- **`--sandbox`**: Deny all unapproved file access, network calls, env reads, and child processes;
-- **`--allow-read <PATHS>`**: Whitelist paths or files for read access;
-- **`--allow-write <PATHS>`**: Whitelist paths or files for write access;
-- **`--allow-net <HOSTS>`**: Whitelist network hosts and domains;
-- **`--allow-listen <ADDRS>`**: Whitelist network listening addresses;
-- **`--allow-env <VARS>`**: Whitelist allowed environment variable names;
-- **`--allow-run <BINS>`**: Whitelist executable paths permitted for spawning;
-- **`--audit-log <PATH>`**: Stream all runtime permission checks into a JSONL audit log.
+```json
+{
+  "permissions": {
+    "deny_fs": true,
+    "allow_read": ["./config.json"],
+    "allow_write": ["./out"],
+    "deny_net": true,
+    "allow_net": ["api.example.com"],
+    "deny_env": true,
+    "allow_env": ["PUBLIC_TOKEN"],
+    "deny_run": true,
+    "allow_run": ["git"]
+  }
+}
+```
+
+More: [agent sandbox](/docs/agent-sandbox).
