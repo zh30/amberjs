@@ -342,9 +342,14 @@ fn get_path_fast<'a>(
     buf: &'a mut [u8; 512],
 ) -> (std::borrow::Cow<'a, str>, Option<*const libc::c_char>) {
     if let Some(s) = val.to_string(scope) {
-        let len = s.utf8_length(scope);
+        let is_one_byte = s.contains_only_onebyte();
+        let len = if is_one_byte { s.length() } else { s.utf8_length(scope) };
         if len > 0 && len < 511 {
-            s.write_utf8_v2(scope, &mut buf[..len], v8::WriteFlags::empty(), None);
+            if is_one_byte {
+                s.write_one_byte_v2(scope, 0, &mut buf[..len], v8::WriteFlags::empty());
+            } else {
+                s.write_utf8_v2(scope, &mut buf[..len], v8::WriteFlags::empty(), None);
+            }
             buf[len] = 0;
             if let Ok(valid_str) = std::str::from_utf8(&buf[..len]) {
                 return (
@@ -599,15 +604,27 @@ fn fs_write_file_sync_callback(
     let val = args.get(1);
     let res = if val.is_string() {
         if let Some(s) = val.to_string(scope) {
-            let len = s.utf8_length(scope);
-            TLS_FS_WRITE_BUFFER.with(|cell| {
-                let mut buf = cell.borrow_mut();
-                if buf.len() < len {
-                    buf.resize(len, 0);
-                }
-                s.write_utf8_v2(scope, &mut buf[..len], v8::WriteFlags::empty(), None);
-                direct_write_sync(c_path, path.as_ref(), &buf[..len])
-            })
+            if s.contains_only_onebyte() {
+                let len = s.length();
+                TLS_FS_WRITE_BUFFER.with(|cell| {
+                    let mut buf = cell.borrow_mut();
+                    if buf.len() < len {
+                        buf.resize(len, 0);
+                    }
+                    s.write_one_byte_v2(scope, 0, &mut buf[..len], v8::WriteFlags::empty());
+                    direct_write_sync(c_path, path.as_ref(), &buf[..len])
+                })
+            } else {
+                let len = s.utf8_length(scope);
+                TLS_FS_WRITE_BUFFER.with(|cell| {
+                    let mut buf = cell.borrow_mut();
+                    if buf.len() < len {
+                        buf.resize(len, 0);
+                    }
+                    s.write_utf8_v2(scope, &mut buf[..len], v8::WriteFlags::empty(), None);
+                    direct_write_sync(c_path, path.as_ref(), &buf[..len])
+                })
+            }
         } else {
             direct_write_sync(c_path, path.as_ref(), b"")
         }
