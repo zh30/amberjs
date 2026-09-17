@@ -7,6 +7,8 @@ node_modules/
 *.vsix
 tools/vscode-extension/out/
 tools/vscode-extension/tsconfig.tsbuildinfo
+extensions/vscode/out/
+extensions/vscode/tsconfig.tsbuildinfo
 
 # IDE
 .vscode/

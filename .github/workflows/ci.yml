@@ -81,10 +81,10 @@ jobs:
           echo "Scorecard:"
           cat tests/conformance/scorecard.md
 
-      - name: bee test directory mode
+      - name: amber test directory mode
         run: |
           cargo build -q
-          ./target/debug/bee test examples/testing
+          ./target/debug/amber test examples/testing
 
       - name: Check crate package contents
         run: cargo package --locked --list
@@ -120,8 +120,8 @@ jobs:
 
       - name: Smoke test release binary
         run: |
-          ./target/release/bee --version
-          ./target/release/bee eval "1 + 1"
+          ./target/release/amber --version
+          ./target/release/amber eval "1 + 1"
 
       - name: Library tests on macOS
         if: runner.os == 'macOS'
@@ -162,8 +162,8 @@ jobs:
       - name: Smoke test
         shell: pwsh
         run: |
-          .\target\release\bee.exe --version
-          .\target\release\bee.exe eval "1 + 1"
+          .\target\release\amber.exe --version
+          .\target\release\amber.exe eval "1 + 1"
 
   audit:
     name: cargo-audit

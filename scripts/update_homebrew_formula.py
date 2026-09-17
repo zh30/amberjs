@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rewrite Formula/bee.rb version and sha256 values from release archives."""
+"""Rewrite Formula/amber.rb version and sha256 values from release archives."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def sha256_file(path: Path) -> str:
 
 
 def find_archive(release_dir: Path, version: str, target: str) -> Path:
-    name = f"bee-v{version}-{target}.tar.gz"
+    name = f"amber-v{version}-{target}.tar.gz"
     matches = list(release_dir.rglob(name))
     if not matches:
         raise SystemExit(f"missing archive {name} under {release_dir}")
@@ -44,7 +44,7 @@ def update_formula(formula: Path, version: str, hashes: dict[str, str]) -> str:
     for target, digest in hashes.items():
         if set(digest) <= {"0"}:
             raise SystemExit(f"refusing all-zero sha256 for {target}")
-        pattern = rf'(bee-v#\{{version\}}-{re.escape(target)}\.tar\.gz"\n\s+sha256 )"[^"]+"'
+        pattern = rf'(amber-v#\{{version\}}-{re.escape(target)}\.tar\.gz"\n\s+sha256 )"[^"]+"'
         replacement = rf'\1"{digest}"'
         updated, count = re.subn(pattern, replacement, text)
         if count != 1:

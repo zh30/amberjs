@@ -1,5 +1,7 @@
-//! Beejs - High-performance JavaScript/TypeScript runtime
+//! Amber - High-performance JavaScript/TypeScript runtime
 //! Built with Rust and V8
+
+extern crate amberjs as beejs;
 
 use anyhow::{anyhow, Result};
 use clap::{Args, Parser, Subcommand};
@@ -8,8 +10,8 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
-#[command(name = "bee")]
-#[command(about = "JavaScript/TypeScript runtime built with Rust and V8")]
+#[command(name = "amber")]
+#[command(about = "Amber - JavaScript/TypeScript runtime built with Rust and V8")]
 #[command(version)]
 struct Cli {
     /// Verbose output
@@ -1009,7 +1011,7 @@ fn parse_semver_triplet(version: &str) -> Option<SemverTriple> {
 }
 
 fn build_process_argv(file: &Path, args: &[String]) -> Vec<String> {
-    let mut argv = vec!["bee".to_string(), file.to_string_lossy().into_owned()];
+    let mut argv = vec!["amber".to_string(), file.to_string_lossy().into_owned()];
     argv.extend(args.iter().cloned());
     argv
 }
@@ -4228,7 +4230,7 @@ fn main() -> Result<()> {
             return Ok(());
         }
         Some(Command::Version) => {
-            println!("Beejs {}", env!("CARGO_PKG_VERSION"));
+            println!("Amber {}", env!("CARGO_PKG_VERSION"));
             println!("JavaScript/TypeScript runtime");
             println!("Built with Rust + V8");
             return Ok(());

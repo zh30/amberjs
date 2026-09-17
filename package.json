@@ -1,0 +1,17 @@
+{
+  "name": "amber-monorepo",
+  "version": "1.16.0",
+  "private": true,
+  "description": "Amber Monorepo - High-performance JavaScript/TypeScript runtime built with Rust and V8",
+  "scripts": {
+    "build": "cargo build --release --bin amber && pnpm --filter \"*\" build",
+    "build:cli": "cargo build --release --bin amber",
+    "build:website": "pnpm --filter amberjs-website build",
+    "build:vscode": "pnpm --filter amberjs-tools build",
+    "test:rust": "cargo test --workspace",
+    "test:conformance": "./tests/conformance/run_conformance.sh",
+    "fmt": "cargo fmt --all",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings"
+  },
+  "packageManager": "pnpm@11.21.0"
+}

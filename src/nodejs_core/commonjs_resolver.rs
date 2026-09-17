@@ -36,10 +36,38 @@ const JS_EXTENSIONS: &[&str] = &["js", "json", "ts", "mjs", "cjs", "tsx"];
 const COMMONJS_EXPORT_CONDITIONS: &[&str] = &[
     "require", "wintercg", "wintertc", "node", "beejs", "default",
 ];
-const ESM_EXPORT_CONDITIONS: &[&str] =
-    &["import", "wintercg", "wintertc", "node", "beejs", "default"];
+const ESM_EXPORT_CONDITIONS: &[&str] = &[
+    "import", "wintercg", "wintertc", "node", "amber", "amberjs", "beejs", "default",
+];
 const BUILTIN_MODULES: &[&str] = &[
     "ai",
+    "amber:ai",
+    "amber:db",
+    "amber:ffi",
+    "amber:pool",
+    "amber:wasm",
+    "amber:replay",
+    "amber:weights",
+    "amber:security",
+    "amber:permissions",
+    "amber:kv",
+    "amber:tools",
+    "amber:bus",
+    "amber:grammar",
+    "amber:checkpoint",
+    "amber:sockets",
+    "amber:sqlite",
+    "amber:vector",
+    "amber:std",
+    "amber:std/dotenv",
+    "amber:std/cli",
+    "amber:std/fs",
+    "amber:std/crypto",
+    "amber:std/assert",
+    "amber:mcp",
+    "amber:sandbox",
+    "amber:vfs",
+    "amber:test",
     "assert",
     "assert/strict",
     "async_hooks",
@@ -402,6 +430,10 @@ fn normalize_builtin_specifier(specifier: &str) -> Option<&str> {
     let without_node = specifier.strip_prefix("node:").unwrap_or(specifier);
     if BUILTIN_MODULES.contains(&without_node) {
         return Some(without_node);
+    }
+    let without_amber = specifier.strip_prefix("amber:").unwrap_or(specifier);
+    if BUILTIN_MODULES.contains(&without_amber) {
+        return Some(without_amber);
     }
     let without_bee = specifier.strip_prefix("bee:").unwrap_or(specifier);
     if BUILTIN_MODULES.contains(&without_bee) {

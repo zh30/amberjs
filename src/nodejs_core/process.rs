@@ -397,6 +397,9 @@ pub fn setup_process_api(
     let v8_value = v8::String::new(scope, v8::V8::get_version()).unwrap();
     let node_key = v8::String::new(scope, "node").unwrap();
     let node_value = v8::String::new(scope, "20.11.0").unwrap();
+    let amber_key = v8::String::new(scope, "amber").unwrap();
+    let amberjs_key = v8::String::new(scope, "amberjs").unwrap();
+    let amberjs_value = v8::String::new(scope, env!("CARGO_PKG_VERSION")).unwrap();
     let bee_key = v8::String::new(scope, "bee").unwrap();
     let beejs_key = v8::String::new(scope, "beejs").unwrap();
     let beejs_value = v8::String::new(scope, env!("CARGO_PKG_VERSION")).unwrap();
@@ -466,6 +469,9 @@ pub fn setup_process_api(
     let v8_feature_value = v8::Boolean::new(scope, true); // V8 engine is present
     let modules_key = v8::String::new(scope, "modules").unwrap();
     let modules_value = v8::Boolean::new(scope, true); // Module loading is supported
+    let is_amber_key = v8::String::new(scope, "isAmber").unwrap();
+    let is_amberjs_key = v8::String::new(scope, "isAmberjs").unwrap();
+    let is_amber_value = v8::Boolean::new(scope, true);
     let is_beejs_key = v8::String::new(scope, "isBeejs").unwrap();
     let is_beejs_value = v8::Boolean::new(scope, true);
     let browser_key = v8::String::new(scope, "browser").unwrap();
@@ -473,7 +479,7 @@ pub fn setup_process_api(
     let process_key = v8::String::new(scope, "process").unwrap();
 
     // Pre-create string values for array
-    let argv0_val = v8::String::new(scope, "bee").unwrap();
+    let argv0_val = v8::String::new(scope, "amber").unwrap();
     let argv1_val = v8::String::new(scope, "<program>").unwrap();
     let exec_path_val = v8::String::new(
         scope,
@@ -781,6 +787,8 @@ pub fn setup_process_api(
     let versions_obj = v8::Object::new(scope);
     versions_obj.set(scope, v8_key.into(), v8_value.into());
     versions_obj.set(scope, node_key.into(), node_value.into());
+    versions_obj.set(scope, amber_key.into(), amberjs_value.into());
+    versions_obj.set(scope, amberjs_key.into(), amberjs_value.into());
     versions_obj.set(scope, bee_key.into(), beejs_value.into());
     versions_obj.set(scope, beejs_key.into(), beejs_value.into());
 
@@ -855,13 +863,15 @@ pub fn setup_process_api(
     process_obj.set(scope, exit_code_key.into(), exit_code_value.into());
     process_obj.set(scope, next_tick_key.into(), next_tick_func.into());
     process_obj.set(scope, features_key.into(), features_obj.into());
+    process_obj.set(scope, is_amber_key.into(), is_amber_value.into());
+    process_obj.set(scope, is_amberjs_key.into(), is_amber_value.into());
     process_obj.set(scope, is_beejs_key.into(), is_beejs_value.into());
     process_obj.set(scope, browser_key.into(), browser_value.into());
 
     // v0.3.38: Add process.release object
     let release_obj = v8::Object::new(scope);
     let release_name_key = v8::String::new(scope, "name").unwrap();
-    let release_name_val = v8::String::new(scope, "bee").unwrap();
+    let release_name_val = v8::String::new(scope, "amber").unwrap();
     release_obj.set(scope, release_name_key.into(), release_name_val.into());
     let release_key = v8::String::new(scope, "release").unwrap();
     process_obj.set(scope, release_key.into(), release_obj.into());

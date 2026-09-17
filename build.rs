@@ -5,6 +5,7 @@ fn main() {
     // A global `-rdynamic` rustflag previously broke rust-crypto, so this is
     // scoped to the `bee` binary only.
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("linux") {
+        println!("cargo:rustc-link-arg-bin=amber=-Wl,--export-dynamic");
         println!("cargo:rustc-link-arg-bin=bee=-Wl,--export-dynamic");
     }
 }

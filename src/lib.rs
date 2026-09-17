@@ -322,7 +322,9 @@ pub fn initialize_v8() -> Result<()> {
         if let Ok(extra) = std::env::var("V8_FLAGS") {
             v8_flags.push(extra);
         }
-        if let Ok(extra) = std::env::var("BEE_V8_FLAGS") {
+        if let Ok(extra) =
+            std::env::var("AMBER_V8_FLAGS").or_else(|_| std::env::var("BEE_V8_FLAGS"))
+        {
             v8_flags.push(extra);
         }
         let v8_flags_str: _ = v8_flags.join(" ");

@@ -53,23 +53,23 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
-            bin: bee
+            bin: amber
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             archive: tar.gz
-            bin: bee
+            bin: amber
           - os: macos-latest
             target: aarch64-apple-darwin
             archive: tar.gz
-            bin: bee
+            bin: amber
           - os: macos-latest
             target: x86_64-apple-darwin
             archive: tar.gz
-            bin: bee
+            bin: amber
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive: zip
-            bin: bee.exe
+            bin: amber.exe
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -123,18 +123,18 @@ jobs:
           mkdir -p staging
           src="target/${TARGET}/release/${BIN}"
           if [ "${ARCHIVE}" = "zip" ]; then
-            cp "${src}" staging/bee.exe
-            python3 -c "import shutil; shutil.make_archive('bee-${RELEASE_TAG}-${TARGET}', 'zip', 'staging')"
+            cp "${src}" staging/amber.exe
+            python3 -c "import shutil; shutil.make_archive('amber-${RELEASE_TAG}-${TARGET}', 'zip', 'staging')"
           else
-            cp "${src}" staging/bee
-            tar -czf "bee-${RELEASE_TAG}-${TARGET}.tar.gz" -C staging bee
+            cp "${src}" staging/amber
+            tar -czf "amber-${RELEASE_TAG}-${TARGET}.tar.gz" -C staging amber
           fi
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bee-${{ matrix.target }}
-          path: bee-${{ env.RELEASE_TAG }}-${{ matrix.target }}.${{ matrix.archive }}
+          name: amber-${{ matrix.target }}
+          path: amber-${{ env.RELEASE_TAG }}-${{ matrix.target }}.${{ matrix.archive }}
           compression-level: 0
           if-no-files-found: error
 
@@ -162,20 +162,20 @@ jobs:
       - name: Require Unix archives and Windows zip
         run: |
           set -euo pipefail
-          count=$(find release -type f -name 'bee-*.tar.gz' | wc -l | tr -d ' ')
+          count=$(find release -type f -name 'amber-*.tar.gz' | wc -l | tr -d ' ')
           echo "unix_archives=${count}"
           if [ "${count}" -lt 1 ]; then
             echo "::error::No Unix archives were produced; refusing empty GitHub Release"
             exit 1
           fi
-          zipcount=$(find release -type f -name 'bee-*-x86_64-pc-windows-msvc.zip' | wc -l | tr -d ' ')
+          zipcount=$(find release -type f -name 'amber-*-x86_64-pc-windows-msvc.zip' | wc -l | tr -d ' ')
           echo "windows_zips=${zipcount}"
           if [ "${zipcount}" -lt 1 ]; then
-            echo "::error::Windows zip bee-*-x86_64-pc-windows-msvc.zip was not produced"
+            echo "::error::Windows zip amber-*-x86_64-pc-windows-msvc.zip was not produced"
             exit 1
           fi
-          if ! find release -type f -name 'bee-*-x86_64-pc-windows-msvc.zip' -print0 | xargs -0 unzip -l | grep -q 'bee.exe'; then
-            echo "::error::Windows zip does not contain bee.exe"
+          if ! find release -type f -name 'amber-*-x86_64-pc-windows-msvc.zip' -print0 | xargs -0 unzip -l | grep -q 'amber.exe'; then
+            echo "::error::Windows zip does not contain amber.exe"
             exit 1
           fi
 
@@ -189,7 +189,7 @@ jobs:
       - name: Update Homebrew formula SHA256
         run: |
           python3 scripts/update_homebrew_formula.py \
-            --formula Formula/bee.rb \
+            --formula Formula/amber.rb \
             --release-dir release \
             --version "${RELEASE_TAG}" \
             --write
@@ -199,8 +199,8 @@ jobs:
         with:
           path: Cargo.lock
           format: cyclonedx-json
-          artifact-name: bee-${{ env.RELEASE_TAG }}.cdx.json
-          output-file: bee-${{ env.RELEASE_TAG }}.cdx.json
+          artifact-name: amber-${{ env.RELEASE_TAG }}.cdx.json
+          output-file: amber-${{ env.RELEASE_TAG }}.cdx.json
           upload-artifact: false
 
       - name: Install cosign
@@ -211,7 +211,7 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           set -euo pipefail
-          mapfile -t blobs < <(find release -type f \( -name 'bee-*.tar.gz' -o -name 'bee-*.zip' -o -name 'checksums.txt' \) ; ls -1 bee-*.cdx.json 2>/dev/null || true)
+          mapfile -t blobs < <(find release -type f \( -name 'amber-*.tar.gz' -o -name 'amber-*.zip' -o -name 'checksums.txt' \) ; ls -1 amber-*.cdx.json 2>/dev/null || true)
           for f in "${blobs[@]}"; do
             [ -f "$f" ] || continue
             cosign sign-blob --yes --output-signature "${f}.sig" --output-certificate "${f}.pem" "$f"
@@ -224,17 +224,17 @@ jobs:
           name: Release ${{ env.RELEASE_TAG }}
           body_path: RELEASE_NOTES.md
           files: |
-            release/**/bee-*.tar.gz
-            release/**/bee-*.zip
+            release/**/amber-*.tar.gz
+            release/**/amber-*.zip
             release/checksums.txt
-            bee-*.cdx.json
+            amber-*.cdx.json
             **/*.sig
             **/*.pem
           draft: false
           prerelease: false
 
       # Direct push to main may be blocked by the required-status-checks ruleset.
-      # Do not fail the GitHub Release if that happens; hashes are already in Formula/bee.rb.
+      # Do not fail the GitHub Release if that happens; hashes are already in Formula/amber.rb.
       - name: Commit Homebrew formula
         continue-on-error: true
         run: |
@@ -245,14 +245,14 @@ jobs:
           default_branch="${default_branch:-main}"
           git fetch origin "${default_branch}"
           formula_copy="$(mktemp)"
-          cp Formula/bee.rb "${formula_copy}"
+          cp Formula/amber.rb "${formula_copy}"
           git checkout -B "homebrew-${RELEASE_TAG}" "origin/${default_branch}"
-          cp "${formula_copy}" Formula/bee.rb
-          git add Formula/bee.rb
+          cp "${formula_copy}" Formula/amber.rb
+          git add Formula/amber.rb
           if git diff --cached --quiet; then
-            echo "Formula/bee.rb unchanged"
+            echo "Formula/amber.rb unchanged"
           else
-            git commit -m "chore(release): update Formula/bee.rb hashes for ${RELEASE_TAG}"
+            git commit -m "chore(release): update Formula/amber.rb hashes for ${RELEASE_TAG}"
             git push origin "HEAD:${default_branch}"
           fi
 

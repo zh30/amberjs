@@ -73,6 +73,138 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "amber_sandbox"
+version = "1.16.0"
+dependencies = [
+ "chrono",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "url 2.5.8",
+]
+
+[[package]]
+name = "amber_transpile"
+version = "1.16.0"
+dependencies = [
+ "anyhow",
+ "base64 0.23.1",
+ "once_cell",
+ "oxc",
+ "regex",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "amberjs"
+version = "1.16.0"
+dependencies = [
+ "amber_sandbox",
+ "amber_transpile",
+ "anyhow",
+ "async-trait",
+ "base64 0.23.1",
+ "bincode",
+ "blake3",
+ "candle-core",
+ "candle-nn",
+ "candle-transformers",
+ "chrono",
+ "clap",
+ "colored",
+ "crossbeam",
+ "dirs",
+ "elasticsearch",
+ "encoding_rs",
+ "fastrand",
+ "filetime",
+ "flate2",
+ "futures",
+ "futures-util",
+ "getrandom 0.2.16",
+ "git2",
+ "hex",
+ "jsonwebtoken",
+ "k8s-openapi",
+ "kube",
+ "kube-runtime",
+ "lazy-regex",
+ "libc",
+ "lru",
+ "md5",
+ "memmap2",
+ "nix 0.31.3",
+ "notify",
+ "notify-debouncer-mini",
+ "num-complex",
+ "num_cpus",
+ "oauth2",
+ "once_cell",
+ "openssl",
+ "opentelemetry 0.21.0",
+ "opentelemetry-http",
+ "opentelemetry-jaeger",
+ "opentelemetry-prometheus",
+ "opentelemetry_sdk 0.21.2",
+ "oxc",
+ "percent-encoding 2.3.2",
+ "prometheus",
+ "pyo3",
+ "pyo3-build-config",
+ "rand 0.8.5",
+ "rayon",
+ "regex",
+ "reqwest 0.11.27",
+ "ring",
+ "rusqlite",
+ "rust-crypto",
+ "rustls 0.21.12",
+ "rustls-pemfile 2.2.0",
+ "rustyline",
+ "schemars 0.8.22",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "serial_test",
+ "sha1",
+ "sha2",
+ "sled",
+ "syntect",
+ "sys-info",
+ "tar",
+ "tch",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tiny_http",
+ "tokenizers",
+ "tokio",
+ "tokio-rustls",
+ "tokio-tungstenite",
+ "tracing",
+ "tracing-appender",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "tungstenite",
+ "untrusted",
+ "url 2.5.8",
+ "urlencoding",
+ "uuid",
+ "v8",
+ "walkdir",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-encoder 0.243.0",
+ "wasmparser 0.217.1",
+ "wasmtime",
+ "wasmtime-wasi",
+ "wat",
+ "webpki-roots 0.25.4",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "ambient-authority"
 version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -201,6 +333,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "auditable-serde"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c7bf8143dfc3c0258df908843e169b5cc5fcf76c7718bd66135ef4a9cd558c5"
+dependencies = [
+ "semver",
+ "serde",
+ "serde_json",
+ "topological-sort",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -256,111 +400,6 @@ name = "base64ct"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e050f626429857a27ddccb31e0aca21356bfa709c04041aefddac081a8f068a"
-
-[[package]]
-name = "beejs"
-version = "1.16.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.23.1",
- "bincode",
- "blake3",
- "candle-core",
- "candle-nn",
- "candle-transformers",
- "chrono",
- "clap",
- "colored",
- "crossbeam",
- "dirs",
- "elasticsearch",
- "encoding_rs",
- "fastrand",
- "filetime",
- "flate2",
- "futures",
- "futures-util",
- "getrandom 0.2.16",
- "git2",
- "hex",
- "jsonwebtoken",
- "k8s-openapi",
- "kube",
- "kube-runtime",
- "lazy-regex",
- "libc",
- "lru",
- "md5",
- "memmap2",
- "nix 0.31.3",
- "notify",
- "notify-debouncer-mini",
- "num-complex",
- "num_cpus",
- "oauth2",
- "once_cell",
- "openssl",
- "opentelemetry 0.21.0",
- "opentelemetry-http",
- "opentelemetry-jaeger",
- "opentelemetry-prometheus",
- "opentelemetry_sdk 0.21.2",
- "oxc",
- "percent-encoding 2.3.2",
- "prometheus",
- "pyo3",
- "pyo3-build-config",
- "rand 0.8.5",
- "rayon",
- "regex",
- "reqwest 0.11.27",
- "ring",
- "rusqlite",
- "rust-crypto",
- "rustls 0.21.12",
- "rustls-pemfile 2.2.0",
- "rustyline",
- "schemars 0.8.22",
- "serde",
- "serde_json",
- "serde_yaml",
- "serial_test",
- "sha1",
- "sha2",
- "sled",
- "syntect",
- "sys-info",
- "tar",
- "tch",
- "tempfile",
- "thiserror 1.0.69",
- "tiny_http",
- "tokenizers",
- "tokio",
- "tokio-rustls",
- "tokio-tungstenite",
- "tracing",
- "tracing-appender",
- "tracing-opentelemetry",
- "tracing-subscriber",
- "tungstenite",
- "untrusted",
- "url 2.5.8",
- "urlencoding",
- "uuid",
- "v8",
- "walkdir",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-encoder 0.243.0",
- "wasmparser 0.217.1",
- "wasmtime",
- "wasmtime-wasi",
- "wat",
- "webpki-roots 0.25.4",
- "windows-sys 0.52.0",
-]
 
 [[package]]
 name = "bincode"
@@ -5924,6 +5963,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spdx"
+version = "0.10.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e17e880bafaeb362a7b751ec46bdc5b61445a188f80e0606e68167cd540fa3"
+dependencies = [
+ "smallvec",
+]
+
+[[package]]
 name = "spm_precompiled"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6589,6 +6637,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 
 [[package]]
+name = "topological-sort"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea68304e134ecd095ac6c3574494fc62b909f416c4fca77e440530221e549d3d"
+
+[[package]]
 name = "torch-sys"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7129,7 +7183,7 @@ version = "1.0.1+wasi-0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0562428422c63773dad2c345a1882263bbf4d65cf3f42e90921f787ef5ad58e7"
 dependencies = [
- "wit-bindgen",
+ "wit-bindgen 0.46.0",
 ]
 
 [[package]]
@@ -7192,6 +7246,16 @@ dependencies = [
 
 [[package]]
 name = "wasm-encoder"
+version = "0.227.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80bb72f02e7fbf07183443b27b0f3d4144abf8c114189f2e088ed95b696a7822"
+dependencies = [
+ "leb128fmt",
+ "wasmparser 0.227.1",
+]
+
+[[package]]
+name = "wasm-encoder"
 version = "0.239.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5be00faa2b4950c76fe618c409d2c3ea5a3c9422013e079482d78544bb2d184c"
@@ -7221,6 +7285,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasm-metadata"
+version = "0.227.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce1ef0faabbbba6674e97a56bee857ccddf942785a336c8b47b42373c922a91d"
+dependencies = [
+ "anyhow",
+ "auditable-serde",
+ "flate2",
+ "indexmap 2.14.2",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "spdx",
+ "url 2.5.8",
+ "wasm-encoder 0.227.1",
+ "wasmparser 0.227.1",
+]
+
+[[package]]
 name = "wasm-streams"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7245,6 +7328,18 @@ dependencies = [
  "indexmap 2.14.2",
  "semver",
  "serde",
+]
+
+[[package]]
+name = "wasmparser"
+version = "0.227.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f51cad774fb3c9461ab9bccc9c62dfb7388397b5deda31bf40e8108ccd678b2"
+dependencies = [
+ "bitflags 2.13.1",
+ "hashbrown 0.15.5",
+ "indexmap 2.14.2",
+ "semver",
 ]
 
 [[package]]
@@ -7406,7 +7501,7 @@ dependencies = [
  "syn 2.0.111",
  "wasmtime-internal-component-util",
  "wasmtime-internal-wit-bindgen",
- "wit-parser",
+ "wit-parser 0.239.0",
 ]
 
 [[package]]
@@ -7549,7 +7644,7 @@ dependencies = [
  "bitflags 2.13.1",
  "heck",
  "indexmap 2.14.2",
- "wit-parser",
+ "wit-parser 0.239.0",
 ]
 
 [[package]]
@@ -8111,9 +8206,109 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen"
+version = "0.41.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10fb6648689b3929d56bbc7eb1acf70c9a42a29eb5358c67c10f54dbd5d695de"
+dependencies = [
+ "wit-bindgen-rt",
+ "wit-bindgen-rust-macro",
+]
+
+[[package]]
+name = "wit-bindgen"
 version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f17a85883d4e6d00e8a97c586de764dabcc06133f7f1d55dce5cdc070ad7fe59"
+
+[[package]]
+name = "wit-bindgen-core"
+version = "0.41.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92fa781d4f2ff6d3f27f3cc9b74a73327b31ca0dc4a3ef25a0ce2983e0e5af9b"
+dependencies = [
+ "anyhow",
+ "heck",
+ "wit-parser 0.227.1",
+]
+
+[[package]]
+name = "wit-bindgen-rt"
+version = "0.41.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4db52a11d4dfb0a59f194c064055794ee6564eb1ced88c25da2cf76e50c5621"
+dependencies = [
+ "bitflags 2.13.1",
+ "futures",
+ "once_cell",
+]
+
+[[package]]
+name = "wit-bindgen-rust"
+version = "0.41.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d0809dc5ba19e2e98661bf32fc0addc5a3ca5bf3a6a7083aa6ba484085ff3ce"
+dependencies = [
+ "anyhow",
+ "heck",
+ "indexmap 2.14.2",
+ "prettyplease",
+ "syn 2.0.111",
+ "wasm-metadata",
+ "wit-bindgen-core",
+ "wit-component",
+]
+
+[[package]]
+name = "wit-bindgen-rust-macro"
+version = "0.41.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad19eec017904e04c60719592a803ee5da76cb51c81e3f6fbf9457f59db49799"
+dependencies = [
+ "anyhow",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.111",
+ "wit-bindgen-core",
+ "wit-bindgen-rust",
+]
+
+[[package]]
+name = "wit-component"
+version = "0.227.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "635c3adc595422cbf2341a17fb73a319669cc8d33deed3a48368a841df86b676"
+dependencies = [
+ "anyhow",
+ "bitflags 2.13.1",
+ "indexmap 2.14.2",
+ "log 0.4.29",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "wasm-encoder 0.227.1",
+ "wasm-metadata",
+ "wasmparser 0.227.1",
+ "wit-parser 0.227.1",
+]
+
+[[package]]
+name = "wit-parser"
+version = "0.227.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddf445ed5157046e4baf56f9138c124a0824d4d1657e7204d71886ad8ce2fc11"
+dependencies = [
+ "anyhow",
+ "id-arena",
+ "indexmap 2.14.2",
+ "log 0.4.29",
+ "semver",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "unicode-xid",
+ "wasmparser 0.227.1",
+]
 
 [[package]]
 name = "wit-parser"
@@ -8215,6 +8410,25 @@ dependencies = [
  "quote",
  "syn 2.0.111",
  "synstructure",
+]
+
+[[package]]
+name = "zed-beejs"
+version = "1.16.0"
+dependencies = [
+ "tempfile",
+ "zed_extension_api",
+]
+
+[[package]]
+name = "zed_extension_api"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0729d50b4ca0a7e28e590bbe32e3ca0194d97ef654961451a424c661a366fca0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "wit-bindgen 0.41.0",
 ]
 
 [[package]]

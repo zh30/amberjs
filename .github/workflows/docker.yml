@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/zh30/beejs
+  IMAGE: ghcr.io/zh30/amberjs
 
 jobs:
   build:

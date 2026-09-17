@@ -1,5 +1,5 @@
 # ==============================================================================
-# Beejs Production Docker Image
+# Amberjs Production Docker Image
 # Optimized for high-performance JavaScript/TypeScript runtime
 # ==============================================================================
 
@@ -30,11 +30,11 @@ ENV CARGO_BUILD_JOBS=1
 COPY Cargo.toml Cargo.lock build.rs ./
 COPY benches ./benches
 COPY src ./src
-# types_export.rs embed: include_str!("../types/beejs.d.ts")
+# types_export.rs embed: include_str!("../types/amberjs.d.ts")
 COPY types ./types
 
 RUN cargo fetch --locked
-RUN cargo build --release --bin bee
+RUN cargo build --release --bin amber
 
 # 阶段 2: 运行时阶段 - 最小化镜像
 FROM debian:bookworm-slim AS runtime
@@ -46,44 +46,43 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建非特权用户
-RUN groupadd -r beejs && useradd -r -g beejs beejs
+RUN groupadd -r amberjs && useradd -r -g amberjs amberjs
 
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件
-COPY --from=builder /app/target/release/bee /usr/local/bin/bee
+# 从构建阶段复制二进制文件并建立兼容别名
+COPY --from=builder /app/target/release/amber /usr/local/bin/amber
+RUN ln -s /usr/local/bin/amber /usr/local/bin/bee
 
 # 创建必要的目录
 RUN mkdir -p /app/cache /app/logs /app/tmp && \
-    chown -R beejs:beejs /app
+    chown -R amberjs:amberjs /app
 
 # 复制示例和文档
-COPY --chown=beejs:beejs README.md /app/
-COPY --chown=beejs:beejs examples/ /app/examples/
+COPY --chown=amberjs:amberjs README.md /app/
+COPY --chown=amberjs:amberjs examples/ /app/examples/
 
 # 切换到非特权用户
-USER beejs
+USER amberjs
 
 # 设置默认环境变量
-ENV BEEJS_MODE=production
-ENV BEEJS_LOG_LEVEL=info
-ENV BEEJS_MAX_CONNECTIONS=10000
-ENV BEEJS_BATCH_SIZE=100
-ENV BEEJS_CACHE_DIR=/app/cache
-ENV BEEJS_TMP_DIR=/app/tmp
+ENV AMBER_MODE=production
+ENV AMBER_LOG_LEVEL=info
+ENV AMBER_MAX_CONNECTIONS=10000
+ENV AMBER_BATCH_SIZE=100
+ENV AMBER_CACHE_DIR=/app/cache
+ENV AMBER_TMP_DIR=/app/tmp
 
 # 暴露端口
 EXPOSE 3000
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD bee --version >/dev/null || exit 1
+    CMD amber --version >/dev/null || exit 1
 
-# ENTRYPOINT is `bee` so `docker run IMAGE --version` execs bee, not `--version`.
-# A CMD-only image replaces the whole argv; GHCR smoke failed with exit 127:
-# exec: "--version": executable file not found in $PATH
-ENTRYPOINT ["bee"]
+# ENTRYPOINT is `amber` so `docker run IMAGE --version` execs amber, not `--version`.
+ENTRYPOINT ["amber"]
 CMD ["serve", "--host", "0.0.0.0", "--port", "3000"]
 
 # ==============================================================================

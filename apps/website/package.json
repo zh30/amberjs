@@ -1,0 +1,51 @@
+{
+  "name": "amberjs-website",
+  "private": true,
+  "version": "1.16.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "prebuild": "cp ../../install.sh public/install.sh && cp ../../install.ps1 public/install.ps1",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "wrangler deploy",
+    "deploy:dry-run": "wrangler deploy --dry-run"
+  },
+  "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "monaco-editor": "^0.56.0",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.11.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251217.0",
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/react-query": "^5.90.12",
+    "@tanstack/react-router": "^1.141.6",
+    "@tanstack/router-cli": "^1.141.7",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "autoprefixer": "^10.4.23",
+    "clsx": "^2.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "framer-motion": "^12.23.26",
+    "globals": "^16.5.0",
+    "lucide-react": "^0.561.0",
+    "postcss": "^8.5.6",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.3.0",
+    "vite-tsconfig-paths": "^6.0.2",
+    "wrangler": "^4.55.0"
+  }
+}

@@ -16550,13 +16550,14 @@ impl MinimalRuntime {
                         scope.throw_exception(error_obj.into());
                         return;
                     }
-                } else if let Some(bee_name) =
-                    requested_module_id_str.strip_prefix("bee:")
+                } else if let Some(amber_name) = requested_module_id_str
+                    .strip_prefix("amber:")
+                    .or_else(|| requested_module_id_str.strip_prefix("bee:"))
                 {
                     if crate::nodejs_core::commonjs_resolver::is_builtin_module(&requested_module_id_str)
-                        || crate::nodejs_core::commonjs_resolver::is_builtin_module(bee_name)
+                        || crate::nodejs_core::commonjs_resolver::is_builtin_module(amber_name)
                     {
-                        bee_name.to_string()
+                        amber_name.to_string()
                     } else {
                         let error_msg = format!("Cannot find module '{}'", requested_module_id_str);
                         let error_str = v8::String::new(scope, &error_msg).unwrap();
@@ -17327,12 +17328,12 @@ impl MinimalRuntime {
                     | "url" | "querystring" | "dns" | "child_process" | "tcp_async" | "stream"
                     | "stream/promises" | "timers" | "timers/promises"
                     | "readline" | "performance" | "perf_hooks" | "assert" | "assert/strict"
-                    | "diagnostics_channel" | "async_hooks" | "wasm" | "bee:wasm"
-                    | "ai" | "bee:ai" | "replay" | "bee:replay" | "weights" | "bee:weights"
-                    | "security" | "bee:security" | "permissions" | "bee:permissions"
-                    | "kv" | "bee:kv" | "tools" | "bee:tools" | "sandbox" | "bee:sandbox" | "vfs" | "bee:vfs"
-                    | "bus" | "bee:bus" | "grammar" | "bee:grammar" | "checkpoint" | "bee:checkpoint"
-                    | "sockets" | "bee:sockets" | "wintertc:sockets" | "std:cli" | "bee:std/cli" => {
+                    | "diagnostics_channel" | "async_hooks" | "wasm" | "bee:wasm" | "amber:wasm"
+                    | "ai" | "bee:ai" | "amber:ai" | "replay" | "bee:replay" | "amber:replay" | "weights" | "bee:weights" | "amber:weights"
+                    | "security" | "bee:security" | "amber:security" | "permissions" | "bee:permissions" | "amber:permissions"
+                    | "kv" | "bee:kv" | "amber:kv" | "tools" | "bee:tools" | "amber:tools" | "sandbox" | "bee:sandbox" | "amber:sandbox" | "vfs" | "bee:vfs" | "amber:vfs"
+                    | "bus" | "bee:bus" | "amber:bus" | "grammar" | "bee:grammar" | "amber:grammar" | "checkpoint" | "bee:checkpoint" | "amber:checkpoint"
+                    | "sockets" | "bee:sockets" | "amber:sockets" | "wintertc:sockets" | "std:cli" | "bee:std/cli" | "amber:std/cli" => {
                         // Get context and global object
                         let ctx = scope.get_current_context();
                         let global_obj = ctx.global(scope);
@@ -17557,6 +17558,7 @@ impl MinimalRuntime {
                         }
 
                         if module_id_str == "sockets"
+                            || module_id_str == "amber:sockets"
                             || module_id_str == "bee:sockets"
                             || module_id_str == "wintertc:sockets"
                         {
@@ -17570,7 +17572,10 @@ impl MinimalRuntime {
                         }
 
                         // Try to get the module from global
-                        let clean_id = module_id_str.strip_prefix("bee:").unwrap_or(&module_id_str);
+                        let clean_id = module_id_str
+                            .strip_prefix("amber:")
+                            .or_else(|| module_id_str.strip_prefix("bee:"))
+                            .unwrap_or(&module_id_str);
                         let mod_key = v8::String::new(scope, clean_id).unwrap();
                         if let Some(mod_val) = global_obj.get(scope, mod_key.into()) {
                             if !mod_val.is_undefined() {
@@ -17623,7 +17628,10 @@ impl MinimalRuntime {
                         ) {
                             Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::File(path)) => path,
                             Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::Builtin(name)) => {
-                                let clean = name.strip_prefix("bee:").unwrap_or(&name);
+                                let clean = name
+                                    .strip_prefix("amber:")
+                                    .or_else(|| name.strip_prefix("bee:"))
+                                    .unwrap_or(&name);
                                 for candidate in &[
                                     name.as_str(),
                                     clean,

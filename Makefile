@@ -1,4 +1,4 @@
-# Beejs Build System
+# Amberjs Build System
 # JavaScript/TypeScript runtime built with Rust and V8
 
 .PHONY: all build test clean run help install dev release
@@ -8,8 +8,8 @@ all: build test
 
 # Build the project
 build:
-	@echo "Building Beejs..."
-	cargo build --release
+	@echo "Building Amberjs..."
+	cargo build --release --bin amber
 
 # Run tests
 test:
@@ -20,7 +20,7 @@ test:
 # Run with specific file
 run: build
 	@echo "Running example..."
-	./target/release/bee run $(file)
+	./target/release/amber run $(file)
 
 # Clean build artifacts
 clean:
@@ -29,8 +29,8 @@ clean:
 
 # Install to system
 install: build
-	@echo "Installing Beejs..."
-	sudo cp target/release/bee /usr/local/bin/
+	@echo "Installing Amberjs..."
+	sudo cp target/release/amber /usr/local/bin/
 
 # Development build (faster)
 dev: build
@@ -41,7 +41,7 @@ release: build
 # Performance test
 perf: build
 	@echo "Running performance test..."
-	./target/release/bee run examples/performance/performance_test.js
+	./target/release/amber run examples/performance/performance_test.js
 
 # Idle memory & HTTP throughput benchmark
 bench-idle: build
@@ -51,7 +51,7 @@ bench-idle: build
 # Hello world example
 hello: build
 	@echo "Running hello world example..."
-	./target/release/bee run examples/basics/hello_world.js
+	./target/release/amber run examples/basics/hello_world.js
 
 # Check formatting
 fmt:
@@ -65,7 +65,7 @@ lint:
 
 # Show help
 help:
-	@echo "Beejs - JavaScript/TypeScript runtime built with Rust and V8"
+	@echo "Amberjs - JavaScript/TypeScript runtime built with Rust and V8"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  build   - Build the project"

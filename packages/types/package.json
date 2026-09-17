@@ -1,0 +1,21 @@
+{
+  "name": "@amberjs/types",
+  "version": "1.16.0",
+  "description": "TypeScript type declarations for Amber JavaScript/TypeScript runtime",
+  "types": "./amberjs.d.ts",
+  "files": [
+    "amberjs.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zh30/amberjs"
+  },
+  "keywords": [
+    "amber",
+    "amberjs",
+    "types",
+    "typescript",
+    "runtime"
+  ],
+  "license": "MIT"
+}

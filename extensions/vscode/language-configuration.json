@@ -13,23 +13,23 @@
     { "open": "[", "close": "]" },
     { "open": "(", "close": ")" },
     { "open": "\"", "close": "\"", "notIn": ["string"] },
-    { "open": "'", "close": "'", "notIn": ["string"] }
+    { "open": "'", "close": "'", "notIn": ["string"] },
+    { "open": "`", "close": "`", "notIn": ["string", "comment"] }
   ],
   "surroundingPairs": [
     ["{", "}"],
     ["[", "]"],
     ["(", ")"],
     ["\"", "\""],
-    ["'", "'"]
+    ["'", "'"],
+    ["`", "`"]
   ],
   "indentationRules": {
     "increaseIndentPattern": {
-      "pattern": "((^\\s*\\/\\*)?\\s*\\/\\*|\\{\\s*)$",
-      "flags": ""
+      "pattern": "((.*\\{[^}]*|\\{[^}]*\\}|\\{[^}]*\\{)\\s*)$"
     },
     "decreaseIndentPattern": {
-      "pattern": "(\\s*\\}|^\\s*\\/\\*)",
-      "flags": ""
+      "pattern": "^\\s*\\}"
     }
   },
   "folding": {
@@ -37,10 +37,5 @@
       "start": "^\\s*//\\s*#?region",
       "end": "^\\s*//\\s*#?endregion"
     }
-  },
-  "wordWrap": "off",
-  "formatRules": {
-    "enable": true,
-    "provider": "beejs"
   }
 }

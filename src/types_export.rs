@@ -1,4 +1,4 @@
-//! TypeScript Types Exporter for Beejs
+//! TypeScript Types Exporter for Amberjs
 //!
 //! Provides zero-overhead access and export of built-in TypeScript declarations.
 
@@ -6,8 +6,8 @@ use anyhow::{anyhow, Result};
 use std::fs;
 use std::path::Path;
 
-/// Embedded type definitions from `types/beejs.d.ts`
-pub const BUILTIN_TYPE_DEFINITIONS: &str = include_str!("../types/beejs.d.ts");
+/// Embedded type definitions from `types/amberjs.d.ts`
+pub const BUILTIN_TYPE_DEFINITIONS: &str = include_str!("../types/amberjs.d.ts");
 
 /// Returns the embedded type definitions.
 pub fn get_type_definitions() -> &'static str {
