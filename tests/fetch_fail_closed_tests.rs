@@ -1,4 +1,4 @@
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::io::{Read, Write};
 use std::net::TcpListener;

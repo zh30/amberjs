@@ -7,7 +7,7 @@ use serial_test::serial;
 #[serial]
 fn test_set_immediate_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof setImmediate")
         .expect("Execution failed");
@@ -22,7 +22,7 @@ fn test_set_immediate_exists() {
 #[serial]
 fn test_set_immediate_basic_execution() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     // setImmediate runs in the check phase after the current sync script completes.
     // Resolve a Promise from the callback so execute_code can await the settlement.
     let code = r#"
@@ -42,7 +42,7 @@ fn test_set_immediate_basic_execution() {
 #[serial]
 fn test_set_immediate_with_argument() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         new Promise((resolve) => {
             setImmediate(function(x, y) { resolve(x + y); }, 5, 3);
@@ -60,7 +60,7 @@ fn test_set_immediate_with_argument() {
 #[serial]
 fn test_set_immediate_returns_timer_id() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setImmediate(function() {});
         // Timer is now an object (v0.3.36) with methods
@@ -78,7 +78,7 @@ fn test_set_immediate_returns_timer_id() {
 #[serial]
 fn test_set_immediate_multiple_calls() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         new Promise((resolve) => {
             let count = 0;
@@ -102,7 +102,7 @@ fn test_set_immediate_multiple_calls() {
 #[serial]
 fn test_clear_immediate_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof clearImmediate")
         .expect("Execution failed");
@@ -117,7 +117,7 @@ fn test_clear_immediate_exists() {
 #[serial]
 fn test_clear_immediate_basic() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         let executed = false;
         const timerId = setImmediate(function() { executed = true; });
@@ -138,7 +138,7 @@ fn test_clear_immediate_basic() {
 #[serial]
 fn test_set_immediate_callback_with_this() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         new Promise((resolve) => {
             const obj = {
@@ -161,7 +161,7 @@ fn test_set_immediate_callback_with_this() {
 #[serial]
 fn test_set_immediate_error_handling() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     // setImmediate without callback should throw
     let code = r#"setImmediate()"#;
     let result = runtime.execute_code(code);
@@ -175,7 +175,7 @@ fn test_set_immediate_error_handling() {
 #[serial]
 fn test_set_immediate_non_function() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     // setImmediate with non-function should throw
     let code = r#"setImmediate("not a function")"#;
     let result = runtime.execute_code(code);

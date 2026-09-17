@@ -2,7 +2,7 @@
 //
 // 测试 DMA、内存映射、智能预取和 GC 优化功能
 
-use beejs::memory::{
+use amberjs::memory::{
     AccessPattern, EnhancedGcOptimizer, EnhancedZeroCopy, Phase2MemoryConfig, Phase2MemoryEngine,
     PrefetchStrategy, SendPtr, SmartPrefetcher,
 };

@@ -1,7 +1,7 @@
 // V8 Snapshot CoW & Isolate Prewarmer Integration Tests (Task 1.2 / v1.13.0)
-use beejs::isolate_prewarmer::{global_prewarmer, IsolatePrewarmer};
-use beejs::runtime_minimal::MinimalRuntime;
-use beejs::v8_snapshot::{
+use amberjs::isolate_prewarmer::{global_prewarmer, IsolatePrewarmer};
+use amberjs::runtime_minimal::MinimalRuntime;
+use amberjs::v8_snapshot::{
     cached_startup_blob, enable_startup_snapshot_for_cli, is_startup_blob_cow_active,
 };
 use serial_test::serial;

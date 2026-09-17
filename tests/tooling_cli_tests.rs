@@ -8,7 +8,7 @@ use tempfile::tempdir;
 
 #[test]
 fn test_types_export_cli_and_lib() {
-    let types = beejs::types_export::get_type_definitions();
+    let types = amberjs::types_export::get_type_definitions();
     assert!(types.contains("declare module \"bee:ai\""));
     assert!(types.contains("export class Tensor"));
     assert!(types.contains("export class LLM"));
@@ -17,7 +17,7 @@ fn test_types_export_cli_and_lib() {
 
     let dir = tempdir().expect("tempdir");
     let out_file = dir.path().join("beejs.d.ts");
-    beejs::types_export::export_types(Some(&out_file)).expect("export should succeed");
+    amberjs::types_export::export_types(Some(&out_file)).expect("export should succeed");
     assert!(out_file.exists());
     let written = fs::read_to_string(&out_file).expect("read");
     assert_eq!(written, types);
@@ -39,11 +39,11 @@ fn test_task_runner_executes_scripts() {
     )
     .expect("write package.json");
 
-    let scripts = beejs::task_runner::load_scripts(&pkg).expect("load scripts");
+    let scripts = amberjs::task_runner::load_scripts(&pkg).expect("load scripts");
     assert!(scripts.contains_key("greet"));
     assert_eq!(scripts.get("greet").unwrap(), "echo task_runner_success");
 
-    let status = beejs::task_runner::run_script(dir.path(), "greet", &[]).expect("run_script");
+    let status = amberjs::task_runner::run_script(dir.path(), "greet", &[]).expect("run_script");
     assert!(status.success());
 }
 
@@ -51,7 +51,7 @@ fn test_task_runner_executes_scripts() {
 fn test_oxc_formatter_in_memory_and_disk() {
     let unformatted = "function   calc( a,b ){ return  a*b; }";
     let formatted =
-        beejs::tooling::formatter::format_source(unformatted, "calc.js").expect("format_source");
+        amberjs::tooling::formatter::format_source(unformatted, "calc.js").expect("format_source");
     assert!(formatted.contains("function calc(a, b)"));
 
     let dir = tempdir().expect("tempdir");
@@ -59,14 +59,14 @@ fn test_oxc_formatter_in_memory_and_disk() {
     fs::write(&file_path, unformatted).expect("write");
 
     // Check mode first
-    let summary = beejs::tooling::formatter::format_paths(std::slice::from_ref(&file_path), true)
+    let summary = amberjs::tooling::formatter::format_paths(std::slice::from_ref(&file_path), true)
         .expect("format_paths check");
     assert_eq!(summary.formatted, 1);
     assert_eq!(fs::read_to_string(&file_path).unwrap(), unformatted);
 
     // Write mode
     let summary_write =
-        beejs::tooling::formatter::format_paths(std::slice::from_ref(&file_path), false)
+        amberjs::tooling::formatter::format_paths(std::slice::from_ref(&file_path), false)
             .expect("format_paths write");
     assert_eq!(summary_write.formatted, 1);
     let after_write = fs::read_to_string(&file_path).unwrap();
@@ -84,7 +84,7 @@ fn test_oxc_linter_detects_violations() {
         }
     "#;
 
-    let diags = beejs::tooling::linter::lint_source(bad_code, "risky.js");
+    let diags = amberjs::tooling::linter::lint_source(bad_code, "risky.js");
     let rules: Vec<&str> = diags.iter().map(|d| d.rule_name).collect();
 
     assert!(
@@ -106,7 +106,7 @@ fn test_single_binary_compiler_and_sea_execution() {
     fs::write(&entry, "console.log('SEA_HELLO_WORLD');").expect("write entry");
 
     let out_bin = dir.path().join("my_standalone_tool");
-    beejs::tooling::compiler::compile_binary(&entry, &out_bin).expect("compile_binary");
+    amberjs::tooling::compiler::compile_binary(&entry, &out_bin).expect("compile_binary");
     assert!(out_bin.exists());
 
     // Execute the standalone binary directly
@@ -122,7 +122,7 @@ fn test_single_binary_compiler_and_sea_execution() {
 #[test]
 fn test_coverage_collector_generates_lcov() {
     let dir = tempdir().expect("tempdir");
-    let mut report = beejs::tooling::coverage::CoverageReport::new();
+    let mut report = amberjs::tooling::coverage::CoverageReport::new();
 
     let sample_file = dir.path().join("sample.js");
     let code = "const a = 1;\nconst b = 2;\n// comment\nconst c = a + b;";
@@ -157,7 +157,7 @@ fn test_benchmark_runner_executes_sample() {
     .expect("write bench");
 
     let results =
-        beejs::tooling::benchmark::run_benchmark_file(&bench_file).expect("run_benchmark_file");
+        amberjs::tooling::benchmark::run_benchmark_file(&bench_file).expect("run_benchmark_file");
 
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].name, "fast addition");
@@ -221,21 +221,21 @@ fn test_lsp_server_full_session() {
     });
 
     let mut input_buf = Vec::new();
-    beejs::tooling::lsp::write_lsp_message(&mut input_buf, &init_req).unwrap();
-    beejs::tooling::lsp::write_lsp_message(&mut input_buf, &did_open).unwrap();
-    beejs::tooling::lsp::write_lsp_message(&mut input_buf, &format_req).unwrap();
-    beejs::tooling::lsp::write_lsp_message(&mut input_buf, &hover_req).unwrap();
-    beejs::tooling::lsp::write_lsp_message(&mut input_buf, &shutdown_req).unwrap();
-    beejs::tooling::lsp::write_lsp_message(&mut input_buf, &exit_notif).unwrap();
+    amberjs::tooling::lsp::write_lsp_message(&mut input_buf, &init_req).unwrap();
+    amberjs::tooling::lsp::write_lsp_message(&mut input_buf, &did_open).unwrap();
+    amberjs::tooling::lsp::write_lsp_message(&mut input_buf, &format_req).unwrap();
+    amberjs::tooling::lsp::write_lsp_message(&mut input_buf, &hover_req).unwrap();
+    amberjs::tooling::lsp::write_lsp_message(&mut input_buf, &shutdown_req).unwrap();
+    amberjs::tooling::lsp::write_lsp_message(&mut input_buf, &exit_notif).unwrap();
 
     let mut output_buf = Vec::new();
-    beejs::tooling::lsp::run_lsp_server(&input_buf[..], &mut output_buf).expect("run_lsp_server");
+    amberjs::tooling::lsp::run_lsp_server(&input_buf[..], &mut output_buf).expect("run_lsp_server");
 
     // Read responses
     let mut reader = std::io::BufReader::new(&output_buf[..]);
 
     // 1. initialize response
-    let init_resp = beejs::tooling::lsp::read_lsp_message(&mut reader)
+    let init_resp = amberjs::tooling::lsp::read_lsp_message(&mut reader)
         .unwrap()
         .unwrap();
     assert_eq!(init_resp.get("id").and_then(|id| id.as_u64()), Some(1));
@@ -246,7 +246,7 @@ fn test_lsp_server_full_session() {
     );
 
     // 2. publishDiagnostics notification
-    let diag_notif = beejs::tooling::lsp::read_lsp_message(&mut reader)
+    let diag_notif = amberjs::tooling::lsp::read_lsp_message(&mut reader)
         .unwrap()
         .unwrap();
     assert_eq!(
@@ -257,7 +257,7 @@ fn test_lsp_server_full_session() {
     assert!(diags.iter().any(|d| d["code"] == "no-debugger"));
 
     // 3. formatting response
-    let fmt_resp = beejs::tooling::lsp::read_lsp_message(&mut reader)
+    let fmt_resp = amberjs::tooling::lsp::read_lsp_message(&mut reader)
         .unwrap()
         .unwrap();
     assert_eq!(fmt_resp.get("id").and_then(|id| id.as_u64()), Some(2));
@@ -269,13 +269,13 @@ fn test_lsp_server_full_session() {
         .contains("function unformatted(a, b)"));
 
     // 4. hover response
-    let hover_resp = beejs::tooling::lsp::read_lsp_message(&mut reader)
+    let hover_resp = amberjs::tooling::lsp::read_lsp_message(&mut reader)
         .unwrap()
         .unwrap();
     assert_eq!(hover_resp.get("id").and_then(|id| id.as_u64()), Some(3));
 
     // 5. shutdown response
-    let shutdown_resp = beejs::tooling::lsp::read_lsp_message(&mut reader)
+    let shutdown_resp = amberjs::tooling::lsp::read_lsp_message(&mut reader)
         .unwrap()
         .unwrap();
     assert_eq!(shutdown_resp.get("id").and_then(|id| id.as_u64()), Some(4));
@@ -288,7 +288,7 @@ fn test_inspector_http_and_websocket() {
     use tungstenite::connect;
 
     let port = 19345;
-    let inspector = beejs::tooling::inspector::InspectorServer::new("127.0.0.1", port, "test.js");
+    let inspector = amberjs::tooling::inspector::InspectorServer::new("127.0.0.1", port, "test.js");
     inspector.start().expect("start inspector");
 
     // Wait a brief moment for bind
@@ -370,7 +370,7 @@ fn test_bundler_multi_module_and_minify() {
     )
     .expect("write main.js");
 
-    let options = beejs::tooling::bundler::BundleOptions {
+    let options = amberjs::tooling::bundler::BundleOptions {
         entry: entry_file.clone(),
         outfile: None,
         minify: false,
@@ -379,7 +379,7 @@ fn test_bundler_multi_module_and_minify() {
         import_map: None,
     };
 
-    let result = beejs::tooling::bundler::bundle_project(&options).expect("bundle should succeed");
+    let result = amberjs::tooling::bundler::bundle_project(&options).expect("bundle should succeed");
 
     assert_eq!(result.module_count, 2);
     assert!(result.code.contains("function(modules)"));
@@ -387,7 +387,7 @@ fn test_bundler_multi_module_and_minify() {
     assert!(result.map.is_some());
 
     // Test with minification enabled
-    let min_options = beejs::tooling::bundler::BundleOptions {
+    let min_options = amberjs::tooling::bundler::BundleOptions {
         entry: entry_file,
         outfile: None,
         minify: true,
@@ -395,7 +395,7 @@ fn test_bundler_multi_module_and_minify() {
         target: "esnext".to_string(),
         import_map: None,
     };
-    let min_result = beejs::tooling::bundler::bundle_project(&min_options)
+    let min_result = amberjs::tooling::bundler::bundle_project(&min_options)
         .expect("minified bundle should succeed");
 
     assert!(min_result.code.len() <= result.code.len());
@@ -417,7 +417,7 @@ fn test_import_map_parser_and_bundler() {
     )
     .expect("write import map");
 
-    let map = beejs::tooling::import_map::ImportMap::load(&map_file).expect("load import map");
+    let map = amberjs::tooling::import_map::ImportMap::load(&map_file).expect("load import map");
     let resolved = map.resolve("math", None).expect("resolve math");
     assert!(resolved.ends_with("src/math.js"));
 
@@ -429,7 +429,7 @@ fn test_import_map_parser_and_bundler() {
 
 #[test]
 fn test_agent_timeout_watchdog() {
-    let mut runtime = beejs::runtime_minimal::MinimalRuntime::new().expect("runtime");
+    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime");
     let handle = runtime.isolate_handle();
 
     // Watchdog thread: pulse terminate_execution every 20ms to handle any scheduling race
@@ -452,12 +452,12 @@ fn test_agent_timeout_watchdog() {
 
 #[test]
 fn test_deterministic_seed_prng() {
-    beejs::permissions::set_deterministic_seed(Some(123456789));
+    amberjs::permissions::set_deterministic_seed(Some(123456789));
 
-    let mut runtime1 = beejs::runtime_minimal::MinimalRuntime::new().expect("runtime1");
+    let mut runtime1 = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime1");
     let val1 = runtime1.execute_code("Math.random()").expect("rand1");
 
-    let mut runtime2 = beejs::runtime_minimal::MinimalRuntime::new().expect("runtime2");
+    let mut runtime2 = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime2");
     let val2 = runtime2.execute_code("Math.random()").expect("rand2");
 
     assert_eq!(
@@ -466,26 +466,26 @@ fn test_deterministic_seed_prng() {
     );
 
     // Clean up
-    beejs::permissions::set_deterministic_seed(None);
+    amberjs::permissions::set_deterministic_seed(None);
 }
 
 #[test]
 fn test_deterministic_frozen_time() {
     let fixed_ts: i64 = 1700000000000;
-    beejs::permissions::set_frozen_time_ms(Some(fixed_ts));
+    amberjs::permissions::set_frozen_time_ms(Some(fixed_ts));
 
-    let mut runtime = beejs::runtime_minimal::MinimalRuntime::new().expect("runtime");
+    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime");
     let date_now = runtime.execute_code("Date.now()").expect("date now");
 
     assert_eq!(date_now.trim(), "1700000000000");
 
     // Clean up
-    beejs::permissions::set_frozen_time_ms(None);
+    amberjs::permissions::set_frozen_time_ms(None);
 }
 
 #[test]
 fn test_process_dlopen_interface() {
-    let mut runtime = beejs::runtime_minimal::MinimalRuntime::new().expect("runtime");
+    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime");
     let res = runtime.execute_code("typeof process.dlopen");
     assert_eq!(res.unwrap().trim(), "function");
 
@@ -500,18 +500,18 @@ fn test_process_dlopen_interface() {
 
 #[test]
 fn test_repl_multiline_block_detection() {
-    assert!(beejs::repl::is_unclosed_block("function calc() {"));
-    assert!(beejs::repl::is_unclosed_block("const list = [1, 2,"));
-    assert!(beejs::repl::is_unclosed_block("let str = `multi\nline"));
-    assert!(!beejs::repl::is_unclosed_block(
+    assert!(amberjs::repl::is_unclosed_block("function calc() {"));
+    assert!(amberjs::repl::is_unclosed_block("const list = [1, 2,"));
+    assert!(amberjs::repl::is_unclosed_block("let str = `multi\nline"));
+    assert!(!amberjs::repl::is_unclosed_block(
         "function calc() { return 42; }"
     ));
-    assert!(!beejs::repl::is_unclosed_block("const list = [1, 2, 3];"));
+    assert!(!amberjs::repl::is_unclosed_block("const list = [1, 2, 3];"));
 }
 
 #[test]
 fn test_web_server_fetch_handler_dispatch() {
-    let mut runtime = beejs::runtime_minimal::MinimalRuntime::new().expect("runtime");
+    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime");
 
     let bridge_init = r#"
 globalThis.__beejs_app__ = undefined;

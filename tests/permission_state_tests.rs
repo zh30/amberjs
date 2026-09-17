@@ -1,8 +1,8 @@
-use beejs::permissions::{
+use amberjs::permissions::{
     global_resource_broker, PermissionAction, PermissionDecision, PermissionKind, ResourceBroker,
     ResourceId,
 };
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
 
@@ -11,7 +11,7 @@ fn path_for_js(path: &std::path::Path) -> String {
 }
 
 fn reset_global_broker() {
-    beejs::permissions::reset_runtime_permission_state();
+    amberjs::permissions::reset_runtime_permission_state();
     *global_resource_broker()
         .write()
         .expect("resource broker lock should not be poisoned") = ResourceBroker::default();

@@ -1,7 +1,7 @@
 // Tests for process global object (v0.3.17)
 // Tests for process.version, process.platform, process.env, process.argv, etc.
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

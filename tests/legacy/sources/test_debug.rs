@@ -1,6 +1,6 @@
 #[test]
 fn test_debug_output() {
-    use beejs::Runtime;
+    use amberjs::Runtime;
     use tempfile::{NamedTempFile, TempDir};
     use std::io::Write;
     

@@ -3,7 +3,7 @@
 // This test suite validates the comprehensive package manager functionality
 // including dependency resolution, version locking, caching, and multi-registry support.
 
-use beejs::ecosystem_lite::*;
+use amberjs::ecosystem_lite::*;
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;

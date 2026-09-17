@@ -7,7 +7,7 @@ fn main() {
 
     // Test 1: Create runtime
     println!("Test 1: Creating minimal runtime...");
-    match beejs::MinimalRuntime::new() {
+    match amberjs::MinimalRuntime::new() {
         Ok(runtime) => {
             println!("✅ Runtime created successfully\n");
 

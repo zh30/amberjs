@@ -5,7 +5,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::MinimalRuntime;
+    use amberjs::MinimalRuntime;
 
     /// 测试 WebSocket 构造函数可用性
     #[test]

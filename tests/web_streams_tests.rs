@@ -2,7 +2,7 @@
 // Tests for ReadableStream, WritableStream, TransformStream, TextDecoderStream
 // Stage 75: Web Streams API for AI workloads
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

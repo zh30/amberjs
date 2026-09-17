@@ -1,7 +1,7 @@
 // StringDecoder 模块测试 - v0.3.48
 // 测试 StringDecoder 功能
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

@@ -1,6 +1,6 @@
 // AES-CTR WebCrypto encryption/decryption tests.
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

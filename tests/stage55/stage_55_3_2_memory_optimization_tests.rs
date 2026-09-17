@@ -10,7 +10,7 @@
 // These tests validate that Beejs achieves 30-50% memory usage reduction
 // compared to standard allocation strategies.
 
-use beejs::memory::*;
+use amberjs::memory::*;
 use std::time{Duration, Instant};
 
 #[cfg(test)]

@@ -8,7 +8,7 @@
 use std::process::Command;
 
 fn bee_path() -> &'static str {
-    env!("CARGO_BIN_EXE_bee")
+    env!("CARGO_BIN_EXE_amber")
 }
 
 #[test]

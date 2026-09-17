@@ -1,9 +1,9 @@
 // Production-grade Bundler 2.0 & SEA Compiler Integration Tests
 // Tests `bee bundle` (oxc-backed AST bundling) and `bee compile` (Single Executable Application)
 
-use beejs::runtime_minimal::MinimalRuntime;
-use beejs::tooling::bundler::{bundle_project, BundleOptions};
-use beejs::tooling::compiler::compile_binary;
+use amberjs::runtime_minimal::MinimalRuntime;
+use amberjs::tooling::bundler::{bundle_project, BundleOptions};
+use amberjs::tooling::compiler::compile_binary;
 use serial_test::serial;
 use std::fs;
 use std::process::Command;

@@ -18,7 +18,7 @@ mod tests {
         let _temp_path = temp_dir.path().to_path_buf();
 
         // Act: 尝试创建 MinimalRuntime
-        let runtime = beejs::runtime_minimal::MinimalRuntime::new();
+        let runtime = amberjs::runtime_minimal::MinimalRuntime::new();
 
         // Assert: 验证初始化成功
         assert!(
@@ -36,7 +36,7 @@ mod tests {
     async fn test_javascript_execution() -> Result<(), Box<dyn std::error::Error>> {
         // Arrange: 创建 MinimalRuntime
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let js_code = r#"
             const result = 1 + 1;
             result.toString();
@@ -68,7 +68,7 @@ mod tests {
     fn test_execute_code_does_not_replay_side_effect_statement(
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let result = runtime.execute_code(
             r#"
             globalThis.count = 0;
@@ -90,7 +90,7 @@ mod tests {
     fn test_execute_code_preserves_multiline_final_expression(
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let result = runtime.execute_code(
             r#"
             'alpha' + '|' +
@@ -112,7 +112,7 @@ mod tests {
     fn test_execute_code_does_not_transpile_interface_inside_string(
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let result = runtime.execute_code(
             r#"
             const options = { completer: null };
@@ -133,7 +133,7 @@ mod tests {
     fn test_execute_code_preserves_js_template_literal_with_type_word(
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let result = runtime.execute_code(
             r#"
             const string = "bee";
@@ -155,7 +155,7 @@ mod tests {
     fn test_execute_code_preserves_mapped_type_looking_string(
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let result = runtime.execute_code(
             r#"
             const text = "[P in keyof T]";
@@ -176,7 +176,7 @@ mod tests {
     fn test_execute_code_still_transpiles_type_aliases_with_mapped_and_template_types(
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let result = runtime.execute_code(
             r#"
             type Copy<T> = { [P in keyof T]: T[P] };
@@ -205,7 +205,7 @@ mod tests {
 
         // Act: 模拟CLI run命令执行
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let code = std::fs::read_to_string(&temp_path)?;
 
         let output = runtime.execute_code(&code);
@@ -225,7 +225,7 @@ mod tests {
 
         // Act: 模拟REPL模式执行多行输入
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
 
         let mut results = Vec::new();
         for input in &repl_inputs {
@@ -248,7 +248,7 @@ mod tests {
     async fn test_error_handling() -> Result<(), Box<dyn std::error::Error>> {
         // Arrange: 创建 MinimalRuntime
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let invalid_js = "invalid javascript code @#$%";
 
         // Act: 执行无效代码
@@ -267,7 +267,7 @@ mod tests {
     async fn test_performance_simple_execution() -> Result<(), Box<dyn std::error::Error>> {
         // Arrange: 创建 MinimalRuntime
         let mut runtime =
-            beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
+            amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create MinimalRuntime");
         let js_code = "let x = 0; x + 1;";
 
         // Act: 执行多次并测量时间

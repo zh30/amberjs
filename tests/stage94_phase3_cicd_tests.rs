@@ -4,15 +4,15 @@
 #[cfg(all(test, feature = "cloudnative"))]
 mod cicd_integration_tests {
     // Import CI/CD types directly from the module
-    use beejs::cloud_native::cicd::deployment::{
+    use amberjs::cloud_native::cicd::deployment::{
         BlueGreenDeployment, CanaryDeployment, DeploymentConfig, DeploymentStatus,
         DeploymentStrategy, Error as DeploymentError, RollingDeployment,
     };
-    use beejs::cloud_native::cicd::gitops::{
+    use amberjs::cloud_native::cicd::gitops::{
         ArgoCDApplication, Error as GitOpsError, FluxHelmRelease, GitOpsConfig, GitOpsManager,
         GitOpsSyncPolicy,
     };
-    use beejs::cloud_native::cicd::pipeline::{
+    use amberjs::cloud_native::cicd::pipeline::{
         Error as PipelineError, GitHubActionsWorkflow, GitLabCIPipeline, JenkinsPipeline,
         PipelineArtifact, PipelineCache, PipelineConfig, PipelineEvent, PipelineManager,
         PipelineSecret, PipelineStage, PipelineStatus,

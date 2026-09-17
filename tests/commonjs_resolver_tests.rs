@@ -1,5 +1,5 @@
-use beejs::nodejs_core::commonjs_resolver::{resolve_commonjs_module, ResolvedModule};
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::nodejs_core::commonjs_resolver::{resolve_commonjs_module, ResolvedModule};
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
 

@@ -9,7 +9,7 @@ use tempfile::TempDir;
 mod output_formatter_tests {
     use std::time::Duration;
 
-    // 由于 OutputFormatter 在 beejs::cli 模块中，这里模拟测试
+    // 由于 OutputFormatter 在 amberjs::cli 模块中，这里模拟测试
     // 实际测试需要在模块内或使用 pub 导出
 
     #[test]

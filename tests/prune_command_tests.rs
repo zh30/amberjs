@@ -8,7 +8,7 @@ use tempfile::TempDir;
 
 /// Get the path to the bee binary built by cargo for integration tests.
 fn beejs_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_bee"))
+    PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
 #[cfg(test)]
@@ -211,7 +211,7 @@ mod prune_command_tests {
     /// Test 6: verify prune method in PackageManager
     #[test]
     fn test_package_manager_prune() {
-        use beejs::package_manager::{PackageJson, PackageManager, PackageManagerConfig};
+        use amberjs::package_manager::{PackageJson, PackageManager, PackageManagerConfig};
 
         let temp_dir = TempDir::new().unwrap();
         let config = PackageManagerConfig {

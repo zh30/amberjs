@@ -1,9 +1,9 @@
 // Hot Reload Tests for Beejs Runtime
 
-use beejs::permissions::{
+use amberjs::permissions::{
     global_resource_broker, PermissionAction, PermissionKind, ResourceBroker, ResourceId,
 };
-use beejs::watcher::{FileChangeType, HotReloader, WatcherConfig, WatcherConfigBuilder};
+use amberjs::watcher::{FileChangeType, HotReloader, WatcherConfig, WatcherConfigBuilder};
 use serial_test::serial;
 use std::path::Path;
 use tempfile::TempDir;

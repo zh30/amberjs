@@ -1,5 +1,5 @@
 // Simple test to verify core functionality
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🐝 Testing Beejs Core Functionality");

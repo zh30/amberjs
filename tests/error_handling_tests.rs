@@ -1,7 +1,7 @@
 // Error handling tests for Beejs runtime
 // v0.3.235: Tests for error types, boundary cases, and error messages
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

@@ -4,7 +4,7 @@ use std::process::Command;
 use tempfile::tempdir;
 
 fn bee() -> &'static str {
-    env!("CARGO_BIN_EXE_bee")
+    env!("CARGO_BIN_EXE_amber")
 }
 
 fn compile_hello_addon(out_dir: &std::path::Path) -> PathBuf {

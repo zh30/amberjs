@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-// Mock the beejs::aiops::core types for testing
+// Mock the amberjs::aiops::core types for testing
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ModelType {
     AnomalyDetection,

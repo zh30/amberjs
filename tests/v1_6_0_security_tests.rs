@@ -1,6 +1,6 @@
 // Tests for Beejs v1.6.0 Enterprise Capability-Based Security (`bee:security` / `bee:permissions`)
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

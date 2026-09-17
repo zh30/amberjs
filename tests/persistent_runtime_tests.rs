@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod persistent_runtime_tests {
-    use beejs::Runtime;
+    use amberjs::Runtime;
 
     /// 测试 Runtime 能够复用内部 MinimalRuntime 实例
     #[test]

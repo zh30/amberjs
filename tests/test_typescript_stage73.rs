@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     #[test]
     fn test_simple_arrow_function() {

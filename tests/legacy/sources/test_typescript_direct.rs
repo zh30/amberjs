@@ -28,7 +28,7 @@ fn main() {
         println!("📝 测试: {}", name);
         println!("   输入: {}", code);
 
-        // 这里我们需要调用 beejs::typescript::compile_typescript
+        // 这里我们需要调用 amberjs::typescript::compile_typescript
         // 但由于这是在独立的二进制文件中，我们需要其他方法
         // 或者我们可以使用beejs CLI本身
 

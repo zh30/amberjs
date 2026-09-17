@@ -5,7 +5,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::MinimalRuntime;
+    use amberjs::MinimalRuntime;
     use serial_test::serial;
 
     /// 测试 navigator.clipboard 可用性

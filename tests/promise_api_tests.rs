@@ -6,7 +6,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::*;
+    use amberjs::*;
 
     /// 测试 Promise.resolve()
     #[test]

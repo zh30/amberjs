@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod async_runtime_tests {
 
-    use beejs::runtime_minimal::MinimalRuntime;
+    use amberjs::runtime_minimal::MinimalRuntime;
     use std::io::{Read, Write};
     use std::net::{TcpListener, TcpStream};
     use std::thread;

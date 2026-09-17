@@ -3,7 +3,7 @@
 
 #![cfg(feature = "enterprise")]
 
-use beejs::enterprise::{
+use amberjs::enterprise::{
     self, ClusterMetrics, MonitoringConfig, MonitoringManager, Operator, OperatorConfig,
     OperatorEvent, ResourceQuota, TenancyManager, TenantId, TenantStatus,
 };

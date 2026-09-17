@@ -8,7 +8,7 @@
 // - Dead code elimination
 
 use std::time::Duration;
-use beejs::benchmarks{BenchmarkFramework, BenchmarkResult, MetricType, BenchmarkConfig};
+use amberjs::benchmarks{BenchmarkFramework, BenchmarkResult, MetricType, BenchmarkConfig};
 
 /// Test V8 optimization configuration
 #[cfg(test)]

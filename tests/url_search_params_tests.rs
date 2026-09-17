@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod url_search_params_tests {
-    use beejs::runtime_minimal::MinimalRuntime;
+    use amberjs::runtime_minimal::MinimalRuntime;
     use serial_test::serial;
 
     // v0.3.353: Basic constructor tests

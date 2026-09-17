@@ -8,7 +8,7 @@ use tempfile::tempdir;
 #[serial]
 fn test_require_function_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof require;
     "#;
@@ -20,7 +20,7 @@ fn test_require_function_exists() {
 #[serial]
 fn test_module_object_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof module;
     "#;
@@ -32,7 +32,7 @@ fn test_module_object_exists() {
 #[serial]
 fn test_exports_object_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof exports;
     "#;
@@ -44,7 +44,7 @@ fn test_exports_object_exists() {
 #[serial]
 fn test_module_exports_is_exports() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         module.exports === exports;
     "#;
@@ -56,7 +56,7 @@ fn test_module_exports_is_exports() {
 #[serial]
 fn test_module_id() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof module.id;
     "#;
@@ -68,7 +68,7 @@ fn test_module_id() {
 #[serial]
 fn test_module_filename() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof module.filename;
     "#;
@@ -88,7 +88,7 @@ fn test_require_main_equals_module_in_entry_script() {
     std::fs::write(&entry, "").expect("failed to write entry");
 
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     runtime.set_main_module_path(&entry);
     let code = r#"
         require.main === module &&
@@ -107,7 +107,7 @@ fn test_require_main_equals_module_in_entry_script() {
 #[serial]
 fn test_module_parent() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // In simplified runtime, module.parent is set to null
         // The expression returns true if null, or the type if not null
@@ -123,7 +123,7 @@ fn test_module_parent() {
 #[serial]
 fn test_require_builtin_module_buffer() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = require('buffer');
         typeof buf;
@@ -140,7 +140,7 @@ fn test_require_builtin_module_buffer() {
 #[serial]
 fn test_require_builtin_module_process() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const proc = require('process');
         typeof proc;
@@ -157,7 +157,7 @@ fn test_require_builtin_module_process() {
 #[serial]
 fn test_require_process_returns_global_process_object() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const bare = require('process');
         const prefixed = require('node:process');
@@ -184,7 +184,7 @@ fn test_require_process_returns_global_process_object() {
 #[serial]
 fn test_require_with_path_module_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const path = require('path');
         typeof path.join;
@@ -201,7 +201,7 @@ fn test_require_with_path_module_exists() {
 #[serial]
 fn test_exports_assignment() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         exports.foo = 42;
         exports.bar = 'hello';
@@ -216,7 +216,7 @@ fn test_exports_assignment() {
 #[serial]
 fn test_module_exports_reassignment() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // In simplified runtime, module.exports reassignment works
         module.exports = { value: 100 };
@@ -235,7 +235,7 @@ fn test_module_exports_reassignment() {
 #[serial]
 fn test_require_not_found_error() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         try {
             require('nonexistent-module-xyz');
@@ -257,7 +257,7 @@ fn test_require_not_found_error() {
 #[serial]
 fn test_require_caches_module() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // In simplified runtime, each require creates a new module object
         // But both should work and have Buffer function
@@ -278,7 +278,7 @@ fn test_require_caches_module() {
 #[serial]
 fn test_global_this_has_require() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof globalThis.require;
     "#;
@@ -294,7 +294,7 @@ fn test_global_this_has_require() {
 #[serial]
 fn test_global_this_has_module() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof globalThis.module;
     "#;
@@ -310,7 +310,7 @@ fn test_global_this_has_module() {
 #[serial]
 fn test_global_this_has_exports() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof globalThis.exports;
     "#;
@@ -326,7 +326,7 @@ fn test_global_this_has_exports() {
 #[serial]
 fn test_buffer_construction() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.from('test');
         buf.length;
@@ -339,7 +339,7 @@ fn test_buffer_construction() {
 #[serial]
 fn test_process_env_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const proc = require('process');
         typeof proc.env;
@@ -353,7 +353,7 @@ fn test_process_env_exists() {
 #[serial]
 fn test_dirname_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof __dirname;
     "#;
@@ -365,7 +365,7 @@ fn test_dirname_exists() {
 #[serial]
 fn test_dirname_value() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof __dirname === 'string' && __dirname.length > 0;
     "#;
@@ -381,7 +381,7 @@ fn test_dirname_value() {
 #[serial]
 fn test_dirname_in_path_module() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const path = require('path');
         const dirname = path.dirname(__filename || '/test/file.js');
@@ -400,7 +400,7 @@ fn test_dirname_in_path_module() {
 #[serial]
 fn test_filename_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof __filename;
     "#;
@@ -412,7 +412,7 @@ fn test_filename_exists() {
 #[serial]
 fn test_filename_value() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof __filename === 'string' && __filename.length > 0;
     "#;
@@ -428,7 +428,7 @@ fn test_filename_value() {
 #[serial]
 fn test_filename_contains_extension() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         __filename.includes('.js') || __filename.includes('.ts') || __filename.includes('.mjs');
     "#;
@@ -444,7 +444,7 @@ fn test_filename_contains_extension() {
 #[serial]
 fn test_dirname_and_filename_relationship() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const path = require('path');
         const computed = path.dirname(__filename || '/test/file.js');
@@ -464,7 +464,7 @@ fn test_dirname_and_filename_relationship() {
 #[serial]
 fn test_global_this_has_dirname() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof globalThis.__dirname;
     "#;
@@ -480,7 +480,7 @@ fn test_global_this_has_dirname() {
 #[serial]
 fn test_global_this_has_filename() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof globalThis.__filename;
     "#;

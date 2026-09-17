@@ -1,5 +1,5 @@
 // Tests for ECDSA elliptic curve key generation and sign/verify (v0.3.364)
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

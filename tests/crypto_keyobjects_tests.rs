@@ -12,7 +12,7 @@ use std::process::Command;
 use tempfile::TempDir;
 
 fn beejs_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_bee"))
+    PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
 fn run_js_test(code: &str) -> String {

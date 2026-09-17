@@ -9,7 +9,7 @@ use tempfile::TempDir;
 #[serial]
 fn test_fs_module_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fs = require('fs');
         typeof fs;
@@ -26,7 +26,7 @@ fn test_fs_module_exists() {
 #[serial]
 fn test_readfilesync_returns_file_content() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     // Create a temporary file with known content
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
@@ -53,7 +53,7 @@ fn test_readfilesync_returns_file_content() {
 #[serial]
 fn test_writefilesync_creates_file() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("output.txt");
@@ -84,7 +84,7 @@ fn test_writefilesync_creates_file() {
 #[serial]
 fn test_existssync_returns_true_for_existing_file() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("exists_test.txt");
@@ -110,7 +110,7 @@ fn test_existssync_returns_true_for_existing_file() {
 #[serial]
 fn test_existssync_returns_false_for_nonexistent_file() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let nonexistent_file = temp_dir.path().join("nonexistent.txt");
@@ -135,7 +135,7 @@ fn test_existssync_returns_false_for_nonexistent_file() {
 #[serial]
 fn test_stat_sync_stats_methods_match_file_and_dir() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("stat_test.txt");
@@ -173,7 +173,7 @@ fn test_stat_sync_stats_methods_match_file_and_dir() {
 #[serial]
 fn test_mkdirsync_creates_directory() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let new_dir = temp_dir.path().join("new_directory");
@@ -201,7 +201,7 @@ fn test_mkdirsync_creates_directory() {
 #[serial]
 fn test_readdirsync_returns_file_list() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     // Create some test files
@@ -237,7 +237,7 @@ fn test_readdirsync_returns_file_list() {
 #[serial]
 fn test_unlinksync_deletes_file() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("to_delete.txt");
@@ -267,7 +267,7 @@ fn test_unlinksync_deletes_file() {
 #[serial]
 fn test_rmdirsync_removes_directory() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let sub_dir = temp_dir.path().join("to_remove");
@@ -300,7 +300,7 @@ fn test_rmdirsync_removes_directory() {
 #[serial]
 fn test_fs_module_has_all_functions() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fs = require('fs');
         const hasReadFileSync = typeof fs.readFileSync === 'function';
@@ -324,7 +324,7 @@ fn test_fs_module_has_all_functions() {
 #[serial]
 fn test_readfilesync_error_handling() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let code = r#"
         const fs = require('fs');
@@ -349,7 +349,7 @@ fn test_readfilesync_error_handling() {
 #[serial]
 fn test_readfile_callback_returns_content() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("async_test.txt");
@@ -378,7 +378,7 @@ fn test_readfile_callback_returns_content() {
 #[serial]
 fn test_writefile_callback_completes() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("write_async.txt");
@@ -414,7 +414,7 @@ fn test_writefile_callback_completes() {
 #[serial]
 fn test_appendfile_callback_completes() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("append_async.txt");
@@ -447,7 +447,7 @@ fn test_appendfile_callback_completes() {
 #[serial]
 fn test_readfile_error_callback() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let code = r#"
         const fs = require('fs');
@@ -470,7 +470,7 @@ fn test_readfile_error_callback() {
 #[serial]
 fn test_fs_module_has_async_functions() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fs = require('fs');
         const hasReadFile = typeof fs.readFile === 'function';

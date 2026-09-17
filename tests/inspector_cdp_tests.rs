@@ -9,7 +9,7 @@ use tempfile::tempdir;
 use tungstenite::{connect, Message};
 
 fn bee() -> &'static str {
-    env!("CARGO_BIN_EXE_bee")
+    env!("CARGO_BIN_EXE_amber")
 }
 
 fn free_port() -> u16 {

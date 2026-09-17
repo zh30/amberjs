@@ -1,5 +1,5 @@
 // V8 快照生命周期、版本感知与自愈测试
-use beejs::v8_snapshot::*;
+use amberjs::v8_snapshot::*;
 use serial_test::serial;
 use std::fs;
 

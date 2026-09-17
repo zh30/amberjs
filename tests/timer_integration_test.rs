@@ -2,8 +2,8 @@
 // v0.3.249: Tests for async timer execution with polling
 // Tests setTimeout, setInterval, clearTimeout, and clearImmediate
 
-use beejs::nodejs_core::timers::{clear_all_async_timers, clear_all_timers};
-use beejs::MinimalRuntime;
+use amberjs::nodejs_core::timers::{clear_all_async_timers, clear_all_timers};
+use amberjs::MinimalRuntime;
 use serial_test::serial;
 
 fn cleanup_global_state() {

@@ -1,7 +1,7 @@
 // Stage 54.3: PyTorch 集成测试套件
 // 测试 PyTorch TorchScript 引擎的所有功能
 
-use beejs::ai_inference{
+use amberjs::ai_inference{
     TorchEngine, TorchEngineFactory, TorchGPUAccelerator, TorchOptimizer,
     ModelFormat, EngineType, InferenceOptions, Tensor
 };
@@ -153,7 +153,7 @@ async fn test_pooling_operations() {
 /// 测试 8: 张量工具函数
 #[test]
 async fn test_tensor_utils() {
-    use beejs::ai_inference::tensor_ops::TensorOps;
+    use amberjs::ai_inference::tensor_ops::TensorOps;
 
     // 测试零张量
     let zeros = TensorOps::zeros(vec![2, 3]);
@@ -185,7 +185,7 @@ async fn test_tensor_utils() {
 /// 测试 9: 张量连接
 #[test]
 async fn test_tensor_concatenation() {
-    use beejs::ai_inference::tensor_ops::TensorOps;
+    use amberjs::ai_inference::tensor_ops::TensorOps;
 
     let tensor1 = Tensor::new(vec![1.0, 2.0], vec![2]).unwrap();
     let tensor2 = Tensor::new(vec![3.0, 4.0], vec![2]).unwrap();
@@ -239,7 +239,7 @@ async fn test_inference_options() {
         batch_size: Some(32),
         optimization: true,
         parallel_inferences: Some(4),
-        memory_optimization: Some(beejs::ai_inference::engine_interface::MemoryOptimization::High),
+        memory_optimization: Some(amberjs::ai_inference::engine_interface::MemoryOptimization::High),
         custom_options: std::collections::HashMap::new(),
     };
 
@@ -254,7 +254,7 @@ async fn test_inference_options() {
 /// 测试 12: 内存优化级别
 #[test]
 async fn test_memory_optimization_levels() {
-    use beejs::ai_inference::engine_interface::MemoryOptimization;
+    use amberjs::ai_inference::engine_interface::MemoryOptimization;
 
     let none = MemoryOptimization::None;
     let low = MemoryOptimization::Low;
@@ -371,7 +371,7 @@ async fn test_torch_engine_stats_structure() {
     // 注意：这里只测试结构，不实际创建引擎
     // 因为需要真实的 TorchScript 模型文件
 
-    let stats = beejs::ai_inference::engine_interface::EngineStats {
+    let stats = amberjs::ai_inference::engine_interface::EngineStats {
         total_inferences: 100,
         successful_inferences: 95,
         failed_inferences: 5,

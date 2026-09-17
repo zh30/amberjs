@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use tempfile::tempdir;
 
 fn bee() -> &'static str {
-    env!("CARGO_BIN_EXE_bee")
+    env!("CARGO_BIN_EXE_amber")
 }
 
 fn generate_tls_pair(dir: &std::path::Path) -> (std::path::PathBuf, std::path::PathBuf) {

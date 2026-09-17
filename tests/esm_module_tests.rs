@@ -4,7 +4,7 @@
 // NOTE: import.meta requires true ES Module context (V8 Module API), not Script context.
 // These tests verify the runtime's module system capabilities.
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
 

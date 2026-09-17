@@ -1,4 +1,4 @@
-use beejs::typescript::{compile_typescript, TypeScriptCompiler, TypeScriptCompilerConfig};
+use amberjs::typescript::{compile_typescript, TypeScriptCompiler, TypeScriptCompilerConfig};
 
 fn main() {
     // 测试基本的 TypeScript 转译

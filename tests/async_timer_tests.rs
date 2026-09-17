@@ -2,7 +2,7 @@
 // 测试 delay > 0 的 setTimeout/setInterval 实际延迟执行
 // 注意：由于 V8 闭包限制，AsyncTimerManager 只负责调度，回调由 V8 主线程执行
 
-use beejs::event_loop::AsyncTimerManager;
+use amberjs::event_loop::AsyncTimerManager;
 use std::time::Duration;
 use tokio::time::sleep;
 

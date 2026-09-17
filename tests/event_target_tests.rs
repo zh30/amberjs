@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::MinimalRuntime;
+    use amberjs::MinimalRuntime;
     use serial_test::serial;
 
     /// 测试 EventTarget 构造函数可用性

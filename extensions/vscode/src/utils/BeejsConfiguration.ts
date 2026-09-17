@@ -1,3 +1,5 @@
+/// <reference types="node" />
+/// <reference types="vscode" />
 /**
  * Beejs Configuration Manager
  *

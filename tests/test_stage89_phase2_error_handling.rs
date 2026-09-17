@@ -3,8 +3,8 @@
 
 #[cfg(test)]
 mod stage89_phase2_error_handling_tests {
-    use beejs::error::{AutoRecovery, BeejsError, ErrorContext};
-    use beejs::fallback::{FallbackManager, FallbackStrategy, Feature};
+    use amberjs::error::{AutoRecovery, BeejsError, ErrorContext};
+    use amberjs::fallback::{FallbackManager, FallbackStrategy, Feature};
     use std::time::Duration;
 
     /// 测试 1: 错误分类和错误上下文

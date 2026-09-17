@@ -5,7 +5,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::runtime_minimal::MinimalRuntime;
+    use amberjs::runtime_minimal::MinimalRuntime;
     use serial_test::serial;
 
     /// 测试 TextEncoder 构造函数可用性

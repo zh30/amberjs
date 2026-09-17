@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{Seek, Write};
 use tempfile::tempdir;
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 fn create_mock_gguf_file(path: &std::path::Path) {

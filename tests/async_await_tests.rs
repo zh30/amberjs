@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::runtime_minimal::MinimalRuntime;
+    use amberjs::runtime_minimal::MinimalRuntime;
     use serial_test::serial;
 
     /// 测试1: 基本 async 函数

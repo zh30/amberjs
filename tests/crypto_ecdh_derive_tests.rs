@@ -1,5 +1,5 @@
 // Tests for ECDH deriveKey and deriveBits (v0.3.365)
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

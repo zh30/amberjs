@@ -3,7 +3,7 @@
 // wrapKey wraps (encrypts) a key for secure storage/transport
 // unwrapKey unwraps (decrypts) a wrapped key
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

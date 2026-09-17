@@ -1,5 +1,5 @@
 // Agent 工具沙箱与 MCP 协议测试套件
-use beejs::agent::*;
+use amberjs::agent::*;
 use serde_json::Value;
 use serial_test::serial;
 use std::fs;

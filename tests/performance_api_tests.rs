@@ -9,7 +9,7 @@ mod performance_api_tests {
 
     fn beejs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_bee").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/bee".to_string()),
         )
     }
 
@@ -282,14 +282,14 @@ mod performance_api_tests {
     #[test]
     #[serial]
     fn test_web_api_init_uses_real_performance_timeline() {
-        beejs::initialize_v8().expect("V8 should initialize");
+        amberjs::initialize_v8().expect("V8 should initialize");
 
         let mut isolate = rusty_v8::Isolate::new(Default::default());
         rusty_v8::scope!(let scope, &mut isolate);
         let context = rusty_v8::Context::new(scope, Default::default());
         let scope = &mut rusty_v8::ContextScope::new(scope, context);
 
-        beejs::web_api::init_web_api(scope, &context).expect("web APIs should initialize");
+        amberjs::web_api::init_web_api(scope, &context).expect("web APIs should initialize");
 
         let source = rusty_v8::String::new(
             scope,

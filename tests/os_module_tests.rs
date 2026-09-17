@@ -7,7 +7,7 @@ use serial_test::serial;
 #[serial]
 fn test_os_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime.execute_code("typeof os").expect("Execution failed");
     assert_eq!(result.trim(), "object", "os should be an object");
 }
@@ -16,7 +16,7 @@ fn test_os_exists() {
 #[serial]
 fn test_os_platform() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("os.platform()")
         .expect("Execution failed");
@@ -32,7 +32,7 @@ fn test_os_platform() {
 #[serial]
 fn test_os_arch() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime.execute_code("os.arch()").expect("Execution failed");
     let arch = result.trim();
     assert!(
@@ -46,7 +46,7 @@ fn test_os_arch() {
 #[serial]
 fn test_os_cpus_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("Array.isArray(os.cpus())")
         .expect("Execution failed");
@@ -57,7 +57,7 @@ fn test_os_cpus_exists() {
 #[serial]
 fn test_os_cpus_length() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("os.cpus().length")
         .expect("Execution failed");
@@ -73,7 +73,7 @@ fn test_os_cpus_length() {
 #[serial]
 fn test_os_cpus_cpu_object() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const cpus = os.cpus();
         if (cpus.length > 0) {
@@ -94,7 +94,7 @@ fn test_os_cpus_cpu_object() {
 #[serial]
 fn test_os_cpus_times() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const cpus = os.cpus();
         if (cpus.length > 0) {
@@ -116,7 +116,7 @@ fn test_os_cpus_times() {
 #[serial]
 fn test_os_freemem() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("os.freemem()")
         .expect("Execution failed");
@@ -128,7 +128,7 @@ fn test_os_freemem() {
 #[serial]
 fn test_os_totalmem() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("os.totalmem()")
         .expect("Execution failed");
@@ -140,7 +140,7 @@ fn test_os_totalmem() {
 #[serial]
 fn test_os_uptime() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("os.uptime()")
         .expect("Execution failed");
@@ -152,7 +152,7 @@ fn test_os_uptime() {
 #[serial]
 fn test_os_type() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime.execute_code("os.type()").expect("Execution failed");
     let os_type = result.trim();
     assert!(
@@ -166,7 +166,7 @@ fn test_os_type() {
 #[serial]
 fn test_os_release() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("os.release()")
         .expect("Execution failed");
@@ -185,7 +185,7 @@ fn test_os_release() {
 #[serial]
 fn test_os_homedir() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("os.homedir()")
         .expect("Execution failed");
@@ -202,7 +202,7 @@ fn test_os_homedir() {
 #[serial]
 fn test_os_tmpdir() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("os.tmpdir()")
         .expect("Execution failed");
@@ -214,7 +214,7 @@ fn test_os_tmpdir() {
 #[serial]
 fn test_os_freemem_less_than_totalmem() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const freemem = os.freemem();
         const totalmem = os.totalmem();
@@ -232,7 +232,7 @@ fn test_os_freemem_less_than_totalmem() {
 #[serial]
 fn test_os_all_properties() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof os.platform + '|' +
         typeof os.arch + '|' +
@@ -257,7 +257,7 @@ fn test_os_all_properties() {
 #[serial]
 fn test_os_functions_are_callable() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const platform = os.platform();
         const arch = os.arch();

@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     /// 测试1: 基础三重合并 - interface + namespace
     /// 同名的 interface 和 namespace 会被合并

@@ -1,5 +1,5 @@
-use beejs::nodejs_core::commonjs_resolver::{resolve_esm_module, ResolvedModule};
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::nodejs_core::commonjs_resolver::{resolve_esm_module, ResolvedModule};
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
 use tempfile::tempdir;
@@ -194,8 +194,8 @@ fn test_wintertc_sockets_api() {
 #[test]
 #[serial]
 fn test_wintertc_sockets_tls_rejects_untrusted_self_signed() {
-    beejs::sockets::clear_test_root_cas();
-    let listener = beejs::sockets::start_self_signed_tls_listener().expect("tls listener");
+    amberjs::sockets::clear_test_root_cas();
+    let listener = amberjs::sockets::start_self_signed_tls_listener().expect("tls listener");
     let port = listener.port;
 
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
@@ -231,9 +231,9 @@ fn test_wintertc_sockets_tls_rejects_untrusted_self_signed() {
 #[test]
 #[serial]
 fn test_wintertc_sockets_tls_handshake_with_test_ca() {
-    beejs::sockets::clear_test_root_cas();
-    let listener = beejs::sockets::start_self_signed_tls_listener().expect("tls listener");
-    beejs::sockets::install_test_root_ca_der(listener.cert_der.clone());
+    amberjs::sockets::clear_test_root_cas();
+    let listener = amberjs::sockets::start_self_signed_tls_listener().expect("tls listener");
+    amberjs::sockets::install_test_root_ca_der(listener.cert_der.clone());
     let port = listener.port;
 
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
@@ -267,15 +267,15 @@ fn test_wintertc_sockets_tls_handshake_with_test_ca() {
         tls_res.contains("\"upgraded\":true"),
         "secureTransport on must set upgraded after handshake, got {tls_res}"
     );
-    beejs::sockets::clear_test_root_cas();
+    amberjs::sockets::clear_test_root_cas();
 }
 
 #[test]
 #[serial]
 fn test_wintertc_sockets_start_tls_upgrades_opened_socket() {
-    beejs::sockets::clear_test_root_cas();
-    let listener = beejs::sockets::start_self_signed_tls_listener().expect("tls listener");
-    beejs::sockets::install_test_root_ca_der(listener.cert_der.clone());
+    amberjs::sockets::clear_test_root_cas();
+    let listener = amberjs::sockets::start_self_signed_tls_listener().expect("tls listener");
+    amberjs::sockets::install_test_root_ca_der(listener.cert_der.clone());
     let port = listener.port;
 
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
@@ -302,14 +302,14 @@ fn test_wintertc_sockets_start_tls_upgrades_opened_socket() {
         res.contains("\"startTls\":\"upgraded\""),
         "startTls must complete rustls handshake, got {res}"
     );
-    beejs::sockets::clear_test_root_cas();
+    amberjs::sockets::clear_test_root_cas();
 }
 
 #[test]
 #[serial]
 fn test_wintertc_sockets_start_tls_rejects_untrusted_and_does_not_upgrade() {
-    beejs::sockets::clear_test_root_cas();
-    let listener = beejs::sockets::start_self_signed_tls_listener().expect("tls listener");
+    amberjs::sockets::clear_test_root_cas();
+    let listener = amberjs::sockets::start_self_signed_tls_listener().expect("tls listener");
     let port = listener.port;
 
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");

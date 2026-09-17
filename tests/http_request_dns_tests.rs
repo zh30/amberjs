@@ -1,7 +1,7 @@
 // HTTP Request 增强测试 - v0.3.68
 // 测试 http.request() 使用真实 DNS 解析和 TCP 连接
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

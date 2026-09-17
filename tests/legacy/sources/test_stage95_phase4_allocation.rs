@@ -2,7 +2,7 @@
 //!
 //! 本测试套件全面验证智能资源分配功能的正确性和性能。
 
-use beejs::aiops::allocation::{
+use amberjs::aiops::allocation::{
     resource_optimizer::{
         ResourceOptimizer, AllocationPlan, ResourceRequest, ResourceType, Workload,
         Cluster, AllocationStrategy, RebalanceResult, ResourceForecast,
@@ -142,7 +142,7 @@ async fn test_resource_forecast() {
 
     let mut history = Vec::new();
     for i in 0..10 {
-        history.push(beejs::aiops::allocation::resource_optimizer::ResourceUsage {
+        history.push(amberjs::aiops::allocation::resource_optimizer::ResourceUsage {
             resource_type: ResourceType::Cpu,
             usage: 100.0 + i as f64 * 10.0,
             capacity: 1000.0,
@@ -150,7 +150,7 @@ async fn test_resource_forecast() {
             timestamp: Instant::now(),
         });
 
-        history.push(beejs::aiops::allocation::resource_optimizer::ResourceUsage {
+        history.push(amberjs::aiops::allocation::resource_optimizer::ResourceUsage {
             resource_type: ResourceType::Memory,
             usage: 500.0 + i as f64 * 50.0,
             capacity: 8192.0,

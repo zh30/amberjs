@@ -1,4 +1,4 @@
-use beejs::testing::{
+use amberjs::testing::{
     EnhancedRunner, EnhancedRunnerConfig, ParallelConfig, ParallelExecutor, TestCase,
 };
 use rusty_v8 as v8;
@@ -19,7 +19,7 @@ fn create_noop_test_case(scope: &mut v8::PinScope, name: &str, timeout: Duration
 #[test]
 #[serial]
 fn parallel_executor_without_actual_v8_execution_fails_closed() {
-    beejs::initialize_v8().expect("V8 should initialize");
+    amberjs::initialize_v8().expect("V8 should initialize");
     let mut isolate = v8::Isolate::new(Default::default());
     v8::scope!(let scope, &mut isolate);
     let context = v8::Context::new(scope, Default::default());
@@ -60,7 +60,7 @@ fn parallel_executor_without_actual_v8_execution_fails_closed() {
 #[test]
 #[serial]
 fn enhanced_runner_without_actual_v8_execution_fails_closed() {
-    beejs::initialize_v8().expect("V8 should initialize");
+    amberjs::initialize_v8().expect("V8 should initialize");
     let mut isolate = v8::Isolate::new(Default::default());
     v8::scope!(let scope, &mut isolate);
     let context = v8::Context::new(scope, Default::default());

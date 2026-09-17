@@ -1,7 +1,7 @@
 // Tests for crypto.privateEncrypt/crypto.publicDecrypt module (v0.3.22)
 // Private key encryption and public key decryption using RSA
 // This is the inverse operation of publicEncrypt/privateDecrypt
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

@@ -1,5 +1,5 @@
 // Multi-Isolate Worker Threads & Web Workers 2.0 Integration Tests
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
 use tempfile::tempdir;

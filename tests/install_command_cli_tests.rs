@@ -8,7 +8,7 @@ use tempfile::TempDir;
 
 /// Get the path to the bee binary built by cargo for integration tests.
 fn beejs_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_bee"))
+    PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
 #[cfg(test)]
@@ -128,7 +128,7 @@ mod install_command_tests {
     /// Test 5: verify optional_dependencies field in PackageJson struct
     #[test]
     fn test_package_json_struct_has_optional_dependencies() {
-        use beejs::package_manager::PackageJson;
+        use amberjs::package_manager::PackageJson;
         use std::collections::HashMap;
 
         let package_json = PackageJson {

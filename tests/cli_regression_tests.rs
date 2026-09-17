@@ -3,7 +3,7 @@ use std::process::Command;
 use tempfile::tempdir;
 
 fn bee_path() -> &'static str {
-    env!("CARGO_BIN_EXE_bee")
+    env!("CARGO_BIN_EXE_amber")
 }
 
 fn js_string(value: &Path) -> String {

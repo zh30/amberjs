@@ -1,6 +1,6 @@
 // Tests for Beejs v1.6.0 Deterministic Agent Replay Engine (`bee:replay`)
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

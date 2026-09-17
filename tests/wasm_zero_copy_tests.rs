@@ -1,7 +1,7 @@
 // WebAssembly 2.0 Zero-Copy Shared Memory Subsystem Integration Tests (bee:wasm)
 // Tests zero-copy virtual address sharing between WebAssembly.Memory, V8 ArrayBuffer, TypedArrays, and Tensors.
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs::File;
 use std::io::Write;
