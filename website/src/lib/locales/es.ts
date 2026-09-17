@@ -6,7 +6,18 @@ export const es: TranslationSchema = {
     home: "Inicio",
     docs: "Manual",
     blog: "Notas de Versión",
+    play: "Playground",
     github: "GitHub",
+  },
+  playground: {
+    title: "Playground",
+    run: "Ejecutar",
+    running: "Ejecutando",
+    language: "Lenguaje",
+    note: "Se ejecuta en el navegador, no en el binario bee. TypeScript lo comprueba Monaco (el editor de VS Code).",
+    output: "Salida",
+    empty: "Ejecuta para ver la consola.",
+    loading: "Cargando editor…",
   },
   toggle: {
     label: "Idioma",

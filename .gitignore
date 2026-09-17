@@ -14,6 +14,8 @@ tools/vscode-extension/tsconfig.tsbuildinfo
 *.swp
 *.swo
 *~
+.pi-lens.json
+.pi/
 
 # OS
 .DS_Store

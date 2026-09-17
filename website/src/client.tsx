@@ -1,28 +1,24 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import RootLayout from './routes/__root'
-import Home from './routes/index'
-import Docs from './routes/docs'
-import Blog from './routes/blog'
-import './global.css'
+import { StrictMode } from "react";
+import { createRoot, hydrateRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { AppRoutes } from "./app";
+import "./global.css";
 
-createRoot(document.getElementById('root')!).render(
+const el = document.getElementById("root");
+if (!el) {
+  throw new Error("missing #root");
+}
+
+const app = (
   <StrictMode>
     <BrowserRouter>
-      <Routes>
-        <Route element={<RootLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/docs" element={<Docs />}>
-            <Route index element={<Docs />} />
-            <Route path=":section" element={<Docs />} />
-          </Route>
-          <Route path="/blog" element={<Blog />}>
-            <Route index element={<Blog />} />
-            <Route path=":slug" element={<Blog />} />
-          </Route>
-        </Route>
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
-  </StrictMode>,
-)
+  </StrictMode>
+);
+
+if (el.hasChildNodes()) {
+  hydrateRoot(el, app);
+} else {
+  createRoot(el).render(app);
+}

@@ -6,7 +6,18 @@ export const hi: TranslationSchema = {
     home: "होम",
     docs: "मैनुअल",
     blog: "रिलीज़ नोट्स",
+    play: "प्लेग्राउंड",
     github: "गिटहब",
+  },
+  playground: {
+    title: "प्लेग्राउंड",
+    run: "चलाएँ",
+    running: "चल रहा है",
+    language: "भाषा",
+    note: "ब्राउज़र में चलता है, bee बाइनरी में नहीं। TypeScript जाँच Monaco (VS Code संपादक) करती है।",
+    output: "आउटपुट",
+    empty: "कंसोल देखने के लिए चलाएँ।",
+    loading: "संपादक लोड हो रहा है…",
   },
   toggle: {
     label: "भाषा",

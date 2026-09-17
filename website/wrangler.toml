@@ -5,7 +5,7 @@ compatibility_date = "2024-11-01"
 # like /docs and /blog. Real files (robots.txt, sitemap.xml, images) are served first.
 # The ASSETS binding is required so the Worker can fetch static files without 1101 errors.
 main = "src/worker.ts"
-assets = { directory = "./dist", binding = "ASSETS", not_found_handling = "single-page-application" }
+assets = { directory = "./dist", binding = "ASSETS", html_handling = "auto-trailing-slash", not_found_handling = "single-page-application" }
 
 [build]
 command = "cp ../install.sh public/install.sh && cp ../install.ps1 public/install.ps1 && npx vite build"

@@ -11,7 +11,7 @@
       try {
         var stored = localStorage.getItem('beejs-theme');
         var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var isDark = stored === 'dark' || (!stored && prefersDark) || (stored === 'system' && prefersDark);
+        var isDark = stored === 'dark' || (stored === 'system' && prefersDark);
         if (isDark) {
           document.documentElement.classList.add('dark');
           document.documentElement.style.colorScheme = 'dark';
@@ -41,25 +41,27 @@
       } catch (e) {}
     })();
   </script>
-  <title>Beejs - High-Performance JavaScript & TypeScript Runtime in Rust & V8</title>
+  <title>Beejs | JavaScript and TypeScript runtime in Rust and V8</title>
   
-  <meta name="description" content="Beejs is an ultra-fast, high-performance JavaScript and TypeScript runtime built with Rust and V8. Features lock-free worker pool concurrency, 4.6M ops/s module resolution, SIMD buffers, sub-18ms cold starts, and full Node/Web API compatibility." />
-  <meta name="keywords" content="JavaScript runtime, TypeScript runtime, Rust V8 runtime, high-performance JS engine, Node.js alternative, Bun alternative, WebAssembly runtime, lock-free HTTP, fast module resolution" />
+  <meta name="description" content="Beejs is a JS/TS runtime in Rust and V8. One bee binary for scripts, Jest-style tests, MCP tools, and an opt-in capability sandbox. Not a Node.js clone." />
+  <meta name="keywords" content="JavaScript runtime, TypeScript runtime, Rust, V8, Beejs, agent sandbox, MCP" />
   <meta name="author" content="Beejs Core Team" />
   <link rel="canonical" href="https://bee.zhanghe.dev/" />
 
   <!-- Open Graph / Facebook / LinkedIn -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://bee.zhanghe.dev/" />
-  <meta property="og:title" content="Beejs - High-Performance JavaScript & TypeScript Runtime in Rust & V8" />
-  <meta property="og:description" content="Beejs is an ultra-fast JS/TS runtime powered by Rust and V8. Designed for multi-worker concurrency, 4.6M ops/s module resolution, and sub-18ms cold starts." />
+  <meta property="og:site_name" content="Beejs" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content="Beejs | JavaScript and TypeScript runtime in Rust and V8" />
+  <meta property="og:description" content="Beejs is a JS/TS runtime in Rust and V8. One bee binary for scripts, tests, MCP tools, and an opt-in sandbox. Not a Node.js clone." />
   <meta property="og:image" content="https://bee.zhanghe.dev/logo.png" />
 
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:card" content="summary" />
   <meta name="twitter:url" content="https://bee.zhanghe.dev/" />
-  <meta name="twitter:title" content="Beejs - High-Performance JavaScript & TypeScript Runtime in Rust & V8" />
-  <meta name="twitter:description" content="Beejs is an ultra-fast JS/TS runtime powered by Rust and V8. Designed for multi-worker concurrency, 4.6M ops/s module resolution, and sub-18ms cold starts." />
+  <meta name="twitter:title" content="Beejs | JavaScript and TypeScript runtime in Rust and V8" />
+  <meta name="twitter:description" content="Beejs is a JS/TS runtime in Rust and V8. One bee binary for scripts, tests, MCP tools, and an opt-in sandbox." />
   <meta name="twitter:image" content="https://bee.zhanghe.dev/logo.png" />
 
   <!-- Structured Data JSON-LD for Google Rich Results -->
@@ -68,7 +70,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Beejs Runtime",
-      "operatingSystem": "macOS, Linux",
+      "operatingSystem": "macOS, Linux, Windows",
       "applicationCategory": "DeveloperApplication",
       "offers": {
         "@type": "Offer",

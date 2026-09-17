@@ -6,7 +6,18 @@ export const zh: TranslationSchema = {
     home: "首页",
     docs: "手册",
     blog: "发布日志",
+    play: "游乐场",
     github: "GitHub",
+  },
+  playground: {
+    title: "游乐场",
+    run: "运行",
+    running: "运行中",
+    language: "语言",
+    note: "在浏览器里执行（和当前标签页同一个引擎），不是 bee 二进制。Beejs 无法把 V8 塞进 WASM。TypeScript 的检查与编译由 Monaco（VS Code 编辑器）完成。",
+    output: "输出",
+    empty: "点运行后在这里看 console 输出。",
+    loading: "正在加载编辑器…",
   },
   toggle: {
     label: "语言",

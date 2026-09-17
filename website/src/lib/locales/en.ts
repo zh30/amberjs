@@ -6,7 +6,18 @@ export const en: TranslationSchema = {
     home: "Home",
     docs: "Manual",
     blog: "Release Notes",
+    play: "Playground",
     github: "GitHub",
+  },
+  playground: {
+    title: "Playground",
+    run: "Run",
+    running: "Running",
+    language: "Language",
+    note: "Runs in your browser (the same engine as this tab), not the bee binary. Beejs cannot ship V8 inside WASM. TypeScript is checked and emitted by Monaco — the VS Code editor.",
+    output: "Output",
+    empty: "Run to see console output.",
+    loading: "Loading editor…",
   },
   toggle: {
     label: "Language",

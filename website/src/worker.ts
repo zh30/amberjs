@@ -4,33 +4,48 @@ interface Env {
   };
 }
 
-/**
- * Cloudflare Worker for the Beejs marketing site.
- *
- * Assets are served first by the platform (see wrangler.toml assets config).
- * This Worker only runs for non-asset paths; with not_found_handling =
- * single-page-application, navigations already get index.html, but we keep a
- * defensive fallback when the binding is available so direct asset rewrites
- * and edge edge-cases stay consistent.
- */
+async function firstOk(
+  env: Env,
+  origin: string,
+  paths: string[],
+): Promise<Response | null> {
+  for (const path of paths) {
+    const res = await env.ASSETS.fetch(new Request(new URL(path, origin)));
+    if (res.ok) return res;
+  }
+  return null;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // Prefer the assets binding when present (required for custom Worker + assets).
     if (!env.ASSETS) {
-      return new Response('ASSETS binding is not configured', { status: 500 });
+      return new Response("ASSETS binding is not configured", { status: 500 });
     }
 
-    const url = new URL(request.url);
-
-    // Never SPA-fallback well-known crawler files — return real 404 if missing.
+    let url: URL;
+    try {
+      url = new URL(request.url);
+    } catch {
+      return new Response("Bad Request", { status: 400 });
+    }
     const path = url.pathname;
+
     if (
-      path === '/robots.txt' ||
-      path === '/sitemap.xml' ||
-      path === '/favicon.ico' ||
-      path.startsWith('/.')
+      path === "/robots.txt" ||
+      path === "/sitemap.xml" ||
+      path === "/favicon.ico" ||
+      path.startsWith("/.")
     ) {
       return env.ASSETS.fetch(request);
+    }
+
+    const trimmed = path.replace(/\/+$/, "") || "/";
+    if (trimmed !== "/") {
+      const prerendered = await firstOk(env, url.origin, [
+        `${trimmed}.html`,
+        `${trimmed}/index.html`,
+      ]);
+      if (prerendered) return prerendered;
     }
 
     const assetResponse = await env.ASSETS.fetch(request);
@@ -38,9 +53,8 @@ export default {
       return assetResponse;
     }
 
-    // Client-side routes (/docs, /blog, …): serve the SPA shell.
-    const indexRequest = new Request(new URL('/index.html', url.origin), {
-      method: 'GET',
+    const indexRequest = new Request(new URL("/index.html", url.origin), {
+      method: "GET",
       headers: request.headers,
     });
     return env.ASSETS.fetch(indexRequest);
