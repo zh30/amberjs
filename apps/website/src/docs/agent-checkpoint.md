@@ -1,13 +1,13 @@
 ---
 title: "Agent State Checkpoint & Time-Travel Snapshotting (amber:checkpoint)"
-subtitle: "Immutable state snapshots, deep structural diffing, reasoning branching, and bee:kv persistence"
+subtitle: "Immutable state snapshots, deep structural diffing, reasoning branching, and amber:kv persistence"
 group: "Agent & Advanced"
 id: "agent-checkpoint"
 ---
 
 Long-running autonomous agent pipelines (e.g. multi-step code generation, financial report analysis, web research workflows) frequently encounter unexpected tool execution errors, hallucinations, or dead-ends. Without snapshotting, an entire workflow must either crash or restart from step one, discarding valuable context and wasting LLM tokens.
 
-**Amber v1.8.0 introduces the Native Agent State Checkpoint & Time-Travel Snapshot Engine (`amber:checkpoint`)**. It delivers lightweight immutable state snapshotting, deep structural diffing, speculative execution branching (Tree-of-Thought), and native persistence into `bee:kv`.
+**Amber v1.8.0 introduces the Native Agent State Checkpoint & Time-Travel Snapshot Engine (`amber:checkpoint`)**. It delivers lightweight immutable state snapshotting, deep structural diffing, speculative execution branching (Tree-of-Thought), and native persistence into `amber:kv`.
 
 ---
 
@@ -87,13 +87,13 @@ console.log('Branch checkpoints:', nosqlBranch.list().length); // 3
 
 ---
 
-## 4. Durable Persistence via `bee:kv`
+## 4. Durable Persistence via `amber:kv`
 
-Persist all checkpoints to durable disk Write-Ahead Logs (WAL) via `bee:kv`:
+Persist all checkpoints to durable disk Write-Ahead Logs (WAL) via `amber:kv`:
 
 ```typescript
 import { createCheckpointManager } from 'amber:checkpoint';
-import { open } from 'bee:kv';
+import { open } from 'amber:kv';
 
 const kv = open({ path: './data/agent_checkpoints.wal' });
 const mgr = createCheckpointManager();

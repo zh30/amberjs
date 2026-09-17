@@ -66,7 +66,7 @@ console.log('当前模块绝对文件名:', __filename);
 
 ### 模块协议前缀支持
 - **`node:*`**：显式引用 Node.js 兼容核心模块（推荐做法）；
-- **`bee:*`**：引用 Amber 原生独有模块（如 `amber:ai` 原生张量与模型引擎）；
+- **`amber:*`**：引用 Amber 原生独有模块（如 `amber:ai` 原生张量与模型引擎）；
 - **相对/绝对路径**：`./`、`../`、`/` 加载本地磁盘模块，支持省略 `.ts`、`.tsx`、`.js` 扩展名。
 
 ---
@@ -77,24 +77,24 @@ Amber 内置了与 npm 生态兼容的依赖管理工具链，无需额外安装
 
 ```bash
 # 1. 初始化项目 package.json
-bee init my-app
+amber init my-app
 
 # 2. 安装并添加生产依赖
-bee add lodash@4.17.21
+amber add lodash@4.17.21
 
 # 3. 安装并添加开发依赖
-bee add --dev @types/node
+amber add --dev @types/node
 
 # 4. 在新机器或 CI 流水线中一键复原依赖
 amber install --frozen-lockfile
 
 # 5. 移除未使用的冗余依赖
-bee prune
+amber prune
 ```
 
 ---
 
-## 4. 免配置内置测试框架 (`bee test`)
+## 4. 免配置内置测试框架 (`amber test`)
 
 Amber 提供了对齐 **Jest / Vitest** 现代测试生态的内置测试套件，零依赖开箱即用：
 
@@ -103,13 +103,13 @@ Amber 提供了对齐 **Jest / Vitest** 现代测试生态的内置测试套件�
 
 ```typescript
 // math.test.ts
-import { describe, it, test, expect } from 'bee:test'; // 或直接使用全局注入的 describe/test
+import { describe, it, test, expect } from 'amber:test'; // 或直接使用全局注入的 describe/test
 
 describe('核心算术与张量逻辑', () => {
   it('基础数值相加应当正确', () => {
     expect(1 + 1).toBe(2);
     expect([1, 2, 3]).toHaveLength(3);
-    expect({ name: 'beejs' }).toEqual({ name: 'beejs' });
+    expect({ name: 'amberjs' }).toEqual({ name: 'amberjs' });
   });
 
   test('异步操作应正确完成', async () => {
@@ -128,7 +128,7 @@ describe('核心算术与张量逻辑', () => {
 ### 运行测试
 ```bash
 # 运行当前目录下所有测试文件 (*.test.js, *.test.ts, *.spec.ts)
-$ bee test
+$ amber test
 
 # 仅运行匹配名称的测试用例
 $ amber test -t "异步操作"

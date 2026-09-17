@@ -1,5 +1,5 @@
-# https://bee.zhanghe.dev/robots.txt
+# https://amberjs.com/robots.txt
 User-agent: *
 Allow: /
 
-Sitemap: https://bee.zhanghe.dev/sitemap.xml
+Sitemap: https://amberjs.com/sitemap.xml

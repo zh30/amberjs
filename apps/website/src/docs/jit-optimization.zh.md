@@ -11,7 +11,7 @@ Amber 坚信：**开发者不应当为运行一行 TypeScript 代码而经历繁
 
 在传统 Node.js 生态中，运行 TypeScript 通常需要安装 `typescript`、`ts-node`、`tsx` 或配置复杂的 `tsconfig.json` 与打包工具（Webpack/Vite）。这不仅增加了项目依赖，且每次启动都会带来明显的预编译延迟。
 
-在 Amber 中，你可以直接使用 `bee run` 运行任何现代前端或服务端脚本：
+在 Amber 中，你可以直接使用 `amber run` 运行任何现代前端或服务端脚本：
 - **`.ts`**：标准 TypeScript 模块
 - **`.tsx`**：包含 JSX 语法的 TypeScript 组件
 - **`.mts` / `.cts`**：明确声明的 ESM / CommonJS TypeScript 模块
@@ -144,7 +144,7 @@ console.log(StatCard({ title: '活跃 Worker', count: 8 }));
 为了保证大型工程代码的类型绝对安全，推荐将“代码执行”与“静态检查”解耦：
 
 1. **本地开发**：借助 VS Code、WebStorm 等 IDE 内置的 TypeScript 语言服务器（Language Server），在键入代码时实时获取错误波浪线与智能提示；
-2. **本地调试与部署**：使用 `bee run` 极速运行，摆脱编译等待；
+2. **本地调试与部署**：使用 `amber run` 极速运行，摆脱编译等待；
 3. **CI/CD 流水线**：在代码提交或 PR 合并前，执行 `tsc --noEmit` 进行全量无产物类型审计：
 
 ```json

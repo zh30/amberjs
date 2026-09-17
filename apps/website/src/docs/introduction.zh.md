@@ -1,13 +1,13 @@
 ---
 title: "概览"
-subtitle: "Rust + V8 的 JavaScript/TypeScript 运行时。一个二进制：bee。"
+subtitle: "Rust + V8 的 JavaScript/TypeScript 运行时。一个二进制：amber。"
 group: "开始"
 id: "introduction"
 ---
 
 ## Amber 是什么？
 
-**Amber** 是用 **Rust** 和 **Google V8** 构建的 JavaScript / TypeScript 运行时，发布形态是单一可执行文件 `bee`。
+**Amber** 是用 **Rust** 和 **Google V8** 构建的 JavaScript / TypeScript 运行时，发布形态是单一可执行文件 `amber`。
 
 它面向 **Agent 工具与沙箱脚本**：不用 `tsc` 就能跑 TypeScript，内置 Jest 风格测试，通过 MCP / JSON-RPC 托管工具，并用 `amber:ai` 做进程内张量。它 **不是** Node.js 的即插即用替代品。
 
@@ -45,12 +45,12 @@ id: "introduction"
 
 | 能力 | 状态 | 说明 |
 | :--- | :--- | :--- |
-| `bee run` / `eval` / `repl` | **Stable** | JS 始终可用；TS/TSX 走 oxc（契约仍是 Preview） |
-| `bee test` | **Stable** | Jest 风格 `describe` / `test` / `expect` |
+| `amber run` / `eval` / `repl` | **Stable** | JS 始终可用；TS/TSX 走 oxc（契约仍是 Preview） |
+| `amber test` | **Stable** | Jest 风格 `describe` / `test` / `expect` |
 | `amber:ai` | **Stable** | 进程内 Tensor / LLM / AgentPipeline |
 | `--sandbox` / MCP / session | **Preview** | 默认拒绝 I/O，可冻结时钟与 PRNG |
-| `bee serve` | **Preview** | WinterCG `fetch` 处理器；`--https` 是 rustls HTTP/1.1 |
-| `bee bundle` / `bee compile` | **Preview** | oxc 图打包；SEA trailer `BEE_STANDALONE` |
+| `amber serve` | **Preview** | WinterCG `fetch` 处理器；`--https` 是 rustls HTTP/1.1 |
+| `amber bundle` / `amber compile` | **Preview** | oxc 图打包；SEA trailer `BEE_STANDALONE` |
 | `amber:wasm` | **Preview** | Memory / ArrayBuffer 零拷贝 |
 | 包管理（`init`/`install`/`x`） | **Experimental** | 轻量实现，不是完整 npm |
 | Node API | **Preview** | 按 API 计。Conformance 5.0 为 **55/55** |
@@ -67,7 +67,7 @@ id: "introduction"
 | TypeScript | oxc，仅转译 | loaders / `tsc` | 内置 | 内置 |
 | 安全默认 | 可选 `--sandbox` | 无 | 无 | 权限开关 |
 | Node API | 增量 Preview | 原生 | 目标 drop-in | 兼容层 |
-| 测试 | 内置 `bee test` | 外部 | `bun test` | `deno test` |
+| 测试 | 内置 `amber test` | 外部 | `bun test` | `deno test` |
 | 原生 AI | `amber:ai` | — | — | — |
 | 符合度记分牌 | 55/55 fixtures | 原生 | 高 | 高 |
 

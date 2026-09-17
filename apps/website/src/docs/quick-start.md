@@ -1,6 +1,6 @@
 ---
 title: "Quick Start"
-subtitle: "Run TypeScript, tests, and a tiny HTTP handler with bee"
+subtitle: "Run TypeScript, tests, and a tiny HTTP handler with amber"
 group: "Getting Started"
 id: "quick-start"
 ---
@@ -46,7 +46,7 @@ describe("math", () => {
 ```
 
 ```bash
-bee test
+amber test
 amber test math.test.js
 amber test --watch
 ```
@@ -57,7 +57,7 @@ amber test --watch
 
 ## 3. HTTP (Preview)
 
-`bee serve` loads a module that exports `fetch`:
+`amber serve` loads a module that exports `fetch`:
 
 ```js
 // app.js
@@ -103,7 +103,7 @@ amber run --watch --debounce 200 app.ts
 ## 6. Suggested layout
 
 ```text
-my-bee-app/
+my-amber-app/
 ├── package.json
 ├── tsconfig.json          # optional, for the editor
 ├── src/index.ts
@@ -112,11 +112,11 @@ my-bee-app/
 
 ```json
 {
-  "name": "my-bee-app",
+  "name": "my-amber-app",
   "scripts": {
     "dev": "amber run --watch src/index.ts",
     "start": "amber run src/index.ts",
-    "test": "bee test"
+    "test": "amber test"
   }
 }
 ```

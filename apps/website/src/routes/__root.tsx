@@ -134,7 +134,7 @@ function RootLayoutInner() {
             <Link to="/" className="flex items-center gap-2.5">
               <AmberLogo className="h-6 w-6" />
               <span className="text-[15px] font-semibold tracking-tight">
-                Beejs
+                Amber
               </span>
               <span className="hidden font-mono text-xs text-[var(--honey-text)] sm:inline">
                 {AMBER_VERSION}

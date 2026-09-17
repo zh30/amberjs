@@ -37,7 +37,7 @@ const als = new AsyncLocalStorage();
 
 // Context middleware
 app.use('*', async (c, next) => {
-  return als.run({ traceId: 'bee-req-999' }, async () => {
+  return als.run({ traceId: 'amber-req-999' }, async () => {
     await next();
   });
 });

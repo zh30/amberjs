@@ -1,5 +1,5 @@
 ---
-title: "Persistent Key-Value & Durable State Engine (bee:kv)"
+title: "Persistent Key-Value & Durable State Engine (amber:kv)"
 subtitle: "Embedded ACID transactional storage, prefix range scanning, and TTL expiration for autonomous Agents"
 group: "Agent & Advanced"
 id: "kv-store"
@@ -7,17 +7,17 @@ id: "kv-store"
 
 Autonomous AI Agents require fast, reliable, and durable memory across isolate recycling, worker task restarts, and session boundaries. Traditional databases like SQLite or PostgreSQL are often too heavy for sub-millisecond key-value caching, while in-memory `Map` instances vanish when the process exits.
 
-**Amber v1.7.0 introduces the Native Persistent Key-Value & Durable State Engine (`bee:kv`)**. Featuring zero external dependencies, it provides an embedded ACID transactional key-value store with in-memory mode, disk-backed Write-Ahead Log (WAL) persistence, automatic TTL expiration, prefix range scanning, and atomic batch operations.
+**Amber v1.7.0 introduces the Native Persistent Key-Value & Durable State Engine (`amber:kv`)**. Featuring zero external dependencies, it provides an embedded ACID transactional key-value store with in-memory mode, disk-backed Write-Ahead Log (WAL) persistence, automatic TTL expiration, prefix range scanning, and atomic batch operations.
 
 ---
 
 ## 1. Core Architecture
 
-The `bee:kv` engine operates in dual modes:
+The `amber:kv` engine operates in dual modes:
 
 ```
 [ In-Memory Mode ]                [ Disk-Backed Mode ]
-KVStore.openMemory()              KVStore.open("./agent.bee-kv")
+KVStore.openMemory()              KVStore.open("./agent.amber-kv")
         |                                       |
         v                                       v
 [ Volatile RAM Index ]             [ RAM Index + Append-Only WAL ]
@@ -40,13 +40,13 @@ KVStore.openMemory()              KVStore.open("./agent.bee-kv")
 ### 2.1 Opening a Store
 
 ```typescript
-import { KVStore } from 'bee:kv';
+import { KVStore } from 'amber:kv';
 
 // Option A: Fast in-memory store
 const memStore = KVStore.openMemory();
 
 // Option B: Persistent disk-backed store with automatic WAL replay
-const diskStore = KVStore.open('./data/agent_memory.bee-kv');
+const diskStore = KVStore.open('./data/agent_memory.amber-kv');
 ```
 
 ### 2.2 Storing and Querying Data

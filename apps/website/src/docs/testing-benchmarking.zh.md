@@ -17,7 +17,7 @@ Amber 具备原生的 Jest/Vitest 兼容测试断言库与测试发现执行器�
 
 ```bash
 # 运行所有 *.test.ts 与 *.spec.js 文件
-$ bee test
+$ amber test
 
 # 运行指定测试文件
 $ amber test tests/auth.test.ts
@@ -43,9 +43,9 @@ Lines        : 96.42% ( 538/558 )
 
 ---
 
-## 2. 语言级微基准测试套件 (`bee bench`)
+## 2. 语言级微基准测试套件 (`amber bench`)
 
-为了精准测量算法优化、序列化或数学计算的性能收益，Amber 提供了专用的 `bee bench` 套件。
+为了精准测量算法优化、序列化或数学计算的性能收益，Amber 提供了专用的 `amber bench` 套件。
 
 ### 2.1 编写 Benchmark 文件
 
@@ -54,7 +54,7 @@ Lines        : 96.42% ( 538/558 )
 ```typescript
 // math.bench.ts
 bench("JSON.parse small payload", () => {
-  JSON.parse('{"id": 1, "name": "beejs", "ok": true}');
+  JSON.parse('{"id": 1, "name": "amberjs", "ok": true}');
 });
 
 bench("Array sort 1000 items", () => {
@@ -66,9 +66,9 @@ bench("Array sort 1000 items", () => {
 ### 2.2 运行基准
 
 ```bash
-$ bee bench
+$ amber bench
 # 或指定匹配模式
-$ bee bench benchmarks/
+$ amber bench benchmarks/
 ```
 
 终端输出美观对齐的统计表格：
@@ -85,15 +85,15 @@ $ bee bench benchmarks/
 
 ---
 
-## 3. V8 CPU 性能剖析 (`bee profile`)
+## 3. V8 CPU 性能剖析 (`amber profile`)
 
-想要诊断 CPU 热点函数与性能瓶颈？`bee profile` 可以对脚本执行过程进行微秒级采样，并导出符合 Chrome DevTools 标准的 `.cpuprofile` 文件。
+想要诊断 CPU 热点函数与性能瓶颈？`amber profile` 可以对脚本执行过程进行微秒级采样，并导出符合 Chrome DevTools 标准的 `.cpuprofile` 文件。
 
 ### 3.1 采样性能剖析
 
 ```bash
 # 执行并生成 app.cpuprofile
-$ bee profile app.ts -o app.cpuprofile
+$ amber profile app.ts -o app.cpuprofile
 ```
 
 ### 3.2 在 Chrome 中可视化查看火焰图

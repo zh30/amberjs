@@ -1,13 +1,13 @@
 ---
 title: "CLI reference"
-subtitle: "What bee actually ships in v1.16.0 — Stable, Preview, Experimental"
+subtitle: "What amber actually ships in v1.16.0 — Stable, Preview, Experimental"
 group: "Reference & Specs"
 id: "cli-usage"
 ---
 
-`bee --help` is the source of truth. This page groups the same commands by maturity. See [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) in the repo.
+`amber --help` is the source of truth. This page groups the same commands by maturity. See [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) in the repo.
 
-`--verbose` is global and must come **before** the subcommand: `bee --verbose run app.js`.
+`--verbose` is global and must come **before** the subcommand: `amber --verbose run app.js`.
 
 ---
 
@@ -19,12 +19,12 @@ id: "cli-usage"
 | `amber eval <code>` | Evaluate an expression |
 | `amber repl` | Interactive REPL |
 | `amber test [files...] [--watch]` | Jest-style runner |
-| `bee snapshot [build\|status\|clean]` | V8 startup snapshots |
-| `bee session <tool>` | JSON-RPC over stdin for agent hosts |
+| `amber snapshot [build\|status\|clean]` | V8 startup snapshots |
+| `amber session <tool>` | JSON-RPC over stdin for agent hosts |
 | `amber mcp [tool]` | MCP stdio server |
-| `amber --version` / `bee version` | Version |
+| `amber --version` / `amber version` | Version |
 
-### `bee run`
+### `amber run`
 
 ```bash
 amber run app.ts
@@ -62,7 +62,7 @@ Present in the default binary; the contract is still tightening.
 | :--- | :--- |
 | `amber serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
 | `amber bundle <entry>` | oxc module graph → one JS file |
-| `amber compile <file>` | Append payload + `BEE_STANDALONE` trailer to a copy of `bee` |
+| `amber compile <file>` | Append payload + `BEE_STANDALONE` trailer to a copy of `amber` |
 | TypeScript / TSX | oxc type-strip, not `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
@@ -82,7 +82,7 @@ Do **not** treat these as product promises. They exist on the CLI; behavior may 
 
 `debug`, `record`, `replay`, `init`, `create`, `add`, `remove`, `install`, `prune`, `x`, `upgrade`, `fmt`, `lint`, `bench`, `compile` extras, `types`, `task`, `profile`, `lsp`, `deploy`.
 
-Chrome DevTools attach should use `amber run --inspect`, not `bee debug`.
+Chrome DevTools attach should use `amber run --inspect`, not `amber debug`.
 
 ---
 

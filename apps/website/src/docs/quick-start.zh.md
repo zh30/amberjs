@@ -1,6 +1,6 @@
 ---
 title: "快速开始"
-subtitle: "用 bee 跑 TypeScript、测试和一个很小的 HTTP 处理器"
+subtitle: "用 amber 跑 TypeScript、测试和一个很小的 HTTP 处理器"
 group: "开始"
 id: "quick-start"
 ---
@@ -46,7 +46,7 @@ describe("math", () => {
 ```
 
 ```bash
-bee test
+amber test
 amber test math.test.js
 amber test --watch
 ```
@@ -57,7 +57,7 @@ amber test --watch
 
 ## 3. HTTP（Preview）
 
-`bee serve` 加载导出 `fetch` 的模块：
+`amber serve` 加载导出 `fetch` 的模块：
 
 ```js
 // app.js
@@ -103,7 +103,7 @@ amber run --watch --debounce 200 app.ts
 ## 6. 建议目录
 
 ```text
-my-bee-app/
+my-amber-app/
 ├── package.json
 ├── tsconfig.json          # 可选，给编辑器用
 ├── src/index.ts
@@ -112,11 +112,11 @@ my-bee-app/
 
 ```json
 {
-  "name": "my-bee-app",
+  "name": "my-amber-app",
   "scripts": {
     "dev": "amber run --watch src/index.ts",
     "start": "amber run src/index.ts",
-    "test": "bee test"
+    "test": "amber test"
   }
 }
 ```

@@ -1,6 +1,6 @@
-# Beejs Website
+# Amber Website
 
-Official Beejs website built with React, Vite, and Tailwind CSS. The site is deployed to Cloudflare Workers static assets through Wrangler.
+Official Amber website built with React, Vite, and Tailwind CSS. The site is deployed to Cloudflare Workers static assets through Wrangler.
 
 ## Development
 
@@ -15,7 +15,7 @@ pnpm run dev
 pnpm run build
 ```
 
-The production bundle is written to `dist/`. The `prebuild` step syncs `../install.sh` to `public/install.sh` so the official install URL is included in the Cloudflare assets.
+The production bundle is written to `dist/`. The `prebuild` step copies repo-root `install.sh` / `install.ps1` into `public/` so Cloudflare assets include the installer. The canonical install host is `https://get.amberjs.com`.
 
 ## Cloudflare Deploy
 

@@ -1,5 +1,5 @@
 ---
-title: "Embedded Database & Vector Engine (amber:db & bee:vector)"
+title: "Embedded Database & Vector Engine (amber:db & amber:vector)"
 subtitle: "Zero-config in-process SQLite and high-dimensional vector similarity engine for modern & AI applications"
 group: "Ecosystem"
 id: "embedded-db"
@@ -12,11 +12,11 @@ In modern cloud services and edge AI applications, data persistence and vector s
 - **Native Addon Pitfalls**: Using packages like `better-sqlite3` in Node.js frequently fails during `node-gyp` builds or cross-platform deployment.
 - **Serialization Overhead**: Serializing massive vector embeddings over JSON IPC between JavaScript and Python/database processes hurts throughput.
 
-Amber bundles native **SQLite 3** and an in-memory **VectorDB** engine directly compiled into the binary via Rust. Through `amber:db` and `bee:vector`, developers get an out-of-the-box, zero-dependency data foundation.
+Amber bundles native **SQLite 3** and an in-memory **VectorDB** engine directly compiled into the binary via Rust. Through `amber:db` and `amber:vector`, developers get an out-of-the-box, zero-dependency data foundation.
 
 ---
 
-## 2. In-Process SQLite (`amber:db` / `bee:sqlite`)
+## 2. In-Process SQLite (`amber:db` / `amber:sqlite`)
 
 Import the engine using `import { Database } from 'amber:db'` or `require('amber:db')`:
 
@@ -47,7 +47,7 @@ db.run(`
 // 3. Insert records with parameterized binding
 const insertResult = db.run(
   'INSERT INTO users (username, email) VALUES (?, ?)',
-  ['alice', 'alice@beejs.dev']
+  ['alice', 'alice@amberjs.dev']
 );
 console.log('Inserted ID:', insertResult.lastInsertRowid);
 console.log('Rows modified:', insertResult.changes);
@@ -62,8 +62,8 @@ console.log('All users:', allUsers);
 
 // 6. Safe transactions with rollback
 db.transaction(() => {
-  db.run('INSERT INTO users (username, email) VALUES (?, ?)', ['bob', 'bob@beejs.dev']);
-  db.run('INSERT INTO users (username, email) VALUES (?, ?)', ['carol', 'carol@beejs.dev']);
+  db.run('INSERT INTO users (username, email) VALUES (?, ?)', ['bob', 'bob@amberjs.dev']);
+  db.run('INSERT INTO users (username, email) VALUES (?, ?)', ['carol', 'carol@amberjs.dev']);
 });
 
 // 7. Close connection
@@ -72,9 +72,9 @@ db.close();
 
 ---
 
-## 3. Vector Similarity Search (`bee:vector`)
+## 3. Vector Similarity Search (`amber:vector`)
 
-`bee:vector` is tailored for local RAG (Retrieval-Augmented Generation), semantic document search, and recommendation systems. It indexes high-dimensional vectors with sub-millisecond nearest-neighbor search.
+`amber:vector` is tailored for local RAG (Retrieval-Augmented Generation), semantic document search, and recommendation systems. It indexes high-dimensional vectors with sub-millisecond nearest-neighbor search.
 
 ### Supported Distance Metrics
 - `cosine` (default): Cosine similarity in `[-1.0, 1.0]`, higher score indicates higher semantic similarity.
@@ -84,7 +84,7 @@ db.close();
 ### Example: Semantic Search Engine
 
 ```typescript
-import { VectorDB } from 'bee:vector';
+import { VectorDB } from 'amber:vector';
 
 // 1. Create a 4-dimensional vector database with cosine metric
 const vdb = new VectorDB(4, 'cosine');
@@ -117,11 +117,11 @@ console.log('Restored count:', restoredVdb.count());
 
 ## 4. Local RAG Service in 30 Lines
 
-Combine `amber:ai`, `amber:db`, and `bee:vector` to build a self-contained question-answering search pipeline without Python or external services:
+Combine `amber:ai`, `amber:db`, and `amber:vector` to build a self-contained question-answering search pipeline without Python or external services:
 
 ```typescript
 import { Database } from 'amber:db';
-import { VectorDB } from 'bee:vector';
+import { VectorDB } from 'amber:vector';
 
 const db = new Database('knowledge.db');
 const vdb = new VectorDB(128, 'cosine');

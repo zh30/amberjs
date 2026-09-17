@@ -1,13 +1,13 @@
 ---
 title: "Overview"
-subtitle: "A JavaScript/TypeScript runtime in Rust and V8. One binary: bee."
+subtitle: "A JavaScript/TypeScript runtime in Rust and V8. One binary: amber."
 group: "Getting Started"
 id: "introduction"
 ---
 
 ## What is Amber?
 
-**Amber** is a JavaScript and TypeScript runtime built with **Rust** and **Google V8**. It ships as a single executable named `bee`.
+**Amber** is a JavaScript and TypeScript runtime built with **Rust** and **Google V8**. It ships as a single executable named `amber`.
 
 It is built for **agent tools and sandboxed scripts**: run TypeScript without `tsc`, run Jest-style tests, host MCP/JSON-RPC tools, and do in-process tensors via `amber:ai`. It is **not** a drop-in Node.js replacement.
 
@@ -45,12 +45,12 @@ Closest cousins: Deno (V8 + Rust, permissioned) and Bun (all-in-one CLI). Amber 
 
 | Area | Status | Notes |
 | :--- | :--- | :--- |
-| `bee run` / `eval` / `repl` | **Stable** | JS always; TS/TSX via oxc (Preview contract) |
-| `bee test` | **Stable** | Jest-style `describe` / `test` / `expect` |
+| `amber run` / `eval` / `repl` | **Stable** | JS always; TS/TSX via oxc (Preview contract) |
+| `amber test` | **Stable** | Jest-style `describe` / `test` / `expect` |
 | `amber:ai` | **Stable** | Tensor / LLM / AgentPipeline in-process |
 | `--sandbox` / MCP / session | **Preview** | Default-deny I/O, seed, freeze-time |
-| `bee serve` | **Preview** | WinterCG `fetch` handler; `--https` is rustls HTTP/1.1 |
-| `bee bundle` / `bee compile` | **Preview** | oxc graph bundle; SEA trailer `BEE_STANDALONE` |
+| `amber serve` | **Preview** | WinterCG `fetch` handler; `--https` is rustls HTTP/1.1 |
+| `amber bundle` / `amber compile` | **Preview** | oxc graph bundle; SEA trailer `BEE_STANDALONE` |
 | `amber:wasm` | **Preview** | Zero-copy Memory / ArrayBuffer |
 | Package manager (`init`/`install`/`x`) | **Experimental** | Lightweight; not npm-complete |
 | Node API surface | **Preview** | Per-API. Conformance 5.0 is **55/55** |
@@ -67,7 +67,7 @@ The only user-facing capability map is [Current Scope](https://github.com/zh30/a
 | TypeScript | oxc, transpile-only | loaders / `tsc` | built-in | built-in |
 | Secure defaults | opt-in `--sandbox` | none | none | permission flags |
 | Node API | incremental Preview | native | drop-in goal | compat layer |
-| Test runner | built-in `bee test` | external | `bun test` | `deno test` |
+| Test runner | built-in `amber test` | external | `bun test` | `deno test` |
 | Native AI | `amber:ai` | — | — | — |
 | Conformance scorecard | 55/55 fixtures | native | high | high |
 

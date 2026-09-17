@@ -32,7 +32,7 @@ import { McpServer, McpClient } from 'amber:mcp';
 
 ```typescript
 const server = new McpServer({
-  name: "bee-ops-assistant",
+  name: "amber-ops-assistant",
   version: "1.3.0"
 });
 

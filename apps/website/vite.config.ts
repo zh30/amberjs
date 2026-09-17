@@ -9,13 +9,13 @@ import tailwindcss from "@tailwindcss/vite";
 function ssgPlugin(): Plugin {
   const root = dirname(fileURLToPath(import.meta.url));
   return {
-    name: "beejs-ssg",
+    name: "amberjs-ssg",
     apply: "build",
     closeBundle: {
       sequential: true,
       order: "post",
       handler() {
-        if (process.env.BEEJS_SSR === "1") return;
+        if (process.env.AMBER_SSR === "1") return;
         const ssr = spawnSync(
           process.execPath,
           [
@@ -27,7 +27,7 @@ function ssgPlugin(): Plugin {
           {
             cwd: root,
             stdio: "inherit",
-            env: { ...process.env, BEEJS_SSR: "1" },
+            env: { ...process.env, AMBER_SSR: "1" },
           },
         );
         if (ssr.status !== 0) {

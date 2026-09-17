@@ -17,7 +17,7 @@ Amber v1.3.0 introduces a **zero-dependency, native text vectorization engine**:
 - **Pure Rust Host Engine**: Combines subword/n-gram hashing, positional weighting, and GELU activation to generate deterministic dense semantic vectors;
 - **Hardware-accelerated L2 Normalization**: Outputs unit vectors where the dot product equals exact cosine similarity;
 - **Microsecond Latency**: Vectorizes sentences in tens of microseconds—over **1,000x faster** than network round-trips;
-- **Native Integration with `bee:vector`**: Outputs standard `Float32Array` objects directly consumed by `VectorDB`.
+- **Native Integration with `amber:vector`**: Outputs standard `Float32Array` objects directly consumed by `VectorDB`.
 
 ---
 
@@ -94,13 +94,13 @@ console.log("Unrelated similarity:", simAC.toFixed(4)); // ~ 0.15-
 
 ---
 
-## 3. In-Memory RAG with `bee:vector`
+## 3. In-Memory RAG with `amber:vector`
 
 Combine `embed` with Amber's built-in `VectorDB` to build an embedded retrieval pipeline with zero external databases:
 
 ```typescript
 import { embed } from 'amber:ai';
-import { VectorDB } from 'bee:vector';
+import { VectorDB } from 'amber:vector';
 
 const db = new VectorDB({ dimensions: 64, metric: 'cosine' });
 

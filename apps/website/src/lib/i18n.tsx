@@ -14,7 +14,15 @@ import type { Lang, LangOption, TranslationSchema } from "./locales/types";
 
 export type { Lang, LangOption, TranslationSchema };
 
-type BeejsWindow = Window & { __BEEJS_INITIAL_LANG__?: string };
+type AmberWindow = Window & {
+  __AMBER_INITIAL_LANG__?: string;
+  /** @deprecated previous HTML boot key */
+  __BEEJS_INITIAL_LANG__?: string;
+};
+
+const LANG_STORAGE_KEY = "amber_lang";
+/** Previous website stored language under this key. */
+const LANG_STORAGE_LEGACY = "beejs_lang";
 
 export const SUPPORTED_LANGS: readonly LangOption[] = [
   { code: "en", label: "English", nativeLabel: "English", flag: "🇬🇧" },
@@ -50,25 +58,27 @@ function isLang(value: string | null | undefined): value is Lang {
   );
 }
 
-function beejsWindow(): BeejsWindow | undefined {
+function amberWindow(): AmberWindow | undefined {
   if (typeof window === "undefined") return undefined;
-  return window as BeejsWindow;
+  return window as AmberWindow;
 }
 
 // Hook/helpers colocated with LangProvider.
 // eslint-disable-next-line react-refresh/only-export-components
 export function resolveInitialLanguage(): Lang {
-  const w = beejsWindow();
+  const w = amberWindow();
   if (!w) return "en";
 
   try {
-    const stored = w.localStorage.getItem("beejs_lang");
+    const stored =
+      w.localStorage.getItem(LANG_STORAGE_KEY) ||
+      w.localStorage.getItem(LANG_STORAGE_LEGACY);
     if (isLang(stored)) return stored;
   } catch {
     /* private mode */
   }
 
-  const injected = w.__BEEJS_INITIAL_LANG__;
+  const injected = w.__AMBER_INITIAL_LANG__ || w.__BEEJS_INITIAL_LANG__;
   if (isLang(injected)) return injected;
 
   try {
@@ -98,11 +108,16 @@ function emitLang() {
 function subscribeLang(listener: () => void) {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== "beejs_lang" || !isLang(event.newValue)) return;
+    if (
+      (event.key !== LANG_STORAGE_KEY && event.key !== LANG_STORAGE_LEGACY) ||
+      !isLang(event.newValue)
+    ) {
+      return;
+    }
     currentLang = event.newValue;
     listener();
   };
-  const w = beejsWindow();
+  const w = amberWindow();
   w?.addEventListener("storage", onStorage);
   return () => {
     listeners.delete(listener);
@@ -119,14 +134,14 @@ function getServerLang(): Lang {
 }
 
 function persistLang(nextLang: Lang) {
-  const w = beejsWindow();
+  const w = amberWindow();
   if (!w) return;
   try {
-    w.localStorage.setItem("beejs_lang", nextLang);
+    w.localStorage.setItem(LANG_STORAGE_KEY, nextLang);
   } catch {
     /* private mode */
   }
-  w.__BEEJS_INITIAL_LANG__ = nextLang;
+  w.__AMBER_INITIAL_LANG__ = nextLang;
   w.document.documentElement.lang = nextLang;
 }
 

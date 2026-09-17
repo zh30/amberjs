@@ -1,5 +1,5 @@
 ---
-title: "GGUF 与 SafeTensors 模型权重加载器 (bee:weights)"
+title: "GGUF 与 SafeTensors 模型权重加载器 (amber:weights)"
 subtitle: "极速二进制头解析、零拷贝 mmap 张量切片与 amber:ai 无缝互操作"
 group: "Agent & Advanced"
 id: "model-weights"
@@ -7,7 +7,7 @@ id: "model-weights"
 
 在边缘侧运行私有化 AI Agent 时，往往需要将轻量模型（例如小型 SLM、Embedding 投影矩阵、注意力权重等）极速载入内存。传统 Node.js 方案依赖厚重的 C++ Addon 或全局缓冲区拷贝，容易导致 V8 堆内存溢出。
 
-**Amber v1.6.0 原生集成了高性能二进制模型权重加载器（`bee:weights` / `amber:ai.weights`）**。基于 Rust 内存映射（`mmap`），支持毫秒级解析数十吉字节的大型模型元数据，并将任意张量零拷贝切片载入 `amber:ai.Tensor`。
+**Amber v1.6.0 原生集成了高性能二进制模型权重加载器（`amber:weights` / `amber:ai.weights`）**。基于 Rust 内存映射（`mmap`），支持毫秒级解析数十吉字节的大型模型元数据，并将任意张量零拷贝切片载入 `amber:ai.Tensor`。
 
 ---
 
@@ -25,7 +25,7 @@ id: "model-weights"
 无论是多大尺寸的模型文件，解析元数据均在亚毫秒（< 1ms）内完成，无需将权重数据读入内存：
 
 ```typescript
-import { readGGUFMetadata, readSafeTensorsMetadata } from 'bee:weights';
+import { readGGUFMetadata, readSafeTensorsMetadata } from 'amber:weights';
 
 // 解析 llama.cpp GGUF 模型元数据
 const ggufMeta = readGGUFMetadata("./models/qwen2.5-0.5b-instruct.gguf");
@@ -48,7 +48,7 @@ for (const t of stMeta.tensors) {
 通过 `loadTensor`，运行时直接返回基于 mmap 共享背衬的 `ArrayBuffer`：
 
 ```typescript
-import { loadTensor } from 'bee:weights';
+import { loadTensor } from 'amber:weights';
 import { Tensor } from 'amber:ai';
 
 // 零拷贝加载指定的权重张量
@@ -76,7 +76,7 @@ const tensor = ai.weights.loadTensor("./model.safetensors", "layer1.weight");
 
 ## 4. 性能与资源消耗对比
 
-| 测试场景 | Node.js (fs.readFileSync) | Python (safetensors) | Amber (bee:weights) |
+| 测试场景 | Node.js (fs.readFileSync) | Python (safetensors) | Amber (amber:weights) |
 | :--- | :--- | :--- | :--- |
 | **头部解析 (7B 模型)** | ~120 ms | ~4 ms | **< 1 ms** |
 | **内存开销** | 全文件尺寸常驻 V8 堆 | 零拷贝 mmap | **零 V8 堆冗余拷贝** |

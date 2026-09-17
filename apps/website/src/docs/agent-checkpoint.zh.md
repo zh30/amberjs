@@ -1,13 +1,13 @@
 ---
 title: "Agent 状态检查点与时间旅行回退引擎 (amber:checkpoint)"
-subtitle: "不可变状态快照、深层结构差异对比、分支推演推倒重来与 bee:kv 持久化集成"
+subtitle: "不可变状态快照、深层结构差异对比、分支推演推倒重来与 amber:kv 持久化集成"
 group: "Agent 与高级特性"
 id: "agent-checkpoint"
 ---
 
 在长周期自治 Agent 任务流（如多步骤代码自动重构、研报自动化撰写、多源网页搜索管线）中，Agent 经常会面临外部工具执行失败、网络超时或模型输出偏离预期的死胡同。在缺乏状态检查点机制的环境下，整个执行链条要么彻底崩溃，要么被迫从第一步重新全量执行，不仅白白丢弃宝贵的上下文，更会浪费高昂的模型 Token 成本。
 
-**Amber v1.8.0 正式引入原生 Agent 状态检查点与时间旅行回退引擎 (`amber:checkpoint`)**。它提供轻量不可变状态快照、深层结构 Diff 对比、投机分支推演（Tree-of-Thought / 思考树探索）以及与 `bee:kv` 持久化引擎的无缝联动。
+**Amber v1.8.0 正式引入原生 Agent 状态检查点与时间旅行回退引擎 (`amber:checkpoint`)**。它提供轻量不可变状态快照、深层结构 Diff 对比、投机分支推演（Tree-of-Thought / 思考树探索）以及与 `amber:kv` 持久化引擎的无缝联动。
 
 ---
 
@@ -87,13 +87,13 @@ console.log('派生分支检查点数:', nosqlBranch.list().length); // 3
 
 ---
 
-## 4. 与 `bee:kv` 持久化集成
+## 4. 与 `amber:kv` 持久化集成
 
 无缝将内存状态检查点批量同步至磁盘 WAL 事务日志：
 
 ```typescript
 import { createCheckpointManager } from 'amber:checkpoint';
-import { open } from 'bee:kv';
+import { open } from 'amber:kv';
 
 const kv = open({ path: './data/agent_checkpoints.wal' });
 const mgr = createCheckpointManager();

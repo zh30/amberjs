@@ -27,7 +27,7 @@ amber eval "1 + 1"
 - `cargo fmt --all -- --check`
 - `cargo clippy --all-targets -- -D warnings`
 - `cargo test --lib`
-- `cargo test --test beejs_core_tests`
+- `cargo test --test amberjs_core_tests`
 - `cargo test --test cli_release_tests`
 - macOS 与 Linux 平台构建作业
 

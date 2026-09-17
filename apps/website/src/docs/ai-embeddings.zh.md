@@ -17,7 +17,7 @@ Amber v1.3.0 推出了全新的 **原生零依赖文本向量化引擎**：
 - **纯 Rust 宿主层实现**：结合 Subword / N-gram 哈希投影、位置加权与 GELU 非线性激活函数，直接生成确定性高维稠密特征向量；
 - **硬件级 L2 归一化**：自动完成单位向量投影，向量内积即余弦相似度；
 - **亚毫秒级极速响应**：单条句子向量化仅需数十微秒，比外部 HTTP 请求快 **1000 倍**；
-- **无缝对接 `bee:vector`**：直接产出 `Float32Array`，与内置向量数据库 `VectorDB` 零拷贝互通。
+- **无缝对接 `amber:vector`**：直接产出 `Float32Array`，与内置向量数据库 `VectorDB` 零拷贝互通。
 
 ---
 
@@ -94,13 +94,13 @@ console.log("不相关文本相似度:", simAC.toFixed(4));   // ~ 0.15-
 
 ---
 
-## 3. 结合 `bee:vector` 构建极速本地 RAG 系统
+## 3. 结合 `amber:vector` 构建极速本地 RAG 系统
 
 将 `embed` 与 Amber 原生向量数据库 `VectorDB` 结合，无需任何外部向量中间件即可构建完全内嵌的语义知识库检索：
 
 ```typescript
 import { embed } from 'amber:ai';
-import { VectorDB } from 'bee:vector';
+import { VectorDB } from 'amber:vector';
 
 // 初始化 64 维度的余弦相似度向量库
 const db = new VectorDB({ dimensions: 64, metric: 'cosine' });

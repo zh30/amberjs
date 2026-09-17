@@ -13,35 +13,35 @@ On macOS or Linux, run the official one-line install script in your terminal:
 curl -fsSL https://get.amberjs.com/install.sh | sh
 
 # pin a release
-curl -fsSL https://amberjs.com/install.sh | BEEJS_VERSION=v1.16.0 sh
+curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
 ```
 
 On Windows (PowerShell):
 
 ```powershell
-irm https://amberjs.com/install.ps1 | iex
+irm https://get.amberjs.com/install.ps1 | iex
 ```
 
 Homebrew (formula in the Amber repo; tap hashes are filled after each GitHub Release):
 
 ```bash
-brew install zh30/tap/bee
+brew install zh30/tap/amber
 ```
 
 ### What the Install Script Does
 
 1. **Detects Environment**: Automatically identifies your OS (macOS / Linux) and CPU architecture (Apple Silicon `arm64` or Intel `x86_64`).
 2. **Fetches Prebuilt Archive**: Downloads the release archive optimized with `-O3` and verifies binary integrity.
-3. **Deploys Binary**: Unpacks the `bee` executable into `~/.bee/bin/bee`.
-4. **Configures PATH**: Updates your active shell profile (`~/.zshrc`, `~/.bashrc`, etc.) with `export PATH="$HOME/.bee/bin:$PATH"`.
+3. **Deploys Binary**: Unpacks the `amber` executable into `~/.amber/bin/amber`.
+4. **Configures PATH**: Updates your active shell profile (`~/.zshrc`, `~/.bashrc`, etc.) with `export PATH="$HOME/.amber/bin:$PATH"`.
 
-After installation finishes, either restart your terminal or run `source ~/.zshrc` (or `source ~/.bashrc`) to start using `bee`.
+After installation finishes, either restart your terminal or run `source ~/.zshrc` (or `source ~/.bashrc`) to start using `amber`.
 
 ---
 
 ## Verifying Installation
 
-Verify that `bee` is properly installed and accessible:
+Verify that `amber` is properly installed and accessible:
 
 ```bash
 # Print version info
@@ -54,7 +54,7 @@ amber eval "1 + 1"
 You should see output similar to:
 
 ```text
-bee 1.16.0
+amber 1.16.0
 2
 ```
 
@@ -103,7 +103,7 @@ xcode-select --install
 
 ```bash
 git clone https://github.com/zh30/amberjs.git
-cd beejs
+cd amberjs
 
 # Release build with full optimizations
 cargo build --release
@@ -115,7 +115,7 @@ cargo build --release
 ### 3. Install to Global PATH
 
 ```bash
-sudo cp ./target/release/bee /usr/local/bin/
+sudo cp ./target/release/amber /usr/local/bin/
 amber --version
 ```
 
@@ -126,7 +126,7 @@ amber --version
 | Variable | Default | Purpose |
 | :--- | :---: | :--- |
 | `BEE_WORKERS` | `1` | Default number of worker threads for parallel HTTP execution |
-| `BEE_HOME` | `~/.bee` | Base directory for package caches and downloads |
+| `BEE_HOME` | `~/.amber` | Base directory for package caches and downloads |
 | `BEE_AUDIT_LOG` | None | File path for writing JSONL security sandbox audit records |
 | `BEE_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
 
@@ -145,7 +145,7 @@ To uninstall Amber, delete the binary directory and remove the PATH entry from y
 
 ```bash
 # 1. Remove binary and caches
-rm -rf ~/.bee
+rm -rf ~/.amber
 
 # 2. Remove the PATH export line from ~/.zshrc or ~/.bashrc
 ```

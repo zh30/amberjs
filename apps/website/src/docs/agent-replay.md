@@ -1,5 +1,5 @@
 ---
-title: "Deterministic Agent Replay Engine (bee:replay)"
+title: "Deterministic Agent Replay Engine (amber:replay)"
 subtitle: "Offline trace capture, step-level time-travel debugging, and automated divergence detection"
 group: "Agent & Advanced"
 id: "agent-replay"
@@ -7,7 +7,7 @@ id: "agent-replay"
 
 Autonomous AI Agents depend heavily on external tools, model inference, dynamic timers, and stochastic sampling. When an Agent makes an unpredicted decision or encounters a runtime error, recreating the exact state in production has traditionally been nearly impossible.
 
-**Amber v1.6.0 introduces the Deterministic Agent Replay Engine (`bee:replay`)** and dedicated CLI commands (`bee record` / `amber replay`). It captures non-deterministic external events, serializes execution into compact `.bee-trace.json` files, and re-executes them offline with zero external network or model dependency.
+**Amber v1.6.0 introduces the Deterministic Agent Replay Engine (`amber:replay`)** and dedicated CLI commands (`amber record` / `amber replay`). It captures non-deterministic external events, serializes execution into compact `.amber-trace.json` files, and re-executes them offline with zero external network or model dependency.
 
 ---
 
@@ -18,13 +18,13 @@ The replay engine operates in three distinct lifecycle phases:
 ```
 [ Normal Execution ]
          |
-         v (bee record or replay.startRecording)
+         v (amber record or replay.startRecording)
 [ Trace Capture & Serialization ]
   - Agent step inputs & outputs
   - Virtual timestamps & RNG seeds
   - File reads & network mocks
          |
-         v (Outputs: agent_run.bee-trace.json)
+         v (Outputs: agent_run.amber-trace.json)
 [ Offline Replay & Verification ] (amber replay --verify)
   - Intercepts step() calls
   - Injects recorded outputs without API calls
@@ -34,7 +34,7 @@ The replay engine operates in three distinct lifecycle phases:
 ### Key Replay Engine Invariants
 - **Offline Self-Sufficiency**: Replaying a trace requires no active LLM API keys, database credentials, or network interfaces.
 - **Automated Divergence Detection**: If the Agent's code logic has changed and produces different arguments during a step, the engine throws an immediate `Step divergence detected` error.
-- **Native CLI Integration**: Seamless one-line recording and playback through `bee record` and `amber replay`.
+- **Native CLI Integration**: Seamless one-line recording and playback through `amber record` and `amber replay`.
 
 ---
 
@@ -42,14 +42,14 @@ The replay engine operates in three distinct lifecycle phases:
 
 ### 2.1 Recording an Agent Execution Trace
 
-Execute any script or agent pipeline while recording non-deterministic inputs into a `.bee-trace.json` trace file:
+Execute any script or agent pipeline while recording non-deterministic inputs into a `.amber-trace.json` trace file:
 
 ```bash
-# Record script execution to default trace file (agent.ts.bee-trace.json)
-$ bee record agent.ts
+# Record script execution to default trace file (agent.ts.amber-trace.json)
+$ amber record agent.ts
 
 # Specify a custom trace file path
-$ bee record -o traces/search_task.bee-trace.json agent.ts --query "Quantum Computing"
+$ amber record -o traces/search_task.amber-trace.json agent.ts --query "Quantum Computing"
 ```
 
 ### 2.2 Offline Replay and Verification
@@ -58,20 +58,20 @@ Re-execute the recorded session offline:
 
 ```bash
 # Replay with verified deterministic execution
-$ amber replay traces/search_task.bee-trace.json
+$ amber replay traces/search_task.amber-trace.json
 
 # Enable strict step divergence verification and verbose logging
-$ amber replay --verify -v traces/search_task.bee-trace.json
+$ amber replay --verify -v traces/search_task.amber-trace.json
 ```
 
 ---
 
-## 3. Programmatic API (`bee:replay`)
+## 3. Programmatic API (`amber:replay`)
 
 You can also control recording and step tracking directly in JavaScript/TypeScript:
 
 ```typescript
-import { startRecording, stopRecording, step, isRecording, isReplaying } from 'bee:replay';
+import { startRecording, stopRecording, step, isRecording, isReplaying } from 'amber:replay';
 
 // Start recording explicitly
 startRecording({ script: 'agent_search.ts', outputPath: 'search.trace.json' });

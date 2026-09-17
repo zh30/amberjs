@@ -1,4 +1,4 @@
-# Beejs website visual world
+# Amber website visual world
 
 Canon: Deno + Vite + Bun, played straight. Light default. Tech feel lives in the terminal, not in glow.
 

@@ -66,7 +66,7 @@ console.log('File name:', __filename);
 
 ### Module Scheme Prefixes
 - **`node:*`**: Explicitly imports Node.js compatible core modules (recommended).
-- **`bee:*`**: Imports Amber native built-ins (e.g. `amber:ai` for tensors and inference).
+- **`amber:*`**: Imports Amber native built-ins (e.g. `amber:ai` for tensors and inference).
 - **Relative / Absolute paths**: `./`, `../`, `/` for local disk modules with automatic `.ts` and `.tsx` extension resolution.
 
 ---
@@ -77,24 +77,24 @@ Amber includes lightweight package management compatible with the npm registry, 
 
 ```bash
 # 1. Initialize a new project with package.json
-bee init my-app
+amber init my-app
 
 # 2. Add production dependency
-bee add lodash@4.17.21
+amber add lodash@4.17.21
 
 # 3. Add development dependency
-bee add --dev @types/node
+amber add --dev @types/node
 
 # 4. Install dependencies in CI with strict integrity
 amber install --frozen-lockfile
 
 # 5. Remove unused dependencies
-bee prune
+amber prune
 ```
 
 ---
 
-## 4. Built-in Test Framework (`bee test`)
+## 4. Built-in Test Framework (`amber test`)
 
 Amber provides a zero-dependency test runner compatible with **Jest and Vitest** conventions:
 
@@ -103,13 +103,13 @@ Create a test file such as `math.test.ts`:
 
 ```typescript
 // math.test.ts
-import { describe, it, test, expect } from 'bee:test';
+import { describe, it, test, expect } from 'amber:test';
 
 describe('Arithmetic & Logic', () => {
   it('adds numbers correctly', () => {
     expect(1 + 1).toBe(2);
     expect([1, 2, 3]).toHaveLength(3);
-    expect({ name: 'beejs' }).toEqual({ name: 'beejs' });
+    expect({ name: 'amberjs' }).toEqual({ name: 'amberjs' });
   });
 
   test('handles async resolutions', async () => {
@@ -128,7 +128,7 @@ describe('Arithmetic & Logic', () => {
 ### Running Tests
 ```bash
 # Run all test files (*.test.js, *.test.ts, *.spec.ts)
-$ bee test
+$ amber test
 
 # Filter tests by matching pattern
 $ amber test -t "async"

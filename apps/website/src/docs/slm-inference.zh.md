@@ -86,7 +86,7 @@ console.log('合规的结构化负载:', payload);
 ```typescript
 import { LLM } from 'amber:ai';
 
-const model = new LLM("bee-slm-0.5b");
+const model = new LLM("amber-slm-0.5b");
 
 // 一次性生成
 const response = await model.generate("汇总系统遥测指标");

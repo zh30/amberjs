@@ -12,15 +12,15 @@ export interface BenchmarkItem {
   category: "core" | "io";
   title: string;
   desc: string;
-  beeValue: string;
-  beeOps: string;
+  amberValue: string;
+  amberOps: string;
   bunValue: string;
   bunOps: string;
   nodeValue: string;
   nodeOps: string;
   multiplier: string;
-  isBeeWinner: boolean;
-  beeBar: number;
+  isAmberWinner: boolean;
+  amberBar: number;
   bunBar: number;
   nodeBar: number;
 }

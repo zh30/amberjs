@@ -86,7 +86,7 @@ The `LLM` class in `amber:ai` natively adopts the generator backend:
 ```typescript
 import { LLM } from 'amber:ai';
 
-const model = new LLM("bee-slm-0.5b");
+const model = new LLM("amber-slm-0.5b");
 
 // Single-call generation
 const response = await model.generate("Summarize system telemetry");

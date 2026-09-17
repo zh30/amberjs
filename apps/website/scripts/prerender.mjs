@@ -301,7 +301,7 @@ ${nav()}
 <h1>A JavaScript &amp; TypeScript runtime in Rust &amp; V8</h1>
 <p>${esc(homeDesc)}</p>
 <p><a href="/docs">Explore Docs</a> · <a href="/docs/installation">Installation</a></p>
-<pre><code>curl -fsSL https://amberjs.com/install.sh | sh</code></pre>
+<pre><code>curl -fsSL https://get.amberjs.com/install.sh | sh</code></pre>
 </main>`,
     };
   }
@@ -311,7 +311,7 @@ ${nav()}
     return {
       title: "Docs | Amber",
       description:
-        "Amber manual: install bee, CLI, capability sandbox, Node and Web APIs, and amber:ai. Per-API coverage, not a Node.js clone.",
+        "Amber manual: install amber, CLI, capability sandbox, Node and Web APIs, and amber:ai. Per-API coverage, not a Node.js clone.",
       canonical: `${SITE}/docs`,
       body: `<main>
 ${nav()}
@@ -330,7 +330,7 @@ ${docs.map((d) => `<li><a href="/docs/${esc(d.id)}">${esc(d.title)}</a></li>`).j
         title: `${doc.title} | Amber Docs`,
         description: excerpt(
           doc.body,
-          doc.subtitle || `${doc.title} in the Beejs runtime manual.`,
+          doc.subtitle || `${doc.title} in the Amber runtime manual.`,
         ),
         canonical: `${SITE}/docs/${doc.id}`,
         body: `<main>

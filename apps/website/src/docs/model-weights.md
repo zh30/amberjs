@@ -1,5 +1,5 @@
 ---
-title: "GGUF & SafeTensors Model Weights Loader (bee:weights)"
+title: "GGUF & SafeTensors Model Weights Loader (amber:weights)"
 subtitle: "High-performance binary header parsing, zero-copy mmap tensor slicing, and amber:ai integration"
 group: "Agent & Advanced"
 id: "model-weights"
@@ -7,7 +7,7 @@ id: "model-weights"
 
 Deploying localized edge AI agents requires loading model weights (such as quantized LLMs, embedding projections, and transformer attention heads) rapidly into memory. Traditional Node.js solutions rely on heavy C++ addons or full file buffer copies that exhaust V8 heap memory.
 
-**Amber v1.6.0 introduces native binary GGUF and SafeTensors model loaders (`bee:weights` / `amber:ai.weights`)**. Built on Rust memory mapping (`mmap`), it inspects multi-gigabyte model files instantaneously and loads tensors with zero heap allocation overhead directly into `amber:ai.Tensor`.
+**Amber v1.6.0 introduces native binary GGUF and SafeTensors model loaders (`amber:weights` / `amber:ai.weights`)**. Built on Rust memory mapping (`mmap`), it inspects multi-gigabyte model files instantaneously and loads tensors with zero heap allocation overhead directly into `amber:ai.Tensor`.
 
 ---
 
@@ -25,7 +25,7 @@ Deploying localized edge AI agents requires loading model weights (such as quant
 Both formats can be inspected in sub-millisecond time without reading tensor weight payloads into memory:
 
 ```typescript
-import { readGGUFMetadata, readSafeTensorsMetadata } from 'bee:weights';
+import { readGGUFMetadata, readSafeTensorsMetadata } from 'amber:weights';
 
 // Inspect GGUF model metadata (llama.cpp format)
 const ggufMeta = readGGUFMetadata("./models/qwen2.5-0.5b-instruct.gguf");
@@ -48,7 +48,7 @@ for (const t of stMeta.tensors) {
 Using `loadTensor`, the runtime returns a sliced `ArrayBuffer` referencing memory-mapped bytes directly:
 
 ```typescript
-import { loadTensor } from 'bee:weights';
+import { loadTensor } from 'amber:weights';
 import { Tensor } from 'amber:ai';
 
 // Load embedding weight tensor directly
@@ -77,7 +77,7 @@ const tensor = ai.weights.loadTensor("./model.safetensors", "layer1.weight");
 
 ## 4. Performance & Memory Comparison
 
-| Task | Node.js (fs.readFileSync) | Python (safetensors) | Amber (bee:weights) |
+| Task | Node.js (fs.readFileSync) | Python (safetensors) | Amber (amber:weights) |
 | :--- | :--- | :--- | :--- |
 | **Header Read (7B Model)** | ~120 ms | ~4 ms | **< 1 ms** |
 | **Memory Overhead** | Full file size in RAM | Zero-copy mmap | **Zero V8 heap copy (mmap)** |

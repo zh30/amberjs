@@ -70,7 +70,7 @@ console.log(colors.yellow('⚠ Warning: High memory usage detected'));
 // 2. Unicode table formatter
 const headers = ['Package', 'Version', 'Status'];
 const rows = [
-  ['beejs', 'v1.16.0', colors.green('Active')],
+  ['amberjs', 'v1.16.0', colors.green('Active')],
   ['sqlite', 'v3.45', colors.green('Active')],
 ];
 console.log(table(headers, rows));
@@ -116,7 +116,7 @@ const id = uuidv4();
 const timeOrderedId = uuidv7(); // Perfect for B-Tree index keys
 
 // 2. JWT (HMAC-SHA256) sign and verify
-const secret = 'beejs-super-secret-key';
+const secret = 'amberjs-super-secret-key';
 const token = jwt.sign({ userId: 1001, role: 'admin' }, secret, { expiresIn: 3600 });
 console.log('Generated JWT:', token);
 

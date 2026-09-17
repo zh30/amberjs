@@ -5,9 +5,9 @@ group: "参考"
 id: "cli-usage"
 ---
 
-以 `bee --help` 为准。本页按成熟度分组。仓库里的 [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) 是能力边界。
+以 `amber --help` 为准。本页按成熟度分组。仓库里的 [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) 是能力边界。
 
-`--verbose` 是全局参数，必须放在子命令前面：`bee --verbose run app.js`。
+`--verbose` 是全局参数，必须放在子命令前面：`amber --verbose run app.js`。
 
 ---
 
@@ -19,12 +19,12 @@ id: "cli-usage"
 | `amber eval <code>` | 求值表达式 |
 | `amber repl` | 交互 REPL |
 | `amber test [files...] [--watch]` | Jest 风格测试 |
-| `bee snapshot [build\|status\|clean]` | V8 启动快照 |
-| `bee session <tool>` | Agent 宿主的 stdin JSON-RPC |
+| `amber snapshot [build\|status\|clean]` | V8 启动快照 |
+| `amber session <tool>` | Agent 宿主的 stdin JSON-RPC |
 | `amber mcp [tool]` | MCP stdio 服务 |
-| `amber --version` / `bee version` | 版本 |
+| `amber --version` / `amber version` | 版本 |
 
-### `bee run`
+### `amber run`
 
 ```bash
 amber run app.ts
@@ -62,7 +62,7 @@ amber run --inspect-brk app.ts
 | :--- | :--- |
 | `amber serve [file]` | WinterCG `fetch` 处理器。`--https --cert --key` 是 rustls HTTP/1.1。 |
 | `amber bundle <entry>` | oxc 模块图 → 单个 JS |
-| `amber compile <file>` | 复制 `bee` 并追加 payload + `BEE_STANDALONE` trailer |
+| `amber compile <file>` | 复制 `amber` 并追加 payload + `BEE_STANDALONE` trailer |
 | TypeScript / TSX | oxc 类型擦除，不是 `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
@@ -82,7 +82,7 @@ amber compile app.ts -o myapp
 
 `debug`、`record`、`replay`、`init`、`create`、`add`、`remove`、`install`、`prune`、`x`、`upgrade`、`fmt`、`lint`、`bench`、`types`、`task`、`profile`、`lsp`、`deploy`。
 
-Chrome DevTools 附加请用 `amber run --inspect`，不要用 `bee debug`。
+Chrome DevTools 附加请用 `amber run --inspect`，不要用 `amber debug`。
 
 ---
 

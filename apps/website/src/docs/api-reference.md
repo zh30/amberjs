@@ -1,33 +1,33 @@
 ---
 title: "Comprehensive API Reference"
-subtitle: "Complete API directory for Amber native modules (bee:*), Node.js compatibility, and Web standards"
+subtitle: "Complete API directory for Amber native modules (amber:*), Node.js compatibility, and Web standards"
 group: "Reference & Specs"
 id: "api-reference"
 ---
 
 Amber delivers a unified runtime environment exposing three foundational API tiers:
-1. **Amber Native Modules (`bee:*`)**: Purpose-built subsystems for AI Agent execution, persistent state, streaming grammars, and sandboxing.
+1. **Amber Native Modules (`amber:*`)**: Purpose-built subsystems for AI Agent execution, persistent state, streaming grammars, and sandboxing.
 2. **Node.js Core Modules (`node:*`)**: 51/51 conformance suites passing for drop-in npm package compatibility.
 3. **W3C / WHATWG Web Standards**: Universal browser-compatible primitives (`fetch`, `WebCrypto`, `WebStreams`, `Worker`).
 
 ---
 
-## 1. Amber Native API Reference (`bee:*`)
+## 1. Amber Native API Reference (`amber:*`)
 
-All native Amber modules can be imported using the canonical `bee:<module>` specifier or its unqualified short identifier (e.g. `import { open } from 'bee:kv'` or `const { open } = require('kv')`).
+All native Amber modules can be imported using the canonical `amber:<module>` specifier or its unqualified short identifier (e.g. `import { open } from 'amber:kv'` or `const { open } = require('kv')`).
 
 ```
                               [ Amber Native Fabric ]
    +------------------------------------+------------------------------------+
    |   Autonomous Agent Subsystems      |   Runtime & Infrastructure         |
    |   ---------------------------      |   ------------------------         |
-   |   • amber:ai        (Tensors & LLM)  |   • bee:kv        (ACID State)     |
+   |   • amber:ai        (Tensors & LLM)  |   • amber:kv        (ACID State)     |
    |   • amber:bus       (PubSub Fabric)  |   • amber:sandbox   (Micro-Enclaves) |
    |   • amber:grammar   (Stream Repair)  |   • amber:security  (Permissions)    |
    |   • amber:checkpoint(Time-Travel)    |   • amber:db        (SQLite Engine)  |
-   |   • amber:tools     (OpenAPI Synth)  |   • bee:vector    (Vector Search)  |
-   |   • bee:replay    (Trace Replay)   |   • amber:wasm      (Zero-Copy JIT)  |
-   |   • bee:weights   (GGUF Slicing)   |   • bee:ffi       (Native C ABI)   |
+   |   • amber:tools     (OpenAPI Synth)  |   • amber:vector    (Vector Search)  |
+   |   • amber:replay    (Trace Replay)   |   • amber:wasm      (Zero-Copy JIT)  |
+   |   • amber:weights   (GGUF Slicing)   |   • amber:ffi       (Native C ABI)   |
    |   • amber:mcp       (MCP 2.0 Client) |   • amber:std       (Std Library)    |
    +------------------------------------+------------------------------------+
 ```
@@ -89,14 +89,14 @@ import { createCheckpointManager, getDefaultManager, save, restore, get, list, d
 | `restore(id)` | `(id: string) => any` | Restores agent state to a historical checkpoint for clean fault rollback. |
 | `diff(fromId, toId)` | `(fromId: string, toId: string) => StateDiff` | Structural delta identifying `{ added, modified: { from, to }, deleted }`. |
 | `fork(fromId, branchName)` | `(fromId: string, branchName: string) => CheckpointManager` | Creates speculative execution branch (Tree-of-Thought) without mutating main branch. |
-| `persist(kvStore, prefix?)` | `(kvStore: KVStore, prefix?: string) => number` | Flushes all checkpoints to a durable `bee:kv` Write-Ahead Log. |
-| `restoreFromKV(kvStore, prefix?)` | `(kvStore: KVStore, prefix?: string) => number` | Restores complete checkpoint lineage from a `bee:kv` store instance. |
+| `persist(kvStore, prefix?)` | `(kvStore: KVStore, prefix?: string) => number` | Flushes all checkpoints to a durable `amber:kv` Write-Ahead Log. |
+| `restoreFromKV(kvStore, prefix?)` | `(kvStore: KVStore, prefix?: string) => number` | Restores complete checkpoint lineage from a `amber:kv` store instance. |
 
 ---
 
-### 1.5 `bee:kv` — Persistent Key-Value & Durable State Engine
+### 1.5 `amber:kv` — Persistent Key-Value & Durable State Engine
 ```typescript
-import { open, openInMemory, KVStore } from 'bee:kv';
+import { open, openInMemory, KVStore } from 'amber:kv';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
@@ -138,22 +138,22 @@ import { createEnclave, startAuditLog, stopAuditLog, getAuditLogPath, isEnabled,
 
 ---
 
-### 1.8 `bee:replay` — Deterministic Agent Replay Engine
+### 1.8 `amber:replay` — Deterministic Agent Replay Engine
 ```typescript
-import { startRecording, stopRecording, loadTrace, step, isRecording, isReplaying, getTraceStats } from 'bee:replay';
+import { startRecording, stopRecording, loadTrace, step, isRecording, isReplaying, getTraceStats } from 'amber:replay';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
-| `startRecording(opts)` | `(opts: { script?: string, outputPath?: string }) => void` | Arms engine to record non-deterministic inputs into `.bee-trace.json`. |
+| `startRecording(opts)` | `(opts: { script?: string, outputPath?: string }) => void` | Arms engine to record non-deterministic inputs into `.amber-trace.json`. |
 | `stopRecording(path?)` | `(path?: string) => AgentTrace` | Finalizes recording and exports trace file. |
 | `loadTrace(traceOrPath)` | `(trace: string \| object) => void` | Loads trace and arms offline deterministic replay mode. |
 | `step(name, input, fn)` | `(name: string, input: any, fn: (input) => any) => any` | Records during live run; intercepts and replays cached outputs during replay. |
 
 ---
 
-### 1.9 `bee:weights` — Native GGUF & SafeTensors Model Weights Loader
+### 1.9 `amber:weights` — Native GGUF & SafeTensors Model Weights Loader
 ```typescript
-import { readGGUFMetadata, readSafeTensorsMetadata, loadTensor } from 'bee:weights';
+import { readGGUFMetadata, readSafeTensorsMetadata, loadTensor } from 'amber:weights';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
@@ -177,10 +177,10 @@ import { permissions, createSandboxPolicy, attenuate } from 'amber:security';
 
 ---
 
-### 1.11 `amber:db` & `bee:vector` — Embedded SQLite & Vector Search
+### 1.11 `amber:db` & `amber:vector` — Embedded SQLite & Vector Search
 ```typescript
 import { Database } from 'amber:db';
-import { VectorDB } from 'bee:vector';
+import { VectorDB } from 'amber:vector';
 
 // SQLite
 const db = Database.open('./data.db');
@@ -210,17 +210,17 @@ console.log(colors.green('Environment loaded successfully'));
 
 ---
 
-### 1.13 `amber:wasm`, `bee:ffi` & `bee:pool` — Native Interop & Concurrency
+### 1.13 `amber:wasm`, `amber:ffi` & `amber:pool` — Native Interop & Concurrency
 ```typescript
 // WebAssembly 2.0 Shared Memory Bridge (amber:wasm)
 import { compile, instantiate, MemoryView } from 'amber:wasm';
 
-// Native C ABI FFI (bee:ffi)
-import { dlopen, CString, types } from 'bee:ffi';
+// Native C ABI FFI (amber:ffi)
+import { dlopen, CString, types } from 'amber:ffi';
 const libm = dlopen('libm.dylib', { cos: { args: [types.f64], returns: types.f64 } });
 
-// Multi-Tenant IsolatePool (bee:pool)
-import { IsolatePool } from 'bee:pool';
+// Multi-Tenant IsolatePool (amber:pool)
+import { IsolatePool } from 'amber:pool';
 const pool = new IsolatePool({ size: 4, memoryLimitMb: 128 });
 const result = await pool.execute('2 + 3');
 ```

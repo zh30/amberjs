@@ -120,7 +120,7 @@ hello from Amber`}
                     {home.benchmarksFilterAll}
                   </th>
                   <th className="bg-[var(--honey)] px-3 py-3 font-mono font-bold text-[var(--honey-ink)]">
-                    Beejs
+                    Amber
                   </th>
                   <th className="py-3 pr-4 pl-4 font-mono font-medium text-zinc-400">
                     Node
@@ -138,7 +138,7 @@ hello from Amber`}
                       <div className="text-zinc-500">{row.desc}</div>
                     </td>
                     <td className="bg-[var(--honey)] px-3 py-3.5 font-mono font-semibold whitespace-nowrap text-[var(--honey-ink)]">
-                      {row.amberValue || row.beeValue}
+                      {row.amberValue}
                     </td>
                     <td className="py-3.5 pr-4 pl-4 font-mono whitespace-nowrap text-zinc-300">
                       {row.nodeValue}

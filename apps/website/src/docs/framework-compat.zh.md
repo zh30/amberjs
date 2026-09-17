@@ -37,7 +37,7 @@ const als = new AsyncLocalStorage();
 
 // 上下文传递中间件
 app.use('*', async (c, next) => {
-  return als.run({ traceId: 'bee-trace-001' }, async () => {
+  return als.run({ traceId: 'amber-trace-001' }, async () => {
     await next();
   });
 });

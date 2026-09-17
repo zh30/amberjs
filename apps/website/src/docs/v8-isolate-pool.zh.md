@@ -35,9 +35,9 @@ id: "v8-isolate-pool"
 ### Amber 的零拷贝 mmap 快照机制
 Amber 在构建二进制产物时，将上述完整的初始上下文状态一次性预编译并序列化为紧凑的二进制快照（Snapshot Blob）。
 
-当用户执行 `bee run` 或启动新 Worker 时：
+当用户执行 `amber run` 或启动新 Worker 时：
 - **`memmap2::Mmap::map`**：直接通过系统调用将快照文件映射到虚拟内存地址空间，**完全绕过磁盘数据读取与内存二次拷贝**；
-- **操作系统 CoW (Copy-on-Write)**：多个 Worker 或多个 `bee` 实例共享相同的物理内存页，只有在某个 Isolate 修改特定内存页时才会按需克隆；
+- **操作系统 CoW (Copy-on-Write)**：多个 Worker 或多个 `amber` 实例共享相同的物理内存页，只有在某个 Isolate 修改特定内存页时才会按需克隆；
 - **冷启动压降至 <18ms**：较传统流程提速近 2 倍，几乎实现“随叫随到”的瞬时拉起。
 
 ---

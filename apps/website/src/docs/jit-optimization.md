@@ -11,7 +11,7 @@ Amber operates on a simple principle: **Developers should never have to configur
 
 In traditional Node.js setups, running TypeScript requires installing `typescript`, `ts-node`, `tsx`, or writing complex `tsconfig.json` and bundler configurations. This introduces heavy dependencies and noticeable startup lags.
 
-With Amber, you can run any modern script file directly with `bee run`:
+With Amber, you can run any modern script file directly with `amber run`:
 - **`.ts`**: Standard TypeScript modules
 - **`.tsx`**: TypeScript components with JSX syntax
 - **`.mts` / `.cts`**: Explicit ESM or CommonJS TypeScript modules
@@ -143,7 +143,7 @@ Like Bun and Deno, Amber uses a **transpile-only** strategy when running code:
 Decouple runtime execution from static analysis for optimal developer velocity:
 
 1. **Local Development**: Let your IDE (VS Code, WebStorm) handle real-time type squiggles and autocompletion via the TypeScript language server.
-2. **Execution**: Run directly with `bee run` for instant feedback and zero build wait.
+2. **Execution**: Run directly with `amber run` for instant feedback and zero build wait.
 3. **CI Pipeline**: Run `tsc --noEmit` before merging pull requests to guarantee comprehensive static type safety:
 
 ```json

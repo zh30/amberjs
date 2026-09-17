@@ -13,7 +13,7 @@ We are excited to share two major milestone updates for the Amber runtime projec
 
 ## 🌐 Complete Multi-Language (i18n) Experience
 
-The official Amber website ([bee.zhanghe.dev](https://amberjs.com)) now provides smooth, natural, and idiomatic translations in both English and Chinese across all pages:
+The official Amber website ([amberjs.com](https://amberjs.com)) now provides smooth, natural, and idiomatic translations in both English and Chinese across all pages:
 
 - **Hero & Interactive Sandbox**: Real-time localized runtime metrics, code comments, terminal logs, and boot performance indicators.
 - **Core Capabilities Grid**: Localized deep dives into our V8 JIT core, zero-config TypeScript compilation, fail-closed security sandbox, and WebAssembly Memory interop.

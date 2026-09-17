@@ -10,11 +10,11 @@ id: "ide-extension"
 To deliver a premier TypeScript / JavaScript development experience in Visual Studio Code, Amber provides the official VS Code Extension (`tools/vscode-extension`).
 
 Rather than basic syntax coloring, it communicates full-duplex with the Amber binary:
-- **Native LSP via stdio**: Directly communicates with `bee lsp` for live diagnostics, hover docs, and code completions.
+- **Native LSP via stdio**: Directly communicates with `amber lsp` for live diagnostics, hover docs, and code completions.
 - **CDP Remote Debugging**: Launches `--inspect-brk` with automatic attachment to the Chrome DevTools Protocol debugging engine.
-- **Zero-Wait Formatting**: Direct integration with `bee fmt` (powered by Rust oxc) for sub-millisecond format-on-save.
-- **Type Declaration Export**: `bee types` syncs official TypeScript definitions for complete `bee:*` intelligence.
-- **One-Click Deployment**: Runs `bee deploy` directly from the Command Palette.
+- **Zero-Wait Formatting**: Direct integration with `amber fmt` (powered by Rust oxc) for sub-millisecond format-on-save.
+- **Type Declaration Export**: `amber types` syncs official TypeScript definitions for complete `amber:*` intelligence.
+- **One-Click Deployment**: Runs `amber deploy` directly from the Command Palette.
 
 ---
 
@@ -30,19 +30,19 @@ npm install
 npm run package
 ```
 
-This compiles `beejs-1.1.0.vsix`. Inside VS Code:
+This compiles `amberjs-1.1.0.vsix`. Inside VS Code:
 1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS).
 2. Type and select `Extensions: Install from VSIX...`.
-3. Pick the generated `beejs-1.1.0.vsix` file.
+3. Pick the generated `amberjs-1.1.0.vsix` file.
 
 ---
 
 ## 3. Key Capabilities & Commands
 
 ### 1. Language Server (Amber LSP)
-The extension automatically spawns a background `bee lsp` process on `.js`, `.ts`, `.jsx`, and `.tsx` files:
+The extension automatically spawns a background `amber lsp` process on `.js`, `.ts`, `.jsx`, and `.tsx` files:
 - **Diagnostics**: Real-time syntax and unresolved module warnings.
-- **Hover Information**: Full signatures and JSDoc for built-ins (`amber:db`, `bee:vector`, `amber:std`).
+- **Hover Information**: Full signatures and JSDoc for built-ins (`amber:db`, `amber:vector`, `amber:std`).
 - **Completions**: Auto-suggests module exports and idioms.
 
 ### 2. CDP Debugging (Debug with Amber)
@@ -57,9 +57,9 @@ The extension runs `amber run --inspect-brk=<port> <file>` and connects VS Code'
 | :--- | :--- | :--- |
 | `Amber: Run Current Script` | Runs current file in integrated terminal | `amber run <file>` |
 | `Amber: Debug Current Script` | Spawns CDP debug session | Attaches debugger |
-| `Amber: Format Document` | Formats current document with oxc | `bee fmt <file>` |
-| `Amber: Export TypeScript Types` | Exports built-in type declarations | `bee types` |
-| `Amber: Deploy Application` | Interactive deployment generator | `bee deploy` |
+| `Amber: Format Document` | Formats current document with oxc | `amber fmt <file>` |
+| `Amber: Export TypeScript Types` | Exports built-in type declarations | `amber types` |
+| `Amber: Deploy Application` | Interactive deployment generator | `amber deploy` |
 
 ---
 
@@ -70,14 +70,14 @@ Add the following to your `.vscode/settings.json` for seamless format-on-save:
 ```json
 {
   "[typescript]": {
-    "editor.defaultFormatter": "beejs.beejs-tools",
+    "editor.defaultFormatter": "amberjs.amberjs-tools",
     "editor.formatOnSave": true
   },
   "[javascript]": {
-    "editor.defaultFormatter": "beejs.beejs-tools",
+    "editor.defaultFormatter": "amberjs.amberjs-tools",
     "editor.formatOnSave": true
   },
-  "beejs.executablePath": "bee",
-  "beejs.enableLsp": true
+  "amberjs.executablePath": "amber",
+  "amberjs.enableLsp": true
 }
 ```

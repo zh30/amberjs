@@ -13,29 +13,29 @@ id: "installation"
 curl -fsSL https://get.amberjs.com/install.sh | sh
 
 # 固定版本
-curl -fsSL https://amberjs.com/install.sh | BEEJS_VERSION=v1.16.0 sh
+curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
 ```
 
 Windows（PowerShell）：
 
 ```powershell
-irm https://amberjs.com/install.ps1 | iex
+irm https://get.amberjs.com/install.ps1 | iex
 ```
 
 Homebrew（配方在 Amber 仓库内；每次 GitHub Release 后填写 sha256）：
 
 ```bash
-brew install zh30/tap/bee
+brew install zh30/tap/amber
 ```
 
 ### 安装脚本执行过程说明
 
 1. **自动识别硬件与系统**：自动检测你的系统（macOS / Linux）与 CPU 架构（Apple Silicon `arm64`、Intel `x86_64`）；
 2. **下载预编译产物**：从官方发布源下载经过 `-O3` 生产优化的二进制压缩包并校验完整性；
-3. **部署到用户主目录**：将可执行文件 `bee` 解压部署至 `~/.bee/bin/bee`；
-4. **自动配置环境变量**：自动检测当前 Shell（`~/.zshrc`、`~/.bashrc` 等），在文件末尾注入 `export PATH="$HOME/.bee/bin:$PATH"`。
+3. **部署到用户主目录**：将可执行文件 `amber` 解压部署至 `~/.amber/bin/amber`；
+4. **自动配置环境变量**：自动检测当前 Shell（`~/.zshrc`、`~/.bashrc` 等），在文件末尾注入 `export PATH="$HOME/.amber/bin:$PATH"`。
 
-安装完成后，打开一个新的终端窗口或执行 `source ~/.zshrc`（或 `source ~/.bashrc`），即可直接使用 `bee` 命令。
+安装完成后，打开一个新的终端窗口或执行 `source ~/.zshrc`（或 `source ~/.bashrc`），即可直接使用 `amber` 命令。
 
 ---
 
@@ -54,7 +54,7 @@ amber eval "1 + 1"
 看到类似输出即可：
 
 ```text
-bee 1.16.0
+amber 1.16.0
 2
 ```
 
@@ -103,7 +103,7 @@ xcode-select --install
 
 ```bash
 git clone https://github.com/zh30/amberjs.git
-cd beejs
+cd amberjs
 
 # 生产级优化编译 (耗时约 5~15 分钟，视机器性能而定)
 cargo build --release
@@ -115,7 +115,7 @@ cargo build --release
 ### 3. 安装到全局 PATH
 
 ```bash
-sudo cp ./target/release/bee /usr/local/bin/
+sudo cp ./target/release/amber /usr/local/bin/
 amber --version
 ```
 
@@ -128,7 +128,7 @@ Amber 支持通过环境变量调整全局运行时行为：
 | 环境变量 | 默认值 | 作用说明 |
 | :--- | :---: | :--- |
 | `BEE_WORKERS` | `1` | 设置 HTTP 服务或并发任务的默认 Worker 线程池并发数 |
-| `BEE_HOME` | `~/.bee` | 指定 Amber 的缓存、下载与全局配置目录 |
+| `BEE_HOME` | `~/.amber` | 指定 Amber 的缓存、下载与全局配置目录 |
 | `BEE_AUDIT_LOG` | 无 | 指定沙箱全局安全审计日志 JSONL 输出文件路径 |
 | `BEE_LOG` | `info` | 设置日志级别（`error`、`warn`、`info`、`debug`、`trace`） |
 
@@ -147,7 +147,7 @@ export BEE_LOG=warn
 
 ```bash
 # 1. 移除二进制文件与缓存
-rm -rf ~/.bee
+rm -rf ~/.amber
 
 # 2. 从 Shell 配置文件中移除 PATH (编辑 ~/.zshrc 或 ~/.bashrc 删除对应 export 行)
 ```

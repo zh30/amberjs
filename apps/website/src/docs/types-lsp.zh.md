@@ -5,25 +5,25 @@ group: "Agent 与高级特性"
 id: "types-lsp"
 ---
 
-为了在现代 IDE（VS Code、WebStorm、Cursor）中获得丝滑的代码补全、参数提示与类型校验，Amber 提供了全量内置的官方 TypeScript 类型声明文件 (`types/beejs.d.ts`)。
+为了在现代 IDE（VS Code、WebStorm、Cursor）中获得丝滑的代码补全、参数提示与类型校验，Amber 提供了全量内置的官方 TypeScript 类型声明文件 (`types/amberjs.d.ts`)。
 
 ---
 
-## 1. 导出类型文件 (`bee types`)
+## 1. 导出类型文件 (`amber types`)
 
-Amber 将官方类型定义内嵌于运行时二进制中，使用 `bee types` 即可零网络开销、亚毫秒级导出声明文件：
+Amber 将官方类型定义内嵌于运行时二进制中，使用 `amber types` 即可零网络开销、亚毫秒级导出声明文件：
 
 ```bash
 # 直接在控制台打印类型声明
-$ bee types
+$ amber types
 
 # 导出至项目根目录，供 tsconfig.json 引用
-$ bee types -o beejs.d.ts
+$ amber types -o amberjs.d.ts
 ```
 
 终端输出：
 ```text
-📄 TypeScript definition written to: beejs.d.ts
+📄 TypeScript definition written to: amberjs.d.ts
 ```
 
 ---
@@ -41,7 +41,7 @@ $ bee types -o beejs.d.ts
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "beejs.d.ts"]
+  "include": ["src/**/*", "amberjs.d.ts"]
 }
 ```
 
@@ -64,10 +64,10 @@ const similarity: number = a.cosineSimilarity(new Tensor([2.0, 4.0, 6.0], [1, 3]
 const llm = new LLM({ model: "llama-3.2-1b" });
 ```
 
-### 3.2 `bee:bench` 模块
+### 3.2 `amber:bench` 模块
 包括微基准定义函数类型：
 ```typescript
-import { bench } from "bee:bench";
+import { bench } from "amber:bench";
 
 bench("My Operation", () => {
   // benchmark code

@@ -1,6 +1,6 @@
 ---
 title: "现代 Web 服务与高并发架构"
-subtitle: "支持标准 Web Fetch API (bee serve)、node:http 以及无锁多 Isolate 线程池"
+subtitle: "支持标准 Web Fetch API (amber serve)、node:http 以及无锁多 Isolate 线程池"
 group: "核心系统"
 id: "server-mode"
 ---
@@ -12,9 +12,9 @@ Amber 提供了双重现代 Web 服务构建范式：
 
 ---
 
-## 1. 现代化 Web 应用服务 (`bee serve`)
+## 1. 现代化 Web 应用服务 (`amber serve`)
 
-`bee serve` 是 Amber 官方推荐的现代轻量 Web 服务入口，体验对齐 Cloudflare Workers、Deno 与 Bun，原生支持 TypeScript 与 JSX。
+`amber serve` 是 Amber 官方推荐的现代轻量 Web 服务入口，体验对齐 Cloudflare Workers、Deno 与 Bun，原生支持 TypeScript 与 JSX。
 
 ### 1.1 编写首个 Web 服务脚本
 
@@ -41,12 +41,12 @@ export default {
 
     if (url.pathname === "/api/info") {
       return new Response(JSON.stringify({
-        runtime: "beejs",
+        runtime: "amberjs",
         version: "v1.16.0",
         arch: process.arch,
         platform: process.platform
       }), {
-        headers: { "Content-Type": "application/json", "X-Powered-By": "beejs" }
+        headers: { "Content-Type": "application/json", "X-Powered-By": "amberjs" }
       });
     }
 
@@ -59,7 +59,7 @@ export default {
 
 ```bash
 # 自动探测并运行 app.ts, app.js, server.ts, index.ts 等
-$ bee serve
+$ amber serve
 
 # 或显式指定文件与端口/主机
 $ amber serve app.ts --port 8080 --host 0.0.0.0
@@ -187,6 +187,6 @@ npx autocannon -c 100 -d 10 http://localhost:3000/api/users
 
 ### 生产优化技巧
 
-1. **轻量服务优先选择 `bee serve`**：Fetch API 模型没有传统 Event Emitter 流包装开销，在微服务与边缘计算场景拥有更高的每秒请求处理量（RPS）；
+1. **轻量服务优先选择 `amber serve`**：Fetch API 模型没有传统 Event Emitter 流包装开销，在微服务与边缘计算场景拥有更高的每秒请求处理量（RPS）；
 2. **合理规划 Worker 数量**：在纯 I/O 服务中，Worker 数量建议设为 `CPU核心数` 至 `CPU核心数 * 2`；在重度密集计算时，建议严格等于物理核心数；
 3. **搭配安全沙箱**：生产对外暴露的不可信脚本建议添加 `--sandbox` 和 `--max-memory 512`，有效抵御内存泄漏与越权文件访问。

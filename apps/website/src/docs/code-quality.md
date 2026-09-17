@@ -9,28 +9,28 @@ In large codebases, Prettier and ESLint often slow down developer loops and CI p
 
 ---
 
-## 1. Code Formatting (`bee fmt`)
+## 1. Code Formatting (`amber fmt`)
 
-`bee fmt` formats JavaScript, TypeScript, JSX, and TSX files orders of magnitude faster than conventional tools.
+`amber fmt` formats JavaScript, TypeScript, JSX, and TSX files orders of magnitude faster than conventional tools.
 
 ### 1.1 Basic Usage
 
 ```bash
 # Format a single file
-$ bee fmt src/index.ts
+$ amber fmt src/index.ts
 
 # Format an entire directory recursively
-$ bee fmt src/
+$ amber fmt src/
 
 # Format multiple paths
-$ bee fmt src/ tests/ examples/
+$ amber fmt src/ tests/ examples/
 ```
 
 ### 1.2 CI Check Mode (`--check`)
 In CI workflows, use `--check` to verify code conformance without modifying files on disk:
 
 ```bash
-$ bee fmt src/ --check
+$ amber fmt src/ --check
 ```
 
 Example output:
@@ -41,17 +41,17 @@ Formatted 24 files in 4.2ms (100% compliant)
 
 ---
 
-## 2. Static Code Linting (`bee lint`)
+## 2. Static Code Linting (`amber lint`)
 
-`bee lint` analyzes AST structures and catches hazardous patterns out of the box without complex configuration files.
+`amber lint` analyzes AST structures and catches hazardous patterns out of the box without complex configuration files.
 
 ### 2.1 Running the Linter
 
 ```bash
-$ bee lint src/
+$ amber lint src/
 ```
 
-When violations are detected, `bee lint` prints formatted diagnostics with line numbers and recommendations:
+When violations are detected, `amber lint` prints formatted diagnostics with line numbers and recommendations:
 
 ```text
 🚨 Lint issue in src/auth.ts:18:5
@@ -76,7 +76,7 @@ Benchmarked on a 10,000-line TypeScript codebase:
 
 | Tool | Duration | Peak Memory | Prerequisites |
 | :--- | :--- | :--- | :--- |
-| **`bee fmt` (OXC)** | **~3.8 ms** | **< 15 MB** | **Zero dependencies** |
+| **`amber fmt` (OXC)** | **~3.8 ms** | **< 15 MB** | **Zero dependencies** |
 | Prettier v3.2 | ~420 ms | ~120 MB | Node.js + npm |
-| **`bee lint` (OXC)** | **~4.5 ms** | **< 18 MB** | **Zero dependencies** |
+| **`amber lint` (OXC)** | **~4.5 ms** | **< 18 MB** | **Zero dependencies** |
 | ESLint v9.0 | ~850 ms | ~180 MB | Node.js + npm |

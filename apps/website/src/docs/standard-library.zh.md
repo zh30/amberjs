@@ -70,7 +70,7 @@ console.log(colors.yellow('⚠ 警告：检测到内存占用超过 80%'));
 // 2. 格式化表格
 const headers = ['名称', '版本', '状态'];
 const rows = [
-  ['beejs', 'v1.16.0', colors.green('Active')],
+  ['amberjs', 'v1.16.0', colors.green('Active')],
   ['sqlite', 'v3.45', colors.green('Active')],
 ];
 console.log(table(headers, rows));
@@ -116,7 +116,7 @@ const id = uuidv4();
 const timeOrderedId = uuidv7(); // 适合用作 B-Tree 索引主键
 
 // 2. JWT (HMAC-SHA256) 签名与验签
-const secret = 'beejs-super-secret-key';
+const secret = 'amberjs-super-secret-key';
 const token = jwt.sign({ userId: 1001, role: 'admin' }, secret, { expiresIn: 3600 });
 console.log('生成的 JWT Token:', token);
 

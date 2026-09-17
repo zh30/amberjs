@@ -1,6 +1,6 @@
 ---
 title: "Modern Web Serving & Concurrency"
-subtitle: "Standard Web Fetch API (bee serve), node:http, and Lockless Multi-Isolate Thread Pools"
+subtitle: "Standard Web Fetch API (amber serve), node:http, and Lockless Multi-Isolate Thread Pools"
 group: "Core Systems"
 id: "server-mode"
 ---
@@ -12,9 +12,9 @@ Amber offers two high-performance paradigms for building web services:
 
 ---
 
-## 1. Modern Web Application Serving (`bee serve`)
+## 1. Modern Web Application Serving (`amber serve`)
 
-`bee serve` is the recommended, zero-overhead entrypoint for modern web applications, aligned with Cloudflare Workers, Deno, and Bun, featuring native TypeScript and JSX execution.
+`amber serve` is the recommended, zero-overhead entrypoint for modern web applications, aligned with Cloudflare Workers, Deno, and Bun, featuring native TypeScript and JSX execution.
 
 ### 1.1 Writing Your First Web Service
 
@@ -41,12 +41,12 @@ export default {
 
     if (url.pathname === "/api/info") {
       return new Response(JSON.stringify({
-        runtime: "beejs",
+        runtime: "amberjs",
         version: "v1.16.0",
         arch: process.arch,
         platform: process.platform
       }), {
-        headers: { "Content-Type": "application/json", "X-Powered-By": "beejs" }
+        headers: { "Content-Type": "application/json", "X-Powered-By": "amberjs" }
       });
     }
 
@@ -59,7 +59,7 @@ export default {
 
 ```bash
 # Automatically detects and runs app.ts, app.js, server.ts, index.ts, etc.
-$ bee serve
+$ amber serve
 
 # Or specify a custom file, port, and host
 $ amber serve app.ts --port 8080 --host 0.0.0.0
@@ -185,6 +185,6 @@ npx autocannon -c 100 -d 10 http://localhost:3000/api/users
 
 ### Optimization Tips
 
-1. **Prefer `bee serve` for Microservices**: The Fetch API model avoids EventEmitter and streaming buffer wrapper overhead, yielding higher RPS;
+1. **Prefer `amber serve` for Microservices**: The Fetch API model avoids EventEmitter and streaming buffer wrapper overhead, yielding higher RPS;
 2. **Calibrate Workers**: For I/O services, set workers to `cores` ~ `2 * cores`; for CPU/tensor-heavy workloads, match the physical core count;
 3. **Enforce Resource Quotas**: For public-facing endpoints, combine with `--sandbox` and `--max-memory 512` to prevent memory leaks and unauthorized disk access.

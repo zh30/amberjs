@@ -1,5 +1,5 @@
 ---
-title: "原生 C ABI 外部函数接口 (bee:ffi)"
+title: "原生 C ABI 外部函数接口 (amber:ffi)"
 subtitle: "零依赖、高吞吐的 C 符号调用与裸内存操作接口，专为系统互操作与硬件加速而生"
 group: "Agent & Advanced"
 id: "ffi-native"
@@ -11,22 +11,22 @@ id: "ffi-native"
 
 在传统 Node.js 生态中，开发者必须依赖繁重的外部插件（如 `node-ffi-napi`），并且往往受限于 `node-gyp`、Python 环境与本地 C++ 编译器的构建痛点。
 
-**Amber v1.4.0 原生内置了 `bee:ffi` 模块**，基于操作系统原生动态链接器（Unix/macOS 下的 `dlopen` 与 Windows 下的 `LoadLibraryA`），提供无需任何外部 npm 依赖或编译环境的超轻量 C 语言外部函数接口。
+**Amber v1.4.0 原生内置了 `amber:ffi` 模块**，基于操作系统原生动态链接器（Unix/macOS 下的 `dlopen` 与 Windows 下的 `LoadLibraryA`），提供无需任何外部 npm 依赖或编译环境的超轻量 C 语言外部函数接口。
 
 ### 核心亮点
 - **零外部依赖**：单二进制直接支持，无需安装 node-gyp、Python 或 C++ 编译器。
 - **快速路径 C ABI 调用**：针对 0 到 3 个标量参数的常见调用实现底层直接调度，开销极低。
 - **裸内存与指针操作**：支持获取 TypedArray 内存物理地址（`ptr`）、内存读写（`read` / `write`）与 C 字符串解析（`readCString`）。
-- **完善的类型支持**：完整的 TypeScript 类型定义内置于 `bee:ffi` 与 `@types/beejs`。
+- **完善的类型支持**：完整的 TypeScript 类型定义内置于 `amber:ffi` 与 `@types/amberjs`。
 
 ---
 
 ## 2. 快速上手：调用系统数学库
 
-通过 `bee:ffi` 导入 `dlopen`：
+通过 `amber:ffi` 导入 `dlopen`：
 
 ```typescript
-import { dlopen, FFIType } from 'bee:ffi';
+import { dlopen, FFIType } from 'amber:ffi';
 
 // 加载系统标准 C 库 (传入 null 可直接解析主进程全局导出的 C 符号)
 const libPath = process.platform === 'darwin'
@@ -72,10 +72,10 @@ lib.close();
 
 ## 4. 裸内存读写与指针操作
 
-`bee:ffi` 允许直接检查与修改内存地址，无需中间堆拷贝：
+`amber:ffi` 允许直接检查与修改内存地址，无需中间堆拷贝：
 
 ```typescript
-import { ptr, read, write, readCString } from 'bee:ffi';
+import { ptr, read, write, readCString } from 'amber:ffi';
 
 // 在 JS 堆中申请 64 字节缓冲区
 const buffer = new Uint8Array(64);
