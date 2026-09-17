@@ -8,7 +8,7 @@ mod stability_enhancement_tests {
     use std::sync::{Arc, Mutex};
     use std::time::{Duration, Instant};
     use tokio::time::{sleep, timeout};
-    use beejs::Runtime;
+    use amberjs::Runtime;
 
     /// ========== 全链路压力测试 ==========
 

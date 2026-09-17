@@ -1,4 +1,4 @@
-# Beejs Stage 36.0 实施计划 - CLI 增强与性能基准
+# Amber Stage 36.0 实施计划 - CLI 增强与性能基准
 
 ## 📋 任务概览
 
@@ -40,7 +40,7 @@
 
 #### 成功标准
 - [ ] 基准测试套件：启动时间、执行速度、内存使用
-- [ ] 自动化对比：Bun vs Node.js vs Beejs
+- [ ] 自动化对比：Bun vs Node.js vs Amber
 - [ ] 回归检测：自动检测性能退化
 - [ ] 可视化报告：HTML/Markdown 格式性能报告
 
@@ -116,14 +116,14 @@ impl Repl {
 #### 支持的字段
 ```json
 {
-  "name": "beejs-app",
+  "name": "amberjs-app",
   "version": "1.0.0",
   "scripts": {
-    "start": "beejs src/index.js",
-    "dev": "beejs watch src/index.js",
-    "test": "beejs test"
+    "start": "amberjs src/index.js",
+    "dev": "amberjs watch src/index.js",
+    "test": "amberjs test"
   },
-  "beejs": {
+  "amberjs": {
     "entry": "src/index.js",
     "optimize": "aggressive"
   }
@@ -135,14 +135,14 @@ impl Repl {
 pub struct PackageJson {
     scripts: HashMap<String, String>,
     entry: Option<PathBuf>,
-    config: BeejsConfig,
+    config: AmberConfig,
 }
 
 impl PackageJson {
     pub fn load(path: &Path) -> Result<Self, Box<dyn Error>> {
         // 读取并解析 package.json
         // 提取 scripts 字段
-        // 提取 beejs 专用配置
+        // 提取 amberjs 专用配置
     }
 }
 ```
@@ -177,14 +177,14 @@ impl Benchmark {
 #### 性能对比
 ```rust
 pub struct PerformanceComparison {
-    beejs_result: BenchmarkResult,
+    amberjs_result: BenchmarkResult,
     bun_result: Option<BenchmarkResult>,
     nodejs_result: Option<BenchmarkResult>,
 }
 
 impl PerformanceComparison {
     pub async fn run_all() -> Result<Self, Box<dyn Error>> {
-        // 运行 Beejs 基准测试
+        // 运行 Amber 基准测试
         // 尝试运行 Bun/Node.js 基准测试（如果可用）
         // 对比结果
     }
@@ -224,7 +224,7 @@ tests/
 | REPL | 单行输入 | 正确执行并输出结果 |
 | REPL | 多行输入 | 支持连续输入 |
 | package.json | 读取 scripts | 正确解析并执行 |
-| package.json | 读取 beejs 配置 | 正确读取专用配置 |
+| package.json | 读取 amberjs 配置 | 正确读取专用配置 |
 
 ### 2. 性能基准测试
 | 测试类型 | 测试场景 | 预期指标 |
@@ -317,10 +317,10 @@ tests/
 
 ## 📝 总结
 
-Stage 36.0 将显著增强 Beejs 的 CLI 功能和性能基准能力，为成为"比 Bun 更快的运行时"奠定基础。通过文件监控、REPL、package.json 集成，Beejs 将拥有现代化的开发体验；通过性能基准系统，我们将量化性能改进并持续优化。
+Stage 36.0 将显著增强 Amber 的 CLI 功能和性能基准能力，为成为"比 Bun 更快的运行时"奠定基础。通过文件监控、REPL、package.json 集成，Amber 将拥有现代化的开发体验；通过性能基准系统，我们将量化性能改进并持续优化。
 
 ---
 
 **实施时间**: 2025-12-19
-**负责人**: Beejs 开发团队
+**负责人**: Amber 开发团队
 **状态**: 待开始

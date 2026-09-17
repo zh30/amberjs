@@ -1,6 +1,6 @@
-// Beejs v0.2.0 基础功能测试
+// Amber v0.2.0 基础功能测试
 
-console.log('=== Beejs v0.2.0 基础功能测试 ===');
+console.log('=== Amber v0.2.0 基础功能测试 ===');
 
 // 1. 基础算术
 console.log('\n--- 基础算术 ---');

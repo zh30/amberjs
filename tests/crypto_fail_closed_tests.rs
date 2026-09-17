@@ -18,12 +18,12 @@ fn test_crypto_key_internal_key_data_is_not_visible_to_js() {
                 ['encrypt', 'decrypt']
             );
 
-            const hmacHidden = hmacKey.__beejs_key_data__ === undefined
-                && !Object.prototype.hasOwnProperty.call(hmacKey, '__beejs_key_data__')
-                && !Object.getOwnPropertyNames(hmacKey).includes('__beejs_key_data__');
-            const aesHidden = aesKey.__beejs_key_data__ === undefined
-                && !Object.prototype.hasOwnProperty.call(aesKey, '__beejs_key_data__')
-                && !Object.getOwnPropertyNames(aesKey).includes('__beejs_key_data__');
+            const hmacHidden = hmacKey.__amberjs_key_data__ === undefined
+                && !Object.prototype.hasOwnProperty.call(hmacKey, '__amberjs_key_data__')
+                && !Object.getOwnPropertyNames(hmacKey).includes('__amberjs_key_data__');
+            const aesHidden = aesKey.__amberjs_key_data__ === undefined
+                && !Object.prototype.hasOwnProperty.call(aesKey, '__amberjs_key_data__')
+                && !Object.getOwnPropertyNames(aesKey).includes('__amberjs_key_data__');
 
             const data = new TextEncoder().encode('opaque key material');
             const signature = await crypto.subtle.sign({ name: 'HMAC' }, hmacKey, data);

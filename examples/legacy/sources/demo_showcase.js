@@ -1,7 +1,7 @@
-// Beejs High-Performance JavaScript Runtime Showcase
-// This demonstrates the core features of Beejs
+// Amber High-Performance JavaScript Runtime Showcase
+// This demonstrates the core features of Amber
 
-console.log("🐝 Beejs Runtime Showcase");
+console.log("🐝 Amber Runtime Showcase");
 console.log("=".repeat(50));
 
 // 1. Basic JavaScript Execution
@@ -59,7 +59,7 @@ console.log("\n6. Web Streams API:");
 const readable = new ReadableStream({
     start(controller) {
         controller.enqueue("Hello ");
-        controller.enqueue("Beejs!");
+        controller.enqueue("Amber!");
         controller.close();
     }
 });
@@ -105,8 +105,8 @@ timer.unref();
 console.log("   Timer unreferenced (won't keep process alive)");
 
 console.log("\n" + "=".repeat(50));
-console.log("✅ Beejs Runtime Showcase Complete!");
-console.log("\nBeejs features implemented:");
+console.log("✅ Amber Runtime Showcase Complete!");
+console.log("\nAmber features implemented:");
 console.log("  - V8 JavaScript Engine");
 console.log("  - Event Loop (nextTick -> microtasks -> timers -> setImmediate)");
 console.log("  - Node.js APIs (buffer, child_process, crypto, dns, events, fs, http, net, os, path, stream, timers, url, util)");

@@ -1,19 +1,19 @@
 # Node.js conformance scorecard
 
-This directory is the north-star metric for Beejs Node compatibility work.
+This directory is the north-star metric for Amber Node compatibility work.
 
 ## Layout
 
 - `fixtures/` — small JS scripts asserting Node-like behavior
 - `scorecard.md` — latest pass/fail summary (update when you run the suite)
-- `run_conformance.sh` — runner that executes fixtures with `bee` (or `cargo run`)
+- `run_conformance.sh` — runner that executes fixtures with `amber` (or `cargo run`)
 
 ## How to run
 
 ```bash
 ./tests/conformance/run_conformance.sh
 # or after release build:
-BEE_BIN=./target/release/bee ./tests/conformance/run_conformance.sh
+AMBER_BIN=./target/release/amber ./tests/conformance/run_conformance.sh
 ```
 
 Exit code is non-zero if any fixture fails. CI publishes the printed pass rate.

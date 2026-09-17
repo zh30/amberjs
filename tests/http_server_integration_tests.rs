@@ -268,7 +268,7 @@ fn test_http_server_request_with_headers() {
     wait_for_server(3535);
 
     // Send request with custom headers
-    let request = "GET / HTTP/1.1\r\nHost: localhost\r\nX-Custom-Header: test-value\r\nUser-Agent: BeejsTest\r\n\r\n";
+    let request = "GET / HTTP/1.1\r\nHost: localhost\r\nX-Custom-Header: test-value\r\nUser-Agent: AmberTest\r\n\r\n";
     let connected = send_http_request(3535, request);
     assert!(connected, "Request with headers failed");
 }
@@ -746,11 +746,11 @@ fn test_http_server_request_headers() {
     runtime.execute_code(code).expect("Execution failed");
     wait_for_server(3544);
 
-    let request = "GET / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: BeejsTest/1.0\r\n\r\n";
+    let request = "GET / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: AmberTest/1.0\r\n\r\n";
     let response = send_request_and_get_response(3544, request, &mut runtime);
 
     assert!(
-        response.contains("BeejsTest/1.0"),
+        response.contains("AmberTest/1.0"),
         "Should echo back user agent, got: {}",
         response
     );

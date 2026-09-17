@@ -19,12 +19,12 @@ pub struct PackageJson {
     pub dependencies: Option<HashMap<String, String>>,
     /// Dev dependencies
     pub dev_dependencies: Option<HashMap<String, String>>,
-    /// Beejs specific configuration
-    pub beejs: Option<BeejsConfig>,
+    /// Amber specific configuration
+    pub amberjs: Option<AmberConfig>,
 }
-/// Beejs-specific configuration
+/// Amber-specific configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BeejsConfig {
+pub struct AmberConfig {
     /// Entry point for the application
     pub entry: Option<String>,
     /// Optimization mode
@@ -78,8 +78,8 @@ impl PackageJson {
     }
     /// Get entry point
     pub fn get_entry(&self) -> Option<PathBuf> {
-        if let Some(beejs_config) = &self.beejs {
-            if let Some(entry) = &beejs_config.entry {
+        if let Some(amberjs_config) = &self.amberjs {
+            if let Some(entry) = &amberjs_config.entry {
                 return Some(PathBuf::from(entry));
             }
         }
@@ -93,14 +93,14 @@ impl PackageJson {
         }
         None
     }
-    /// Get beejs configuration
-    pub fn get_beejs_config(&self) -> Option<&BeejsConfig> {
-        self.beejs.as_ref()
+    /// Get amberjs configuration
+    pub fn get_amberjs_config(&self) -> Option<&AmberConfig> {
+        self.amberjs.as_ref()
     }
     /// Get optimization mode
     pub fn get_optimize_mode(&self) -> Option<&str> {
-        if let Some(beejs_config) = &self.beejs {
-            if let Some(optimize) = &beejs_config.optimize {
+        if let Some(amberjs_config) = &self.amberjs {
+            if let Some(optimize) = &amberjs_config.optimize {
                 return Some(optimize.as_str());
             }
         }
@@ -108,8 +108,8 @@ impl PackageJson {
     }
     /// Get target ECMAScript version
     pub fn get_target(&self) -> Option<&str> {
-        if let Some(beejs_config) = &self.beejs {
-            if let Some(target) = &beejs_config.target {
+        if let Some(amberjs_config) = &self.amberjs {
+            if let Some(target) = &amberjs_config.target {
                 return Some(target.as_str());
             }
         }
@@ -117,8 +117,8 @@ impl PackageJson {
     }
     /// Get watch configuration
     pub fn get_watch_config(&self) -> Option<&WatchConfig> {
-        if let Some(beejs_config) = &self.beejs {
-            if let Some(watch) = &beejs_config.watch {
+        if let Some(amberjs_config) = &self.amberjs {
+            if let Some(watch) = &amberjs_config.watch {
                 return Some(watch);
             }
         }
@@ -126,8 +126,8 @@ impl PackageJson {
     }
     /// Get environment variables
     pub fn get_env_vars(&self) -> HashMap<String, String> {
-        if let Some(beejs_config) = &self.beejs {
-            if let Some(env) = &beejs_config.env {
+        if let Some(amberjs_config) = &self.amberjs {
+            if let Some(env) = &amberjs_config.env {
                 return env.clone();
             }
         }
@@ -175,28 +175,28 @@ impl PackageJson {
         if self.version.is_none() {
             return Err(anyhow::anyhow!("package.json missing 'version' field").into());
         }
-        // Validate beejs configuration
-        if let Some(beejs_config) = &self.beejs {
-            if let Some(entry) = &beejs_config.entry {
+        // Validate amberjs configuration
+        if let Some(amberjs_config) = &self.amberjs {
+            if let Some(entry) = &amberjs_config.entry {
                 let entry_path: _ = Path::new(entry);
                 if !entry_path.exists() && !entry_path.is_relative() {
-                    return Err(anyhow::anyhow!("beejs.entry file does not exist: {}", entry).into());
+                    return Err(anyhow::anyhow!("amberjs.entry file does not exist: {}", entry).into());
                 }
             }
-            if let Some(optimize) = &beejs_config.optimize {
+            if let Some(optimize) = &amberjs_config.optimize {
                 let valid_optimize: _ = ["speed", "size", "auto"].contains(&optimize.as_str());
                 if !valid_optimize {
                     return Err(anyhow::anyhow!(
-                        "beejs.optimize must be one of: speed, size, auto, got: {}",
+                        "amberjs.optimize must be one of: speed, size, auto, got: {}",
                         optimize
                     ).into());
                 }
             }
-            if let Some(target) = &beejs_config.target {
+            if let Some(target) = &amberjs_config.target {
                 let valid_targets: _ = ["es2015", "es2016", "es2017", "es2018", "es2019", "es2020", "es2021", "es2022"];
                 if !valid_targets.contains(&target.as_str()) {
                     return Err(anyhow::anyhow!(
-                        "beejs.target must be a valid ES version, got: {}",
+                        "amberjs.target must be a valid ES version, got: {}",
                         target
                     ).into());
                 }
@@ -237,12 +237,12 @@ impl ScriptExecutor {
         // Resolve the command
         let cmd: _ = &args[0];
         let cmd_args: _ = &args[1..];
-        // If it's a bee command, use current executable
-        let exec_path: _ = if cmd == "bee" {
+        // If it's a amber command, use current executable
+        let exec_path: _ = if cmd == "amber" {
             std::env::current_exe()?
         } else {
-            // For now, only support bee commands
-            return Err(anyhow::anyhow!("Only 'bee' commands are supported in scripts").into());
+            // For now, only support amber commands
+            return Err(anyhow::anyhow!("Only 'amber' commands are supported in scripts").into());
         };
         // Spawn the process
         let mut child = std::process::Command::new(&exec_path)
@@ -277,8 +277,8 @@ use anyhow::{Result, Error};
             "name": "test-app",
             "version": "1.0.0",
             "scripts": {
-                "start": "bee src/index.js",
-                "dev": "bee watch src/index.js"
+                "start": "amber src/index.js",
+                "dev": "amber watch src/index.js"
             }
         }"#;
         std::fs::write(&package_json, content).expect("Failed to write package.json");
@@ -286,18 +286,18 @@ use anyhow::{Result, Error};
         assert_eq!(pkg.name, Some("test-app".to_string()));
         assert_eq!(pkg.version, Some("1.0.0".to_string()));
         let scripts: _ = pkg.get_scripts();
-        assert_eq!(scripts.get("start"), Some(&"bee src/index.js".to_string()));
-        assert_eq!(scripts.get("dev"), Some(&"bee watch src/index.js".to_string()));
+        assert_eq!(scripts.get("start"), Some(&"amber src/index.js".to_string()));
+        assert_eq!(scripts.get("dev"), Some(&"amber watch src/index.js".to_string()));
         temp_dir.close().expect("Failed to close temp dir");
     }
     #[test]
-    fn test_beejs_config() {
+    fn test_amberjs_config() {
         let temp_dir: _ = tempdir().expect("Failed to create temp dir");
         let package_json: _ = temp_dir.path().join("package.json");
         let content: _ = r#"{
             "name": "test-app",
             "version": "1.0.0",
-            "beejs": {
+            "amberjs": {
                 "entry": "src/index.ts",
                 "optimize": "aggressive",
                 "target": "es2020"
@@ -305,7 +305,7 @@ use anyhow::{Result, Error};
         }"#;
         std::fs::write(&package_json, content).expect("Failed to write package.json");
         let pkg: _ = PackageJson::load_from_path(&package_json).expect("Failed to load package.json");
-        let config: _ = pkg.get_beejs_config().expect("No beejs config");
+        let config: _ = pkg.get_amberjs_config().expect("No amberjs config");
         assert_eq!(config.entry, Some("src/index.ts".to_string()));
         assert_eq!(config.optimize, Some("aggressive".to_string()));
         assert_eq!(config.target, Some("es2020".to_string()));
@@ -317,13 +317,13 @@ use anyhow::{Result, Error};
             name: Some("test".to_string()),
             version: Some("1.0.0".to_string()),
             description: None,
-            scripts: Some([("start".to_string(), "bee src/index.js --watch".to_string())].into()),
+            scripts: Some([("start".to_string(), "amber src/index.js --watch".to_string())].into()),
             dependencies: None,
             dev_dependencies: None,
-            beejs: None,
+            amberjs: None,
         };
         let args: _ = pkg.parse_script_command("start").expect("Failed to parse script");
-        assert_eq!(args, vec!["bee", "src/index.js", "--watch"]);
+        assert_eq!(args, vec!["amber", "src/index.js", "--watch"]);
     }
     #[test]
     fn test_package_json_validation() {
@@ -335,7 +335,7 @@ use anyhow::{Result, Error};
             scripts: None,
             dependencies: None,
             dev_dependencies: None,
-            beejs: None,
+            amberjs: None,
         };
         assert!(valid_pkg.validate().is_ok());
         // Invalid package.json - missing name
@@ -346,7 +346,7 @@ use anyhow::{Result, Error};
             scripts: None,
             dependencies: None,
             dev_dependencies: None,
-            beejs: None,
+            amberjs: None,
         };
         assert!(invalid_pkg.validate().is_err());
     }

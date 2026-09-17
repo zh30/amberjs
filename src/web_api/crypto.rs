@@ -1688,8 +1688,8 @@ fn get_key_type(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> 
 
 /// Get curve name from CryptoKey object for ECDSA/ECDH
 fn get_curve_name(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> String {
-    // First check __beejs_curve__ property
-    let curve_key = v8::String::new(scope, "__beejs_curve__").unwrap();
+    // First check __amberjs_curve__ property
+    let curve_key = v8::String::new(scope, "__amberjs_curve__").unwrap();
     if let Some(curve_val) = crypto_key.get(scope, curve_key.into()) {
         if let Some(curve_str) = get_string_value(scope, curve_val) {
             return curve_str;
@@ -1715,7 +1715,7 @@ fn get_curve_name(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -
 /// Get key data from CryptoKey object
 #[allow(dead_code)]
 fn get_key_data(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> Option<Vec<u8>> {
-    let key_data_key_name = v8::String::new(scope, "BeeJS.CryptoKey#keyData").unwrap();
+    let key_data_key_name = v8::String::new(scope, "Amber.CryptoKey#keyData").unwrap();
     let key_data_key = v8::Private::for_api(scope, Some(key_data_key_name));
     if let Some(key_data_value) = crypto_key.get_private(scope, key_data_key) {
         if key_data_value.is_undefined() {
@@ -1729,7 +1729,7 @@ fn get_key_data(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>) -> 
 }
 
 fn set_key_data(scope: &mut v8::PinScope, crypto_key: v8::Local<v8::Object>, key_data: &[u8]) {
-    let key_data_key_name = v8::String::new(scope, "BeeJS.CryptoKey#keyData").unwrap();
+    let key_data_key_name = v8::String::new(scope, "Amber.CryptoKey#keyData").unwrap();
     let key_data_key = v8::Private::for_api(scope, Some(key_data_key_name));
     let key_data_array = v8::ArrayBuffer::new(scope, key_data.len());
     let backing_store = key_data_array.get_backing_store();
@@ -3006,7 +3006,7 @@ fn aes_encrypt_callback(
         return;
     }
 
-    // Beejs' AES-GCM backend currently supports the standard 96-bit
+    // Amber' AES-GCM backend currently supports the standard 96-bit
     // nonce only; never substitute an all-zero nonce.
     let iv = match get_required_algorithm_iv(scope, "encrypt", "AES-GCM", algo_obj.as_ref(), 12) {
         Some(iv) => iv,
@@ -3291,7 +3291,7 @@ fn aes_decrypt_callback(
         return;
     }
 
-    // Beejs' AES-GCM backend currently supports the standard 96-bit
+    // Amber' AES-GCM backend currently supports the standard 96-bit
     // nonce only; never substitute an all-zero nonce.
     let iv = match get_required_algorithm_iv(scope, "decrypt", "AES-GCM", algo_obj.as_ref(), 12) {
         Some(iv) => iv,
@@ -4618,7 +4618,7 @@ fn generate_key_callback(
                 set_key_data(scope, private_key, &private_key_data);
                 set_key_data(scope, public_key, &public_key_data);
 
-                let curve_name_key = v8::String::new(scope, "__beejs_curve__").unwrap();
+                let curve_name_key = v8::String::new(scope, "__amberjs_curve__").unwrap();
                 let curve_name_val = v8::String::new(scope, &curve_name).unwrap();
                 private_key.set(scope, curve_name_key.into(), curve_name_val.into());
                 public_key.set(scope, curve_name_key.into(), curve_name_val.into());
@@ -4702,7 +4702,7 @@ fn generate_key_callback(
             set_key_data(scope, public_key, &public_key_data);
 
             // Store curve name for sign/verify
-            let curve_name_key = v8::String::new(scope, "__beejs_curve__").unwrap();
+            let curve_name_key = v8::String::new(scope, "__amberjs_curve__").unwrap();
             let curve_name_val = v8::String::new(scope, &curve_name).unwrap();
             private_key.set(scope, curve_name_key.into(), curve_name_val.into());
             public_key.set(scope, curve_name_key.into(), curve_name_val.into());

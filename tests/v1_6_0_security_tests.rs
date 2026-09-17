@@ -1,4 +1,4 @@
-// Tests for Beejs v1.6.0 Enterprise Capability-Based Security (`bee:security` / `bee:permissions`)
+// Tests for Amber v1.6.0 Enterprise Capability-Based Security (`amber:security` / `amber:permissions`)
 
 use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
@@ -8,9 +8,9 @@ use serial_test::serial;
 fn test_security_module_resolution_and_exports() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
     let code = r#"
-        const security = require('bee:security');
+        const security = require('amber:security');
         const securityAlias = require('security');
-        const permissions = require('bee:permissions');
+        const permissions = require('amber:permissions');
         const permissionsAlias = require('permissions');
 
         if (typeof security.permissions.query !== 'function') throw new Error('Missing query');
@@ -35,7 +35,7 @@ fn test_security_module_resolution_and_exports() {
 fn test_permission_query_and_has() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
     let code = r#"
-        const { permissions } = require('bee:security');
+        const { permissions } = require('amber:security');
 
         // Query read permission
         const readQuery = permissions.query({ name: 'read', path: '/tmp/test.txt' });
@@ -63,7 +63,7 @@ fn test_permission_query_and_has() {
 fn test_permission_list_and_dynamic_revocation() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
     let code = r#"
-        const { permissions } = require('bee:security');
+        const { permissions } = require('amber:security');
 
         // List initial rules
         const initial = permissions.list();
@@ -100,7 +100,7 @@ fn test_permission_list_and_dynamic_revocation() {
 fn test_policy_creation_and_attenuation() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
     let code = r#"
-        const { createSandboxPolicy, attenuate } = require('bee:security');
+        const { createSandboxPolicy, attenuate } = require('amber:security');
 
         const parentPolicy = createSandboxPolicy({
             allowNet: ['api.openai.com', 'api.github.com'],

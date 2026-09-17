@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-在 Stage 94 Phase 2（分布式运行时）完成的基础上，实现深度云原生集成，让 Beejs 能够在 Kubernetes 环境中无缝运行，支持企业级容器化部署和运维。
+在 Stage 94 Phase 2（分布式运行时）完成的基础上，实现深度云原生集成，让 Amber 能够在 Kubernetes 环境中无缝运行，支持企业级容器化部署和运维。
 
 ## 核心目标
 - ☸️ **Kubernetes 原生**: CRD、Operator、StatefulSet、HPA 完整支持
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Beejs Cloud Native                       │
+│                    Amber Cloud Native                       │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
 │  │   GitOps     │  │    CI/CD     │  │   Service    │     │
@@ -38,7 +38,7 @@
 │  └─────────────────────────────────────────────────────┘     │
 │            │                   │                           │
 │  ┌─────────▼───────────────────▼─────────────────────────┐ │
-│  │              Beejs Runtime Cluster                     │ │
+│  │              Amber Runtime Cluster                     │ │
 │  │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐       │ │
 │  │  │Node 1│ │Node 2│ │Node 3│ │...   │ │Node N│       │ │
 │  │  │(Pod) │ │(Pod) │ │(Pod) │ │      │ │(Pod) │       │ │
@@ -53,8 +53,8 @@
 src/cloud_native/
 ├── k8s/
 │   ├── crd/              # Custom Resource Definitions
-│   │   ├── beejs_cluster.rs
-│   │   ├── beejs_workload.rs
+│   │   ├── amberjs_cluster.rs
+│   │   ├── amberjs_workload.rs
 │   │   └── mod.rs
 │   ├── operator/         # Kubernetes Operator
 │   │   ├── controller.rs
@@ -108,15 +108,15 @@ src/cloud_native/
 
 ### 1. Kubernetes CRD 设计
 
-#### 1.1 BeejsCluster CRD
+#### 1.1 AmberCluster CRD
 
 ```yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: beejsclusters.cloudnative.beejs.io
+  name: amberjsclusters.cloudnative.amberjs.io
 spec:
-  group: cloudnative.beejs.io
+  group: cloudnative.amberjs.io
   versions:
   - name: v1
     served: true
@@ -143,18 +143,18 @@ spec:
 ```
 
 **核心字段设计**:
-- `version`: Beejs 版本号
+- `version`: Amber 版本号
 - `nodes`: 集群节点数量
 - `image`: 容器镜像地址
 - `resources`: 资源限制 (CPU/Memory/Disk)
 - `security`: 安全配置 (沙箱/RBAC/加密)
 - `distributed`: 分布式配置 (服务发现/负载均衡)
 
-#### 1.2 BeejsWorkload CRD
+#### 1.2 AmberWorkload CRD
 
 ```yaml
-apiVersion: cloudnative.beejs.io/v1
-kind: BeejsWorkload
+apiVersion: cloudnative.amberjs.io/v1
+kind: AmberWorkload
 metadata:
   name: my-app
 spec:
@@ -176,7 +176,7 @@ spec:
 ```
 
 **核心字段设计**:
-- `clusterRef`: 引用的 BeejsCluster
+- `clusterRef`: 引用的 AmberCluster
 - `scriptPath`: 脚本路径
 - `scriptArgs`: 脚本参数
 - `environment`: 环境变量
@@ -191,7 +191,7 @@ spec:
 ```
 Reconciliation Loop:
 ┌─────────────────────────────────────┐
-│  Watch BeejsCluster/BeejsWorkload   │
+│  Watch AmberCluster/AmberWorkload   │
 │           (Event Source)            │
 └──────────────┬──────────────────────┘
                │
@@ -243,7 +243,7 @@ Pending → Creating → Running → Updating → Failed
 impl reconciler::Reconciler {
     async fn reconcile_cluster(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
     ) -> Result<ControlFlow<()>, Error> {
         // 1. 获取当前状态
         let current_state = self.get_current_state(cluster).await?;
@@ -350,14 +350,14 @@ FROM rust:1.70 as builder
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-RUN cargo build --release && strip target/release/beejs
+RUN cargo build --release && strip target/release/amberjs
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim
-RUN groupadd -r beejs && useradd -r -g beejs beejs
-COPY --from=builder /app/target/release/beejs /usr/local/bin/
-USER beejs
-ENTRYPOINT ["beejs"]
+RUN groupadd -r amberjs && useradd -r -g amberjs amberjs
+COPY --from=builder /app/target/release/amberjs /usr/local/bin/
+USER amberjs
+ENTRYPOINT ["amberjs"]
 ```
 
 #### 4.2 安全扫描
@@ -516,17 +516,17 @@ graph LR
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: beejs-cluster
+  name: amberjs-cluster
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/company/beejs-deployments
+    repoURL: https://github.com/company/amberjs-deployments
     targetRevision: HEAD
     path: clusters/production
   destination:
     server: https://kubernetes.default.svc
-    namespace: beejs-system
+    namespace: amberjs-system
   syncPolicy:
     automated:
       prune: true
@@ -537,7 +537,7 @@ spec:
 
 **GitHub Actions 工作流**:
 ```yaml
-name: Build and Deploy Beejs
+name: Build and Deploy Amber
 
 on:
   push:
@@ -557,9 +557,9 @@ jobs:
       - name: Test
         run: cargo test
       - name: Build Container Image
-        run: docker build -t beejs:${{ github.sha }} .
+        run: docker build -t amberjs:${{ github.sha }} .
       - name: Security Scan
-        run: trivy image beejs:${{ github.sha }}
+        run: trivy image amberjs:${{ github.sha }}
 
   deploy:
     needs: build
@@ -567,8 +567,8 @@ jobs:
     steps:
       - name: Deploy to K8s
         run: |
-          kubectl set image deployment/beejs beejs=beejs:${{ github.sha }}
-          kubectl rollout status deployment/beejs
+          kubectl set image deployment/amberjs amberjs=amberjs:${{ github.sha }}
+          kubectl rollout status deployment/amberjs
 ```
 
 ### 7. 部署策略设计
@@ -643,8 +643,8 @@ impl CanaryDeployment {
 
 ### Phase 1: Kubernetes 基础 (1.5 小时)
 1. **CRD 定义** (30 分钟)
-   - BeejsCluster CRD
-   - BeejsWorkload CRD
+   - AmberCluster CRD
+   - AmberWorkload CRD
    - YAML 验证器
 
 2. **Operator 控制器** (45 分钟)

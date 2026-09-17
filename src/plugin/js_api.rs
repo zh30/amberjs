@@ -6,7 +6,7 @@ pub struct JsPluginApi {
 impl JsPluginApi {
     pub fn new() -> Self {
         Self {
-            runtime: "Beejs".to_string(),
+            runtime: "Amber".to_string(),
         }
     }
     /// Execute JavaScript code
@@ -27,7 +27,7 @@ use std::collections::{HashMap, BTreeMap};
     #[test]
     fn test_js_plugin_api_creation() {
         let api: _ = JsPluginApi::new();
-        assert_eq!(api.runtime, "Beejs");
+        assert_eq!(api.runtime, "Amber");
     }
     #[test]
     fn test_execute_js() {

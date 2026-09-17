@@ -34,13 +34,13 @@ fn test_process_argv_content() {
     let mut runtime =
         amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
-        process.argv.length >= 2 && process.argv[0].includes('bee');
+        process.argv.length >= 2 && process.argv[0].includes('amber');
     "#;
     let result = runtime.execute_code(code).expect("Execution failed");
     assert_eq!(
         result.trim(),
         "true",
-        "process.argv should contain 'bee' as first element"
+        "process.argv should contain 'amber' as first element"
     );
 }
 
@@ -362,7 +362,7 @@ fn test_process_memory_exists() {
     let result = runtime
         .execute_code("typeof process.memory")
         .expect("Execution failed");
-    // process.memory() is Beejs' extended memory statistics API.
+    // process.memory() is Amber' extended memory statistics API.
     assert!(
         result.trim() == "function" || result.trim() == "undefined",
         "process.memory should be a function or undefined"
@@ -647,13 +647,13 @@ fn test_process_release_name() {
     let mut runtime =
         amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
-        process.release.name === 'bee';
+        process.release.name === 'amber';
     "#;
     let result = runtime.execute_code(code).expect("Execution failed");
     assert_eq!(
         result.trim(),
         "true",
-        "process.release.name should be 'bee'"
+        "process.release.name should be 'amber'"
     );
 }
 

@@ -1,9 +1,9 @@
-//! Built-in Language Server Protocol (LSP) Server for Beejs (`bee lsp`).
+//! Built-in Language Server Protocol (LSP) Server for Amber (`amber lsp`).
 //!
 //! Provides zero-configuration language support for editors (VS Code, Neovim, Helix):
 //! - Real-time diagnostics via OXC linter (`textDocument/publishDiagnostics`)
 //! - Instant code formatting via OXC codegen (`textDocument/formatting`)
-//! - Built-in API hover documentation for `bee:ai`, `Tensor`, `LLM`, etc. (`textDocument/hover`)
+//! - Built-in API hover documentation for `amber:ai`, `Tensor`, `LLM`, etc. (`textDocument/hover`)
 
 use anyhow::{anyhow, Result};
 use serde_json::{json, Value};
@@ -60,27 +60,27 @@ pub fn write_lsp_message<W: Write>(writer: &mut W, val: &Value) -> Result<()> {
     Ok(())
 }
 
-/// Returns hover documentation for known Beejs symbols.
+/// Returns hover documentation for known Amber symbols.
 pub fn get_hover_doc(symbol: &str) -> Option<String> {
     match symbol {
-        "bee:ai" => Some(
-            "### `bee:ai`\n\nNative agentic AI module in Beejs, featuring zero-copy Tensor operations, local streaming LLM inference, and deterministic AgentPipeline."
+        "amber:ai" => Some(
+            "### `amber:ai`\n\nNative agentic AI module in Amber, featuring zero-copy Tensor operations, local streaming LLM inference, and deterministic AgentPipeline."
                 .to_string(),
         ),
         "Tensor" => Some(
-            "### `class Tensor` (bee:ai)\n\nHigh-performance n-dimensional Tensor backed by Float32Array.\n\nMethods: `matmul`, `dot`, `norm`, `softmax`, `cosineSimilarity`, `add`, `sub`, `mul`, `div`."
+            "### `class Tensor` (amber:ai)\n\nHigh-performance n-dimensional Tensor backed by Float32Array.\n\nMethods: `matmul`, `dot`, `norm`, `softmax`, `cosineSimilarity`, `add`, `sub`, `mul`, `div`."
                 .to_string(),
         ),
         "LLM" => Some(
-            "### `class LLM` (bee:ai)\n\nLocal streaming LLM inference engine.\n\nMethods:\n- `generate({ prompt, maxTokens, temperature })`\n- `generateStream({ prompt })`\n- `embed(text)`"
+            "### `class LLM` (amber:ai)\n\nLocal streaming LLM inference engine.\n\nMethods:\n- `generate({ prompt, maxTokens, temperature })`\n- `generateStream({ prompt })`\n- `embed(text)`"
                 .to_string(),
         ),
         "AgentPipeline" => Some(
-            "### `class AgentPipeline` (bee:ai)\n\nDeterministic orchestrator for registering and executing Agent tools."
+            "### `class AgentPipeline` (amber:ai)\n\nDeterministic orchestrator for registering and executing Agent tools."
                 .to_string(),
         ),
         "bench" => Some(
-            "### `bench(name, fn)`\n\nRegisters a microbenchmark function for execution with `bee bench`."
+            "### `bench(name, fn)`\n\nRegisters a microbenchmark function for execution with `amber bench`."
                 .to_string(),
         ),
         _ => None,
@@ -108,7 +108,7 @@ pub fn run_lsp_server<R: Read, W: Write>(input: R, mut output: W) -> Result<()> 
                             "hoverProvider": true
                         },
                         "serverInfo": {
-                            "name": "bee-lsp",
+                            "name": "amber-lsp",
                             "version": env!("CARGO_PKG_VERSION")
                         }
                     }
@@ -295,7 +295,7 @@ fn publish_diagnostics<W: Write>(writer: &mut W, uri: &str, text: &str) -> Resul
                 },
                 "severity": severity,
                 "code": d.rule_name,
-                "source": "beejs",
+                "source": "amberjs",
                 "message": d.message
             })
         })
@@ -335,7 +335,7 @@ mod tests {
 
     #[test]
     fn test_lsp_extract_word_and_hover() {
-        let line = "import { Tensor } from 'bee:ai';";
+        let line = "import { Tensor } from 'amber:ai';";
         let word = extract_word_at(line, 10);
         assert_eq!(word, "Tensor");
         let doc = get_hover_doc(&word);

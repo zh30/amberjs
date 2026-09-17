@@ -2,7 +2,7 @@
 
 ## 📋 阶段概述
 
-基于用户要求"先写测试，再实际开发"，Stage 60 专注于建立测试驱动的开发流程。我们成功实现了 RuntimeLite 核心模块的完整测试套件，为 Beejs 的持续优化奠定了坚实基础。
+基于用户要求"先写测试，再实际开发"，Stage 60 专注于建立测试驱动的开发流程。我们成功实现了 RuntimeLite 核心模块的完整测试套件，为 Amber 的持续优化奠定了坚实基础。
 
 ## ✅ 完成的工作
 
@@ -122,14 +122,14 @@ test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 
 ## 🎉 结论
 
-Stage 60 的测试套件实现是 Beejs 项目的重要里程碑。我们成功建立了：
+Stage 60 的测试套件实现是 Amber 项目的重要里程碑。我们成功建立了：
 
 - 完整的测试基础设施
 - 测试驱动的开发文化
 - 质量保证体系
 - 性能基准线
 
-这为 Beejs 成为最快的 JavaScript/TypeScript 运行时奠定了坚实基础。
+这为 Amber 成为最快的 JavaScript/TypeScript 运行时奠定了坚实基础。
 
 ---
 

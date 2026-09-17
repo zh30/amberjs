@@ -1,4 +1,4 @@
-// Blob API Tests for Beejs
+// Blob API Tests for Amber
 // Tests for v0.3.305: Blob/File API implementation for binary data handling
 // Enables efficient binary data handling for AI workloads
 
@@ -7,17 +7,17 @@ mod blob_api_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
             std::env::var("CARGO_BIN_EXE_amber")
-                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     /// Test 1: Blob constructor with string parts
     #[test]
     fn test_blob_constructor_string() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -28,7 +28,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -51,7 +51,7 @@ mod blob_api_tests {
     /// Test 2: Blob constructor with empty parts
     #[test]
     fn test_blob_constructor_empty() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -61,7 +61,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -79,7 +79,7 @@ mod blob_api_tests {
     /// Test 3: Blob constructor with multiple parts
     #[test]
     fn test_blob_constructor_multiple_parts() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -88,7 +88,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -101,22 +101,22 @@ mod blob_api_tests {
     /// Test 4: Blob.text() method
     #[test]
     fn test_blob_text() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
-                const blob = new Blob(['Hello, Beejs!'], { type: 'text/plain' });
+                const blob = new Blob(['Hello, Amber!'], { type: 'text/plain' });
                 const text = blob.text();
                 console.log('blob text:', text);
-                console.log('text correct:', text === 'Hello, Beejs!');
+                console.log('text correct:', text === 'Hello, Amber!');
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
-            stdout.contains("blob text: Hello, Beejs!"),
+            stdout.contains("blob text: Hello, Amber!"),
             "Expected correct text. Got: {}",
             stdout
         );
@@ -130,7 +130,7 @@ mod blob_api_tests {
     /// Test 5: Blob.slice() method
     #[test]
     fn test_blob_slice() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -142,7 +142,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -160,7 +160,7 @@ mod blob_api_tests {
     /// Test 6: Blob.slice() with negative start
     #[test]
     fn test_blob_slice_negative_start() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -171,7 +171,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -189,7 +189,7 @@ mod blob_api_tests {
     /// Test 7: Blob.slice() with content type
     #[test]
     fn test_blob_slice_with_content_type() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -199,7 +199,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -212,7 +212,7 @@ mod blob_api_tests {
     /// Test 8: Blob.stream() method
     #[test]
     fn test_blob_stream() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -223,7 +223,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -241,7 +241,7 @@ mod blob_api_tests {
     /// Test 9: File constructor
     #[test]
     fn test_file_constructor() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -254,7 +254,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -287,13 +287,13 @@ mod blob_api_tests {
     /// Test 10: File with lastModified
     #[test]
     fn test_file_with_last_modified() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const file = new File(['content'], 'doc.txt', { type: 'text/plain', lastModified: 1234567890 });
                 console.log('file.name:', file.name);
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -306,7 +306,7 @@ mod blob_api_tests {
     /// Test 11: Blob with Unicode content
     #[test]
     fn test_blob_unicode() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -318,7 +318,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -331,7 +331,7 @@ mod blob_api_tests {
     /// Test 12: Blob with binary data
     #[test]
     fn test_blob_binary() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -344,7 +344,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -362,7 +362,7 @@ mod blob_api_tests {
     /// Test 13: Blob methods are on prototype
     #[test]
     fn test_blob_methods_on_prototype() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -374,7 +374,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -402,7 +402,7 @@ mod blob_api_tests {
     /// Test 13b: Blob.arrayBuffer() returns stored bytes
     #[test]
     fn test_blob_array_buffer_returns_bytes() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -412,7 +412,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -425,7 +425,7 @@ mod blob_api_tests {
     /// Test 13c: Blob.arrayBuffer() preserves non-UTF-8 bytes
     #[test]
     fn test_blob_array_buffer_preserves_uint8array_bytes() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -435,7 +435,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -448,7 +448,7 @@ mod blob_api_tests {
     /// Test 14: File inherits all Blob methods
     #[test]
     fn test_file_inherits_blob_methods() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -461,7 +461,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -484,7 +484,7 @@ mod blob_api_tests {
     /// Test 15: Blob.stream() with ReadableStream
     #[test]
     fn test_blob_stream_readable() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -497,7 +497,7 @@ mod blob_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(

@@ -16,13 +16,9 @@ export type { Lang, LangOption, TranslationSchema };
 
 type AmberWindow = Window & {
   __AMBER_INITIAL_LANG__?: string;
-  /** @deprecated previous HTML boot key */
-  __BEEJS_INITIAL_LANG__?: string;
 };
 
 const LANG_STORAGE_KEY = "amber_lang";
-/** Previous website stored language under this key. */
-const LANG_STORAGE_LEGACY = "beejs_lang";
 
 export const SUPPORTED_LANGS: readonly LangOption[] = [
   { code: "en", label: "English", nativeLabel: "English", flag: "🇬🇧" },
@@ -70,15 +66,13 @@ export function resolveInitialLanguage(): Lang {
   if (!w) return "en";
 
   try {
-    const stored =
-      w.localStorage.getItem(LANG_STORAGE_KEY) ||
-      w.localStorage.getItem(LANG_STORAGE_LEGACY);
+    const stored = w.localStorage.getItem(LANG_STORAGE_KEY);
     if (isLang(stored)) return stored;
   } catch {
     /* private mode */
   }
 
-  const injected = w.__AMBER_INITIAL_LANG__ || w.__BEEJS_INITIAL_LANG__;
+  const injected = w.__AMBER_INITIAL_LANG__;
   if (isLang(injected)) return injected;
 
   try {
@@ -108,10 +102,7 @@ function emitLang() {
 function subscribeLang(listener: () => void) {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (
-      (event.key !== LANG_STORAGE_KEY && event.key !== LANG_STORAGE_LEGACY) ||
-      !isLang(event.newValue)
-    ) {
+    if (event.key !== LANG_STORAGE_KEY || !isLang(event.newValue)) {
       return;
     }
     currentLang = event.newValue;

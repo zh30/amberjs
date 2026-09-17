@@ -1,4 +1,4 @@
-# Beejs Stage 76 实施计划
+# Amber Stage 76 实施计划
 
 ## 项目概述
 
@@ -9,7 +9,7 @@
 
 ## 背景
 
-Stage 75 已完成调试器 Watch 变量监控系统（Phase 1 & 2），实现了表达式求值与 V8 集成。Stage 76 将专注于性能分析器的增强，为 Beejs 提供类似 Chrome DevTools 的性能分析能力，帮助开发者优化 JavaScript/TypeScript 脚本性能。
+Stage 75 已完成调试器 Watch 变量监控系统（Phase 1 & 2），实现了表达式求值与 V8 集成。Stage 76 将专注于性能分析器的增强，为 Amber 提供类似 Chrome DevTools 的性能分析能力，帮助开发者优化 JavaScript/TypeScript 脚本性能。
 
 ## 目标
 
@@ -310,7 +310,7 @@ src/monitor/
 
 ## 结论
 
-Stage 76 将显著增强 Beejs 的性能分析能力，为开发者提供企业级的性能洞察工具。通过实时监控、深度分析和可视化报告，Stage 76 将使 Beejs 成为 AI 时代高性能 JavaScript/TypeScript 脚本执行的首选运行时。
+Stage 76 将显著增强 Amber 的性能分析能力，为开发者提供企业级的性能洞察工具。通过实时监控、深度分析和可视化报告，Stage 76 将使 Amber 成为 AI 时代高性能 JavaScript/TypeScript 脚本执行的首选运行时。
 
 ---
 

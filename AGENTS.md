@@ -2,12 +2,12 @@
 
 ## 项目定位
 
-Amber（crate `amberjs`，CLI `amber`）是一个用 Rust 和 V8 构建的 JavaScript/TypeScript 运行时。当前仓库同时包含核心运行时代码、历史阶段实现、性能基准、修复脚本、文档站点和大量阶段报告。做代码修改时以 `Cargo.toml`、`src/lib.rs` 和实际测试结果为准；`README.md` 与 `docs/STAGE_*` 中的部分性能或阶段描述可能是历史目标或阶段总结。对外品牌用 Amber / Amberjs，不要再写 Beejs 或 `bee` 命令。
+Amber（crate `amberjs`，CLI `amber`）是一个用 Rust 和 V8 构建的 JavaScript/TypeScript 运行时。当前仓库同时包含核心运行时代码、历史阶段实现、性能基准、修复脚本、文档站点和大量阶段报告。做代码修改时以 `Cargo.toml`、`src/lib.rs` 和实际测试结果为准；`README.md` 与 `docs/STAGE_*` 中的部分性能或阶段描述可能是历史目标或阶段总结。对外品牌用 Amber / Amberjs，不要再写 Amber 或 `amber` 命令。
 
 ## 关键源码与模块边界
 
 - `src/main.rs` 是当前 Cargo 启用的 `amber` 二进制入口；`Cargo.toml` 中的 `[[bin]]` 指向这里。
-- 不要再把 `bee` / `beejs` 当作默认 CLI 或 crate 名。历史 `bee:*` 模块前缀仍是运行时别名，用户文档应写 `amber:*`。
+- 不要再把 `amber` / `amberjs` 当作默认 CLI 或 crate 名。历史 `amber:*` 模块前缀仍是运行时别名，用户文档应写 `amber:*`。
 - `src/lib.rs` 是库模块启用状态的事实来源。仓库里许多目录和 `.rs` 文件存在但被注释、feature-gate 或保留为阶段产物；不要仅因文件存在就假设它参与默认构建。
 - `src/runtime_minimal.rs` 是当前 CLI 主要使用的 V8 执行运行时。
 - `src/nodejs_core/` 提供 Node.js 兼容层，包括 `fs`、`crypto`、`stream`、`events`、`net`、`http`、`buffer`、`path`、`os`、`url`、`dns`、`process`、`timers`、`performance`、`readline`、CommonJS `require` 等。

@@ -1,4 +1,4 @@
-// Beejs 插件市场平台核心模块
+// Amber 插件市场平台核心模块
 // Stage 86 Phase 3 - 插件市场平台实现
 //
 // 提供插件搜索、发现、评分、评论和管理的完整功能
@@ -47,7 +47,7 @@ pub struct PluginMetadata {
     pub long_description: Option<String>,
     pub author: PluginAuthor,
     pub version: Version,
-    pub beejs_version: VersionConstraint,
+    pub amberjs_version: VersionConstraint,
     pub license: String,
     pub homepage: Option<String>,
     pub repository: Option<String>,
@@ -644,7 +644,7 @@ impl SearchEngine {
                     avatar_url: None,
                 },
                 version: Version::parse("1.0.0").unwrap(),
-                beejs_version: VersionConstraint::parse("^1.0.0").unwrap(),
+                amberjs_version: VersionConstraint::parse("^1.0.0").unwrap(),
                 license: "MIT".to_string(),
                 homepage: None,
                 repository: None,

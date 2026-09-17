@@ -102,24 +102,24 @@ async fn test_enterprise_integration() {
         cluster_metrics.namespace, cluster_metrics.cluster_name
     );
 
-    // Test 5: Create a BeejsCluster through the operator
-    let cluster = enterprise::BeejsCluster {
+    // Test 5: Create a AmberCluster through the operator
+    let cluster = enterprise::AmberCluster {
         api_version: "v1".to_string(),
-        kind: "BeejsCluster".to_string(),
+        kind: "AmberCluster".to_string(),
         metadata: enterprise::ObjectMeta {
             name: "enterprise-cluster".to_string(),
             namespace: "default".to_string(),
             labels: Some({
                 let mut labels = std::collections::HashMap::new();
                 labels.insert("tenant-id".to_string(), tenant_id.0.clone());
-                labels.insert("managed-by".to_string(), "beejs-operator".to_string());
+                labels.insert("managed-by".to_string(), "amberjs-operator".to_string());
                 labels
             }),
         },
-        spec: enterprise::BeejsClusterSpec {
+        spec: enterprise::AmberClusterSpec {
             replicas: 3,
             version: "v0.1.0".to_string(),
-            image: Some("beejs:v0.1.0".to_string()),
+            image: Some("amberjs:v0.1.0".to_string()),
             resources: enterprise::ResourceRequirements {
                 cpu: Some("500m".to_string()),
                 memory: Some("1Gi".to_string()),
@@ -130,7 +130,7 @@ async fn test_enterprise_integration() {
                 port: 8080,
                 ingress: Some(enterprise::IngressConfig {
                     enabled: true,
-                    host: Some("beejs.example.com".to_string()),
+                    host: Some("amberjs.example.com".to_string()),
                     tls_enabled: true,
                 }),
             },
@@ -143,7 +143,7 @@ async fn test_enterprise_integration() {
         .await
         .expect("Failed to create cluster");
 
-    println!("Created BeejsCluster: enterprise-cluster");
+    println!("Created AmberCluster: enterprise-cluster");
 
     // Test 6: Verify integration
     let clusters = operator.list_clusters().await.unwrap();
@@ -175,7 +175,7 @@ async fn test_enterprise_integration() {
         .await
         .unwrap();
 
-    assert!(prometheus_metrics.contains("beejs_requests_total"));
+    assert!(prometheus_metrics.contains("amberjs_requests_total"));
     println!(
         "Exported Prometheus metrics ({} bytes)",
         prometheus_metrics.len()

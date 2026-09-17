@@ -1,4 +1,4 @@
-//! Zero-dependency environment variable parser (`bee:std/dotenv`).
+//! Zero-dependency environment variable parser (`amber:std/dotenv`).
 
 use std::collections::HashMap;
 use std::fs;

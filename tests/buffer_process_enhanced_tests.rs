@@ -1,4 +1,4 @@
-// Enhanced Buffer API and process tests for Beejs runtime
+// Enhanced Buffer API and process tests for Amber runtime
 // v0.2.9: Buffer API enhancements and process.memoryUsage
 
 use serial_test::serial;

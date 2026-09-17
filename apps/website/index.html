@@ -11,7 +11,7 @@
   <script>
     (function() {
       try {
-        var stored = localStorage.getItem('amber-theme') || localStorage.getItem('beejs-theme');
+        var stored = localStorage.getItem('amber-theme');
         var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         var isDark = stored === 'dark' || (stored === 'system' && prefersDark);
         if (isDark) {
@@ -23,7 +23,7 @@
         }
         // Language resolution: 1. User manual override, 2. Browser detection, 3. Fallback to English
         var SUPPORTED_LANGS = ['en', 'zh', 'hi', 'es', 'fr'];
-        var storedLang = localStorage.getItem('amber_lang') || localStorage.getItem('beejs_lang');
+        var storedLang = localStorage.getItem('amber_lang');
         var resolvedLang = null;
         if (storedLang && SUPPORTED_LANGS.indexOf(storedLang) !== -1) {
           resolvedLang = storedLang;

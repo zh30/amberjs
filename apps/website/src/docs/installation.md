@@ -125,16 +125,16 @@ amber --version
 
 | Variable | Default | Purpose |
 | :--- | :---: | :--- |
-| `BEE_WORKERS` | `1` | Default number of worker threads for parallel HTTP execution |
-| `BEE_HOME` | `~/.amber` | Base directory for package caches and downloads |
-| `BEE_AUDIT_LOG` | None | File path for writing JSONL security sandbox audit records |
-| `BEE_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
+| `AMBER_WORKERS` | `1` | Default number of worker threads for parallel HTTP execution |
+| `AMBER_HOME` | `~/.amber` | Base directory for package caches and downloads |
+| `AMBER_AUDIT_LOG` | None | File path for writing JSONL security sandbox audit records |
+| `AMBER_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
 
 Example for `~/.zshrc` or Dockerfile:
 
 ```bash
-export BEE_WORKERS=8
-export BEE_LOG=warn
+export AMBER_WORKERS=8
+export AMBER_LOG=warn
 ```
 
 ---

@@ -1,4 +1,4 @@
-// WebSocket Hot Reload Server for Beejs
+// WebSocket Hot Reload Server for Amber
 //
 // This module provides WebSocket-based hot reload capabilities.
 // It allows browsers and other clients to receive file change notifications
@@ -158,7 +158,7 @@ impl WebSocketHotReloader {
         self.running.store(true, Ordering::SeqCst);
 
         println!(
-            "\n\x1b[36m[beejs]\x1b[0m 🔌 WebSocket server listening on ws://{}",
+            "\n\x1b[36m[amberjs]\x1b[0m 🔌 WebSocket server listening on ws://{}",
             addr
         );
 
@@ -177,17 +177,17 @@ impl WebSocketHotReloader {
                                 handle_client(ws_stream, rx, running).await;
                             });
 
-                            println!("\x1b[36m[beejs]\x1b[0m 📡 Client connected: {}", addr);
+                            println!("\x1b[36m[amberjs]\x1b[0m 📡 Client connected: {}", addr);
                         }
                         Err(e) => {
-                            eprintln!("[beejs] WebSocket handshake failed: {}", e);
+                            eprintln!("[amberjs] WebSocket handshake failed: {}", e);
                         }
                     }
                 }
                 Err(e) => {
                     // Only log if we're still running
                     if self.running.load(Ordering::SeqCst) {
-                        eprintln!("[beejs] Failed to accept connection: {}", e);
+                        eprintln!("[amberjs] Failed to accept connection: {}", e);
                     }
                 }
             }
@@ -279,7 +279,7 @@ async fn handle_client(
                         // Ignore other message types
                     }
                     Some(Err(e)) => {
-                        eprintln!("[beejs] WebSocket error: {}", e);
+                        eprintln!("[amberjs] WebSocket error: {}", e);
                         break;
                     }
                     None => {

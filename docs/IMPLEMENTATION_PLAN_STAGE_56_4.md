@@ -2,9 +2,9 @@
 
 ## 📋 阶段概述
 
-Stage 56.4 专注于实现 Beejs 的测试运行器功能，提供类似 Jest 的测试体验，支持 test() / describe() API、断言库、测试发现和并行执行。
+Stage 56.4 专注于实现 Amber 的测试运行器功能，提供类似 Jest 的测试体验，支持 test() / describe() API、断言库、测试发现和并行执行。
 
-**目标**: 构建完整的测试运行系统，使 Beejs 具备 Bun 和 Jest 兼容的测试能力。
+**目标**: 构建完整的测试运行系统，使 Amber 具备 Bun 和 Jest 兼容的测试能力。
 
 ---
 
@@ -15,7 +15,7 @@ Stage 56.4 专注于实现 Beejs 的测试运行器功能，提供类似 Jest �
 - [ ] **测试发现**: 自动扫描和收集测试文件（*.test.js, *.spec.js）
 - [ ] **测试执行**: 支持串行和并行测试执行
 - [ ] **断言库**: 完整的断言函数（assert, expect, toBe, toEqual, toThrow 等）
-- [ ] **CLI 集成**: `beejs test` 命令和选项支持
+- [ ] **CLI 集成**: `amberjs test` 命令和选项支持
 - [ ] **测试报告**: 清晰的测试结果输出和统计信息
 
 ### 测试类型支持
@@ -35,10 +35,10 @@ Stage 56.4 专注于实现 Beejs 的测试运行器功能，提供类似 Jest �
 - [ ] **异常**: toThrow, toThrowError
 
 ### CLI 选项
-- [ ] `beejs test` - 运行所有测试
-- [ ] `beejs test <pattern>` - 运行匹配的文件
-- [ ] `beejs test --reporter` - 指定报告格式（basic, json）
-- [ ] `beejs test --watch` - 监听模式（可选）
+- [ ] `amberjs test` - 运行所有测试
+- [ ] `amberjs test <pattern>` - 运行匹配的文件
+- [ ] `amberjs test --reporter` - 指定报告格式（basic, json）
+- [ ] `amberjs test --watch` - 监听模式（可选）
 
 ---
 
@@ -247,7 +247,7 @@ pub struct AssertionResult {
 
 ## 📝 总结
 
-Stage 56.4 将为 Beejs 添加完整的测试运行器功能，使其具备与 Bun 和 Jest 相似的测试能力。这对于 AI 时代的高性能 JS/TS 脚本开发至关重要。
+Stage 56.4 将为 Amber 添加完整的测试运行器功能，使其具备与 Bun 和 Jest 相似的测试能力。这对于 AI 时代的高性能 JS/TS 脚本开发至关重要。
 
 **预计完成时间**: 6-8 小时
 **主要文件数量**: 8-10 个新文件

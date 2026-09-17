@@ -247,12 +247,12 @@ Stage 27.2 成功实现了完整的 WebAssembly 支持，主要成果：
 - 缓存命中率 95%+
 
 **技术价值**:
-- 🔧 为 Beejs 提供完整的 WebAssembly 支持
+- 🔧 为 Amber 提供完整的 WebAssembly 支持
 - 📊 建立高性能 WASM 执行环境
 - 🎯 支持 AI 工作负载的 WASM 加速
 - 🚀 为 Stage 27.3 边缘计算奠定基础
 
-Stage 27.2 为 Beejs 的极致性能和 AI 加速奠定了坚实基础！
+Stage 27.2 为 Amber 的极致性能和 AI 加速奠定了坚实基础！
 
 ---
 

@@ -1,7 +1,7 @@
 //! 性能分析器基准测试
 //! 验证性能分析工具的有效性
 
-use beejs::{Profiler, ProfileTarget, ProfilingMode, FlameGraph, StackFrame};
+use amberjs::{Profiler, ProfileTarget, ProfilingMode, FlameGraph, StackFrame};
 use std::time::Duration;
 
 #[cfg(test)]

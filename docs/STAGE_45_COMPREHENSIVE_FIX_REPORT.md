@@ -1,15 +1,15 @@
-# Beejs Stage 45: V8 API 兼容性修复 - 综合报告
+# Amber Stage 45: V8 API 兼容性修复 - 综合报告
 
 ## 📋 项目概述
 
-**项目名称**: Beejs - 高性能 JavaScript/TypeScript 运行时
+**项目名称**: Amber - 高性能 JavaScript/TypeScript 运行时
 **目标**: 比 Bun 更快的 JS/TS 运行时，使用 Rust + V8 实现
 **当前阶段**: Stage 45 - V8 API 兼容性修复（第二轮）
 **日期**: 2025-12-19
 
 ## 🎯 修复目标
 
-将 Beejs 运行时从旧版 rusty_v8 API 迁移到新版本（0.22+），解决编译错误，恢复运行时功能。
+将 Amber 运行时从旧版 rusty_v8 API 迁移到新版本（0.22+），解决编译错误，恢复运行时功能。
 
 ## 📊 修复成果统计
 
@@ -191,7 +191,7 @@ let uint8_array = v8::Uint8Array::new(scope, buffer, 0, buffer_length);
 
 ## 🎉 项目价值
 
-尽管 Beejs 目前处于 V8 API 迁移阶段，但这个项目展现了：
+尽管 Amber 目前处于 V8 API 迁移阶段，但这个项目展现了：
 
 1. **技术雄心**: 目标比 Bun 更快的 JS 运行时
 2. **全面功能**: 包含量子计算、神经网络、元宇宙等前沿功能

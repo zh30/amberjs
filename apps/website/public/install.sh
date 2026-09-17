@@ -4,8 +4,8 @@ set -e
 AMBER_REPO_DEFAULT="zh30/amberjs"
 AMBER_INSTALL_DIR_DEFAULT="${HOME}/.amber/bin"
 
-AMBER_REPO="${AMBER_REPO:-${BEEJS_REPO:-$AMBER_REPO_DEFAULT}}"
-AMBER_INSTALL_DIR="${AMBER_INSTALL_DIR:-${BEEJS_INSTALL_DIR:-$AMBER_INSTALL_DIR_DEFAULT}}"
+AMBER_REPO="${AMBER_REPO:-$AMBER_REPO_DEFAULT}"
+AMBER_INSTALL_DIR="${AMBER_INSTALL_DIR:-$AMBER_INSTALL_DIR_DEFAULT}"
 
 usage() {
   cat <<'USAGE'
@@ -50,8 +50,8 @@ else
 fi
 
 resolve_platform() {
-  raw_os="${AMBER_UNAME_S:-${BEEJS_UNAME_S:-$(uname -s)}}"
-  raw_arch="${AMBER_UNAME_M:-${BEEJS_UNAME_M:-$(uname -m)}}"
+  raw_os="${AMBER_UNAME_S:-$(uname -s)}"
+  raw_arch="${AMBER_UNAME_M:-$(uname -m)}"
 
   case "$raw_os" in
     Darwin) os="apple-darwin" ;;
@@ -74,8 +74,8 @@ if [ "${1:-}" = "--print-platform" ]; then
 fi
 
 resolve_version() {
-  if [ -n "${AMBER_VERSION:-${BEEJS_VERSION:-}}" ]; then
-    version="${AMBER_VERSION:-${BEEJS_VERSION}}"
+  if [ -n "${AMBER_VERSION:-}" ]; then
+    version="${AMBER_VERSION}"
   else
     api_url="https://api.github.com/repos/${AMBER_REPO}/releases/latest"
     json=$(http_get "$api_url") || fail "unable to fetch latest release"
@@ -106,10 +106,10 @@ install_binary() {
 
   if [ -f "$tmpdir/amber" ]; then
     src="$tmpdir/amber"
-  elif [ -f "$tmpdir/bee" ]; then
-    src="$tmpdir/bee"
+  elif [ -f "$tmpdir/amber" ]; then
+    src="$tmpdir/amber"
   else
-    src=$(find "$tmpdir" -type f \( -name amber -o -name bee \) | head -n 1)
+    src=$(find "$tmpdir" -type f \( -name amber -o -name amber \) | head -n 1)
   fi
 
   [ -n "${src:-}" ] || fail "amber binary not found in archive"

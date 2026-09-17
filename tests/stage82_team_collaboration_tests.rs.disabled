@@ -3,12 +3,12 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::enterprise::team_optimizer::{
+    use amberjs::enterprise::team_optimizer::{
         TeamCollaborationOptimizer, Task, TeamMember, TaskAssignment,
         WorkloadBalanceReport, CodeOwnershipMap, KnowledgeTransferSuggestion,
         SkillAnalyzer, WorkloadBalancer, KnowledgeTracker,
     };
-    use beejs::enterprise::contribution_tracker::{
+    use amberjs::enterprise::contribution_tracker::{
         ContributionTracker, Developer, ContributionMetrics, ProductivityReport,
     };
 

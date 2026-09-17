@@ -1,6 +1,6 @@
 // Clipboard API 测试套件 - v0.3.342
 //
-// 目标：验证 Beejs 对 Clipboard 接口的完整支持
+// 目标：验证 Amber 对 Clipboard 接口的完整支持
 // Clipboard API 用于 AI 工作负载中的复制/粘贴功能
 
 #[cfg(test)]
@@ -55,7 +55,7 @@ mod tests {
     fn test_clipboard_text_methods_are_promises_and_fail_closed() {
         let code = r#"
             (async () => {
-                const writeResult = navigator.clipboard.writeText('Hello, Beejs!');
+                const writeResult = navigator.clipboard.writeText('Hello, Amber!');
                 const readResult = navigator.clipboard.readText();
                 const writeIsPromise = writeResult instanceof Promise;
                 const readIsPromise = readResult instanceof Promise;
@@ -87,7 +87,7 @@ mod tests {
     #[serial]
     fn test_write_text_basic() {
         let code = r#"
-            const result = navigator.clipboard.writeText('Hello, Beejs!');
+            const result = navigator.clipboard.writeText('Hello, Amber!');
             result instanceof Promise
         "#;
 

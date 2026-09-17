@@ -1,6 +1,6 @@
 // ErrorEvent API 测试套件 - v0.3.333
 //
-// 目标：验证 Beejs 对 ErrorEvent 接口的完整支持
+// 目标：验证 Amber 对 ErrorEvent 接口的完整支持
 // ErrorEvent 用于报告脚本错误，适用于 window.onerror, WebSocket onerror, Worker onerror 等
 
 #[cfg(test)]

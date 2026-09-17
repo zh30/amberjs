@@ -1,8 +1,8 @@
-//! Minimal test for Beejs Runtime
+//! Minimal test for Amber Runtime
 //! Simple test to verify core functionality
 
 fn main() {
-    println!("🚀 Beejs MinimalRuntime Test");
+    println!("🚀 Amber MinimalRuntime Test");
     println!("==============================\n");
 
     // Test 1: Create runtime
@@ -19,7 +19,7 @@ fn main() {
 
                     // Test 3: Execute string concatenation
                     println!("Test 3: Executing string concatenation...");
-                    match runtime.execute("'Hello' + ' ' + 'Beejs'") {
+                    match runtime.execute("'Hello' + ' ' + 'Amber'") {
                         Ok(result) => {
                             println!("✅ Result: {}\n", result);
 

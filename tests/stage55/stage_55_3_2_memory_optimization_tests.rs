@@ -7,7 +7,7 @@
 // - Memory compression
 // - Leak detection
 //
-// These tests validate that Beejs achieves 30-50% memory usage reduction
+// These tests validate that Amber achieves 30-50% memory usage reduction
 // compared to standard allocation strategies.
 
 use amberjs::memory::*;

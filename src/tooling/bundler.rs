@@ -1,4 +1,4 @@
-//! Production-grade Module Bundler 2.0 for Beejs (`bee bundle`).
+//! Production-grade Module Bundler 2.0 for Amber (`amber bundle`).
 //!
 //! Features:
 //! - Recursive module dependency graph discovery
@@ -215,7 +215,7 @@ fn transform_module_code(
                 let spec_part = trimmed[from_idx + 6..].trim().trim_end_matches(';');
                 let spec = spec_part.trim_matches('\'').trim_matches('"');
                 let target_call = if let Some(&dep_id) = dep_map.get(spec) {
-                    format!("__beejs_require__({})", dep_id)
+                    format!("__amberjs_require__({})", dep_id)
                 } else {
                     format!("require('{}')", spec)
                 };
@@ -299,7 +299,7 @@ fn transform_module_code(
                 .trim_end_matches(';');
             let spec = spec_part.trim_matches('\'').trim_matches('"');
             if let Some(&dep_id) = dep_map.get(spec) {
-                lines.push(format!("__beejs_require__({});", dep_id));
+                lines.push(format!("__amberjs_require__({});", dep_id));
                 continue;
             } else {
                 lines.push(format!("require('{}');", spec));
@@ -425,7 +425,7 @@ fn transform_module_code(
             let spec = spec_part.trim_matches('\'').trim_matches('"');
             if let Some(&dep_id) = dep_map.get(spec) {
                 lines.push(format!(
-                    "Object.assign(module.exports, __beejs_require__({}));",
+                    "Object.assign(module.exports, __amberjs_require__({}));",
                     dep_id
                 ));
             } else {
@@ -441,12 +441,12 @@ fn transform_module_code(
         let mut processed_line = line.to_string();
         for (spec, dep_id) in dep_map {
             let p1 = format!("require('{}')", spec);
-            let t1 = format!("__beejs_require__({})", dep_id);
+            let t1 = format!("__amberjs_require__({})", dep_id);
             if processed_line.contains(&p1) {
                 processed_line = processed_line.replace(&p1, &t1);
             }
             let p2 = format!("require(\"{}\")", spec);
-            let t2 = format!("__beejs_require__({})", dep_id);
+            let t2 = format!("__amberjs_require__({})", dep_id);
             if processed_line.contains(&p2) {
                 processed_line = processed_line.replace(&p2, &t2);
             }
@@ -571,17 +571,17 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
 
     // 3. Assemble the runtime module registry wrapper
     let mut bundle = String::new();
-    bundle.push_str("// Beejs Production Bundle 2.0 (oxc engine)\n");
+    bundle.push_str("// Amber Production Bundle 2.0 (oxc engine)\n");
     bundle.push_str("// Target: ");
     bundle.push_str(&options.target);
     bundle.push_str("\n\n(function(modules) {\n");
     bundle.push_str("  var installed = {};\n");
-    bundle.push_str("  function __beejs_require__(id) {\n");
+    bundle.push_str("  function __amberjs_require__(id) {\n");
     bundle.push_str("    if (installed[id]) return installed[id].exports;\n");
     bundle.push_str("    var module = installed[id] = { exports: {} };\n");
     bundle.push_str("    if (modules[id] !== undefined) {\n");
     bundle.push_str(
-        "      modules[id].call(module.exports, module, module.exports, __beejs_require__);\n",
+        "      modules[id].call(module.exports, module, module.exports, __amberjs_require__);\n",
     );
     bundle.push_str("      return module.exports;\n");
     bundle.push_str("    }\n");
@@ -590,13 +590,13 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
     bundle.push_str("    }\n");
     bundle.push_str("    throw new Error(\"Cannot find module '\" + id + \"'\");\n");
     bundle.push_str("  }\n");
-    bundle.push_str("  return __beejs_require__(0);\n");
+    bundle.push_str("  return __amberjs_require__(0);\n");
     bundle.push_str("})({\n");
 
     for m in &bundled_modules {
         bundle.push_str(&format!("  // [{}] {}\n", m.id, m.path.display()));
         bundle.push_str(&format!(
-            "  {}: function(module, exports, __beejs_require__) {{\n",
+            "  {}: function(module, exports, __amberjs_require__) {{\n",
             m.id
         ));
         for line in m.processed_code.lines() {
@@ -718,7 +718,7 @@ mod tests {
 
         let output = bundle_project(&options).expect("bundle_project");
         assert_eq!(output.module_count, 2);
-        assert!(output.code.contains("__beejs_require__"));
+        assert!(output.code.contains("__amberjs_require__"));
         assert!(outfile.exists());
     }
 }

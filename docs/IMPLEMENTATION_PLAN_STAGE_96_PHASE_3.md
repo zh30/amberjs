@@ -6,7 +6,7 @@
 
 ## 🎯 阶段目标
 
-打造极致的开发者体验和企业级可观测性能力，使 Beejs 成为开发者首选的高性能 JavaScript/TypeScript 运行时。
+打造极致的开发者体验和企业级可观测性能力，使 Amber 成为开发者首选的高性能 JavaScript/TypeScript 运行时。
 
 ## 📋 核心任务概览
 
@@ -33,7 +33,7 @@
 - [ ] `src/observability/dashboard/renderer.rs` - 渲染引擎 (350+ 行)
 - [ ] `src/observability/visualization/charts.rs` - 图表组件 (300+ 行)
 - [ ] `src/observability/visualization/graphs.rs` - 图形组件 (300+ 行)
-- [ ] `dashboards/beejs_overview.json` - 主仪表板配置
+- [ ] `dashboards/amberjs_overview.json` - 主仪表板配置
 - [ ] `dashboards/performance_detailed.json` - 详细性能面板
 - [ ] `dashboards/enterprise_metrics.json` - 企业级指标面板
 - [ ] `tests/stage96_phase3_dashboard_tests.rs` - 仪表板测试套件
@@ -92,7 +92,7 @@ src/observability/visualization/
 └── mod.rs              # 模块导出
 
 dashboards/
-├── beejs_overview.json      # 主仪表板 (5 个面板)
+├── amberjs_overview.json      # 主仪表板 (5 个面板)
 ├── performance_detailed.json # 性能详情 (8 个面板)
 └── enterprise_metrics.json  # 企业指标 (6 个面板)
 ```

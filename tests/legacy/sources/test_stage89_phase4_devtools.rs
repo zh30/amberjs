@@ -1,4 +1,4 @@
-// This file is part of the Beejs project
+// This file is part of the Amber project
 // Use of this source code is governed by a BSD-style license
 // that can be found in the LICENSE file.
 
@@ -47,7 +47,7 @@ fn main() {
     println!("  • 内存分析: 堆快照、泄漏检测");
     println!("  • 实时监控: 实时数据采集");
 
-    println!("\n✨ 增强开发者工具已就绪，可以为 Beejs 提供企业级调试和分析能力！");
+    println!("\n✨ 增强开发者工具已就绪，可以为 Amber 提供企业级调试和分析能力！");
 }
 
 fn test_advanced_debugger() {

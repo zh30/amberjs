@@ -127,16 +127,16 @@ Amber 支持通过环境变量调整全局运行时行为：
 
 | 环境变量 | 默认值 | 作用说明 |
 | :--- | :---: | :--- |
-| `BEE_WORKERS` | `1` | 设置 HTTP 服务或并发任务的默认 Worker 线程池并发数 |
-| `BEE_HOME` | `~/.amber` | 指定 Amber 的缓存、下载与全局配置目录 |
-| `BEE_AUDIT_LOG` | 无 | 指定沙箱全局安全审计日志 JSONL 输出文件路径 |
-| `BEE_LOG` | `info` | 设置日志级别（`error`、`warn`、`info`、`debug`、`trace`） |
+| `AMBER_WORKERS` | `1` | 设置 HTTP 服务或并发任务的默认 Worker 线程池并发数 |
+| `AMBER_HOME` | `~/.amber` | 指定 Amber 的缓存、下载与全局配置目录 |
+| `AMBER_AUDIT_LOG` | 无 | 指定沙箱全局安全审计日志 JSONL 输出文件路径 |
+| `AMBER_LOG` | `info` | 设置日志级别（`error`、`warn`、`info`、`debug`、`trace`） |
 
 示例：在 `~/.zshrc` 或生产环境 Dockerfile 中设置：
 
 ```bash
-export BEE_WORKERS=8
-export BEE_LOG=warn
+export AMBER_WORKERS=8
+export AMBER_LOG=warn
 ```
 
 ---

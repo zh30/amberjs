@@ -1,10 +1,10 @@
 {
   "dashboard": {
     "id": null,
-    "uid": "beejs-performance-detailed",
-    "title": "Beejs Performance - Detailed Analysis",
-    "description": "Detailed performance metrics and analysis for Beejs runtime",
-    "tags": ["beejs", "performance", "detailed", "analysis"],
+    "uid": "amberjs-performance-detailed",
+    "title": "Amber Performance - Detailed Analysis",
+    "description": "Detailed performance metrics and analysis for Amber runtime",
+    "tags": ["amberjs", "performance", "detailed", "analysis"],
     "style": "dark",
     "timezone": "browser",
     "refresh": "5s",
@@ -21,7 +21,7 @@
           "name": "instance",
           "type": "query",
           "label": "Instance",
-          "query": "label_values(beejs_instance)",
+          "query": "label_values(amberjs_instance)",
           "refresh": 1,
           "hide": 0,
           "sort": 0
@@ -30,7 +30,7 @@
           "name": "namespace",
           "type": "query",
           "label": "Namespace",
-          "query": "label_values(beejs_namespace)",
+          "query": "label_values(amberjs_namespace)",
           "refresh": 1,
           "hide": 0,
           "sort": 0
@@ -63,7 +63,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_jit_compilation_time_ms{instance=\"$instance\"}",
+            "expr": "amberjs_jit_compilation_time_ms{instance=\"$instance\"}",
             "legendFormat": "JIT Time {{instance}}",
             "refId": "A"
           }
@@ -144,7 +144,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_gc_pause_time_ms{instance=\"$instance\"}",
+            "expr": "amberjs_gc_pause_time_ms{instance=\"$instance\"}",
             "legendFormat": "GC Time {{instance}}",
             "refId": "A"
           }
@@ -225,7 +225,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_v8_heap_size_bytes{instance=\"$instance\"} / 1024 / 1024 / 1024",
+            "expr": "amberjs_v8_heap_size_bytes{instance=\"$instance\"} / 1024 / 1024 / 1024",
             "legendFormat": "Heap Size {{instance}}",
             "refId": "A"
           }
@@ -298,7 +298,7 @@
         },
         "targets": [
           {
-            "expr": "rate(beejs_gc_collections_total{instance=\"$instance\"}[$__interval])",
+            "expr": "rate(amberjs_gc_collections_total{instance=\"$instance\"}[$__interval])",
             "legendFormat": "GC Collections {{instance}}",
             "refId": "A"
           }
@@ -371,17 +371,17 @@
         },
         "targets": [
           {
-            "expr": "beejs_script_duration_p50_ms{instance=\"$instance\"}",
+            "expr": "amberjs_script_duration_p50_ms{instance=\"$instance\"}",
             "legendFormat": "P50 {{instance}}",
             "refId": "A"
           },
           {
-            "expr": "beejs_script_duration_p95_ms{instance=\"$instance\"}",
+            "expr": "amberjs_script_duration_p95_ms{instance=\"$instance\"}",
             "legendFormat": "P95 {{instance}}",
             "refId": "B"
           },
           {
-            "expr": "beejs_script_duration_p99_ms{instance=\"$instance\"}",
+            "expr": "amberjs_script_duration_p99_ms{instance=\"$instance\"}",
             "legendFormat": "P99 {{instance}}",
             "refId": "C"
           }
@@ -454,7 +454,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_network_latency_ms{instance=\"$instance\"}",
+            "expr": "amberjs_network_latency_ms{instance=\"$instance\"}",
             "legendFormat": "Latency {{instance}}",
             "refId": "A"
           }
@@ -535,7 +535,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_hot_path_execution_time_ns{instance=\"$instance\"} / 1000000",
+            "expr": "amberjs_hot_path_execution_time_ns{instance=\"$instance\"} / 1000000",
             "legendFormat": "Hot Path Time {{instance}}",
             "refId": "A"
           }
@@ -608,7 +608,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_module_loading_time_ms{instance=\"$instance\"}",
+            "expr": "amberjs_module_loading_time_ms{instance=\"$instance\"}",
             "legendFormat": "Module Load Time {{instance}}",
             "refId": "A"
           }

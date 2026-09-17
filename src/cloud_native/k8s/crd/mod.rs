@@ -1,24 +1,24 @@
 // Custom Resource Definitions for Kubernetes
-// Defines BeejsCluster and BeejsWorkload CRDs
+// Defines AmberCluster and AmberWorkload CRDs
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
-mod beejs_cluster;
-mod beejs_workload;
-pub use beejs_cluster::{
-    Affinity, BeejsCluster, BeejsClusterSpec, DistributedConfig, MonitoringConfig, PodAffinity,
+mod amberjs_cluster;
+mod amberjs_workload;
+pub use amberjs_cluster::{
+    Affinity, AmberCluster, AmberClusterSpec, DistributedConfig, MonitoringConfig, PodAffinity,
     PodAntiAffinity, PreferredSchedulingTerm, ResourceRequirements, SecurityConfig,
     SecurityContext, ServiceDiscoveryConfig, ServiceMonitorConfig, Toleration,
 };
-pub use beejs_workload::{
-    BeejsWorkload, BeejsWorkloadSpec, BufferConfig, CustomMetric, ExecutionConfig, ExecutionMode,
+pub use amberjs_workload::{
+    AmberWorkload, AmberWorkloadSpec, BufferConfig, CustomMetric, ExecutionConfig, ExecutionMode,
     HPAConfig, IOConfig, IngressBackend, IngressConfig, IngressHost, IngressPath, IngressTLS,
     InputSource, NetworkPolicyConfig, NetworkPolicyIPBlock, NetworkPolicyPeer, NetworkPolicyPort,
     NetworkPolicyRule, NetworkingConfig, OutputDestination, PersistenceConfig, RetryConfig,
     ScalePolicy, ServiceConfig, ServicePort,
 };
-/// Status phases for BeejsCluster
+/// Status phases for AmberCluster
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ClusterPhase {
@@ -33,7 +33,7 @@ pub enum ClusterPhase {
     /// Cluster has failed
     Failed,
 }
-/// Status for BeejsWorkload
+/// Status for AmberWorkload
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum WorkloadPhase {

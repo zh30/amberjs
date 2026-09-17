@@ -357,7 +357,7 @@ mod async_runtime_tests {
     fn test_real_file_system_operations() {
         let mut runtime = MinimalRuntime::new().unwrap();
         let temp = tempfile::NamedTempFile::new().unwrap();
-        std::fs::write(temp.path(), "beejs file fixture").unwrap();
+        std::fs::write(temp.path(), "amberjs file fixture").unwrap();
         let fixture_path = temp.path().to_string_lossy().replace('\\', "\\\\");
 
         // 测试真实的文件系统操作
@@ -374,7 +374,7 @@ mod async_runtime_tests {
         // 应该能够读取文件或返回错误（而不是 "fs API called"）
         let output = result.unwrap();
         assert_ne!(output.trim(), "fs API called");
-        assert_eq!(output.trim(), "beejs file fixture");
+        assert_eq!(output.trim(), "amberjs file fixture");
     }
 
     #[test]

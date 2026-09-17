@@ -1,7 +1,7 @@
 //! 并发执行测试
-//! 测试 Beejs 在并发场景下的性能表现
+//! 测试 Amber 在并发场景下的性能表现
 
-use beejs::Runtime;
+use amberjs::Runtime;
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -245,8 +245,8 @@ mod tests {
     /// 测试大批量脚本执行性能
     #[test]
     fn test_large_batch_execution() {
-        // 使用 beejs 的 V8 可用性检查
-        use beejs::is_v8_available;
+        // 使用 amberjs 的 V8 可用性检查
+        use amberjs::is_v8_available;
 
         if !is_v8_available() {
             println!("⚠️  Skipping test: V8 engine is not available (Once instance is poisoned)");
@@ -278,8 +278,8 @@ mod tests {
     /// 测试内存泄漏检测（长期运行）
     #[test]
     fn test_memory_leak_detection() {
-        // 使用 beejs 的 V8 可用性检查
-        use beejs::is_v8_available;
+        // 使用 amberjs 的 V8 可用性检查
+        use amberjs::is_v8_available;
 
         if !is_v8_available() {
             println!("⚠️  Skipping test: V8 engine is not available (Once instance is poisoned)");
@@ -314,7 +314,7 @@ mod tests {
     /// 综合性能基准测试
     #[test]
     fn test_comprehensive_performance_benchmark() {
-        println!("\n=== Beejs 并发性能综合基准测试 ===\n");
+        println!("\n=== Amber 并发性能综合基准测试 ===\n");
 
         // 测试1: 简单并发执行 (跳过，因为需要修复V8 Isolate生命周期问题)
         let test1_start = Instant::now();

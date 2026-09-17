@@ -9,7 +9,7 @@ fn test_sandbox_enclave_isolation_and_execution() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const sandbox = require('bee:sandbox');
+    const sandbox = require('amber:sandbox');
 
     // 1. Basic expression evaluation
     const res1 = sandbox.createEnclave('50 * 2 + 5');
@@ -46,8 +46,8 @@ fn test_sandbox_audit_logger_jsonl_output() {
 
     let code = format!(
         r#"
-        const sandbox = require('bee:sandbox');
-        const permissions = require('bee:permissions');
+        const sandbox = require('amber:sandbox');
+        const permissions = require('amber:permissions');
 
         // 1. Start audit logging
         sandbox.startAuditLog("{path}");

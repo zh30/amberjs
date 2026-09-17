@@ -1,5 +1,5 @@
 //! Stage 95 Phase 5: AI Ops Integration Testing - Standalone
-//! This is a standalone test that doesn't depend on the beejs crate
+//! This is a standalone test that doesn't depend on the amberjs crate
 //! Tests the complete AI Ops workflow combining all phases
 
 use std::time::{Duration, Instant};

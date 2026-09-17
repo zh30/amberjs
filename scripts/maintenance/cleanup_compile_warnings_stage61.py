@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Beejs Stage 61 - 编译警告清理工具
+Amber Stage 61 - 编译警告清理工具
 清理未使用的导入、未使用的变量和可变绑定
 """
 
@@ -16,7 +16,7 @@ def run_cargo_check() -> str:
         ["cargo", "check"],
         capture_output=True,
         text=True,
-        cwd="/Users/henry/code/beejs"
+        cwd="/Users/henry/code/amberjs"
     )
     return result.stderr
 
@@ -142,7 +142,7 @@ def fix_unused_mut(file_path: Path, line_num: int) -> bool:
 
 def main():
     """主函数"""
-    print("🚀 Beejs Stage 61 - 编译警告清理工具")
+    print("🚀 Amber Stage 61 - 编译警告清理工具")
     print("=" * 60)
 
     # 运行 cargo check 获取警告

@@ -1,4 +1,4 @@
-# Beejs 项目状态总结
+# Amber 项目状态总结
 
 > 发布校验说明（2026-05-26）：本文件是历史项目状态快照，不代表当前 public release 状态。当前 CLI、测试和性能事实以 `Cargo.toml`、`src/main.rs`、`src/lib.rs`、`README.md`、`docs/QUICK_START.md` 和本地验证命令为准。
 

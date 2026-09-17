@@ -50,7 +50,7 @@ id: "introduction"
 | `amber:ai` | **Stable** | 进程内 Tensor / LLM / AgentPipeline |
 | `--sandbox` / MCP / session | **Preview** | 默认拒绝 I/O，可冻结时钟与 PRNG |
 | `amber serve` | **Preview** | WinterCG `fetch` 处理器；`--https` 是 rustls HTTP/1.1 |
-| `amber bundle` / `amber compile` | **Preview** | oxc 图打包；SEA trailer `BEE_STANDALONE` |
+| `amber bundle` / `amber compile` | **Preview** | oxc 图打包；SEA trailer `AMBER_STANDALONE` |
 | `amber:wasm` | **Preview** | Memory / ArrayBuffer 零拷贝 |
 | 包管理（`init`/`install`/`x`） | **Experimental** | 轻量实现，不是完整 npm |
 | Node API | **Preview** | 按 API 计。Conformance 5.0 为 **55/55** |

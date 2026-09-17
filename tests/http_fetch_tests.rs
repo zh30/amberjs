@@ -59,7 +59,7 @@ mod http_tests {
             200,
             "OK",
             "application/json",
-            r#"{"slideshow":{"title":"Beejs fixture","slides":[{"title":"Local"}]}}"#,
+            r#"{"slideshow":{"title":"Amber fixture","slides":[{"title":"Local"}]}}"#,
             Vec::new(),
         )
     }
@@ -226,7 +226,7 @@ mod http_tests {
         );
         let binding = result.unwrap();
         let status = binding.trim();
-        // 上游 httpbin 可能返回 2xx/4xx/5xx；Beejs 不应再用离线 fallback 改写真实状态。
+        // 上游 httpbin 可能返回 2xx/4xx/5xx；Amber 不应再用离线 fallback 改写真实状态。
         assert_valid_http_status(status, "real http fetch");
     }
 
@@ -252,7 +252,7 @@ mod http_tests {
         let binding = result.unwrap();
         let output = binding.as_str();
         assert!(
-            output.contains("slideshow") && output.contains("Beejs fixture"),
+            output.contains("slideshow") && output.contains("Amber fixture"),
             "Expected local JSON response body, got: {}",
             output
         );
@@ -622,9 +622,9 @@ mod http_tests {
             r#"
             const headers = new Headers({
                 'Content-Type': 'text/plain',
-                'X-Beejs-Trace': 'ctor'
+                'X-Amber-Trace': 'ctor'
             });
-            `${headers.get('content-type')}:${headers.get('x-beejs-trace')}:${headers.has('Content-Type')}`;
+            `${headers.get('content-type')}:${headers.get('x-amberjs-trace')}:${headers.has('Content-Type')}`;
         "#,
         );
 
@@ -646,9 +646,9 @@ mod http_tests {
             r#"
             const headers = new Headers([
                 ['Content-Type', 'text/html'],
-                ['X-Beejs-Trace', 'array-init']
+                ['X-Amber-Trace', 'array-init']
             ]);
-            `${headers.get('content-type')}:${headers.get('x-beejs-trace')}:${headers.has('Content-Type')}`;
+            `${headers.get('content-type')}:${headers.get('x-amberjs-trace')}:${headers.has('Content-Type')}`;
         "#,
         );
 
@@ -665,12 +665,12 @@ mod http_tests {
     #[serial_test::serial]
     fn test_fetch_init_accepts_headers_instance() {
         let mut runtime = MinimalRuntime::new().unwrap();
-        let url = spawn_header_echo_server("X-Beejs-Trace", "from-headers");
+        let url = spawn_header_echo_server("X-Amber-Trace", "from-headers");
 
         let result = runtime.execute_code(
             &r#"
             const headers = new Headers({
-                'X-Beejs-Trace': 'from-headers'
+                'X-Amber-Trace': 'from-headers'
             });
             const response = fetch('__URL__', { headers });
             response.text();
@@ -691,13 +691,13 @@ mod http_tests {
     #[serial_test::serial]
     fn test_fetch_init_accepts_header_sequence_pairs() {
         let mut runtime = MinimalRuntime::new().unwrap();
-        let url = spawn_header_echo_server("X-Beejs-Trace", "from-array");
+        let url = spawn_header_echo_server("X-Amber-Trace", "from-array");
 
         let result = runtime.execute_code(
             &r#"
             const response = fetch('__URL__', {
                 headers: [
-                    ['X-Beejs-Trace', 'from-array']
+                    ['X-Amber-Trace', 'from-array']
                 ]
             });
             response.text();
@@ -718,13 +718,13 @@ mod http_tests {
     #[serial_test::serial]
     fn test_fetch_request_object_preserves_headers_instance() {
         let mut runtime = MinimalRuntime::new().unwrap();
-        let url = spawn_header_echo_server("X-Beejs-Trace", "from-request");
+        let url = spawn_header_echo_server("X-Amber-Trace", "from-request");
 
         let result = runtime.execute_code(
             &r#"
             const request = new Request('__URL__', {
                 headers: new Headers({
-                    'X-Beejs-Trace': 'from-request'
+                    'X-Amber-Trace': 'from-request'
                 })
             });
             const response = fetch(request);
@@ -825,7 +825,7 @@ mod http_tests {
             r#"
             const headers = new Headers([
                 ['Content-Type', 'text/plain'],
-                ['X-Beejs-Trace', 'iter']
+                ['X-Amber-Trace', 'iter']
             ]);
             const keys = Array.from(headers.keys()).join('|');
             const values = Array.from(headers.values()).join('|');
@@ -846,7 +846,7 @@ mod http_tests {
         let output = binding.trim();
         assert_eq!(
             output,
-            "content-type|x-beejs-trace;text/plain|iter;content-type=text/plain|x-beejs-trace=iter;content-type=text/plain:true|x-beejs-trace=iter:true",
+            "content-type|x-amberjs-trace;text/plain|iter;content-type=text/plain|x-amberjs-trace=iter;content-type=text/plain:true|x-amberjs-trace=iter:true",
             "Expected Headers iteration methods to expose cached entries, got: {output}"
         );
     }
@@ -860,7 +860,7 @@ mod http_tests {
             r#"
             const headers = new Headers([
                 ['Content-Type', 'text/plain'],
-                ['X-Beejs-Trace', 'iterable']
+                ['X-Amber-Trace', 'iterable']
             ]);
             const direct = Array.from(headers).map(([name, value]) => `${name}=${value}`).join('|');
             const looped = [];
@@ -879,7 +879,7 @@ mod http_tests {
         let output = binding.trim();
         assert_eq!(
             output,
-            "content-type=text/plain|x-beejs-trace=iterable;content-type=text/plain|x-beejs-trace=iterable",
+            "content-type=text/plain|x-amberjs-trace=iterable;content-type=text/plain|x-amberjs-trace=iterable",
             "Expected Headers to be directly iterable as entry pairs, got: {output}"
         );
     }
@@ -893,7 +893,7 @@ mod http_tests {
             r#"
             const headers = new Headers([
                 ['Content-Type', 'text/plain'],
-                ['X-Beejs-Trace', 'iterator']
+                ['X-Amber-Trace', 'iterator']
             ]);
             const keyIterator = headers.keys();
             const valueIterator = headers.values();
@@ -930,7 +930,7 @@ mod http_tests {
             const headers = new Headers([
                 ['Content-Type', 'text/plain']
             ]);
-            headers.set('X-Beejs-Trace', 'set');
+            headers.set('X-Amber-Trace', 'set');
             headers.append('Set-Cookie', 'cookie=value');
             const keys = Array.from(headers.keys()).join('|');
             const entries = Array.from(headers.entries()).map(([name, value]) => `${name}=${value}`).join('|');
@@ -945,7 +945,7 @@ mod http_tests {
         let output = binding.trim();
         assert_eq!(
             output,
-            "content-type|x-beejs-trace|set-cookie;content-type=text/plain|x-beejs-trace=set|set-cookie=cookie=value;content-type|x-beejs-trace|set-cookie",
+            "content-type|x-amberjs-trace|set-cookie;content-type=text/plain|x-amberjs-trace=set|set-cookie=cookie=value;content-type|x-amberjs-trace|set-cookie",
             "Expected Headers iteration to expose lowercase names, got: {output}"
         );
     }
@@ -1269,13 +1269,13 @@ mod http_tests {
                 statusText: 'Created',
                 headers: {
                     'Content-Type': 'text/plain',
-                    'X-Beejs-Trace': 'constructor'
+                    'X-Amber-Trace': 'constructor'
                 }
             });
             const before = response.bodyUsed;
             const body = response.text();
             const after = response.bodyUsed;
-            `${response.status}:${response.ok}:${response.statusText}:${response.headers.get('content-type')}:${response.headers.get('x-beejs-trace')}:${before}:${body}:${after}`;
+            `${response.status}:${response.ok}:${response.statusText}:${response.headers.get('content-type')}:${response.headers.get('x-amberjs-trace')}:${before}:${body}:${after}`;
         "#,
         );
 
@@ -1406,14 +1406,14 @@ mod http_tests {
             "OK",
             "text/plain",
             "headers",
-            vec![("X-Beejs-Trace".to_string(), "trace-123".to_string())],
+            vec![("X-Amber-Trace".to_string(), "trace-123".to_string())],
         );
 
         let result = runtime.execute_code(
             &r#"
             const response = fetch('__URL__');
             const headers = response.headers;
-            `${typeof headers.get}:${typeof headers.has}:${headers.get ? headers.get('x-beejs-trace') : 'missing'}:${headers.has ? headers.has('content-type') : false}`;
+            `${typeof headers.get}:${typeof headers.has}:${headers.get ? headers.get('x-amberjs-trace') : 'missing'}:${headers.has ? headers.has('content-type') : false}`;
         "#
             .replace("__URL__", &url),
         );
@@ -1902,7 +1902,7 @@ mod http_tests {
             const formData = new FormData();
             formData.append('tag', 'a');
             formData.append('tag', 'b');
-            formData.append('name', 'bee');
+            formData.append('name', 'amber');
             const keys = formData.keys();
             const firstKey = keys.next();
             const secondKey = keys.next();
@@ -1923,7 +1923,7 @@ mod http_tests {
         let output = binding.trim();
         assert_eq!(
             output,
-            "function:tag:tag:name:true:a|b|bee:tag=a|tag=b|name=bee:tag=a|tag=b|name=bee",
+            "function:tag:tag:name:true:a|b|amber:tag=a|tag=b|name=amber:tag=a|tag=b|name=amber",
             "Expected FormData iterators to preserve duplicate names in insertion order, got: {output}"
         );
     }

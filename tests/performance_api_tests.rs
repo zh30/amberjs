@@ -7,19 +7,19 @@ mod performance_api_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
             std::env::var("CARGO_BIN_EXE_amber")
-                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     #[test]
     fn test_performance_now_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof performance.now)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "performance.now should exist");
@@ -27,10 +27,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_now_returns_number() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const n = performance.now(); console.log(typeof n)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -41,10 +41,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_now_monotonic() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const n1 = performance.now(); for(let i=0; i<1000; i++){} const n2 = performance.now(); console.log(n2 >= n1)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -55,7 +55,7 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_now_is_relative_to_time_origin() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -73,7 +73,7 @@ mod performance_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -85,10 +85,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_time_origin_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof performance.timeOrigin)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -99,13 +99,13 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_time_origin_reasonable() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 "console.log(performance.timeOrigin > 1700000000000)",
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -116,10 +116,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_mark() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "performance.mark('test'); const entries = performance.getEntriesByName('test'); console.log(entries.length)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -130,10 +130,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_measure() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "performance.mark('start'); performance.mark('end'); performance.measure('test', 'start', 'end'); const entries = performance.getEntriesByName('test'); console.log(entries.length, entries[0]?.entryType)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -148,10 +148,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_measure_duration() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "performance.mark('start'); for(let i=0; i<100000; i++){} performance.mark('end'); performance.measure('test', 'start', 'end'); const entries = performance.getEntriesByName('test'); console.log(entries[0]?.duration > 0)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -162,10 +162,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_get_entries() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "performance.mark('a'); performance.mark('b'); const entries = performance.getEntries(); console.log(entries.length)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("2"), "getEntries should return all entries");
@@ -173,10 +173,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_get_entries_by_type() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "performance.mark('a'); performance.measure('test', 'a', 'a'); const marks = performance.getEntriesByType('mark'); const measures = performance.getEntriesByType('measure'); console.log(marks.length, measures.length)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -187,10 +187,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_clear_marks() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "performance.mark('test'); performance.clearMarks(); const entries = performance.getEntriesByName('test'); console.log(entries.length)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -201,10 +201,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_clear_measures() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "performance.mark('start'); performance.measure('test', 'start', 'start'); performance.clearMeasures(); const entries = performance.getEntriesByType('measure'); console.log(entries.length)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -215,10 +215,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_to_json() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const json = performance.toJSON(); console.log(typeof json, typeof json.now, typeof json.timeOrigin)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -229,10 +229,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_measure_without_marks() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "performance.measure('test'); const entries = performance.getEntriesByName('test'); console.log(entries.length, entries[0]?.startTime === 0, entries[0]?.duration >= 0)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -243,10 +243,10 @@ mod performance_api_tests {
 
     #[test]
     fn test_performance_precision() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const n1 = performance.now(); const n2 = performance.now(); const diff = n2 - n1; console.log(typeof diff, diff >= 0)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Should return a number >= 0
@@ -259,7 +259,7 @@ mod performance_api_tests {
     #[test]
     fn test_performance_timing_ai_workload() {
         // Test typical AI workload timing scenario
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -274,7 +274,7 @@ mod performance_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("ms"), "Should measure AI workload timing");

@@ -11,8 +11,6 @@ interface ThemeContextValue {
 }
 
 const STORAGE_KEY = "amber-theme";
-/** Previous website stored theme under this key. */
-const LEGACY_STORAGE_KEY = "beejs-theme";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
@@ -26,9 +24,7 @@ function getSystemTheme(): ResolvedTheme {
 function getStoredTheme(): Theme {
   if (typeof window === "undefined") return "light";
   try {
-    const saved =
-      localStorage.getItem(STORAGE_KEY) ||
-      localStorage.getItem(LEGACY_STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "dark" || saved === "light" || saved === "system") {
       return saved;
     }

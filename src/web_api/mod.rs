@@ -169,7 +169,7 @@ pub fn init_web_api(
             };
         }
 
-        globalThis.__bee_dispatch_unhandled_rejection = function(promise, reason) {
+        globalThis.__amber_dispatch_unhandled_rejection = function(promise, reason) {
             let event;
             try {
                 event = new PromiseRejectionEvent('unhandledrejection', {

@@ -1,4 +1,4 @@
-// Prometheus metrics exporter for Beejs runtime
+// Prometheus metrics exporter for Amber runtime
 //
 // This module provides HTTP server functionality to expose Prometheus metrics.
 // The exporter runs an HTTP server that serves metrics in Prometheus format.

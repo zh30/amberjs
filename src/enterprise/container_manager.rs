@@ -1,5 +1,5 @@
 // Docker 容器管理器
-// 实现 Beejs 容器的构建、编排和管理功能
+// 实现 Amber 容器的构建、编排和管理功能
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -22,9 +22,9 @@ pub struct ContainerConfig {
 impl Default for ContainerConfig {
     fn default() -> Self {
         let mut env = HashMap::new();
-        env.insert("BEEJS_ENV".to_string(), "production".to_string());
+        env.insert("AMBER_ENV".to_string(), "production".to_string());
         Self {
-            image: "beejs:latest".to_string(),
+            image: "amberjs:latest".to_string(),
             version: "v0.1.0".to_string(),
             replicas: 3,
             port: 8080,
@@ -155,9 +155,9 @@ impl ContainerManager {
     }
     /// 构建容器镜像
     pub async fn build_image(&self, version: &str) -> Result<String> {
-        tracing::info!("Building Beejs image version {}", version);
+        tracing::info!("Building Amber image version {}", version);
         // TODO: 实现实际的镜像构建逻辑
-        Ok(format!("beejs:{}", version))
+        Ok(format!("amberjs:{}", version))
     }
     /// 启动容器集群
     pub async fn start_containers(&self, config: &ContainerConfig) -> Result<Vec<ContainerHandle> {
@@ -169,7 +169,7 @@ impl ContainerManager {
         let mut handles = Vec::new();
         for i in 0..config.replicas {
             let handle: _ = ContainerHandle {
-                id: format!("beejs-container-{}", i),
+                id: format!("amberjs-container-{}", i),
                 status: ContainerStatus::Running,
                 port: config.port + i as u16,
             };
@@ -267,7 +267,7 @@ use std::time::SystemTime;
         let manager: _ = ContainerManager::new();
         let version: _ = "v0.1.0";
         let image: _ = manager.build_image(version).await.unwrap();
-        assert_eq!(image, "beejs:v0.1.0");
+        assert_eq!(image, "amberjs:v0.1.0");
     }
     #[tokio::test]
     async fn test_start_containers() {
@@ -280,13 +280,13 @@ use std::time::SystemTime;
     #[tokio::test]
     async fn test_get_container_status() {
         let manager: _ = ContainerManager::new();
-        let status: _ = manager.get_container_status("beejs-container-1").await.unwrap();
+        let status: _ = manager.get_container_status("amberjs-container-1").await.unwrap();
         assert_eq!(status, ContainerStatus::Running);
     }
     #[tokio::test]
     async fn test_get_container_metrics() {
         let manager: _ = ContainerManager::new();
-        let metrics: _ = manager.get_container_metrics("beejs-container-1").await.unwrap();
+        let metrics: _ = manager.get_container_metrics("amberjs-container-1").await.unwrap();
         assert!(metrics.cpu_usage >= 0.0 && metrics.cpu_usage <= 100.0);
         assert!(metrics.memory_usage > 0.0);
     }
@@ -295,12 +295,12 @@ use std::time::SystemTime;
         let config: _ = ContainerConfig::default();
         assert_eq!(config.replicas, 3);
         assert_eq!(config.port, 8080);
-        assert!(config.env.contains_key("BEEJS_ENV"));
+        assert!(config.env.contains_key("AMBER_ENV"));
     }
     #[tokio::test]
     async fn test_restart_container() {
         let manager: _ = ContainerManager::new();
-        let result: _ = manager.restart_container("beejs-container-1").await;
+        let result: _ = manager.restart_container("amberjs-container-1").await;
         assert!(result.is_ok());
     }
     #[tokio::test]
@@ -313,17 +313,17 @@ use std::time::SystemTime;
     async fn test_mount_volume() {
         let manager: _ = ContainerManager::new();
         let volume: _ = VolumeMount {
-            source: "/data/beejs".to_string(),
+            source: "/data/amberjs".to_string(),
             target: "/app/data".to_string(),
             read_only: false,
         };
-        let result: _ = manager.mount_volume("beejs-container-1", &volume).await;
+        let result: _ = manager.mount_volume("amberjs-container-1", &volume).await;
         assert!(result.is_ok());
     }
     #[tokio::test]
     async fn test_check_container_health() {
         let manager: _ = ContainerManager::new();
-        let healthy: _ = manager.check_container_health("beejs-container-1").await.unwrap();
+        let healthy: _ = manager.check_container_health("amberjs-container-1").await.unwrap();
         assert!(healthy);
     }
     #[tokio::test]

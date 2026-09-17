@@ -1,5 +1,5 @@
 // 直接测试 TypeScript 编译器
-// 编译命令: rustc --edition 2021 -L target/debug/deps test_typescript_direct.rs --extern beejs=target/debug/libbeejs.rlib
+// 编译命令: rustc --edition 2021 -L target/debug/deps test_typescript_direct.rs --extern amberjs=target/debug/libamberjs.rlib
 
 fn main() {
     // 模拟测试用例
@@ -24,7 +24,7 @@ fn main() {
 
         // 这里我们需要调用 amberjs::typescript::compile_typescript
         // 但由于这是在独立的二进制文件中，我们需要其他方法
-        // 或者我们可以使用beejs CLI本身
+        // 或者我们可以使用amberjs CLI本身
 
         println!();
     }

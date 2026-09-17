@@ -1,13 +1,13 @@
-//! Beejs v1.7.0: Agent Tool Auto-Synthesis & OpenAPI Schema Compiler (`bee:tools` / `bee:ai.tools`)
+//! Amber v1.7.0: Agent Tool Auto-Synthesis & OpenAPI Schema Compiler (`amber:tools` / `amber:ai.tools`)
 //!
 //! Provides dynamic JSON Schema tool compilation, automatic OpenAPI 3.x to Agent tool
 //! synthesis backed by native `fetch`, LLM tool call parsing, and seamless integration
-//! with `bee:ai.AgentPipeline`.
+//! with `amber:ai.AgentPipeline`.
 
 use anyhow::Result;
 use rusty_v8 as v8;
 
-/// Sets up the `bee:tools` API inside V8 Context
+/// Sets up the `amber:tools` API inside V8 Context
 pub fn setup_tools_api(scope: &mut v8::PinScope, _context: &v8::Local<v8::Context>) -> Result<()> {
     let tools_js_bootstrap = r#"
     (function() {
@@ -396,7 +396,7 @@ pub fn setup_tools_api(scope: &mut v8::PinScope, _context: &v8::Local<v8::Contex
             }
         };
 
-        globalThis.__bee_tools = toolsModule;
+        globalThis.__amber_tools = toolsModule;
         globalThis.tools = toolsModule;
     })();
     "#;

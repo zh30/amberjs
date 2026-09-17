@@ -1,10 +1,10 @@
-#!/usr/bin/env beejs
+#!/usr/bin/env amberjs
 /**
- * Beejs v0.2.0 快速开始示例
- * 展示如何快速使用 Beejs 的核心功能
+ * Amber v0.2.0 快速开始示例
+ * 展示如何快速使用 Amber 的核心功能
  */
 
-console.log('🚀 Beejs v0.2.0 快速开始\n');
+console.log('🚀 Amber v0.2.0 快速开始\n');
 
 // 1. 基础算术 - 展示极致性能
 console.log('=== 1. 极致性能演示 ===');
@@ -34,7 +34,7 @@ console.log('Math.random():', Math.random());
 console.log('Math.max(1, 2, 3):', Math.max(1, 2, 3));
 
 // JSON API
-let data = {name: 'Beejs', version: '0.2.0', features: ['高性能', '异步', 'HTTP']};
+let data = {name: 'Amber', version: '0.2.0', features: ['高性能', '异步', 'HTTP']};
 console.log('JSON.stringify:', JSON.stringify(data));
 
 // URL API
@@ -53,9 +53,9 @@ console.log('请求成功:', response.ok);
 
 // 4. 性能对比
 console.log('\n=== 4. 性能对比 ===');
-console.log('Beejs vs Bun vs Node.js:');
+console.log('Amber vs Bun vs Node.js:');
 console.log('算术运算: 181M vs 97K vs 90K ops/sec');
-console.log('Beejs 领先: 1874x vs Bun, 2013x vs Node.js');
+console.log('Amber 领先: 1874x vs Bun, 2013x vs Node.js');
 
 // 5. 下一步
 console.log('\n=== 5. 下一步 ===');
@@ -73,9 +73,9 @@ console.log('  - TypeScript 完整支持');
 console.log('  - AI 工作负载优化');
 console.log('  - 企业级特性');
 
-console.log('\n=== 开始使用 Beejs ===');
-console.log('运行: ./target/release/beejs run your_script.js');
+console.log('\n=== 开始使用 Amber ===');
+console.log('运行: ./target/release/amberjs run your_script.js');
 console.log('文档: examples/basics/README.md');
-console.log('报告: BEEJS_V020_COMPLETION_REPORT.md\n');
+console.log('报告: AMBER_V020_COMPLETION_REPORT.md\n');
 
-console.log('🎉 感谢使用 Beejs v0.2.0!');
+console.log('🎉 感谢使用 Amber v0.2.0!');

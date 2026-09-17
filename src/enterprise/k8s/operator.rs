@@ -1,5 +1,5 @@
 // Enterprise Kubernetes Operator
-// Implements a production-ready Kubernetes operator for Beejs
+// Implements a production-ready Kubernetes operator for Amber
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
@@ -7,15 +7,15 @@ use serde::{Serialize, Deserialize};
 
 use tracing::{info, warn, error, debug};
 use std::sync::RwLock;
-/// BeejsCluster custom resource definition
+/// AmberCluster custom resource definition
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct BeejsCluster {
+pub struct AmberCluster {
     pub api_version: String,
     pub kind: String,
     pub metadata: ObjectMeta,
-    pub spec: BeejsClusterSpec,
-    pub status: Option<BeejsClusterStatus>,
+    pub spec: AmberClusterSpec,
+    pub status: Option<AmberClusterStatus>,
 }
 /// Metadata for Kubernetes objects
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -24,20 +24,20 @@ pub struct ObjectMeta {
     pub namespace: String,
     pub labels: Option<std::collections::HashMap<String, String>>,
 }
-/// Specification for BeejsCluster
+/// Specification for AmberCluster
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct BeejsClusterSpec {
+pub struct AmberClusterSpec {
     pub replicas: u32,
     pub version: String,
     pub image: Option<String>,
     pub resources: ResourceRequirements,
     pub networking: NetworkingConfig,
 }
-/// Status of BeejsCluster
+/// Status of AmberCluster
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct BeejsClusterStatus {
+pub struct AmberClusterStatus {
     pub phase: ClusterPhase,
     pub replicas: u32,
     pub ready_replicas: u32,
@@ -95,12 +95,12 @@ pub struct IngressConfig {
     pub host: Option<String>,
     pub tls_enabled: bool,
 }
-/// Kubernetes Operator for managing BeejsCluster resources
+/// Kubernetes Operator for managing AmberCluster resources
 pub struct Operator {
     /// Operator configuration
     config: OperatorConfig,
     /// Active clusters
-    clusters: Arc<RwLock<std::collections::HashMap<String, BeejsCluster>>>,
+    clusters: Arc<RwLock<std::collections::HashMap<String, AmberCluster>>>,
     /// Event sender for broadcasting cluster events
     event_sender: Arc<tokio::sync::mpsc::UnboundedSender<OperatorEvent>>,
 }
@@ -132,7 +132,7 @@ impl Operator {
     }
     /// Start the operator's reconciliation loop
     pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Starting Beejs Kubernetes Operator");
+        info!("Starting Amber Kubernetes Operator");
         // Start the main reconciliation loop
         let clusters: _ = self.clusters.clone();
         let event_sender: _ = self.event_sender.clone();
@@ -143,7 +143,7 @@ impl Operator {
                 interval_timer.tick().await;
                 debug!("Reconciliation tick");
                 // In a real implementation, this would:
-                // 1. List all BeejsCluster resources from Kubernetes
+                // 1. List all AmberCluster resources from Kubernetes
                 // 2. Compare desired state with actual state
                 // 3. Perform reconciliation actions
                 // 4. Update status
@@ -158,14 +158,14 @@ impl Operator {
         });
         Ok(())
     }
-    /// Create a new BeejsCluster
+    /// Create a new AmberCluster
     pub async fn create_cluster(
         &self,
-        cluster: BeejsCluster,
+        cluster: AmberCluster,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let name: _ = cluster.metadata.name.clone();
         let namespace: _ = cluster.metadata.namespace.clone();
-        info!("Creating BeejsCluster: {} in {}", name, namespace);
+        info!("Creating AmberCluster: {} in {}", name, namespace);
         // In a real implementation, this would:
         // 1. Validate the cluster spec
         // 2. Create the necessary Kubernetes resources
@@ -182,17 +182,17 @@ impl Operator {
             error!("Failed to send cluster created event: {}", e);
             e
         })?;
-        info!("Successfully created BeejsCluster: {} in {}", name, namespace);
+        info!("Successfully created AmberCluster: {} in {}", name, namespace);
         Ok(())
     }
-    /// Update an existing BeejsCluster
+    /// Update an existing AmberCluster
     pub async fn update_cluster(
         &self,
         name: String,
         namespace: String,
-        spec: BeejsClusterSpec,
+        spec: AmberClusterSpec,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Updating BeejsCluster: {} in {}", name, namespace);
+        info!("Updating AmberCluster: {} in {}", name, namespace);
         let mut clusters = self.clusters.write().await;
         if let Some(cluster) = clusters.get_mut(&name) {
             cluster.spec = spec;
@@ -205,19 +205,19 @@ impl Operator {
                 error!("Failed to send cluster updated event: {}", e);
                 e
             })?;
-            info!("Successfully updated BeejsCluster: {} in {}", name, namespace);
+            info!("Successfully updated AmberCluster: {} in {}", name, namespace);
             Ok(())
         } else {
             Err(format!("Cluster {} not found in namespace {}", name, namespace).into())
         }
     }
-    /// Delete a BeejsCluster
+    /// Delete a AmberCluster
     pub async fn delete_cluster(
         &self,
         name: String,
         namespace: String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Deleting BeejsCluster: {} in {}", name, namespace);
+        info!("Deleting AmberCluster: {} in {}", name, namespace);
         let mut clusters = self.clusters.write().await;
         clusters.remove(&name);
         // Send event
@@ -229,19 +229,19 @@ impl Operator {
             error!("Failed to send cluster deleted event: {}", e);
             e
         })?;
-        info!("Successfully deleted BeejsCluster: {} in {}", name, namespace);
+        info!("Successfully deleted AmberCluster: {} in {}", name, namespace);
         Ok(())
     }
-    /// Get the status of a BeejsCluster
+    /// Get the status of a AmberCluster
     pub async fn get_cluster_status(
         &self,
         name: String,
-    ) -> Result<Option<BeejsClusterStatus>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<AmberClusterStatus>, Box<dyn std::error::Error>> {
         let clusters: _ = self.clusters.read().await;
         Ok(clusters.get(&name).and_then(|c| c.status.clone())
     }
-    /// List all BeejsCluster resources
-    pub async fn list_clusters(&self) -> Result<Vec<BeejsCluster>, Box<dyn std::error::Error>> {
+    /// List all AmberCluster resources
+    pub async fn list_clusters(&self) -> Result<Vec<AmberCluster>, Box<dyn std::error::Error>> {
         let clusters: _ = self.clusters.read().await;
         Ok(clusters.values().cloned().collect())
     }
@@ -268,15 +268,15 @@ use std::time::Duration;
             max_retries: 3,
         };
         let (operator, _receiver) = Operator::new(config);
-        let cluster: _ = BeejsCluster {
+        let cluster: _ = AmberCluster {
             api_version: "v1".to_string(),
-            kind: "BeejsCluster".to_string(),
+            kind: "AmberCluster".to_string(),
             metadata: ObjectMeta {
                 name: "test-cluster".to_string(),
                 namespace: "default".to_string(),
                 labels: None,
             },
-            spec: BeejsClusterSpec {
+            spec: AmberClusterSpec {
                 replicas: 3,
                 version: "v0.1.0".to_string(),
                 image: None,
@@ -307,15 +307,15 @@ use std::time::Duration;
         let clusters: _ = operator.list_clusters().await.unwrap();
         assert_eq!(clusters.len(), 0);
         // Create a cluster and verify it's listed
-        let cluster: _ = BeejsCluster {
+        let cluster: _ = AmberCluster {
             api_version: "v1".to_string(),
-            kind: "BeejsCluster".to_string(),
+            kind: "AmberCluster".to_string(),
             metadata: ObjectMeta {
                 name: "test-cluster".to_string(),
                 namespace: "default".to_string(),
                 labels: None,
             },
-            spec: BeejsClusterSpec {
+            spec: AmberClusterSpec {
                 replicas: 1,
                 version: "v0.1.0".to_string(),
                 image: None,

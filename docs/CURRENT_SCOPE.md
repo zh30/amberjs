@@ -4,15 +4,15 @@ Last reviewed: 2026-09-16 (v1.16.0)
 
 v1.16.0 notes:
 
-- Wasm Engine 2.0: zero-copy `WebAssembly.Memory` / `ArrayBuffer` via V8 backing stores, mmap module load, `require('bee:wasm')`.
-- `amber bundle` (oxc) and `amber compile` (SEA trailer `BEE_STANDALONE`) remain **Preview**.
+- Wasm Engine 2.0: zero-copy `WebAssembly.Memory` / `ArrayBuffer` via V8 backing stores, mmap module load, `require('amber:wasm')`.
+- `amber bundle` (oxc) and `amber compile` (SEA trailer `AMBER_STANDALONE`) remain **Preview**.
 - URL / `fetch` / `ReadableStream` hot paths rewritten; suite 2.0 numbers are in `benchmarks/`.
 - Node.js Conformance 5.0 is **55/55 PASS**.
 
 Optimization sprint notes (2026-09-10 v1.9.1):
 
-- Windows MSVC is a fail-closed Release target (`bee-v*-x86_64-pc-windows-msvc.zip` with `bee.exe`); Unix-only libc is cfg-gated on the default Windows path.
-- `bee serve --https` uses rustls HTTP/1.1 (missing cert/key exits non-zero).
+- Windows MSVC is a fail-closed Release target (`amber-v*-x86_64-pc-windows-msvc.zip` with `amber.exe`); Unix-only libc is cfg-gated on the default Windows path.
+- `amber serve --https` uses rustls HTTP/1.1 (missing cert/key exits non-zero).
 - `amber run --inspect-brk` evaluates on the isolate (`Runtime.evaluate`) and waits until resume.
 - Minimal N-API hello loader (`process.dlopen` calls `napi_register_module_v1`). Experimental; not Prisma/sharp.
 - TypeScript thrown stacks map to `.ts` lines; `amber test --parallel` exits 2.
@@ -40,13 +40,13 @@ Use these files and checks as the current fact sources:
 
 - `Cargo.toml`: package version, enabled binary targets, Cargo features, and dependencies.
 - `src/lib.rs`: the default library module surface and feature-gated modules.
-- `src/main.rs`: the active `bee` CLI entrypoint.
+- `src/main.rs`: the active `amber` CLI entrypoint.
 - Executable tests and smoke commands run in the current checkout.
 
 Current facts from those sources:
 
 - Package version is `1.16.0`.
-- The active Cargo binary is `bee`, built from `src/main.rs`.
+- The active Cargo binary is `amber`, built from `src/main.rs`.
 - Default Cargo features are empty: `default = []`.
 - The default runtime path used by the CLI is `src/runtime_minimal.rs`.
 - Modules present in the repository are not automatically public product capabilities. Many are staged, feature-gated, partially wired, or retained for historical context.
@@ -55,7 +55,7 @@ Current facts from those sources:
 
 ### Stable
 
-Stable means the capability is part of the official v1.16.0 release scope, is reachable from the active `bee` binary or default library surface, and is verified by focused smoke tests, Rust integration tests, and conformance suites.
+Stable means the capability is part of the official v1.16.0 release scope, is reachable from the active `amber` binary or default library surface, and is verified by focused smoke tests, Rust integration tests, and conformance suites.
 
 Current stable scope:
 
@@ -84,7 +84,7 @@ Preview means the capability is present in the default build and is useful for e
 Current preview scope:
 
 - TypeScript and TSX entry files are accepted by the CLI and pass through oxc before execution. This is transpile-only: types are erased, `using` / Stage 3 decorators are downleveled to ES2022, and TSX emits classic `React.createElement`. Thrown stacks map back to `.ts` lines when oxc emits a source map. There is no project-wide `tsc` type-check.
-- `bee serve --https` terminates TLS with rustls (HTTP/1.1 only). `--cert` and `--key` PEM files are required; missing material exits non-zero.
+- `amber serve --https` terminates TLS with rustls (HTTP/1.1 only). `--cert` and `--key` PEM files are required; missing material exits non-zero.
 - `amber run --inspect` / `--inspect-brk` expose CDP `/json/version` and `Runtime.evaluate` on the isolate. This is not a full Chrome DevTools / V8 Inspector on rusty_v8 0.22.
 - Node.js compatibility modules under `src/nodejs_core/` are installed into the runtime, including areas such as `fs`, `crypto`, `events`, `buffer`, `path`, `os`, `url`, `dns`, `process`, `child_process` (`execSync`, `spawnSync`), `util`, `zlib`, timers, streams, HTTP, networking, readline, and CommonJS `require`. Treat these as compatibility work in progress unless a behavior is covered by current executable tests.
 - Web API modules under `src/web_api/` are installed into the runtime, including areas such as fetch, WebSocket, Web Crypto, URL, events, FormData, Abort, Blob, timers, encoding, performance, streams, compression, structured clone, workers, service workers, broadcast channels, and message channels. Treat these as API-specific preview work, not blanket Web platform compatibility.
@@ -92,7 +92,7 @@ Current preview scope:
 - Agent host surface: `amber run --sandbox --export-tools`, `amber session` (stdin JSON-RPC), and `amber mcp` (MCP stdio). Models stay external. `feature=ai` is not a product LLM and may not compile.
 - Production-grade Module Bundler 2.0 (`amber bundle`): oxc AST-backed recursive dependency graph resolution, TypeScript/TSX compilation, module scope isolation, CommonJS/JSON interop, and minified single `.js` output.
 - Single Executable Application compiler (`amber compile`): bundles and embeds self-contained JS/TS code with the Amber runtime binary into a single, zero-dependency native executable.
-- Package installer (`bee install`): package.json dependency resolution with package-lock.json integrity validation.
+- Package installer (`amber install`): package.json dependency resolution with package-lock.json integrity validation.
 
 ### Experimental
 
@@ -100,7 +100,7 @@ Experimental means the capability exists as code, command surface, module surfac
 
 Current experimental scope:
 
-- `bee debug`, `bee serve` HTTP health/fetch handler, `bee init`, `bee create`, `bee add`, `bee remove`, `bee prune`, `bee bunx`, and `bee upgrade`.
+- `amber debug`, `amber serve` HTTP health/fetch handler, `amber init`, `amber create`, `amber add`, `amber remove`, `amber prune`, `amber bunx`, and `amber upgrade`.
 - N-API hello loader: `process.dlopen` calls `napi_register_module_v1` so a C hello addon can export `hello()`. Not a Node ABI compatibility commitment; Prisma/sharp are out of scope.
 - `amber test --parallel` is rejected (exit code 2). V8 isolates are not shared across threads.
 - Lightweight package-management and project setup behavior, including resolver, lifecycle, supply-chain, and package execution paths.

@@ -458,7 +458,7 @@ impl HAManager {
     /// Create disaster recovery plan
     pub fn create_dr_plan(&self) -> DisasterRecoveryPlan {
         DisasterRecoveryPlan {
-            name: "Beejs DR Plan".to_string(),
+            name: "Amber DR Plan".to_string(),
             rto_seconds: 300, // 5 minutes
             rpo_seconds: 60,  // 1 minute
             steps: vec![
@@ -511,18 +511,18 @@ mod tests {
             regions: vec![
                 RegionConfig {
                     name: "us-east-1".to_string(),
-                    endpoint: "https://us-east-1.beejs.io".to_string(),
+                    endpoint: "https://us-east-1.amberjs.io".to_string(),
                     priority: 1,
                     is_primary: true,
-                    health_check_url: "https://us-east-1.beejs.io/health".to_string(),
+                    health_check_url: "https://us-east-1.amberjs.io/health".to_string(),
                     weight: 100,
                 },
                 RegionConfig {
                     name: "us-west-2".to_string(),
-                    endpoint: "https://us-west-2.beejs.io".to_string(),
+                    endpoint: "https://us-west-2.amberjs.io".to_string(),
                     priority: 2,
                     is_primary: false,
-                    health_check_url: "https://us-west-2.beejs.io/health".to_string(),
+                    health_check_url: "https://us-west-2.amberjs.io/health".to_string(),
                     weight: 50,
                 },
             ],
@@ -531,7 +531,7 @@ mod tests {
                 enabled: true,
                 interval: Duration::from_secs(3600),
                 retention: Duration::from_secs(86400 * 7), // 7 days
-                storage_location: "s3://beejs-backups".to_string(),
+                storage_location: "s3://amberjs-backups".to_string(),
                 compression: true,
                 encryption: true,
                 verification: true,
@@ -556,7 +556,7 @@ mod tests {
         let node: _ = ClusterNode {
             id: "node-1".to_string(),
             region: "us-east-1".to_string(),
-            endpoint: "https://node-1.beejs.io".to_string(),
+            endpoint: "https://node-1.amberjs.io".to_string(),
             health: NodeHealth::Healthy,
             last_health_check: SystemTime::now(),
             failure_count: 0,
@@ -580,7 +580,7 @@ mod tests {
         };
         let manager: _ = HAManager::new(config).unwrap();
         let plan: _ = manager.create_dr_plan();
-        assert_eq!(plan.name, "Beejs DR Plan");
+        assert_eq!(plan.name, "Amber DR Plan");
         assert_eq!(plan.rto_seconds, 300);
         assert_eq!(plan.rpo_seconds, 60);
         assert_eq!(plan.steps.len(), 4);

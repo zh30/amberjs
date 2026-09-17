@@ -1,4 +1,4 @@
-# Beejs Stage 35.0 进展报告 - 动态批处理优化器
+# Amber Stage 35.0 进展报告 - 动态批处理优化器
 
 ## 🎯 任务概览
 
@@ -52,7 +52,7 @@ pub struct DynamicBatchProcessor {
 - **网络测试**: 修复了连接池 API 调用问题
 
 **修复的关键问题**:
-- `test_v8_availability()` → `beejs::is_v8_available()`
+- `test_v8_availability()` → `amberjs::is_v8_available()`
 - `get_connection().expect()` → `get_connection()`
 - Runtime API 返回类型统一
 
@@ -143,13 +143,13 @@ src/
 
 ## 📝 总结
 
-Stage 35.0 成功实现了 Beejs 的重要增强：
+Stage 35.0 成功实现了 Amber 的重要增强：
 
 1. **CLI 现代化**: 从最小化版本升级为功能完整的命令行工具
 2. **AI 优化**: 引入动态批处理优化器，为 AI 推理性能提升奠定基础
 3. **代码质量**: 修复了多个编译错误，提高了代码稳定性
 
-这些改进使 Beejs 更加接近其作为"AI 原生运行时"的目标，为未来的 AI 工作负载优化奠定了坚实基础。
+这些改进使 Amber 更加接近其作为"AI 原生运行时"的目标，为未来的 AI 工作负载优化奠定了坚实基础。
 
 ---
 

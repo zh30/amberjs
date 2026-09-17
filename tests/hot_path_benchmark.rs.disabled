@@ -1,4 +1,4 @@
-use beejs::{OptimizeMode, Runtime};
+use amberjs::{OptimizeMode, Runtime};
 use std::time::{Duration, Instant};
 
 /// 热路径检测基准测试

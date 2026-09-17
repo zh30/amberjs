@@ -11,7 +11,7 @@ use std::path::PathBuf;
 /// Main CLI application
 #[derive(Parser, Debug)]
 #[command(
-    name = "bee",
+    name = "amber",
     about = "High-performance JavaScript/TypeScript runtime (faster than Bun)",
     version = "0.1.1",
     author = "Henry Zhang"
@@ -72,7 +72,7 @@ pub enum SubCommand {
     Info(InfoCommandArgs),
     /// Diagnose environment problems
     Doctor(DoctorCommandArgs),
-    /// Upgrade Beejs to latest version
+    /// Upgrade Amber to latest version
     Upgrade(UpgradeCommand),
     /// Version information
     Version,
@@ -273,7 +273,7 @@ pub struct DoctorCommandArgs {
     #[arg(long)]
     pub fix: bool,
 }
-/// Upgrade command - upgrade Beejs
+/// Upgrade command - upgrade Amber
 #[derive(Parser, Debug)]
 pub struct UpgradeCommand {
     /// Target version (default: latest)

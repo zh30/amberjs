@@ -18,7 +18,7 @@ fn test_hono_style_web_standards_and_context_storage() {
 
     // 1. Web Standard Response.json and Response.redirect
     const res = Response.json({ message: 'hello from hono' }, { status: 201 });
-    const redirectRes = Response.redirect('https://beejs.dev/docs', 302);
+    const redirectRes = Response.redirect('https://amberjs.dev/docs', 302);
 
     // 2. Headers getSetCookie
     const headers = new Headers();
@@ -51,7 +51,7 @@ fn test_hono_style_web_standards_and_context_storage() {
     let output = run_js(script);
     assert_eq!(
         output,
-        "201:application/json:302:https://beejs.dev/docs:2:true"
+        "201:application/json:302:https://amberjs.dev/docs:2:true"
     );
 }
 
@@ -87,7 +87,7 @@ fn test_express_style_server_and_middlewares() {
     // Middleware 1: logger & header injection
     app.use((req, res, next) => {
         logs.push(`${req.method} ${req.url}`);
-        res.setHeader('X-Powered-By', 'Beejs');
+        res.setHeader('X-Powered-By', 'Amber');
         next();
     });
 
@@ -114,7 +114,7 @@ fn test_express_style_server_and_middlewares() {
     let output = run_js(script);
     assert_eq!(
         output,
-        "POST /api/v1/status:200:Beejs:application/json:true"
+        "POST /api/v1/status:200:Amber:application/json:true"
     );
 }
 

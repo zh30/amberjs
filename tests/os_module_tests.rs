@@ -1,4 +1,4 @@
-// os module tests for Beejs runtime
+// os module tests for Amber runtime
 // v0.3.37: Comprehensive os module testing
 
 use serial_test::serial;

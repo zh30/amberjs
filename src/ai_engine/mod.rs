@@ -1,4 +1,4 @@
-//! Beejs AI Engine - Native embeddings, tensor ops, and local inference
+//! Amber AI Engine - Native embeddings, tensor ops, and local inference
 
 pub mod candle_embeddings;
 pub mod candle_engine;

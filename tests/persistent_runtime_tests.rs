@@ -243,21 +243,21 @@ import('./dep.mjs').then((mod) => {
         let runtime = Runtime::new_default();
 
         // 设置全局变量
-        let result1 = runtime.execute_code("globalThis.appName = 'beejs'");
+        let result1 = runtime.execute_code("globalThis.appName = 'amberjs'");
         assert!(result1.is_ok());
 
         // 读取全局变量
         let result2 = runtime.execute_code("globalThis.appName");
         assert!(result2.is_ok());
-        assert!(result2.unwrap().contains("beejs"));
+        assert!(result2.unwrap().contains("amberjs"));
 
         // 修改全局变量
-        let result3 = runtime.execute_code("globalThis.appName = 'beejs-v2'");
+        let result3 = runtime.execute_code("globalThis.appName = 'amberjs-v2'");
         assert!(result3.is_ok());
 
         // 验证修改
         let result4 = runtime.execute_code("globalThis.appName");
         assert!(result4.is_ok());
-        assert!(result4.unwrap().contains("beejs-v2"));
+        assert!(result4.unwrap().contains("amberjs-v2"));
     }
 }

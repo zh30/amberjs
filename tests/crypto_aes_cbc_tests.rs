@@ -19,7 +19,7 @@ fn test_aes_cbc_encrypt_decrypt_roundtrip_with_imported_raw_key() {
                 0x1f, 0x1e, 0x1d, 0x1c, 0x1b, 0x1a, 0x19, 0x18,
                 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10
             ]);
-            const plaintext = new TextEncoder().encode('beejs aes-cbc roundtrip');
+            const plaintext = new TextEncoder().encode('amberjs aes-cbc roundtrip');
             const key = await crypto.subtle.importKey(
                 'raw',
                 keyData,
@@ -37,7 +37,7 @@ fn test_aes_cbc_encrypt_decrypt_roundtrip_with_imported_raw_key() {
                 key,
                 ciphertext
             );
-            return new TextDecoder().decode(decrypted) === 'beejs aes-cbc roundtrip' &&
+            return new TextDecoder().decode(decrypted) === 'amberjs aes-cbc roundtrip' &&
                 ciphertext.byteLength % 16 === 0 &&
                 ciphertext.byteLength > plaintext.byteLength;
         })();

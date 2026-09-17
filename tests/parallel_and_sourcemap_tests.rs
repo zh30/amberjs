@@ -1,22 +1,22 @@
 use std::process::Command;
 use tempfile::tempdir;
 
-fn bee() -> &'static str {
+fn amber() -> &'static str {
     env!("CARGO_BIN_EXE_amber")
 }
 
 #[test]
-fn bee_test_parallel_exits_two() {
-    let output = Command::new(bee())
+fn amber_test_parallel_exits_two() {
+    let output = Command::new(amber())
         .args(["test", "--parallel", "examples/testing"])
         .output()
-        .expect("bee test --parallel");
+        .expect("amber test --parallel");
     let stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert_eq!(
         output.status.code(),
         Some(2),
-        "bee test --parallel must exit 2 (stdout={stdout} stderr={stderr})"
+        "amber test --parallel must exit 2 (stdout={stdout} stderr={stderr})"
     );
     assert!(
         stderr.contains("not supported") || stdout.contains("not supported"),
@@ -38,11 +38,11 @@ fail();
     )
     .unwrap();
 
-    let output = Command::new(bee())
+    let output = Command::new(amber())
         .arg("run")
         .arg(&ts)
         .output()
-        .expect("bee run foo.ts");
+        .expect("amber run foo.ts");
     let combined = format!(
         "{}{}",
         String::from_utf8_lossy(&output.stdout),

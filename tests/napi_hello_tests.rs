@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use tempfile::tempdir;
 
-fn bee() -> &'static str {
+fn amber() -> &'static str {
     env!("CARGO_BIN_EXE_amber")
 }
 
@@ -57,11 +57,11 @@ console.log(result);
     );
     std::fs::write(&script, script_body).unwrap();
 
-    let output = Command::new(bee())
+    let output = Command::new(amber())
         .arg("run")
         .arg(&script)
         .output()
-        .expect("bee run napi hello");
+        .expect("amber run napi hello");
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -76,9 +76,9 @@ console.log(result);
 
 #[cfg(target_os = "linux")]
 #[test]
-fn bee_dynsym_exports_napi_create_function() {
+fn amber_dynsym_exports_napi_create_function() {
     let output = Command::new("nm")
-        .args(["-D", "--defined-only", bee()])
+        .args(["-D", "--defined-only", amber()])
         .output()
         .expect("nm -D");
     assert!(
@@ -89,6 +89,6 @@ fn bee_dynsym_exports_napi_create_function() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("napi_create_function"),
-        "Linux dlopen of hello.node needs napi_create_function in bee dynsym: {stdout}"
+        "Linux dlopen of hello.node needs napi_create_function in amber dynsym: {stdout}"
     );
 }

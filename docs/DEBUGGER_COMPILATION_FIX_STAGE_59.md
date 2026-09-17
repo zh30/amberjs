@@ -1,23 +1,23 @@
 # Stage 59 调试器编译错误修复报告
 
-> 发布校验说明（2026-05-26）：本文件是 Stage 59 历史编译修复记录，其中 `beejs debug` 命令名属于历史文本。当前 public CLI 为 `bee debug <file>`。
+> 发布校验说明（2026-05-26）：本文件是 Stage 59 历史编译修复记录，其中 `amberjs debug` 命令名属于历史文本。当前 public CLI 为 `amber debug <file>`。
 
 ## 修复概述
 
-本次修复解决了 Beejs Stage 59 调试器模块的部分编译错误，将错误数量从 81 个减少到 58 个。虽然还有一些 V8 API 兼容性问题需要解决，但调试器的核心 CLI 架构已经完成并可以集成。
+本次修复解决了 Amber Stage 59 调试器模块的部分编译错误，将错误数量从 81 个减少到 58 个。虽然还有一些 V8 API 兼容性问题需要解决，但调试器的核心 CLI 架构已经完成并可以集成。
 
 ## 主要修复内容
 
 ### 1. 修复 DebugSession 导入问题
 **文件**: `src/main.rs`
 **问题**: `DebugSession` 未导入
-**解决方案**: 添加了 `use beejs::debugger::DebugSession;` 导入
+**解决方案**: 添加了 `use amberjs::debugger::DebugSession;` 导入
 
 ```rust
-use beejs::cli::commands::{CliApp, SubCommand};
-use beejs::cli::{ExecutionContext, ExecutorConfig, ScriptExecutor, FileType, shebang};
-use beejs::RuntimeLite;
-use beejs::debugger::DebugSession;  // 新增导入
+use amberjs::cli::commands::{CliApp, SubCommand};
+use amberjs::cli::{ExecutionContext, ExecutorConfig, ScriptExecutor, FileType, shebang};
+use amberjs::RuntimeLite;
+use amberjs::debugger::DebugSession;  // 新增导入
 ```
 
 ### 2. 修复 DebugResult 类型兼容性问题
@@ -171,7 +171,7 @@ pub fn evaluate_expression(
 - `DebugSession` 在 main.rs 中的集成
 
 ✅ **功能完整**:
-- `beejs debug <file>` 命令解析
+- `amberjs debug <file>` 命令解析
 - `DebugSession::new()` 和 `DebugSession::start()` 方法
 - 调试器配置管理
 - 事件监听器系统
@@ -236,7 +236,7 @@ $ cargo check --lib
 Stage 59 的调试器核心架构已经完成，CLI 集成工作正常。虽然 V8 API 兼容性仍需进一步工作，但这是预期的，因为在 future stages 中会重点解决 V8 集成问题。
 
 当前的实现为后续的 V8 调试 API 集成奠定了坚实的基础，开发者可以：
-- 使用 `beejs debug <file>` 启动调试会话
+- 使用 `amberjs debug <file>` 启动调试会话
 - 享受完整的 CLI 调试体验
 - 期待即将到来的 V8 集成和 Chrome DevTools 支持
 

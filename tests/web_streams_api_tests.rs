@@ -6,19 +6,19 @@ mod web_streams_api_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
             std::env::var("CARGO_BIN_EXE_amber")
-                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     #[test]
     fn test_readable_stream_creation() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof ReadableStream)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "ReadableStream should exist");
@@ -26,10 +26,10 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_readable_stream_get_reader() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const s = new ReadableStream(); const r = s.getReader(); console.log(typeof r.read)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -40,10 +40,10 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_readable_stream_reader_has_read_write_locked_closed() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"const s = new ReadableStream(); const r = s.getReader(); console.log(typeof r.read === 'function' && typeof r.releaseLock === 'function' && r.closed instanceof Promise)"#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -54,13 +54,13 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_readable_stream_locked_property() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 "const s = new ReadableStream(); console.log(s.locked)",
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("false"), "New stream should be unlocked");
@@ -68,13 +68,13 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_readable_stream_locked_after_get_reader() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 "const s = new ReadableStream(); s.getReader(); console.log(s.locked)",
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "Stream should be locked");
@@ -82,7 +82,7 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_readable_stream_rejects_second_reader_until_release() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -102,7 +102,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -114,7 +114,7 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_readable_stream_release_lock_does_not_rewind_queue() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -137,7 +137,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -149,10 +149,10 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_writable_stream_creation() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof WritableStream)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "WritableStream should exist");
@@ -160,10 +160,10 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_writable_stream_get_writer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const s = new WritableStream(); const w = s.getWriter(); console.log(typeof w.write)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -174,10 +174,10 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_writable_stream_writer_has_promises() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"const s = new WritableStream(); const w = s.getWriter(); console.log(w.ready instanceof Promise && w.closed instanceof Promise)"#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -188,13 +188,13 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_writable_stream_locked_property() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 "const s = new WritableStream(); console.log(s.locked)",
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -205,7 +205,7 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_writable_stream_rejects_second_writer_until_release() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -225,7 +225,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -237,10 +237,10 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_transform_stream_creation() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof TransformStream)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "TransformStream should exist");
@@ -250,10 +250,10 @@ mod web_streams_api_tests {
     fn test_transform_stream_has_readable_writable() {
         // Note: TransformStream readable/writable getReader/getWriter require full implementation
         // Basic scaffold provides readable/writable objects with locked property
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const t = new TransformStream(); console.log(typeof t.readable && typeof t.writable)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -264,13 +264,13 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_text_decoder_stream_creation() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 "const d = new TextDecoderStream(); console.log(d.encoding)",
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -281,10 +281,10 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_text_decoder_stream_has_readable_writable() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const d = new TextDecoderStream(); console.log(typeof d.readable && typeof d.writable)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -295,10 +295,10 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_stream_creation_performance() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"performance.mark('s'); for(let i=0;i<100;i++){new ReadableStream(); new WritableStream(); new TransformStream();} performance.mark('e'); performance.measure('m','s','e'); console.log(performance.getEntriesByType('measure')[0].duration < 1000)"#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "Stream creation should be fast");
@@ -308,7 +308,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_with_start_and_enqueue() {
         // Test that start() callback is called and can use controller.enqueue()
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -325,7 +325,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -338,7 +338,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_controller_has_enqueue() {
         // Test that controller object has enqueue method
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -352,7 +352,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -364,7 +364,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_controller_has_close() {
         // Test that controller object has close method
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -378,7 +378,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -390,7 +390,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_controller_has_error() {
         // Test that controller object has error method
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -404,7 +404,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -416,7 +416,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_multiple_chunks() {
         // Test reading multiple chunks from a stream
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -443,7 +443,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -455,7 +455,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_close_after_enqueue() {
         // Test that stream is done after close
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -476,7 +476,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // First read should have data, second should be done
@@ -490,7 +490,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_with_start_callback() {
         // Test that start() callback is called
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -504,7 +504,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "Start callback should be called");
@@ -513,7 +513,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_write_adds_to_queue() {
         // Test that write() adds chunks to the write queue
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -527,7 +527,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -539,7 +539,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_close_changes_state() {
         // Test that close() changes the stream state
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -555,7 +555,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -567,7 +567,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_abort_changes_state() {
         // Test that abort() changes the stream state to errored
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -583,7 +583,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -595,7 +595,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_write_rejects_when_closed() {
         // Test that write() doesn't add to queue when stream is closed
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -612,7 +612,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "Write queue should exist");
@@ -621,7 +621,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_transform_stream_transform_function_call() {
         // Test that TransformStream with transformer works correctly
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -635,7 +635,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -647,7 +647,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_transform_stream_controller_has_methods() {
         // Test that TransformStream writable side works with controller methods
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const ts = new TransformStream({
                     transform(chunk, controller) {
@@ -659,7 +659,7 @@ mod web_streams_api_tests {
                 console.log(typeof writer.write === 'function' && typeof writer.close === 'function' && typeof writer.abort === 'function');
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -671,7 +671,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_transform_stream_readable_has_get_reader() {
         // Test that TransformStream readable side has getReader
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -686,7 +686,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -699,7 +699,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_transform_stream_end_to_end_transform() {
         // Test that transform() actually transforms data from writable to readable
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -731,7 +731,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -743,7 +743,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_transform_stream_with_flush() {
         // Test transform with flush callback
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -774,7 +774,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -786,7 +786,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_transform_stream_error_propagation() {
         // Test that errors in transform are properly handled
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -807,7 +807,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -820,7 +820,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_pipe_to_method_exists() {
         // Test that ReadableStream has pipeTo method
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -829,7 +829,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -841,7 +841,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_pipe_to_writable() {
         // Test basic pipeTo functionality - data flows from readable to writable
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -870,7 +870,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -882,7 +882,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_pipe_to_returns_promise() {
         // Test that pipeTo returns a Promise
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -893,7 +893,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "pipeTo should return a Promise");
@@ -903,7 +903,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_pipe_through_method_exists() {
         // Test that ReadableStream has pipeThrough method
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -912,7 +912,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -924,7 +924,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_readable_stream_pipe_through_transform() {
         // Test basic pipeThrough functionality
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -951,7 +951,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -964,7 +964,7 @@ mod web_streams_api_tests {
     fn test_readable_stream_pipe_through_data_flow() {
         // Test that pipeThrough correctly sets up the transform pipeline
         // The actual data flow is async, so we verify the structure is correct
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const ts = new TransformStream({
                     transform(chunk, controller) {
@@ -986,7 +986,7 @@ mod web_streams_api_tests {
                 console.log(typeof result === 'object' && typeof result.readable === 'object' && typeof result.readable.getReader === 'function');
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Verify the structure is correct - the actual async data flow requires setTimeout which
@@ -1000,7 +1000,7 @@ mod web_streams_api_tests {
     // v0.3.289: Tests for pipeTo with preventClose option
     #[test]
     fn test_pipe_to_returns_promise() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1018,7 +1018,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "pipeTo should return a Promise");
@@ -1026,7 +1026,7 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_pipe_to_closes_writable_by_default() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1045,7 +1045,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1056,7 +1056,7 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_pipe_to_prevent_close_option() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1075,7 +1075,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1086,7 +1086,7 @@ mod web_streams_api_tests {
 
     #[test]
     fn test_pipe_to_data_transfer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readable = new ReadableStream({
                     start(controller) {
@@ -1106,7 +1106,7 @@ mod web_streams_api_tests {
                 });
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1118,7 +1118,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_pipe_to_prevent_abort_option() {
         // Test preventAbort option - writable should not be aborted when error occurs
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1148,7 +1148,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1160,7 +1160,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_pipe_to_error_propagates_to_promise() {
         // Test that errors in readable stream propagate to the pipeTo promise
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1183,7 +1183,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "pipeTo should return a Promise");
@@ -1192,7 +1192,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_pipe_to_writable_close_failure_aborts() {
         // Test that writable close failure properly aborts the pipe
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1221,7 +1221,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1233,7 +1233,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_pipe_to_both_options_together() {
         // Test preventClose and preventAbort options together
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1259,7 +1259,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1272,7 +1272,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_pipe_to_signal_option_exists() {
         // Test that pipeTo accepts signal option
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1293,7 +1293,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1307,7 +1307,7 @@ mod web_streams_api_tests {
         // Test that already aborted signal immediately rejects
         // Note: Async abort tests require WritableStream.write() to properly await
         // user Promises, which is a separate enhancement.
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1334,7 +1334,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1347,7 +1347,7 @@ mod web_streams_api_tests {
     fn test_pipe_to_signal_with_prevent_abort_pre_aborted() {
         // Test preventAbort with pre-aborted signal
         // This works because rejection happens synchronously at pipeTo start
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1374,7 +1374,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1387,7 +1387,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_write_waits_for_async_callback() {
         // Test that write() waits for async write callback to complete
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1412,7 +1412,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Check that async write works: false before, true after
@@ -1425,7 +1425,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_write_rejects_on_callback_error() {
         // Test that write() rejects when write callback rejects
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1442,7 +1442,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1454,7 +1454,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_write_with_sync_callback() {
         // Test that write() resolves immediately for synchronous callbacks
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1477,7 +1477,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1489,7 +1489,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_writable_stream_write_returns_promise() {
         // Test that write() returns a Promise
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1500,7 +1500,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "write() should return a Promise");
@@ -1510,10 +1510,10 @@ mod web_streams_api_tests {
     #[test]
     fn test_text_encoder_stream_creation() {
         // Test that TextEncoderStream can be created
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof TextEncoderStream)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1525,13 +1525,13 @@ mod web_streams_api_tests {
     #[test]
     fn test_text_encoder_stream_has_encoding() {
         // Test that TextEncoderStream has encoding property
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 "const e = new TextEncoderStream(); console.log(e.encoding)",
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1543,10 +1543,10 @@ mod web_streams_api_tests {
     #[test]
     fn test_text_encoder_stream_has_readable_writable() {
         // Test that TextEncoderStream has readable and writable properties
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "const e = new TextEncoderStream(); console.log(typeof e.readable && typeof e.writable)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1558,7 +1558,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_text_encoder_stream_encodes_to_bytes() {
         // Test that TextEncoderStream actually encodes strings to bytes
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1577,7 +1577,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1589,7 +1589,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_text_encoder_stream_multibyte_characters() {
         // Test that TextEncoderStream handles multibyte UTF-8 characters correctly
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1607,7 +1607,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1619,7 +1619,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_text_encoder_stream_empty_string() {
         // Test that TextEncoderStream handles empty string
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1636,7 +1636,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1648,7 +1648,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_text_encoder_stream_pipe_from_readable() {
         // Test piping from ReadableStream through TextEncoderStream
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1672,7 +1672,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1685,7 +1685,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_transform_stream_async_flush() {
         // Test transform with async flush callback (returns Promise)
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1720,7 +1720,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1732,7 +1732,7 @@ mod web_streams_api_tests {
     #[test]
     fn test_transform_stream_sync_flush() {
         // Test transform with sync flush callback (no Promise)
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1763,7 +1763,7 @@ mod web_streams_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(

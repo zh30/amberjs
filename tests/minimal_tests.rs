@@ -108,7 +108,7 @@ const config = { apiKey: "test" };
 function greet(name: string): string {
     return `Hello, ${name}!`;
 }
-greet("Beejs");
+greet("Amber");
 "#;
         let result = typescript::compile_typescript(ts_code, "test.ts");
         assert!(

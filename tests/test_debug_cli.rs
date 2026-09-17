@@ -11,7 +11,7 @@ fn test_debug_command_exists() {
     let output = Command::new("cargo")
         .args(["run", "--", "debug", "--help"])
         .output()
-        .expect("Failed to run bee debug --help");
+        .expect("Failed to run amber debug --help");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -34,7 +34,7 @@ fn test_debug_script_command() {
     let output = Command::new("cargo")
         .args(["run", "--", "debug", test_script.to_str().unwrap()])
         .output()
-        .expect("Failed to run bee debug script.js");
+        .expect("Failed to run amber debug script.js");
 
     // The command should at least start (may exit with error due to unimplemented features)
     // but should not fail with "unknown command" error
@@ -53,7 +53,7 @@ fn test_debug_script_command() {
 
 #[test]
 fn test_debug_with_options() {
-    // Current public CLI only supports `bee debug <file>`.
+    // Current public CLI only supports `amber debug <file>`.
     // Historical Stage 59 flags such as --port are intentionally not exposed.
     let test_script = PathBuf::from("/tmp/test_debug_options.js");
     std::fs::write(&test_script, "let x = 42; console.log(x);")
@@ -69,7 +69,7 @@ fn test_debug_with_options() {
             "9229",
         ])
         .output()
-        .expect("Failed to run bee debug with options");
+        .expect("Failed to run amber debug with options");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -79,7 +79,7 @@ fn test_debug_with_options() {
     assert!(
         !output.status.success()
             && stderr.contains("unexpected argument '--port'")
-            && stderr.contains("Usage: bee debug"),
+            && stderr.contains("Usage: amber debug"),
         "Unsupported debug --port flag should be rejected by the current public CLI. stderr: {}",
         stderr
     );
@@ -91,14 +91,14 @@ fn test_debug_attach_command() {
     let output = Command::new("cargo")
         .args(["run", "--", "debug", "attach", "--pid", "1234"])
         .output()
-        .expect("Failed to run bee debug attach");
+        .expect("Failed to run amber debug attach");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     assert!(
         !output.status.success()
             && stderr.contains("unexpected argument '--pid'")
-            && stderr.contains("Usage: bee debug"),
+            && stderr.contains("Usage: amber debug"),
         "Unsupported debug attach mode should be rejected by the current public CLI. stderr: {}",
         stderr
     );
@@ -110,14 +110,14 @@ fn test_debug_inspect_command() {
     let output = Command::new("cargo")
         .args(["run", "--", "debug", "inspect", "--port", "8080"])
         .output()
-        .expect("Failed to run bee debug inspect");
+        .expect("Failed to run amber debug inspect");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     assert!(
         !output.status.success()
             && stderr.contains("unexpected argument '--port'")
-            && stderr.contains("Usage: bee debug"),
+            && stderr.contains("Usage: amber debug"),
         "Unsupported debug inspect mode should be rejected by the current public CLI. stderr: {}",
         stderr
     );
@@ -133,7 +133,7 @@ fn test_debug_web_flag() {
     let output = Command::new("cargo")
         .args(["run", "--", "debug", test_script.to_str().unwrap(), "--web"])
         .output()
-        .expect("Failed to run bee debug --web");
+        .expect("Failed to run amber debug --web");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -143,7 +143,7 @@ fn test_debug_web_flag() {
     assert!(
         !output.status.success()
             && stderr.contains("unexpected argument '--web'")
-            && stderr.contains("Usage: bee debug"),
+            && stderr.contains("Usage: amber debug"),
         "Unsupported debug --web flag should be rejected by the current public CLI. stderr: {}",
         stderr
     );

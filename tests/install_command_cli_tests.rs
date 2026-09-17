@@ -1,13 +1,13 @@
-// bee install command tests
-// v0.3.229 - Test coverage for bee install command
+// amber install command tests
+// v0.3.229 - Test coverage for amber install command
 
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
-/// Get the path to the bee binary built by cargo for integration tests.
-fn beejs_path() -> PathBuf {
+/// Get the path to the amber binary built by cargo for integration tests.
+fn amberjs_path() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
@@ -15,17 +15,17 @@ fn beejs_path() -> PathBuf {
 mod install_command_tests {
     use super::*;
 
-    /// Test 1: bee install command should be recognized
+    /// Test 1: amber install command should be recognized
     #[test]
     fn test_install_command_exists() {
-        let beejs = beejs_path();
-        assert!(beejs.exists(), "bee binary should exist at {:?}", beejs);
+        let amberjs = amberjs_path();
+        assert!(amberjs.exists(), "amber binary should exist at {:?}", amberjs);
 
-        let output = Command::new(&beejs)
+        let output = Command::new(&amberjs)
             .arg("install")
             .arg("--help")
             .output()
-            .expect("Failed to execute bee install --help");
+            .expect("Failed to execute amber install --help");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -35,28 +35,28 @@ mod install_command_tests {
             output.status.success()
                 || stdout.contains("Install dependencies")
                 || stderr.contains("Install dependencies"),
-            "bee install command should be recognized. stdout: {}, stderr: {}",
+            "amber install command should be recognized. stdout: {}, stderr: {}",
             stdout,
             stderr
         );
     }
 
-    /// Test 2: bee install with no package.json should error
+    /// Test 2: amber install with no package.json should error
     #[test]
     fn test_install_no_package_json() {
         let temp_dir = TempDir::new().unwrap();
 
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .arg("install")
             .current_dir(temp_dir.path())
             .output()
-            .expect("Failed to execute bee install");
+            .expect("Failed to execute amber install");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
 
         assert!(
             !output.status.success(),
-            "bee install should fail without package.json"
+            "amber install should fail without package.json"
         );
         assert!(
             stderr.contains("package.json not found"),
@@ -65,7 +65,7 @@ mod install_command_tests {
         );
     }
 
-    /// Test 3: bee install with empty dependencies should succeed
+    /// Test 3: amber install with empty dependencies should succeed
     #[test]
     fn test_install_empty_dependencies() {
         let temp_dir = TempDir::new().unwrap();
@@ -78,18 +78,18 @@ mod install_command_tests {
         let package_json_path = temp_dir.path().join("package.json");
         fs::write(&package_json_path, package_json).unwrap();
 
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .arg("install")
             .current_dir(temp_dir.path())
             .output()
-            .expect("Failed to execute bee install");
+            .expect("Failed to execute amber install");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
 
         assert!(
             output.status.success(),
-            "bee install with empty dependencies should succeed. stderr: {}",
+            "amber install with empty dependencies should succeed. stderr: {}",
             stderr
         );
         assert!(
@@ -168,34 +168,34 @@ mod install_command_tests {
         }
 
         let dir = TempDir::new().expect("tempdir");
-        let init = Command::new(beejs_path())
+        let init = Command::new(amberjs_path())
             .current_dir(dir.path())
             .args(["init", "demo"])
             .output()
-            .expect("bee init");
+            .expect("amber init");
         assert!(
             init.status.success(),
-            "bee init failed: {}",
+            "amber init failed: {}",
             String::from_utf8_lossy(&init.stderr)
         );
 
         let project = dir.path().join("demo");
-        let add_lodash = Command::new(beejs_path())
+        let add_lodash = Command::new(amberjs_path())
             .current_dir(&project)
             .args(["add", "lodash"])
             .output()
-            .expect("bee add lodash");
+            .expect("amber add lodash");
         assert!(
             add_lodash.status.success(),
-            "bee add lodash failed: {}",
+            "amber add lodash failed: {}",
             String::from_utf8_lossy(&add_lodash.stderr)
         );
 
-        let eval_lodash = Command::new(beejs_path())
+        let eval_lodash = Command::new(amberjs_path())
             .current_dir(&project)
             .args(["eval", "console.log(require('lodash').VERSION)"])
             .output()
-            .expect("bee eval lodash");
+            .expect("amber eval lodash");
         assert!(
             eval_lodash.status.success(),
             "require('lodash') failed: {}{}",
@@ -203,22 +203,22 @@ mod install_command_tests {
             String::from_utf8_lossy(&eval_lodash.stderr)
         );
 
-        let add_ms = Command::new(beejs_path())
+        let add_ms = Command::new(amberjs_path())
             .current_dir(&project)
             .args(["add", "ms"])
             .output()
-            .expect("bee add ms");
+            .expect("amber add ms");
         assert!(
             add_ms.status.success(),
-            "bee add ms failed: {}",
+            "amber add ms failed: {}",
             String::from_utf8_lossy(&add_ms.stderr)
         );
 
-        let eval_ms = Command::new(beejs_path())
+        let eval_ms = Command::new(amberjs_path())
             .current_dir(&project)
             .args(["eval", "console.log(typeof require('ms'))"])
             .output()
-            .expect("bee eval ms");
+            .expect("amber eval ms");
         assert!(
             eval_ms.status.success(),
             "require('ms') failed: {}{}",

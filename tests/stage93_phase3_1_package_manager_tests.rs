@@ -15,7 +15,7 @@ fn test_package_manager_config() {
 
     assert_eq!(config.manager_type, PackageManagerType::Npm);
     assert_eq!(config.registry_url, "https://registry.npmjs.org/");
-    assert_eq!(config.cache_dir, PathBuf::from(".beejs_cache"));
+    assert_eq!(config.cache_dir, PathBuf::from(".amberjs_cache"));
 
     // Test custom config
     let custom_config = PackageManagerConfig {
@@ -191,7 +191,7 @@ fn test_type_definition_generator() {
 
     assert!(result.is_ok());
     let dts_content = result.unwrap();
-    assert!(dts_content.contains("declare module 'beejs-runtime'"));
+    assert!(dts_content.contains("declare module 'amberjs-runtime'"));
     assert!(dts_content.contains("export function run"));
     assert!(dts_content.contains("export function evaluate"));
 }
@@ -299,7 +299,7 @@ fn test_react_runtime_render() {
 
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(output.contains("data-beejs-react"));
+    assert!(output.contains("data-amberjs-react"));
     assert!(output.contains("React Component Rendered"));
 }
 
@@ -361,9 +361,9 @@ fn test_build_tool_plugin() {
 fn test_vscode_extension_config() {
     let config = VsCodeExtensionConfig::default();
 
-    assert_eq!(config.name, "beejs-language-support");
+    assert_eq!(config.name, "amberjs-language-support");
     assert_eq!(config.version, "0.1.0");
-    assert_eq!(config.publisher, "beejs-team");
+    assert_eq!(config.publisher, "amberjs-team");
     assert!(config.engines.contains_key("vscode"));
     assert!(config.categories.contains(&"Languages".to_string()));
     assert!(config

@@ -216,7 +216,7 @@ async fn test_concurrent_memory_allocation() {
 #[tokio::test]
 async fn test_memory_mapping() {
     let engine = Phase2MemoryEngine::default();
-    let test_file = "/tmp/beejs_test_mmap.dat";
+    let test_file = "/tmp/amberjs_test_mmap.dat";
     let size = 4096;
 
     // 创建测试文件

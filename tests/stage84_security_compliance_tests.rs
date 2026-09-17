@@ -1,6 +1,6 @@
 // Stage 84: 企业级安全与合规测试套件
 //
-// 这些测试验证 Beejs 的零信任架构、数据加密、合规自动化和审计追踪功能。
+// 这些测试验证 Amber 的零信任架构、数据加密、合规自动化和审计追踪功能。
 
 #[cfg(all(test, feature = "enterprise"))]
 mod stage84_security_tests {
@@ -150,7 +150,7 @@ mod stage84_security_tests {
         let encryption_engine = EncryptionEngine::new();
 
         // 测试数据加密
-        let plaintext = b"Hello, Beejs Security!";
+        let plaintext = b"Hello, Amber Security!";
         let encrypted = encryption_engine.encrypt(plaintext).await.unwrap();
         assert!(!encrypted.is_empty());
 

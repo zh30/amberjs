@@ -1,9 +1,9 @@
-//! Host-agnostic `bee` discovery and `bee lsp` argv assembly.
+//! Host-agnostic `amber` discovery and `amber lsp` argv assembly.
 //!
 //! The WASM `Extension` impl supplies I/O (`Worktree::which`, settings,
 //! `current_platform`). Tests inject fakes so they run without Zed.
 
-/// Launch plan for `bee lsp`.
+/// Launch plan for `amber lsp`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LspLaunch {
     pub command: String,
@@ -21,16 +21,16 @@ pub struct WhichLookup<'a> {
 /// Binary names `Worktree::which` should try, in order.
 pub fn candidate_binary_names(windows: bool) -> &'static [&'static str] {
     if windows {
-        &["bee.exe", "bee"]
+        &["amber.exe", "amber"]
     } else {
-        &["bee"]
+        &["amber"]
     }
 }
 
-/// Resolve a `bee` binary from an explicit runtime path or a which-lookup.
+/// Resolve a `amber` binary from an explicit runtime path or a which-lookup.
 ///
 /// Does not read `std::env::var("PATH")`; callers pass `Worktree::which`.
-pub fn resolve_bee_binary(
+pub fn resolve_amber_binary(
     configured_path: Option<&str>,
     windows: bool,
     which: impl Fn(&str) -> Option<String>,
@@ -44,7 +44,7 @@ pub fn resolve_bee_binary(
         }
     }
     Err(
-        "Beejs `bee` binary not found. Install Beejs so `bee` is on PATH, or set `lsp.bee-lsp.binary.path` in Zed settings."
+        "Amber `amber` binary not found. Install Amber so `amber` is on PATH, or set `lsp.amber-lsp.binary.path` in Zed settings."
             .to_string(),
     )
 }
@@ -64,7 +64,7 @@ pub fn assemble_lsp_command(binary: String, extra_args: &[String]) -> LspLaunch 
 
 /// Shipped assembly used by `Extension::language_server_command`.
 pub fn build_language_server_command(lookup: WhichLookup<'_>) -> Result<LspLaunch, String> {
-    let binary = resolve_bee_binary(lookup.configured_path, lookup.windows, lookup.which)?;
+    let binary = resolve_amber_binary(lookup.configured_path, lookup.windows, lookup.which)?;
     Ok(assemble_lsp_command(binary, lookup.extra_args))
 }
 
@@ -75,7 +75,7 @@ mod tests {
     use std::path::Path;
 
     fn fake_bee(dir: &Path) -> String {
-        let path = dir.join("bee");
+        let path = dir.join("amber");
         fs::write(&path, b"#!/bin/sh\nexit 0\n").unwrap();
         #[cfg(unix)]
         {
@@ -90,11 +90,11 @@ mod tests {
     #[test]
     fn found_on_path_argv_starts_with_binary_then_lsp() {
         let dir = tempfile::tempdir().unwrap();
-        let bee = fake_bee(dir.path());
-        let bee_for_which = bee.clone();
+        let amber = fake_bee(dir.path());
+        let amber_for_which = amber.clone();
         let which = move |name: &str| {
-            if name == "bee" {
-                Some(bee_for_which.clone())
+            if name == "amber" {
+                Some(amber_for_which.clone())
             } else {
                 None
             }
@@ -105,8 +105,8 @@ mod tests {
             which: &which,
             extra_args: &[],
         })
-        .expect("bee on PATH");
-        assert_eq!(launch.command, bee);
+        .expect("amber on PATH");
+        assert_eq!(launch.command, amber);
         assert_eq!(launch.args.first().map(String::as_str), Some("lsp"));
         assert_eq!(launch.args, vec!["lsp".to_string()]);
     }
@@ -120,34 +120,34 @@ mod tests {
             which: &which,
             extra_args: &[],
         })
-        .expect_err("missing bee");
+        .expect_err("missing amber");
         assert!(
             err.contains("not found"),
             "error should say the binary is missing: {err}"
         );
         assert!(
-            err.contains("PATH") && err.contains("lsp.bee-lsp.binary.path"),
+            err.contains("PATH") && err.contains("lsp.amber-lsp.binary.path"),
             "error should tell the user how to install or configure: {err}"
         );
     }
 
     #[test]
     fn configured_runtime_path_wins_over_which() {
-        let which = |_name: &str| Some("/from/which/bee".to_string());
+        let which = |_name: &str| Some("/from/which/amber".to_string());
         let launch = build_language_server_command(WhichLookup {
-            configured_path: Some("/explicit/bee"),
+            configured_path: Some("/explicit/amber"),
             windows: false,
             which: &which,
             extra_args: &[],
         })
         .unwrap();
-        assert_eq!(launch.command, "/explicit/bee");
+        assert_eq!(launch.command, "/explicit/amber");
         assert_eq!(launch.args, vec!["lsp".to_string()]);
     }
 
     #[test]
     fn extra_args_append_after_lsp() {
-        let which = |_name: &str| Some("/opt/bee".to_string());
+        let which = |_name: &str| Some("/opt/amber".to_string());
         let extra = vec!["--verbose".to_string()];
         let launch = build_language_server_command(WhichLookup {
             configured_path: None,
@@ -163,10 +163,10 @@ mod tests {
     }
 
     #[test]
-    fn windows_tries_bee_exe_first() {
+    fn windows_tries_amber_exe_first() {
         let which = |name: &str| {
-            if name == "bee.exe" {
-                Some(r"C:\Tools\bee.exe".to_string())
+            if name == "amber.exe" {
+                Some(r"C:\Tools\amber.exe".to_string())
             } else {
                 None
             }
@@ -178,7 +178,7 @@ mod tests {
             extra_args: &[],
         })
         .unwrap();
-        assert_eq!(launch.command, r"C:\Tools\bee.exe");
-        assert_eq!(candidate_binary_names(true), &["bee.exe", "bee"]);
+        assert_eq!(launch.command, r"C:\Tools\amber.exe");
+        assert_eq!(candidate_binary_names(true), &["amber.exe", "amber"]);
     }
 }

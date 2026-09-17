@@ -27,8 +27,8 @@ use workloads::{AIWorkload, ComputeWorkload, ConcurrentWorkload, IOWorkload, Mem
 /// 运行时类型枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Runtime {
-    /// Beejs 运行时
-    Beejs,
+    /// Amber 运行时
+    Amber,
     /// Node.js 运行时
     NodeJs,
     /// Bun 运行时
@@ -41,7 +41,7 @@ pub enum Runtime {
 impl std::fmt::Display for Runtime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Runtime::Beejs => write!(f, "bee"),
+            Runtime::Amber => write!(f, "amber"),
             Runtime::NodeJs => write!(f, "node"),
             Runtime::Bun => write!(f, "bun"),
             Runtime::Deno => write!(f, "deno"),

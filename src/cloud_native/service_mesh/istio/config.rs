@@ -24,9 +24,9 @@ impl IstioConfigManager {
     pub fn new(client: kube::Client, config: IstioConfig) -> Self {
         Self { client, config }
     }
-    /// Configure Istio for Beejs services
+    /// Configure Istio for Amber services
     pub async fn configure(&self) -> Result<(), Error> {
-        info!("Configuring Istio for Beejs services");
+        info!("Configuring Istio for Amber services");
         // 1. Configure namespace labels for sidecar injection
         self.configure_namespace().await?;
         // 2. Create DestinationRules
@@ -351,10 +351,10 @@ mod tests {
     #[test]
     fn test_istio_config_creation() {
         let config: _ = IstioConfig {
-            namespace: "beejs-system".to_string(),
+            namespace: "amberjs-system".to_string(),
             mtls_enabled: true,
             services: vec![IstioService {
-                name: "beejs-api".to_string(),
+                name: "amberjs-api".to_string(),
                 port: 8080,
                 protocol: "HTTP".to_string(),
             }],
@@ -371,10 +371,10 @@ mod tests {
                 },
             },
         };
-        assert_eq!(config.namespace, "beejs-system");
+        assert_eq!(config.namespace, "amberjs-system");
         assert!(config.mtls_enabled);
         assert_eq!(config.services.len(), 1);
-        assert_eq!(config.services[0].name, "beejs-api");
+        assert_eq!(config.services[0].name, "amberjs-api");
         assert_eq!(config.services[0].port, 8080);
     }
 }

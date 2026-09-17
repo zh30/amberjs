@@ -75,7 +75,7 @@ console.log(getAnswer());
 function greet(name: string): string {
     return `Hello, ${name}!`;
 }
-console.log(greet("Beejs"));
+console.log(greet("Amber"));
 "#;
 
         match compile_typescript(code, "test.ts") {

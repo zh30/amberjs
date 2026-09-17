@@ -1,4 +1,4 @@
-#!/usr/bin/env beejs
+#!/usr/bin/env amberjs
 /**
  * 极简 ICU 错误定位测试
  * 逐步增加复杂度，确定 ICU 错误的确切触发条件

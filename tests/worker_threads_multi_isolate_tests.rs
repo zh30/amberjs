@@ -93,7 +93,7 @@ worker.on('message', (msg) => {{
     worker.terminate();
 }});
 
-worker.postMessage({{ text: 'hello beejs' }});
+worker.postMessage({{ text: 'hello amberjs' }});
 "#,
             worker_path = worker_path_str
         ),
@@ -107,7 +107,7 @@ worker.postMessage({{ text: 'hello beejs' }});
     assert!(result.is_ok(), "Ping-pong failed: {:?}", result.err());
 
     let check = runtime.execute_code("replyReceived");
-    assert_eq!(check.unwrap(), "HELLO BEEJS");
+    assert_eq!(check.unwrap(), "HELLO AMBER");
 }
 
 #[test]

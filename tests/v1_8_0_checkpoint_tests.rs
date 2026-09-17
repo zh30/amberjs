@@ -7,7 +7,7 @@ fn test_checkpoint_save_and_restore() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createCheckpointManager } = require('bee:checkpoint');
+    const { createCheckpointManager } = require('amber:checkpoint');
     const mgr = createCheckpointManager();
 
     // 1. Initial checkpoint
@@ -49,7 +49,7 @@ fn test_checkpoint_state_diffing() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createCheckpointManager } = require('bee:checkpoint');
+    const { createCheckpointManager } = require('amber:checkpoint');
     const mgr = createCheckpointManager();
 
     mgr.save('v1', {
@@ -91,7 +91,7 @@ fn test_checkpoint_tree_branching_and_fork() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createCheckpointManager } = require('bee:checkpoint');
+    const { createCheckpointManager } = require('amber:checkpoint');
     const mainMgr = createCheckpointManager();
 
     mainMgr.save('root', { path: 'root' });
@@ -127,8 +127,8 @@ fn test_checkpoint_kv_store_persistence() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createCheckpointManager } = require('bee:checkpoint');
-    const { openInMemory } = require('bee:kv');
+    const { createCheckpointManager } = require('amber:checkpoint');
+    const { openInMemory } = require('amber:kv');
 
     const kv = openInMemory();
     const mgr1 = createCheckpointManager();

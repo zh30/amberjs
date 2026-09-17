@@ -148,8 +148,8 @@ impl PluginManager {
         let mut author = "unknown".to_string();
         for line in code.lines() {
             let line: _ = line.trim();
-            // Extract metadata from @beejs-meta comments
-            if line.starts_with("// @beejs-meta") {
+            // Extract metadata from @amberjs-meta comments
+            if line.starts_with("// @amberjs-meta") {
                 if let Some(pos) = line.find(":") {
                     let key: _ = line[14..pos].trim();
                     let value: _ = line[pos + 1..].trim().trim_matches('"');
@@ -309,10 +309,10 @@ mod tests {
     fn test_extract_metadata_from_code() {
         let manager: _ = PluginManager::new(false);
         let code: _ = r#"
-            // @beejs-meta: name: "test-plugin"
-            // @beejs-meta: version: "2.0.0"
-            // @beejs-meta: description: "A test plugin"
-            // @beejs-meta: author: "Test User"
+            // @amberjs-meta: name: "test-plugin"
+            // @amberjs-meta: version: "2.0.0"
+            // @amberjs-meta: description: "A test plugin"
+            // @amberjs-meta: author: "Test User"
             console.log('plugin code');
         "#;
         let metadata: _ = manager.extract_metadata_from_code(code).unwrap();

@@ -53,7 +53,7 @@ WORKDIR /app
 
 # 从构建阶段复制二进制文件并建立兼容别名
 COPY --from=builder /app/target/release/amber /usr/local/bin/amber
-RUN ln -s /usr/local/bin/amber /usr/local/bin/bee
+RUN ln -s /usr/local/bin/amber /usr/local/bin/amber
 
 # 创建必要的目录
 RUN mkdir -p /app/cache /app/logs /app/tmp && \

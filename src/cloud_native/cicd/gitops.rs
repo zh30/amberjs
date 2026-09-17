@@ -295,17 +295,17 @@ mod tests {
     #[test]
     fn test_argocd_application_creation() {
         let app: _ = ArgoCDApplication::new(
-            "beejs-app".to_string(),
+            "amberjs-app".to_string(),
             "production".to_string(),
-            "https://github.com/example/beejs-manifests.git".to_string(),
+            "https://github.com/example/amberjs-manifests.git".to_string(),
             "main".to_string(),
             "/manifests".to_string(),
         );
-        assert_eq!(app.name, "beejs-app");
+        assert_eq!(app.name, "amberjs-app");
         assert_eq!(app.environment, "production");
         assert_eq!(
             app.repo_url,
-            "https://github.com/example/beejs-manifests.git"
+            "https://github.com/example/amberjs-manifests.git"
         );
         assert_eq!(app.target_revision, "main");
         assert_eq!(app.path, "/manifests");
@@ -314,14 +314,14 @@ mod tests {
     #[test]
     fn test_flux_helm_release_creation() {
         let release: _ = FluxHelmRelease::new(
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "production".to_string(),
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "https://helm.github.io/charts".to_string(),
         );
-        assert_eq!(release.name, "beejs");
+        assert_eq!(release.name, "amberjs");
         assert_eq!(release.namespace, "production");
-        assert_eq!(release.chart_name, "beejs");
+        assert_eq!(release.chart_name, "amberjs");
         assert_eq!(release.chart_repo, "https://helm.github.io/charts");
         assert!(release.wait_for_jobs);
     }
@@ -348,14 +348,14 @@ mod tests {
     fn test_gitops_manager_flux() {
         let mut manager = GitOpsManager::new("flux".to_string());
         let release: _ = FluxHelmRelease::new(
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "production".to_string(),
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "https://helm.github.io/charts".to_string(),
         );
         manager.add_helm_release(release);
         assert_eq!(manager.helm_releases.len(), 1);
-        let status: _ = manager.sync_helm_release("beejs");
+        let status: _ = manager.sync_helm_release("amberjs");
         assert!(status.is_ok());
         if let Ok(status) = status {
             assert!(status.success);

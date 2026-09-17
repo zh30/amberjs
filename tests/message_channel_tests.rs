@@ -6,19 +6,19 @@ mod message_channel_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
             std::env::var("CARGO_BIN_EXE_amber")
-                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     #[test]
     fn test_message_channel_creation() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof MessageChannel)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "MessageChannel should exist");
@@ -26,10 +26,10 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_channel_has_port1_port2() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"const ch = new MessageChannel(); console.log(typeof ch.port1 === 'object' && typeof ch.port2 === 'object')"#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -40,10 +40,10 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_port_has_post_message() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"const ch = new MessageChannel(); console.log(typeof ch.port1.postMessage === 'function')"#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -54,10 +54,10 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_port_has_start() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"const ch = new MessageChannel(); console.log(typeof ch.port1.start === 'function')"#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "port1 should have start method");
@@ -65,10 +65,10 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_port_has_close() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"const ch = new MessageChannel(); console.log(typeof ch.port1.close === 'function')"#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "port1 should have close method");
@@ -76,13 +76,13 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_port_has_onmessage() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"const ch = new MessageChannel(); console.log('onmessage' in ch.port1)"#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -93,13 +93,13 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_port_has_onmessageerror() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"const ch = new MessageChannel(); console.log('onmessageerror' in ch.port1)"#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -110,13 +110,13 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_port_has_closed() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"const ch = new MessageChannel(); console.log('closed' in ch.port1)"#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "port1 should have closed property");
@@ -125,7 +125,7 @@ mod message_channel_tests {
     #[test]
     fn test_basic_message_pass() {
         // Test that messages can be sent from port1 to port2 after start
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -139,7 +139,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -150,7 +150,7 @@ mod message_channel_tests {
 
     #[test]
     fn test_close_port() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -160,7 +160,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -171,7 +171,7 @@ mod message_channel_tests {
 
     #[test]
     fn test_close_prevents_further_messages() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -187,7 +187,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // postMessage on closed port should silently fail (not throw)
@@ -200,7 +200,7 @@ mod message_channel_tests {
     #[test]
     fn test_structured_clone_compatible() {
         // Test that complex objects can be passed through MessageChannel
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -213,7 +213,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -224,7 +224,7 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_port_object_payload_is_structured_cloned() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -256,7 +256,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -268,7 +268,7 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_port_uncloneable_payload_throws_without_dispatch() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -289,7 +289,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -301,7 +301,7 @@ mod message_channel_tests {
 
     #[test]
     fn test_close_receiving_port_prevents_delivery_from_peer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -317,7 +317,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -329,7 +329,7 @@ mod message_channel_tests {
 
     #[test]
     fn test_message_event_properties() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -342,7 +342,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -358,7 +358,7 @@ mod message_channel_tests {
     #[test]
     fn test_queue_messages_before_start() {
         // Messages sent before start() should be queued and delivered after start()
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -374,7 +374,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -385,7 +385,7 @@ mod message_channel_tests {
 
     #[test]
     fn test_start_is_idempotent_after_immediate_delivery() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -401,7 +401,7 @@ mod message_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert_eq!(

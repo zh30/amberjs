@@ -137,8 +137,8 @@ fn test_generate_snapshot_produces_a_loadable_v8_startup_blob() {
 
     assert!(snapshot.validate(), "generated snapshot should validate");
     assert!(
-        !snapshot.snapshot_data.starts_with(b"BEEJS_WARMUP_V1\0"),
-        "the blob must be V8 snapshot data, not a beejs marker"
+        !snapshot.snapshot_data.starts_with(b"AMBER_WARMUP_V1\0"),
+        "the blob must be V8 snapshot data, not a amberjs marker"
     );
 
     amberjs::initialize_v8().unwrap();

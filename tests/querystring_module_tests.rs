@@ -29,12 +29,12 @@ fn querystring_parse_decodes_values_and_preserves_repeated_keys() {
     let output = run_querystring_script(
         r#"
         const qs = require('querystring');
-        const parsed = qs.parse('name=bee%20js&tag=runtime&tag=v8&empty=&encoded=a%2Bb');
+        const parsed = qs.parse('name=amber%20js&tag=runtime&tag=v8&empty=&encoded=a%2Bb');
         `${parsed.name}:${parsed.tag.join('|')}:${parsed.empty}:${parsed.encoded}`;
         "#,
     );
 
-    assert_eq!(output, "bee js:runtime|v8::a+b");
+    assert_eq!(output, "amber js:runtime|v8::a+b");
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn querystring_stringify_encodes_objects_and_arrays() {
         r#"
         const qs = require('querystring');
         qs.stringify({
-            name: 'bee js',
+            name: 'amber js',
             tag: ['runtime', 'v8'],
             plus: 'a+b',
             enabled: true
@@ -54,7 +54,7 @@ fn querystring_stringify_encodes_objects_and_arrays() {
 
     assert_eq!(
         output,
-        "name=bee%20js&tag=runtime&tag=v8&plus=a%2Bb&enabled=true"
+        "name=amber%20js&tag=runtime&tag=v8&plus=a%2Bb&enabled=true"
     );
 }
 
@@ -64,10 +64,10 @@ fn querystring_escape_and_unescape_round_trip() {
     let output = run_querystring_script(
         r#"
         const qs = require('querystring');
-        const escaped = qs.escape('bee js+a/b');
+        const escaped = qs.escape('amber js+a/b');
         `${escaped}:${qs.unescape(escaped)}`;
         "#,
     );
 
-    assert_eq!(output, "bee%20js%2Ba%2Fb:bee js+a/b");
+    assert_eq!(output, "amber%20js%2Ba%2Fb:amber js+a/b");
 }

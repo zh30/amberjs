@@ -40,7 +40,7 @@ __pycache__/
 tmp/
 temp/
 wasm_cache/
-.beejs_cache/
+.amberjs_cache/
 .antigravitycli/
 benchmark_reports/
 docs/archive/local-artifacts/

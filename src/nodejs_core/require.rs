@@ -64,13 +64,13 @@ pub fn setup_require_api(
                     scope.throw_exception(error_obj.into());
                     return;
                 }
-            } else if let Some(bee_name) =
-                requested_module_id_str.strip_prefix("bee:")
+            } else if let Some(amber_name) =
+                requested_module_id_str.strip_prefix("amber:")
             {
                 if crate::nodejs_core::commonjs_resolver::is_builtin_module(&requested_module_id_str)
-                    || crate::nodejs_core::commonjs_resolver::is_builtin_module(bee_name)
+                    || crate::nodejs_core::commonjs_resolver::is_builtin_module(amber_name)
                 {
-                    bee_name.to_string()
+                    amber_name.to_string()
                 } else {
                     let error_msg = format!("Cannot find module '{}'", requested_module_id_str);
                     let error_str = v8::String::new(scope, &error_msg).unwrap();
@@ -504,7 +504,7 @@ pub fn setup_require_api(
                 "readline" | "performance" | "diagnostics_channel" | "async_hooks" |
                 "db" | "sqlite" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_db").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_db").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -512,7 +512,7 @@ pub fn setup_require_api(
                 }
                 "vector" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_vector").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_vector").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -520,7 +520,7 @@ pub fn setup_require_api(
                 }
                 "std" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_std").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_std").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -528,7 +528,7 @@ pub fn setup_require_api(
                 }
                 "std/dotenv" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_std_dotenv").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_std_dotenv").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -536,7 +536,7 @@ pub fn setup_require_api(
                 }
                 "std/cli" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_std_cli").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_std_cli").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -544,7 +544,7 @@ pub fn setup_require_api(
                 }
                 "std/fs" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_std_fs").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_std_fs").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -552,7 +552,7 @@ pub fn setup_require_api(
                 }
                 "std/crypto" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_std_crypto").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_std_crypto").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -560,7 +560,7 @@ pub fn setup_require_api(
                 }
                 "std/assert" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_std_assert").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_std_assert").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -568,7 +568,7 @@ pub fn setup_require_api(
                 }
                 "mcp" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_mcp").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_mcp").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -576,7 +576,7 @@ pub fn setup_require_api(
                 }
                 "ffi" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_ffi").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_ffi").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -584,7 +584,7 @@ pub fn setup_require_api(
                 }
                 "pool" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_pool").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_pool").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -592,7 +592,7 @@ pub fn setup_require_api(
                 }
                 "wasm" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_wasm").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_wasm").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -600,7 +600,7 @@ pub fn setup_require_api(
                 }
                 "replay" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_replay").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_replay").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -608,7 +608,7 @@ pub fn setup_require_api(
                 }
                 "weights" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_weights").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_weights").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -616,7 +616,7 @@ pub fn setup_require_api(
                 }
                 "security" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_security").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_security").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -624,7 +624,7 @@ pub fn setup_require_api(
                 }
                 "permissions" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_permissions").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_permissions").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -632,7 +632,7 @@ pub fn setup_require_api(
                 }
                 "kv" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_kv").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_kv").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -640,7 +640,7 @@ pub fn setup_require_api(
                 }
                 "tools" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_tools").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_tools").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -648,7 +648,7 @@ pub fn setup_require_api(
                 }
                 "sandbox" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_sandbox").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_sandbox").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -656,7 +656,7 @@ pub fn setup_require_api(
                 }
                 "vfs" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_vfs").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_vfs").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -664,7 +664,7 @@ pub fn setup_require_api(
                 }
                 "bus" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_bus").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_bus").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -672,7 +672,7 @@ pub fn setup_require_api(
                 }
                 "grammar" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_grammar").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_grammar").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;
@@ -680,7 +680,7 @@ pub fn setup_require_api(
                 }
                 "checkpoint" => {
                     let global = scope.get_current_context().global(scope);
-                    let k = v8::String::new(scope, "__bee_checkpoint").unwrap().into();
+                    let k = v8::String::new(scope, "__amber_checkpoint").unwrap().into();
                     if let Some(val) = global.get(scope, k) {
                         retval.set(val);
                         return;

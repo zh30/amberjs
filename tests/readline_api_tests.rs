@@ -6,19 +6,19 @@ mod readline_api_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
             std::env::var("CARGO_BIN_EXE_amber")
-                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     #[test]
     fn test_readline_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof readline)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -29,10 +29,10 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_create_interface_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "console.log(typeof readline.createInterface)"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -44,7 +44,7 @@ mod readline_api_tests {
     #[test]
     fn test_readline_create_interface_function() {
         // Test that createInterface returns a function-like object with expected methods
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -57,7 +57,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -69,7 +69,7 @@ mod readline_api_tests {
     #[test]
     fn test_readline_create_interface_with_options() {
         // Test creating interface with different options
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -86,7 +86,7 @@ mod readline_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -97,7 +97,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_set_prompt() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -106,7 +106,7 @@ mod readline_api_tests {
                 console.log('prompt set successfully');
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -117,7 +117,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_interface_close() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -125,7 +125,7 @@ mod readline_api_tests {
                 console.log('close called without error');
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -136,7 +136,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_interface_pause_resume() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -146,7 +146,7 @@ mod readline_api_tests {
                 console.log('pause and resume work');
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -157,7 +157,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_multiple_interfaces() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl1 = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -167,7 +167,7 @@ mod readline_api_tests {
                 console.log('multiple interfaces work');
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -179,7 +179,7 @@ mod readline_api_tests {
     #[test]
     fn test_readline_crlf_after_close() {
         // Test that close adds CRLF to output (Node.js behavior)
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -188,7 +188,7 @@ mod readline_api_tests {
                 console.log('ok');
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("ok"), "Close should not throw");
@@ -196,7 +196,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_question_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -204,7 +204,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "question method should exist");
@@ -212,7 +212,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_write_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -220,7 +220,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "write method should exist");
@@ -228,7 +228,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_clear_line() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -236,7 +236,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "clearLine method should exist");
@@ -245,7 +245,7 @@ mod readline_api_tests {
     // v0.3.279: Completer support tests
     #[test]
     fn test_readline_completer_option_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -261,7 +261,7 @@ mod readline_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -272,7 +272,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_completer_with_function() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -291,7 +291,7 @@ mod readline_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -302,7 +302,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_completer_stored_on_interface() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -319,7 +319,7 @@ mod readline_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -331,7 +331,7 @@ mod readline_api_tests {
     // v0.3.280: History and cursorPosition support tests
     #[test]
     fn test_readline_history_property_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -339,7 +339,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("true"), "history should be an array");
@@ -347,7 +347,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_history_size_option() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -363,7 +363,7 @@ mod readline_api_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -374,7 +374,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_cursor_property_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -382,7 +382,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("number"), "cursor should be a number");
@@ -390,7 +390,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_column_property_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -398,7 +398,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("number"), "column should be a number");
@@ -406,7 +406,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_line_property_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -414,7 +414,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("string"), "line should be a string");
@@ -423,7 +423,7 @@ mod readline_api_tests {
     // v0.3.280: Event system tests
     #[test]
     fn test_readline_on_method_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -431,7 +431,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "on method should exist");
@@ -439,7 +439,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_emit_method_exists() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -447,7 +447,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("function"), "emit method should exist");
@@ -455,7 +455,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_event_system() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -469,7 +469,7 @@ mod readline_api_tests {
                 console.log('event system works: ' + event_received);
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -484,7 +484,7 @@ mod readline_api_tests {
 
     #[test]
     fn test_readline_on_returns_interface() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const readline = require('readline');
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -493,7 +493,7 @@ mod readline_api_tests {
                 rl.close();
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(

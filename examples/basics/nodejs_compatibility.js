@@ -1,5 +1,5 @@
-// 测试 Beejs 的 Node.js 兼容性
-console.log("=== Beejs Node.js 兼容性测试 ===\n");
+// 测试 Amber 的 Node.js 兼容性
+console.log("=== Amber Node.js 兼容性测试 ===\n");
 
 // 测试 process 对象
 console.log("1. Process 对象测试:");

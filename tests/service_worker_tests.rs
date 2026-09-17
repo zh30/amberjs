@@ -1,13 +1,13 @@
-// ServiceWorker API tests for Beejs runtime
+// ServiceWorker API tests for Amber runtime
 // v0.3.324: Tests for ServiceWorker, Cache, and CacheStorage APIs
 
 use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-fn bee_path() -> PathBuf {
+fn amber_path() -> PathBuf {
     PathBuf::from(
-        std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+        std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/amber".to_string()),
     )
 }
 
@@ -731,25 +731,25 @@ mod lifecycle_event_tests {
     }
 }
 
-/// Helper function to run JavaScript scripts using beejs
+/// Helper function to run JavaScript scripts using amberjs
 fn run_script(script: &str) -> std::process::Output {
     // Create a temporary file with the script
     let temp_dir = tempfile::Builder::new()
-        .prefix("beejs-service-worker-test-")
+        .prefix("amberjs-service-worker-test-")
         .tempdir()
         .unwrap();
     let temp_file = temp_dir.path().join("test.js");
     fs::write(&temp_file, script).unwrap();
 
-    // Run beejs with the script
-    let output = Command::new(bee_path())
+    // Run amberjs with the script
+    let output = Command::new(amber_path())
         .arg("run")
         .arg(&temp_file)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .expect("Failed to run bee");
+        .expect("Failed to run amber");
 
     // Clean up
     drop(temp_dir);

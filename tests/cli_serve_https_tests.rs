@@ -4,7 +4,7 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 use tempfile::tempdir;
 
-fn bee() -> &'static str {
+fn amber() -> &'static str {
     env!("CARGO_BIN_EXE_amber")
 }
 
@@ -38,20 +38,20 @@ fn generate_tls_pair(dir: &std::path::Path) -> (std::path::PathBuf, std::path::P
 
 #[test]
 fn serve_https_without_cert_exits_nonzero() {
-    let output = Command::new(bee())
+    let output = Command::new(amber())
         .args(["serve", "--https", "--port", "0"])
         .output()
-        .expect("bee serve --https");
+        .expect("amber serve --https");
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{stdout}{stderr}");
     assert!(
         !output.status.success(),
-        "bee serve --https without cert must fail: {combined}"
+        "amber serve --https without cert must fail: {combined}"
     );
     assert_ne!(output.status.code(), Some(0));
     assert!(
-        !combined.contains("Starting Beejs Web Server"),
+        !combined.contains("Starting Amber Web Server"),
         "must not print a successful-server banner: {combined}"
     );
     assert!(
@@ -79,7 +79,7 @@ fn serve_https_with_pem_serves_fetch_handler() {
     let port = listener.local_addr().unwrap().port();
     drop(listener);
 
-    let mut child = Command::new(bee())
+    let mut child = Command::new(amber())
         .args([
             "serve",
             "--https",
@@ -96,7 +96,7 @@ fn serve_https_with_pem_serves_fetch_handler() {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("spawn bee serve");
+        .expect("spawn amber serve");
 
     let stdout = child.stdout.take().expect("stdout");
     let mut reader = BufReader::new(stdout);
@@ -118,7 +118,7 @@ fn serve_https_with_pem_serves_fetch_handler() {
     }
     if !listening {
         let _ = child.kill();
-        panic!("bee serve --https never printed Listening banner");
+        panic!("amber serve --https never printed Listening banner");
     }
 
     let curl = Command::new("curl")

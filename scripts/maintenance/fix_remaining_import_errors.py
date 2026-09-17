@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Beejs 剩余导入语法错误修复脚本
+Amber 剩余导入语法错误修复脚本
 专门处理 std::sync::atomic 相关的所有错误
 """
 
@@ -73,7 +73,7 @@ def fix_file_imports(file_path):
 
 def main():
     """主函数"""
-    project_root = Path("/Users/henry/code/beejs")
+    project_root = Path("/Users/henry/code/amberjs")
     rust_files = list(project_root.rglob("*.rs"))
 
     total_files = 0
@@ -81,7 +81,7 @@ def main():
     total_changes = 0
 
     print("=" * 80)
-    print("Beejs 剩余导入语法错误修复脚本")
+    print("Amber 剩余导入语法错误修复脚本")
     print("=" * 80)
 
     # 手动修复一些关键文件

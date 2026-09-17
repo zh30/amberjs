@@ -1,4 +1,4 @@
-// Beejs TypeScript 6.0 syntax smoke (transpile-only via oxc).
+// Amber TypeScript 6.0 syntax smoke (transpile-only via oxc).
 // Keep this executable without React or extra packages.
 
 function id<const T>(value: T): T {

@@ -29,12 +29,12 @@
 ### 启动时间测试
 ```bash
 # 第一次执行 (初始化)
-$ time ./beejs --eval "console.log('Hello')"
+$ time ./amberjs --eval "console.log('Hello')"
 Hello
 real    0m0.072s    # 72ms (包含完整初始化)
 
 # 第二次执行 (复用)
-$ time ./beejs --eval "console.log('Hello')"
+$ time ./amberjs --eval "console.log('Hello')"
 Hello
 real    0m0.015s    # 15ms (复用Runtime)
 ```
@@ -42,7 +42,7 @@ real    0m0.015s    # 15ms (复用Runtime)
 
 ### 计算性能测试
 ```bash
-$ time ./beejs --eval "let sum = 0; for(let i = 0; i < 100000; i++) { sum += i; } console.log('Sum:', sum);"
+$ time ./amberjs --eval "let sum = 0; for(let i = 0; i < 100000; i++) { sum += i; } console.log('Sum:', sum);"
 Sum: 4999950000
 real    0m0.019s    # 19ms (10万次循环)
 ```
@@ -50,9 +50,9 @@ real    0m0.019s    # 19ms (10万次循环)
 
 ### 连续执行测试
 ```bash
-$ ./beejs --eval "console.log('Test 1 - Runtime reused')"
-$ ./beejs --eval "console.log('Test 2 - Runtime reused')"
-$ ./beejs --eval "console.log('Test 3 - Runtime reused')"
+$ ./amberjs --eval "console.log('Test 1 - Runtime reused')"
+$ ./amberjs --eval "console.log('Test 2 - Runtime reused')"
+$ ./amberjs --eval "console.log('Test 3 - Runtime reused')"
 ```
 **结果**: 所有后续执行都显示 "Runtime reused"，证明优化生效
 
@@ -75,17 +75,17 @@ $ ./beejs --eval "console.log('Test 3 - Runtime reused')"
 ## 对比 Bun 的性能
 
 ### 启动时间
-- **Beejs**: ~15ms (复用后)
+- **Amber**: ~15ms (复用后)
 - **Bun**: ~0.0003ms
 - **差距**: Bun 快 50,000 倍 ⚠️
 
 ### 执行速度
-- **Beejs**: 526 ops/sec (简单计算)
+- **Amber**: 526 ops/sec (简单计算)
 - **Bun**: 424,446 ops/sec
 - **差距**: Bun 快 800 倍 ⚠️
 
 ### 内存使用
-- **Beejs**: 18MB (Release 构建)
+- **Amber**: 18MB (Release 构建)
 - **Bun**: 约 10MB
 - **差距**: Bun 少 44% ⚠️
 
@@ -149,5 +149,5 @@ $ ./beejs --eval "console.log('Test 3 - Runtime reused')"
 ---
 
 **报告生成时间**: 2025-12-18 06:20
-**负责人**: Claude Code + Beejs 团队
+**负责人**: Claude Code + Amber 团队
 **状态**: Runtime 复用优化完成，性能显著提升 ✅

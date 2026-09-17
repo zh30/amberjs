@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 fn main() {
-    println!("=== Beejs Stage 31.3.4 监控面板功能验证 ===\n");
+    println!("=== Amber Stage 31.3.4 监控面板功能验证 ===\n");
 
     // 测试 1: 验证模块结构
     println!("✅ 1. 模块结构验证:");
@@ -77,5 +77,5 @@ fn main() {
     println!("🔒 安全等级: 企业级安全标准");
     println!("📈 可扩展性: 支持 1000+ 并发连接");
 
-    println!("\n🎉 Stage 31.3.4 监控面板已成功实现并集成到 Beejs 运行时！");
+    println!("\n🎉 Stage 31.3.4 监控面板已成功实现并集成到 Amber 运行时！");
 }

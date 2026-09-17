@@ -8,7 +8,7 @@ mod tests {
     fn test_lazy_loader_creation() {
         println!("\n🧪 Test: Lazy Loader Creation");
 
-        let loader = beejs::lazy_loader::LazyLoader::new();
+        let loader = amberjs::lazy_loader::LazyLoader::new();
         let stats = loader.get_stats();
 
         assert_eq!(stats.total_modules, 0);
@@ -24,7 +24,7 @@ mod tests {
     fn test_module_init_tracker() {
         println!("\n🧪 Test: Module Init Tracker");
 
-        let tracker = beejs::lazy_loader::ModuleInit::new("test_module");
+        let tracker = amberjs::lazy_loader::ModuleInit::new("test_module");
         assert_eq!(tracker.name, "test_module");
 
         println!("  ✅ ModuleInit tracker created");
@@ -37,7 +37,7 @@ mod tests {
         println!("\n🧪 Test: Print Stats Function");
 
         // Call print_stats - should not panic
-        beejs::lazy_loader::print_stats();
+        amberjs::lazy_loader::print_stats();
 
         println!("  ✅ print_stats executed successfully");
         println!("  ✅ Print stats test passed");
@@ -49,7 +49,7 @@ mod tests {
         println!("\n🧪 Test: Reset Stats Function");
 
         // Call reset_stats - should not panic
-        beejs::lazy_loader::reset_stats();
+        amberjs::lazy_loader::reset_stats();
 
         println!("  ✅ reset_stats executed successfully");
         println!("  ✅ Reset stats test passed");
@@ -60,7 +60,7 @@ mod tests {
     fn test_lazy_loader_integration() {
         println!("\n🧪 Test: Lazy Loader Integration");
 
-        let loader = beejs::lazy_loader::get_lazy_loader();
+        let loader = amberjs::lazy_loader::get_lazy_loader();
 
         // Get stats
         let stats1 = loader.get_stats();
@@ -68,7 +68,7 @@ mod tests {
                  stats1.initialized_modules, stats1.lazy_modules);
 
         // Reset stats
-        beejs::lazy_loader::reset_stats();
+        amberjs::lazy_loader::reset_stats();
 
         // Get stats again
         let stats2 = loader.get_stats();

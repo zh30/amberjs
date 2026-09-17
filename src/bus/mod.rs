@@ -1,4 +1,4 @@
-// Beejs Multi-Agent Message Bus & PubSub Channel Fabric (bee:bus)
+// Amber Multi-Agent Message Bus & PubSub Channel Fabric (amber:bus)
 // High-throughput in-process message routing, topic wildcard dispatch, request-reply semantics, and DLQ.
 
 use once_cell::sync::Lazy;
@@ -244,7 +244,7 @@ fn bus_native_dispatch(
     }
 }
 
-/// Sets up the `bee:bus` API in V8 context
+/// Sets up the `amber:bus` API in V8 context
 pub fn setup_bus_api(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
@@ -253,12 +253,12 @@ pub fn setup_bus_api(
 
     // Register native dispatcher callback
     let native_fn = v8::Function::new(scope, bus_native_dispatch).unwrap();
-    let k_native = v8::String::new(scope, "__bee_bus_native").unwrap();
+    let k_native = v8::String::new(scope, "__amber_bus_native").unwrap();
     global.set(scope, k_native.into(), native_fn.into());
 
     let bus_js_bootstrap = r#"
     (function() {
-        const native = globalThis.__bee_bus_native;
+        const native = globalThis.__amber_bus_native;
 
         class MessageBus {
             #id;
@@ -480,7 +480,7 @@ pub fn setup_bus_api(
             default: defaultBus
         };
 
-        globalThis.__bee_bus = busModule;
+        globalThis.__amber_bus = busModule;
         globalThis.bus = busModule;
     })();
     "#;

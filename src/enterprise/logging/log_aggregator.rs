@@ -380,61 +380,61 @@ mod tests {
     #[test]
     fn test_log_entry_creation() {
         let mut context = HashMap::new();
-        context.insert("service".to_string(), "beejs".to_string());
+        context.insert("service".to_string(), "amberjs".to_string());
         let log_entry: _ = LogEntry::new(LogLevel::Info, "Test message".to_string(), context);
         assert!(matches!(log_entry.level, LogLevel::Info));
         assert_eq!(log_entry.message, "Test message");
-        assert_eq!(log_entry.context.get("service"), Some(&"beejs".to_string());
+        assert_eq!(log_entry.context.get("service"), Some(&"amberjs".to_string());
     }
     #[test]
     fn test_log_entry_with_context() {
-        let context_pairs: _ = &[("service", "beejs"), ("version", "1.0")];
+        let context_pairs: _ = &[("service", "amberjs"), ("version", "1.0")];
         let log_entry: _ = LogEntry::with_context(LogLevel::Debug, "Test message", context_pairs);
-        assert_eq!(log_entry.context.get("service"), Some(&"beejs".to_string());
+        assert_eq!(log_entry.context.get("service"), Some(&"amberjs".to_string());
         assert_eq!(log_entry.context.get("version"), Some(&"1.0".to_string());
     }
     #[test]
     fn test_log_entry_json_serialization() {
         let mut context = HashMap::new();
-        context.insert("service".to_string(), "beejs".to_string());
+        context.insert("service".to_string(), "amberjs".to_string());
         let log_entry: _ = LogEntry::new(LogLevel::Info, "Test message".to_string(), context);
         let json: _ = log_entry.to_json().unwrap();
         assert!(json.contains("\"level\":\"Info\""));
         assert!(json.contains("\"message\":\"Test message\""));
-        assert!(json.contains("\"service\":\"beejs\""));
+        assert!(json.contains("\"service\":\"amberjs\""));
     }
     #[test]
     fn test_log_entry_json_deserialization() {
-        let json: _ = r#"{"timestamp":"2024-01-01T00:00:00Z","level":"Info","message":"Test message","context":{"service":"beejs"}}"#;
+        let json: _ = r#"{"timestamp":"2024-01-01T00:00:00Z","level":"Info","message":"Test message","context":{"service":"amberjs"}}"#;
         let log_entry: _ = LogEntry::from_json(json).unwrap();
         assert!(matches!(log_entry.level, LogLevel::Info));
         assert_eq!(log_entry.message, "Test message");
-        assert_eq!(log_entry.context.get("service"), Some(&"beejs".to_string());
+        assert_eq!(log_entry.context.get("service"), Some(&"amberjs".to_string());
     }
     #[test]
     fn test_log_context_creation() {
-        let context: _ = LogContext::new("beejs", "1.0.0");
-        assert_eq!(context.service, "beejs");
+        let context: _ = LogContext::new("amberjs", "1.0.0");
+        assert_eq!(context.service, "amberjs");
         assert_eq!(context.version, "1.0.0");
         assert_eq!(context.request_id, None);
         assert_eq!(context.user_id, None);
     }
     #[test]
     fn test_log_context_with_request_id() {
-        let context: _ = LogContext::new("beejs", "1.0.0")
+        let context: _ = LogContext::new("amberjs", "1.0.0")
             .with_request_id("req-12345");
-        assert_eq!(context.service, "beejs");
+        assert_eq!(context.service, "amberjs");
         assert_eq!(context.request_id, Some("req-12345".to_string());
     }
     #[test]
     fn test_log_context_with_user_id() {
-        let context: _ = LogContext::new("beejs", "1.0.0")
+        let context: _ = LogContext::new("amberjs", "1.0.0")
             .with_user_id("user-789");
         assert_eq!(context.user_id, Some("user-789".to_string());
     }
     #[test]
     fn test_log_context_with_tags() {
-        let context: _ = LogContext::new("beejs", "1.0.0")
+        let context: _ = LogContext::new("amberjs", "1.0.0")
             .with_tag("env", "production")
             .with_tag("region", "us-east-1");
         assert_eq!(context.tags.get("env"), Some(&"production".to_string());
@@ -442,11 +442,11 @@ mod tests {
     }
     #[test]
     fn test_log_context_to_hashmap() {
-        let context: _ = LogContext::new("beejs", "1.0.0")
+        let context: _ = LogContext::new("amberjs", "1.0.0")
             .with_request_id("req-12345")
             .with_tag("env", "production");
         let map: _ = context.to_hashmap();
-        assert_eq!(map.get("service"), Some(&"beejs".to_string());
+        assert_eq!(map.get("service"), Some(&"amberjs".to_string());
         assert_eq!(map.get("version"), Some(&"1.0.0".to_string());
         assert_eq!(map.get("request_id"), Some(&"req-12345".to_string());
         assert_eq!(map.get("env"), Some(&"production".to_string());
@@ -468,7 +468,7 @@ mod tests {
         let file_path: _ = temp_file.path().to_str().unwrap();
         let writer: _ = FileLogWriter::new(file_path);
         let mut context = HashMap::new();
-        context.insert("service".to_string(), "beejs".to_string());
+        context.insert("service".to_string(), "amberjs".to_string());
         let log_entry: _ = LogEntry::new(LogLevel::Info, "Test message".to_string(), context);
         assert!(writer.write(&log_entry).is_ok());
         // 验证文件内容
@@ -480,7 +480,7 @@ mod tests {
     fn test_log_aggregator_info() {
         let writer: _ = Box::new(ConsoleLogWriter::new(false));
         let aggregator: _ = LogAggregator::new(writer);
-        let context: _ = LogContext::new("beejs", "1.0.0")
+        let context: _ = LogContext::new("amberjs", "1.0.0")
             .with_request_id("req-12345");
         aggregator.info("Request processed", &context);
         // 如果没有 panic，说明日志记录成功
@@ -716,7 +716,7 @@ impl EnterpriseLogAggregator {
 mod enterprise_logging_tests {
     #[tokio::test]
     async fn test_elasticsearch_client() {
-        let client: _ = ElasticsearchClient::new("http://localhost:9200", "beejs-logs");
+        let client: _ = ElasticsearchClient::new("http://localhost:9200", "amberjs-logs");
         let logs: _ = vec![LogEntry::new(
             LogLevel::Info,
             "Test log".to_string(),
@@ -727,7 +727,7 @@ mod enterprise_logging_tests {
     }
     #[tokio::test]
     async fn test_enterprise_log_aggregator() {
-        let elasticsearch: _ = ElasticsearchClient::new("http://localhost:9200", "beejs-logs");
+        let elasticsearch: _ = ElasticsearchClient::new("http://localhost:9200", "amberjs-logs");
         let fluentd: _ = FluentdClient::new("http://localhost:24224");
         let local_writer: _ = Box::new(ConsoleLogWriter::new(false));
         let local_aggregator: _ = LogAggregator::new(local_writer);
@@ -740,7 +740,7 @@ mod enterprise_logging_tests {
     }
     #[tokio::test]
     async fn test_log_search() {
-        let client: _ = ElasticsearchClient::new("http://localhost:9200", "beejs-logs");
+        let client: _ = ElasticsearchClient::new("http://localhost:9200", "amberjs-logs");
         let filter: _ = LogFilter {
             level: Some(LogLevel::Info),
             time_range: None,
@@ -764,7 +764,7 @@ mod enterprise_logging_tests {
                 HashMap::new(),
             ),
         ];
-        let client: _ = ElasticsearchClient::new("http://localhost:9200", "beejs-logs");
+        let client: _ = ElasticsearchClient::new("http://localhost:9200", "amberjs-logs");
         let filter: _ = LogFilter {
             level: Some(LogLevel::Info),
             time_range: None,

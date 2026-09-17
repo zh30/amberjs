@@ -46,7 +46,7 @@
 
 3. **multilang/mod.rs**
    - ❌ 缺少 `Arc` 导入 → ✅ 添加 `use std::sync::Arc`
-   - ❌ BeeAPI 歧义引用 → ✅ 使用 `go_runtime::BeeAPI` 明确引用
+   - ❌ AmberAPI 歧义引用 → ✅ 使用 `go_runtime::AmberAPI` 明确引用
 
 4. **platform/mod.rs**
    - ❌ 缺少 `Arc` 导入 → ✅ 添加 `use std::sync::Arc`
@@ -56,7 +56,7 @@
 
 6. **multilang/go_runtime.rs**
    - ❌ 使用不存在的 `gvm::VMHandle` → ✅ 使用 `Option<()> 占位符
-   - ✅ 修复 `MockBeeRuntime` 引用问题
+   - ✅ 修复 `MockAmberRuntime` 引用问题
 
 7. **enterprise/security_manager.rs**
    - ❌ 模块文件不存在 → ✅ **新建文件** (100+ 行)
@@ -122,7 +122,7 @@ pyo3-build-config = { version = "0.21", features = ["resolve-config"] }
 ### Phase 2: 错误处理增强 (优先级: 高)
 1. **统一错误处理系统**
    - 创建 `src/error/` 模块
-   - 定义 `BeejsError` 枚举
+   - 定义 `AmberError` 枚举
    - 实现 `ErrorContext` 结构
    - 添加自动恢复机制
 

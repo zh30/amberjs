@@ -1,5 +1,5 @@
 // 实时指标收集器
-// 收集 Beejs 运行时的各种性能指标，支持 Prometheus 导出
+// 收集 Amber 运行时的各种性能指标，支持 Prometheus 导出
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, atomic::Ordering};
@@ -112,24 +112,24 @@ impl MetricsCollector {
         let snapshot: _ = self.get_metrics_snapshot();
         let average_latency: _ = self.get_average_latency_ms();
         let output: _ = format!(
-            "# HELP beejs_requests_total Total number of requests processed\n\
-             # TYPE beejs_requests_total counter\n\
-             beejs_requests_total {}\n\
-             # HELP beejs_request_duration_ms_total Total request duration in milliseconds\n\
-             # TYPE beejs_request_duration_ms_total counter\n\
-             beejs_request_duration_ms_total {}\n\
-             # HELP beejs_request_duration_ms Average request duration in milliseconds\n\
-             # TYPE beejs_request_duration_ms gauge\n\
-             beejs_request_duration_ms {}\n\
-             # HELP beejs_active_connections Number of active connections\n\
-             # TYPE beejs_active_connections gauge\n\
-             beejs_active_connections {}\n\
-             # HELP beejs_memory_usage_bytes Memory usage in bytes\n\
-             # TYPE beejs_memory_usage_bytes gauge\n\
-             beejs_memory_usage_bytes {}\n\
-             # HELP beejs_cpu_usage_percent CPU usage percentage\n\
-             # TYPE beejs_cpu_usage_percent gauge\n\
-             beejs_cpu_usage_percent {}\n",
+            "# HELP amberjs_requests_total Total number of requests processed\n\
+             # TYPE amberjs_requests_total counter\n\
+             amberjs_requests_total {}\n\
+             # HELP amberjs_request_duration_ms_total Total request duration in milliseconds\n\
+             # TYPE amberjs_request_duration_ms_total counter\n\
+             amberjs_request_duration_ms_total {}\n\
+             # HELP amberjs_request_duration_ms Average request duration in milliseconds\n\
+             # TYPE amberjs_request_duration_ms gauge\n\
+             amberjs_request_duration_ms {}\n\
+             # HELP amberjs_active_connections Number of active connections\n\
+             # TYPE amberjs_active_connections gauge\n\
+             amberjs_active_connections {}\n\
+             # HELP amberjs_memory_usage_bytes Memory usage in bytes\n\
+             # TYPE amberjs_memory_usage_bytes gauge\n\
+             amberjs_memory_usage_bytes {}\n\
+             # HELP amberjs_cpu_usage_percent CPU usage percentage\n\
+             # TYPE amberjs_cpu_usage_percent gauge\n\
+             amberjs_cpu_usage_percent {}\n",
             snapshot.requests_total,
             snapshot.total_latency_ms,
             average_latency,
@@ -210,11 +210,11 @@ mod tests {
         collector.update_cpu_usage(45.5);
         let output: _ = collector.export_prometheus().unwrap();
         // 验证 Prometheus 格式
-        assert!(output.contains("beejs_requests_total 1"));
-        assert!(output.contains("beejs_request_duration_ms_total 150"));
-        assert!(output.contains("beejs_active_connections 5"));
-        assert!(output.contains("beejs_memory_usage_bytes 1048576"));
-        assert!(output.contains("beejs_cpu_usage_percent 46")); // 45.5 舍入为 46
+        assert!(output.contains("amberjs_requests_total 1"));
+        assert!(output.contains("amberjs_request_duration_ms_total 150"));
+        assert!(output.contains("amberjs_active_connections 5"));
+        assert!(output.contains("amberjs_memory_usage_bytes 1048576"));
+        assert!(output.contains("amberjs_cpu_usage_percent 46")); // 45.5 舍入为 46
         // 验证 HELP 和 TYPE 注释
         assert!(output.contains("# HELP"));
         assert!(output.contains("# TYPE"));

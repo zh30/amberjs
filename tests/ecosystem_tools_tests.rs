@@ -1,15 +1,15 @@
-//! Integration tests for Beejs high-leverage ecosystem tools:
-//! - `bee:db` / `bee:sqlite`: embedded SQLite with CRUD, prepared statements & transactions
-//! - `bee:vector`: high-dimensional vector similarity store
-//! - `bee:std`: modern standard library (dotenv, cli, fs, crypto, assert)
-//! - `bee deploy`: Docker & Kubernetes production deployment scaffolding
-//! - `bee x`: dynamic package runner
+//! Integration tests for Amber high-leverage ecosystem tools:
+//! - `amber:db` / `amber:sqlite`: embedded SQLite with CRUD, prepared statements & transactions
+//! - `amber:vector`: high-dimensional vector similarity store
+//! - `amber:std`: modern standard library (dotenv, cli, fs, crypto, assert)
+//! - `amber deploy`: Docker & Kubernetes production deployment scaffolding
+//! - `amber x`: dynamic package runner
 
 use std::fs;
 use tempfile::tempdir;
 
 #[test]
-fn test_bee_sqlite_in_rust_engine() {
+fn test_amber_sqlite_in_rust_engine() {
     // 1. In-memory database
     let handle = amberjs::database::sqlite::open_database(":memory:", false).expect("open memory");
     assert!(handle > 0);
@@ -61,7 +61,7 @@ fn test_bee_sqlite_in_rust_engine() {
 }
 
 #[test]
-fn test_bee_vector_similarity_search() {
+fn test_amber_vector_similarity_search() {
     use amberjs::database::vector::{VectorDB, VectorMetric};
 
     let mut vdb = VectorDB::new(3, VectorMetric::Cosine);
@@ -110,12 +110,12 @@ fn test_bee_vector_similarity_search() {
 }
 
 #[test]
-fn test_bee_std_dotenv_parser() {
+fn test_amber_std_dotenv_parser() {
     let raw = r#"
     # Comment line
     PORT=8080
     export HOST=127.0.0.1
-    APP_NAME='Beejs Modern App'
+    APP_NAME='Amber Modern App'
     SECRET="line1\nline2"
     BASE_URL=http://${HOST}:${PORT}
     INLINE_COMMENT=active # this is a comment
@@ -124,14 +124,14 @@ fn test_bee_std_dotenv_parser() {
     let envs = amberjs::std_lib::dotenv::parse_dotenv(raw);
     assert_eq!(envs.get("PORT").unwrap(), "8080");
     assert_eq!(envs.get("HOST").unwrap(), "127.0.0.1");
-    assert_eq!(envs.get("APP_NAME").unwrap(), "Beejs Modern App");
+    assert_eq!(envs.get("APP_NAME").unwrap(), "Amber Modern App");
     assert_eq!(envs.get("SECRET").unwrap(), "line1\nline2");
     assert_eq!(envs.get("BASE_URL").unwrap(), "http://127.0.0.1:8080");
     assert_eq!(envs.get("INLINE_COMMENT").unwrap(), "active");
 }
 
 #[test]
-fn test_bee_std_cli_table_formatter() {
+fn test_amber_std_cli_table_formatter() {
     let headers = vec!["ID".to_string(), "Name".to_string(), "Status".to_string()];
     let rows = vec![
         vec![
@@ -151,7 +151,7 @@ fn test_bee_std_cli_table_formatter() {
 }
 
 #[test]
-fn test_bee_std_fs_walk_copy_and_empty() {
+fn test_amber_std_fs_walk_copy_and_empty() {
     let dir = tempdir().expect("tempdir");
     let src_dir = dir.path().join("src_folder");
     let sub_dir = src_dir.join("subdir");
@@ -189,7 +189,7 @@ fn test_bee_std_fs_walk_copy_and_empty() {
 }
 
 #[test]
-fn test_bee_std_crypto_uuid_generation() {
+fn test_amber_std_crypto_uuid_generation() {
     let u4 = amberjs::std_lib::crypto::generate_uuid_v4();
     assert_eq!(u4.len(), 36);
     assert_eq!(&u4[14..15], "4"); // UUID v4 version nibble
@@ -200,7 +200,7 @@ fn test_bee_std_crypto_uuid_generation() {
 }
 
 #[test]
-fn test_bee_deploy_docker_and_k8s_scaffolding() {
+fn test_amber_deploy_docker_and_k8s_scaffolding() {
     let dir = tempdir().expect("tempdir");
     let entry = dir.path().join("app.ts");
     fs::write(
@@ -226,7 +226,7 @@ fn test_bee_deploy_docker_and_k8s_scaffolding() {
     let dockerfile_str =
         fs::read_to_string(dir.path().join("Dockerfile")).expect("read dockerfile");
     assert!(dockerfile_str.contains("FROM alpine"));
-    assert!(dockerfile_str.contains("bee"));
+    assert!(dockerfile_str.contains("amber"));
     assert!(dockerfile_str.contains("serve"));
 
     // Test K8s scaffold
@@ -260,12 +260,12 @@ fn test_dlx_spec_parser() {
 }
 
 #[test]
-fn test_minimal_runtime_bee_db_and_std_js_integration() {
+fn test_minimal_runtime_amber_db_and_std_js_integration() {
     let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new().expect("create runtime");
 
     let script = r#"
-        // 1. Test bee:db / bee:sqlite
-        const { Database, VectorDB } = require('bee:db');
+        // 1. Test amber:db / amber:sqlite
+        const { Database, VectorDB } = require('amber:db');
         const db = new Database(':memory:');
         db.exec('CREATE TABLE test (id INTEGER PRIMARY KEY, msg TEXT)');
         const ins = db.run('INSERT INTO test (msg) VALUES (?)', 'hello sqlite');
@@ -274,15 +274,15 @@ fn test_minimal_runtime_bee_db_and_std_js_integration() {
         if (row.msg !== 'hello sqlite') throw new Error('Query mismatch: ' + JSON.stringify(row));
         db.close();
 
-        // 2. Test bee:vector
+        // 2. Test amber:vector
         const vdb = new VectorDB({ dimensions: 2, metric: 'cosine' });
         vdb.insert('a', [1, 0], { name: 'A' });
         vdb.insert('b', [0, 1], { name: 'B' });
         const res = vdb.search([0.9, 0.1], { topK: 1 });
         if (res[0].id !== 'a') throw new Error('Vector search failed');
 
-        // 3. Test bee:std
-        const { crypto, cli, dotenv } = require('bee:std');
+        // 3. Test amber:std
+        const { crypto, cli, dotenv } = require('amber:std');
         const u = crypto.uuid();
         if (typeof u !== 'string' || u.length !== 36) throw new Error('Invalid uuid');
 

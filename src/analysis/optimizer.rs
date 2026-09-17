@@ -111,7 +111,7 @@ impl PerformanceOptimizer {
                     "Enable inline caching: --jit-inline-cache".to_string(),
                 ],
                 code_examples: vec![
-                    "bee --optimize-speed --jit-enable --jit-opt-level 3 script.js".to_string(),
+                    "amber --optimize-speed --jit-enable --jit-opt-level 3 script.js".to_string(),
                 ],
                 related_bottlenecks: vec![format!("{:?}", bottleneck.bottleneck_type)],
                 references: vec![
@@ -133,7 +133,7 @@ impl PerformanceOptimizer {
                     "Add cache invalidation strategy".to_string(),
                 ],
                 code_examples: vec![
-                    "bee --cache --cache-size 100 script.js".to_string(),
+                    "amber --cache --cache-size 100 script.js".to_string(),
                 ],
                 related_bottlenecks: vec![format!("{:?}", bottleneck.bottleneck_type)],
                 references: vec![
@@ -183,7 +183,7 @@ impl PerformanceOptimizer {
                     "Monitor cache metrics".to_string(),
                 ],
                 code_examples: vec![
-                    "bee --cache-size 256 script.js".to_string(),
+                    "amber --cache-size 256 script.js".to_string(),
                 ],
                 related_bottlenecks: vec![format!("{:?}", bottleneck.bottleneck_type)],
                 references: vec![
@@ -204,7 +204,7 @@ impl PerformanceOptimizer {
                     "Verify snapshot integrity".to_string(),
                 ],
                 code_examples: vec![
-                    "bee --snapshot script.js".to_string(),
+                    "amber --snapshot script.js".to_string(),
                 ],
                 related_bottlenecks: vec![format!("{:?}", bottleneck.bottleneck_type)],
                 references: vec![
@@ -357,7 +357,7 @@ impl PerformanceOptimizer {
                     "Enable incremental GC".to_string(),
                 ],
                 code_examples: vec![
-                    "bee --max-heap 512 --gc-incremental script.js".to_string(),
+                    "amber --max-heap 512 --gc-incremental script.js".to_string(),
                 ],
                 related_bottlenecks: vec![format!("{:?}", bottleneck.bottleneck_type)],
                 references: vec![
@@ -410,7 +410,7 @@ impl PerformanceOptimizer {
                     "Implement targeted optimizations".to_string(),
                 ],
                 code_examples: vec![
-                    "bee --profile script.js".to_string(),
+                    "amber --profile script.js".to_string(),
                 ],
                 related_bottlenecks: vec![format!("{:?}", bottleneck.bottleneck_type)],
                 references: vec![

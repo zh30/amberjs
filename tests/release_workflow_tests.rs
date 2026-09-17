@@ -22,13 +22,13 @@ fn dockerfile_text() -> String {
     fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Dockerfile")).unwrap()
 }
 
-fn dockerfile_has_bee_entrypoint() -> bool {
+fn dockerfile_has_amber_entrypoint() -> bool {
     let docker = dockerfile_text();
-    docker.contains("ENTRYPOINT [\"bee\"]")
+    docker.contains("ENTRYPOINT [\"amber\"]")
 }
 
 #[test]
-fn tag_v_star_publishes_non_draft_release_with_five_bee_archives() {
+fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
     let yaml = release_assets_yaml();
 
     assert!(
@@ -60,8 +60,8 @@ fn tag_v_star_publishes_non_draft_release_with_five_bee_archives() {
         "must ship linux gnu x64/arm64, macOS arm64/x64, and Windows x64"
     );
     assert!(
-        yaml.contains("archive: zip") && yaml.contains("bee.exe"),
-        "Windows asset must be a zip containing bee.exe"
+        yaml.contains("archive: zip") && yaml.contains("amber.exe"),
+        "Windows asset must be a zip containing amber.exe"
     );
     assert!(
         !yaml.contains("continue-on-error: ${{ matrix.os == 'windows-latest' }}")
@@ -69,13 +69,13 @@ fn tag_v_star_publishes_non_draft_release_with_five_bee_archives() {
         "Windows MSVC release job must not continue-on-error"
     );
     assert!(
-        yaml.contains("Windows zip bee-*-x86_64-pc-windows-msvc.zip")
+        yaml.contains("Windows zip amber-*-x86_64-pc-windows-msvc.zip")
             || yaml.contains("x86_64-pc-windows-msvc.zip"),
         "publish job must require the Windows zip"
     );
     assert!(
-        yaml.contains("bee.exe"),
-        "Windows zip must be checked for bee.exe"
+        yaml.contains("amber.exe"),
+        "Windows zip must be checked for amber.exe"
     );
     assert!(
         yaml.contains("CARGO_REGISTRY_TOKEN is not set") || yaml.contains("skipping crates.io"),
@@ -117,7 +117,7 @@ fn dockerfile_has_curl_for_rusty_v8_static_lib_download() {
 
 /// Paths `include_str!` / `include_bytes!` load from outside `src/` must be in
 /// the Docker build context. GHCR failed with:
-/// `couldn't read src/../types/beejs.d.ts`.
+/// `couldn't read src/../types/amberjs.d.ts`.
 fn rust_include_assets_outside_src() -> Vec<PathBuf> {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let src = manifest.join("src");
@@ -183,7 +183,7 @@ fn docker_context_includes_compile_time_assets() {
     let assets = rust_include_assets_outside_src();
     assert!(
         !assets.is_empty(),
-        "expected at least types/beejs.d.ts via include_str!"
+        "expected at least types/amberjs.d.ts via include_str!"
     );
     for asset in &assets {
         let top = asset
@@ -204,8 +204,8 @@ fn docker_context_includes_compile_time_assets() {
         );
     }
     assert!(
-        assets.iter().any(|p| p.ends_with("types/beejs.d.ts")),
-        "scanner missed types/beejs.d.ts: {assets:?}"
+        assets.iter().any(|p| p.ends_with("types/amberjs.d.ts")),
+        "scanner missed types/amberjs.d.ts: {assets:?}"
     );
 }
 
@@ -299,8 +299,8 @@ fn ci_gates_are_fail_closed_and_cover_oses() {
 fn docker_workflow_publishes_ghcr_on_v_tags() {
     let yaml = docker_yaml();
     assert!(
-        yaml.contains("ghcr.io/zh30/beejs"),
-        "image must target ghcr.io/zh30/beejs"
+        yaml.contains("ghcr.io/zh30/amberjs"),
+        "image must target ghcr.io/zh30/amberjs"
     );
     assert!(
         yaml.contains("tags: [\"v*\"]") || yaml.contains("tags: ['v*']"),
@@ -312,12 +312,12 @@ fn docker_workflow_publishes_ghcr_on_v_tags() {
     );
     assert!(
         yaml.contains("docker run --rm") && yaml.contains("--version"),
-        "image job must smoke bee --version"
+        "image job must smoke amber --version"
     );
     assert!(
         !yaml.contains("docker run --rm ${{ env.IMAGE }}:ci --version")
-            || dockerfile_has_bee_entrypoint(),
-        "docker run IMAGE --version requires ENTRYPOINT [\"bee\"]; otherwise --version replaces CMD"
+            || dockerfile_has_amber_entrypoint(),
+        "docker run IMAGE --version requires ENTRYPOINT [\"amber\"]; otherwise --version replaces CMD"
     );
     assert!(
         yaml.contains("amd64-only") || yaml.contains("linux/amd64 only"),
@@ -330,19 +330,19 @@ fn docker_workflow_publishes_ghcr_on_v_tags() {
 }
 
 #[test]
-fn dockerfile_entrypoint_is_bee_so_docker_run_version_works() {
+fn dockerfile_entrypoint_is_amber_so_docker_run_version_works() {
     let docker = dockerfile_text();
     assert!(
-        docker.contains("ENTRYPOINT [\"bee\"]"),
-        "GHCR smoke is `docker run IMAGE --version`; that only works with ENTRYPOINT bee: {docker}"
+        docker.contains("ENTRYPOINT [\"amber\"]"),
+        "GHCR smoke is `docker run IMAGE --version`; that only works with ENTRYPOINT amber: {docker}"
     );
     assert!(
         docker.contains("CMD [\"serve\""),
-        "default container args must be serve host/port, not a second bee executable: {docker}"
+        "default container args must be serve host/port, not a second amber executable: {docker}"
     );
     assert!(
-        !docker.contains("CMD [\"bee\", \"serve\""),
-        "CMD must not start with bee once ENTRYPOINT is bee (would become `bee bee serve`)"
+        !docker.contains("CMD [\"amber\", \"serve\""),
+        "CMD must not start with amber once ENTRYPOINT is amber (would become `amber amber serve`)"
     );
 }
 
@@ -356,21 +356,21 @@ fn dependabot_covers_cargo_and_github_actions() {
 
 #[test]
 fn homebrew_formula_points_at_github_release_assets() {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Formula/bee.rb");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Formula/amber.rb");
     let formula =
         fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
     for asset in [
-        "bee-v#{version}-aarch64-apple-darwin.tar.gz",
-        "bee-v#{version}-x86_64-apple-darwin.tar.gz",
-        "bee-v#{version}-aarch64-unknown-linux-gnu.tar.gz",
-        "bee-v#{version}-x86_64-unknown-linux-gnu.tar.gz",
+        "amber-v#{version}-aarch64-apple-darwin.tar.gz",
+        "amber-v#{version}-x86_64-apple-darwin.tar.gz",
+        "amber-v#{version}-aarch64-unknown-linux-gnu.tar.gz",
+        "amber-v#{version}-x86_64-unknown-linux-gnu.tar.gz",
     ] {
         assert!(
             formula.contains(asset),
             "Homebrew formula missing asset {asset}"
         );
     }
-    assert!(formula.contains("https://github.com/zh30/beejs/releases/download/"));
+    assert!(formula.contains("https://github.com/zh30/amberjs/releases/download/"));
 }
 
 #[test]
@@ -385,8 +385,8 @@ import importlib.util
 spec = importlib.util.spec_from_file_location("grn", r"{script}")
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
-assert mod.detect_target_platform("bee-v1.8.0-aarch64-unknown-linux-gnu.tar.gz") == "Linux (aarch64)", mod.detect_target_platform("bee-v1.8.0-aarch64-unknown-linux-gnu.tar.gz")
-assert mod.detect_target_platform("bee-v1.8.0-x86_64-unknown-linux-gnu.tar.gz") == "Linux (x86_64)"
+assert mod.detect_target_platform("amber-v1.8.0-aarch64-unknown-linux-gnu.tar.gz") == "Linux (aarch64)", mod.detect_target_platform("amber-v1.8.0-aarch64-unknown-linux-gnu.tar.gz")
+assert mod.detect_target_platform("amber-v1.8.0-x86_64-unknown-linux-gnu.tar.gz") == "Linux (x86_64)"
 print("ok")
 "#,
             script = script.display()
@@ -414,8 +414,8 @@ fn install_sh_maps_unix_platforms_to_release_targets() {
         let output = Command::new("sh")
             .arg(&script)
             .arg("--print-platform")
-            .env("BEEJS_UNAME_S", os)
-            .env("BEEJS_UNAME_M", arch)
+            .env("AMBER_UNAME_S", os)
+            .env("AMBER_UNAME_M", arch)
             .output()
             .expect("run install.sh --print-platform");
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -434,7 +434,7 @@ fn install_sh_maps_unix_platforms_to_release_targets() {
     let ps1 = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("install.ps1");
     let ps1_text = fs::read_to_string(&ps1).expect("install.ps1");
     assert!(ps1_text.contains("x86_64-pc-windows-msvc.zip"));
-    assert!(ps1_text.contains("bee.exe"));
+    assert!(ps1_text.contains("amber.exe"));
 }
 
 #[test]
@@ -561,12 +561,12 @@ fn windows_os_uptime_uses_gettickcount64_not_sys_info_boottime() {
 }
 
 #[test]
-fn linux_bee_exports_napi_symbols_via_per_binary_flag() {
+fn linux_amber_exports_napi_symbols_via_per_binary_flag() {
     let build = fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("build.rs"))
         .expect("build.rs");
     assert!(
-        build.contains("cargo:rustc-link-arg-bin=bee=-Wl,--export-dynamic"),
-        "Linux N-API addons resolve napi_* from bee dynsym; flag must be per-binary: {build}"
+        build.contains("cargo:rustc-link-arg-bin=amber=-Wl,--export-dynamic"),
+        "Linux N-API addons resolve napi_* from amber dynsym; flag must be per-binary: {build}"
     );
     assert!(
         build.contains("linux"),
@@ -587,12 +587,12 @@ fn debugger_docs_describe_inspect_not_stage59_debug() {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docs/DEBUGGER_USAGE.md"),
     )
     .unwrap();
-    assert!(debugger.contains("bee run --inspect"));
-    assert!(debugger.contains("bee run --inspect-brk"));
+    assert!(debugger.contains("amber run --inspect"));
+    assert!(debugger.contains("amber run --inspect-brk"));
     assert!(debugger.contains("9229"));
     assert!(
-        !debugger.contains("当前 public CLI 仅暴露 `bee debug"),
-        "DEBUGGER_USAGE.md must not claim bee debug is the public inspector"
+        !debugger.contains("当前 public CLI 仅暴露 `amber debug"),
+        "DEBUGGER_USAGE.md must not claim amber debug is the public inspector"
     );
     assert!(
         !debugger.contains("v0.1.0 Stage 59"),
@@ -616,11 +616,11 @@ fn debugger_docs_describe_inspect_not_stage59_debug() {
 fn homebrew_updater_writes_nonzero_sha256_and_refuses_zeros() {
     let script =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("scripts/update_homebrew_formula.py");
-    let formula_src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Formula/bee.rb");
+    let formula_src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Formula/amber.rb");
     let dir = tempfile::tempdir().unwrap();
     let release = dir.path().join("release");
     fs::create_dir_all(&release).unwrap();
-    let formula = dir.path().join("bee.rb");
+    let formula = dir.path().join("amber.rb");
     fs::copy(&formula_src, &formula).unwrap();
 
     let version = "1.11.0";
@@ -631,7 +631,7 @@ fn homebrew_updater_writes_nonzero_sha256_and_refuses_zeros() {
         "x86_64-unknown-linux-gnu",
     ] {
         fs::write(
-            release.join(format!("bee-v{version}-{target}.tar.gz")),
+            release.join(format!("amber-v{version}-{target}.tar.gz")),
             format!("dummy-{target}-payload"),
         )
         .unwrap();
@@ -668,11 +668,11 @@ fn homebrew_updater_writes_nonzero_sha256_and_refuses_zeros() {
 
 #[test]
 fn winget_manifest_installer_url_uses_windows_zip() {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("manifests/winget/zh30.bee.yaml");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("manifests/winget/zh30.amber.yaml");
     let text = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
     assert!(
         text.contains("x86_64-pc-windows-msvc.zip"),
         "winget InstallerUrl must use the Windows zip name"
     );
-    assert!(text.contains("bee-v"));
+    assert!(text.contains("amber-v"));
 }

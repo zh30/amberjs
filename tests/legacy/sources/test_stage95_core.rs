@@ -1,5 +1,5 @@
 // Standalone test for Stage 95 Core Module
-// This test can run independently of the main beejs library
+// This test can run independently of the main amberjs library
 
 use std::time::Duration;
 

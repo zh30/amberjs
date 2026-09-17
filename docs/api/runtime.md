@@ -1,6 +1,6 @@
 # 运行时 API
 
-`beejs::RuntimeLite` 是 Beejs 运行时系统的核心入口点。
+`amberjs::RuntimeLite` 是 Amber 运行时系统的核心入口点。
 
 ## 概述
 
@@ -39,7 +39,7 @@ impl RuntimeLite {
 
 **示例**:
 ```rust
-use beejs::RuntimeLite;
+use amberjs::RuntimeLite;
 
 let runtime = match RuntimeLite::new() {
     Ok(r) => {
@@ -80,7 +80,7 @@ impl RuntimeLite {
 
 **示例**:
 ```rust
-use beejs::RuntimeLite;
+use amberjs::RuntimeLite;
 use std::path::Path;
 
 let runtime = RuntimeLite::new()?;
@@ -107,7 +107,7 @@ pub fn execute_file_with_options<P: AsRef<Path>>(
 
 **示例**:
 ```rust
-use beejs::cli::ExecutionOptions;
+use amberjs::cli::ExecutionOptions;
 
 let options = ExecutionOptions {
     enable_debugger: true,
@@ -192,7 +192,7 @@ pub async fn execute_file_async<P: AsRef<Path>>(&self, path: P) -> Result<Value>
 
 **示例**:
 ```rust
-use beejs::RuntimeLite;
+use amberjs::RuntimeLite;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -231,7 +231,7 @@ pub struct ExecutionOptions {
 
 **示例**:
 ```rust
-use beejs::cli::ExecutionOptions;
+use amberjs::cli::ExecutionOptions;
 
 let options = ExecutionOptions {
     enable_debugger: true,
@@ -298,7 +298,7 @@ pub type Result<T> = std::result::Result<T, anyhow::Error>;
 
 **示例**:
 ```rust
-use beejs::RuntimeLite;
+use amberjs::RuntimeLite;
 use anyhow::Result;
 
 fn run_script() -> Result<()> {

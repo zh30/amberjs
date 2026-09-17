@@ -1,4 +1,4 @@
-//! Integration tests for Beejs Peripheral Tooling Suite
+//! Integration tests for Amber Peripheral Tooling Suite
 //!
 //! Tests fmt, lint, bench, compile, types, task, and coverage.
 
@@ -9,14 +9,14 @@ use tempfile::tempdir;
 #[test]
 fn test_types_export_cli_and_lib() {
     let types = amberjs::types_export::get_type_definitions();
-    assert!(types.contains("declare module \"bee:ai\""));
+    assert!(types.contains("declare module \"amber:ai\""));
     assert!(types.contains("export class Tensor"));
     assert!(types.contains("export class LLM"));
     assert!(types.contains("export class AgentPipeline"));
-    assert!(types.contains("declare namespace bee"));
+    assert!(types.contains("declare namespace amber"));
 
     let dir = tempdir().expect("tempdir");
-    let out_file = dir.path().join("beejs.d.ts");
+    let out_file = dir.path().join("amberjs.d.ts");
     amberjs::types_export::export_types(Some(&out_file)).expect("export should succeed");
     assert!(out_file.exists());
     let written = fs::read_to_string(&out_file).expect("read");
@@ -316,7 +316,7 @@ fn test_inspector_http_and_websocket() {
     resp.extend_from_slice(&buf[..n]);
     let resp_str = String::from_utf8_lossy(&resp);
     assert!(resp_str.contains("200 OK"));
-    assert!(resp_str.contains("Beejs/"));
+    assert!(resp_str.contains("Amber/"));
 
     // 2. Test WebSocket connection
     let (mut socket, _) = connect(format!("ws://127.0.0.1:{}/ws", port)).expect("connect ws");
@@ -384,7 +384,7 @@ fn test_bundler_multi_module_and_minify() {
 
     assert_eq!(result.module_count, 2);
     assert!(result.code.contains("function(modules)"));
-    assert!(result.code.contains("__beejs_require__"));
+    assert!(result.code.contains("__amberjs_require__"));
     assert!(result.map.is_some());
 
     // Test with minification enabled
@@ -515,8 +515,8 @@ fn test_web_server_fetch_handler_dispatch() {
     let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime");
 
     let bridge_init = r#"
-globalThis.__beejs_app__ = undefined;
-globalThis.__beejs_handle_http__ = async function(method, url, headersJson, bodyStr) {
+globalThis.__amberjs_app__ = undefined;
+globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bodyStr) {
     try {
         const headers = JSON.parse(headersJson);
         const reqInit = { method, headers };
@@ -524,7 +524,7 @@ globalThis.__beejs_handle_http__ = async function(method, url, headersJson, body
             reqInit.body = bodyStr;
         }
         const req = new Request(url, reqInit);
-        let handler = globalThis.__beejs_app__;
+        let handler = globalThis.__amberjs_app__;
         if (handler && typeof handler.default === 'object' && typeof handler.default.fetch === 'function') {
             handler = handler.default.fetch.bind(handler.default);
         } else if (handler && typeof handler.default === 'function') {
@@ -567,12 +567,12 @@ globalThis.__beejs_handle_http__ = async function(method, url, headersJson, body
 
     // 1. Test synchronous export default { fetch(req) }
     let app_code = r#"
-globalThis.__beejs_app__ = {
+globalThis.__amberjs_app__ = {
     default: {
         fetch(req) {
-            return new Response("Hello Beejs Server!", {
+            return new Response("Hello Amber Server!", {
                 status: 201,
-                headers: { "x-custom-powered": "beejs-runtime" }
+                headers: { "x-custom-powered": "amberjs-runtime" }
             });
         }
     }
@@ -581,20 +581,20 @@ globalThis.__beejs_app__ = {
     runtime.execute_code(app_code).expect("app code");
 
     let dispatch_script =
-        r#"globalThis.__beejs_handle_http__("GET", "http://localhost:3000/hello", "{}", "");"#;
+        r#"globalThis.__amberjs_handle_http__("GET", "http://localhost:3000/hello", "{}", "");"#;
     let resp_str = runtime.execute_code(dispatch_script).expect("dispatch");
     let resp_val: serde_json::Value = serde_json::from_str(resp_str.trim()).expect("parse json");
 
     assert_eq!(resp_val["status"].as_u64().unwrap(), 201);
-    assert_eq!(resp_val["body"].as_str().unwrap(), "Hello Beejs Server!");
+    assert_eq!(resp_val["body"].as_str().unwrap(), "Hello Amber Server!");
     assert_eq!(
         resp_val["headers"]["x-custom-powered"].as_str().unwrap(),
-        "beejs-runtime"
+        "amberjs-runtime"
     );
 
     // 2. Test async handler with JSON request body
     let async_app_code = r#"
-globalThis.__beejs_app__ = {
+globalThis.__amberjs_app__ = {
     default: {
         async fetch(req) {
             const text = await req.text();
@@ -604,7 +604,7 @@ globalThis.__beejs_app__ = {
 };
 "#;
     runtime.execute_code(async_app_code).expect("async app");
-    let dispatch_async = r#"globalThis.__beejs_handle_http__("POST", "http://localhost:3000/echo", "{}", "ping-data");"#;
+    let dispatch_async = r#"globalThis.__amberjs_handle_http__("POST", "http://localhost:3000/echo", "{}", "ping-data");"#;
     let async_resp_str = runtime
         .execute_code(dispatch_async)
         .expect("dispatch async");

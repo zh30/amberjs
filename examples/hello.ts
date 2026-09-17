@@ -1,4 +1,4 @@
-// TypeScript Hello World Example for Beejs
+// TypeScript Hello World Example for Amber
 // Testing TypeScript compilation support
 
 interface User {
@@ -12,12 +12,12 @@ function greet(user: User): string {
 }
 
 const user: User = {
-    name: "Beejs TypeScript",
+    name: "Amber TypeScript",
     version: "0.3.102",
     features: ["fast", "type-safe", "AI-ready"]
 };
 
-console.log("🐝 TypeScript Hello World for Beejs!");
+console.log("🐝 TypeScript Hello World for Amber!");
 console.log(greet(user));
 
 // Arrow functions with types

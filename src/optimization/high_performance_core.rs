@@ -1,6 +1,6 @@
 // High-Performance Core Optimization Module
 //
-// This module provides ultra-high-performance optimizations for the Beejs runtime,
+// This module provides ultra-high-performance optimizations for the Amber runtime,
 // designed to exceed Bun's performance through advanced memory management,
 // concurrency optimization, and V8 engine tuning.
 //

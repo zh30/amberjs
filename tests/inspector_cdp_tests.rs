@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use tempfile::tempdir;
 use tungstenite::{connect, Message};
 
-fn bee() -> &'static str {
+fn amber() -> &'static str {
     env!("CARGO_BIN_EXE_amber")
 }
 
@@ -56,7 +56,7 @@ fn inspect_brk_evaluate_and_resume() {
     .unwrap();
 
     let port = free_port();
-    let mut child = Command::new(bee())
+    let mut child = Command::new(amber())
         .args([
             "run",
             "--inspect-brk",
@@ -67,11 +67,11 @@ fn inspect_brk_evaluate_and_resume() {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("spawn bee run --inspect-brk");
+        .expect("spawn amber run --inspect-brk");
 
     let version = http_get(&format!("127.0.0.1:{port}"), "/json/version");
     assert!(
-        version.contains("Beejs/") && version.contains(env!("CARGO_PKG_VERSION")),
+        version.contains("Amber/") && version.contains(env!("CARGO_PKG_VERSION")),
         "GET /json/version: {version}"
     );
 
@@ -112,12 +112,12 @@ fn inspect_brk_evaluate_and_resume() {
             }
             Ok(None) => {
                 let _ = child.kill();
-                panic!("bee did not exit after resume");
+                panic!("amber did not exit after resume");
             }
             Err(e) => panic!("wait: {e}"),
         }
     };
-    assert!(status.success(), "bee should exit 0 after resume: {status}");
+    assert!(status.success(), "amber should exit 0 after resume: {status}");
     assert!(side.exists(), "user script should run after resume");
     let _ = PathBuf::from(&side);
 }

@@ -1,16 +1,16 @@
-# Beejs debugger (v1.9.1)
+# Amber debugger (v1.9.1)
 
-The public inspector is `bee run --inspect` / `bee run --inspect-brk`, not `bee debug`.
-`bee debug <file>` still exists as an experimental extra-diagnostics command; it is not the Chrome DevTools / VS Code attach path.
+The public inspector is `amber run --inspect` / `amber run --inspect-brk`, not `amber debug`.
+`amber debug <file>` still exists as an experimental extra-diagnostics command; it is not the Chrome DevTools / VS Code attach path.
 
 Default CDP port is **9229**.
 
 ## Commands
 
 ```bash
-bee run --inspect script.js
-bee run --inspect-brk script.js
-bee run --inspect-brk --inspect-port 9229 app.ts
+amber run --inspect script.js
+amber run --inspect-brk script.js
+amber run --inspect-brk --inspect-port 9229 app.ts
 ```
 
 `--inspect` starts the CDP HTTP/WebSocket agent and runs the script.
@@ -24,13 +24,13 @@ GET http://127.0.0.1:9229/json/list
 ws://127.0.0.1:9229/ws
 ```
 
-`/json/version` reports `Browser: Beejs/<package version>`.
+`/json/version` reports `Browser: Amber/<package version>`.
 `Runtime.evaluate` runs on the V8 isolate (for example `1+1` → `2`).
 This is Preview: rusty_v8 0.22 does not expose a full `v8::inspector` session, so line breakpoints and scope walking are not Chrome-complete.
 
 ## Chrome DevTools
 
-1. `bee run --inspect-brk --inspect-port 9229 app.js`
+1. `amber run --inspect-brk --inspect-port 9229 app.js`
 2. Open `devtools://devtools/bundled/js_app.html?ws=127.0.0.1:9229/ws`
 3. Resume execution when ready.
 
@@ -43,8 +43,8 @@ This is Preview: rusty_v8 0.22 does not expose a full `v8::inspector` session, s
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug with bee",
-      "runtimeExecutable": "bee",
+      "name": "Debug with amber",
+      "runtimeExecutable": "amber",
       "runtimeArgs": ["run", "--inspect-brk", "--inspect-port", "9229"],
       "args": ["${file}"],
       "port": 9229
@@ -52,11 +52,11 @@ This is Preview: rusty_v8 0.22 does not expose a full `v8::inspector` session, s
     {
       "type": "node",
       "request": "attach",
-      "name": "Attach to bee --inspect",
+      "name": "Attach to amber --inspect",
       "port": 9229
     }
   ]
 }
 ```
 
-The in-repo extension (`tools/vscode-extension`) launches the same `bee run --inspect-brk --inspect-port` command.
+The in-repo extension (`tools/vscode-extension`) launches the same `amber run --inspect-brk --inspect-port` command.

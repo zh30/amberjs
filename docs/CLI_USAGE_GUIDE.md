@@ -1,6 +1,6 @@
 # Amber CLI 使用指南
 
-本文档描述 Amber v1.16.0 默认二进制 `bee` 的当前 CLI 行为。对照 [CURRENT_SCOPE.md](CURRENT_SCOPE.md) 看 Stable / Preview / Experimental。
+本文档描述 Amber v1.16.0 默认二进制 `amber` 的当前 CLI 行为。对照 [CURRENT_SCOPE.md](CURRENT_SCOPE.md) 看 Stable / Preview / Experimental。
 
 ## 基本命令
 
@@ -13,7 +13,7 @@ amber version
 `--verbose` 是全局参数，需要放在子命令前：
 
 ```bash
-bee --verbose run examples/basics/hello_world.js
+amber --verbose run examples/basics/hello_world.js
 ```
 
 ## 执行脚本
@@ -56,15 +56,15 @@ amber run --deny-fs --allow-read config.json app.js
 amber eval --deny-net --allow-net example.com "new WebSocket('wss://example.com/socket')"
 amber eval --deny-env --allow-env PUBLIC_TOKEN "process.env.PUBLIC_TOKEN"
 amber eval --deny-run --allow-run git "require('child_process').exec('git')"
-amber eval --permission-policy bee.policy.json "process.env.PUBLIC_TOKEN"
+amber eval --permission-policy amber.policy.json "process.env.PUBLIC_TOKEN"
 amber bundle --deny-fs --allow-read src/index.js --allow-write dist/bundle.js src/index.js --outfile dist/bundle.js
-bee debug --deny-fs --allow-read script.js script.js
-bee create --deny-fs my-app js
-bee add --deny-net lodash
-bee install --permission-policy bee.policy.json
-bee prune --deny-fs --allow-read package.json --allow-write .beejs_cache --allow-write node_modules
-bee bunx --deny-run eslint
-bee serve --deny-net --host 127.0.0.1 --port 3000
+amber debug --deny-fs --allow-read script.js script.js
+amber create --deny-fs my-app js
+amber add --deny-net lodash
+amber install --permission-policy amber.policy.json
+amber prune --deny-fs --allow-read package.json --allow-write .amberjs_cache --allow-write node_modules
+amber bunx --deny-run eslint
+amber serve --deny-net --host 127.0.0.1 --port 3000
 ```
 
 `--permission-policy` 也可以写作 `--policy`。策略文件支持 JSON，最小结构如下：
@@ -135,8 +135,8 @@ amber bundle src/index.js --target browser --tree-shake
 ## Serve
 
 ```bash
-bee serve --host localhost --port 3000
-bee serve --host localhost --port 3443 --https --cert cert.pem --key key.pem
+amber serve --host localhost --port 3000
+amber serve --host localhost --port 3443 --https --cert cert.pem --key key.pem
 ```
 
 `--https` 使用 rustls 做 HTTP/1.1 TLS。必须同时提供存在的 `--cert` 与 `--key` PEM；缺文件或无法解析时以非 0 退出，不会打印成功监听横幅。不在本版本做 HTTP/2。无 `--https` 时行为仍是明文 HTTP。
@@ -144,20 +144,20 @@ bee serve --host localhost --port 3443 --https --cert cert.pem --key key.pem
 ## 项目与包管理
 
 ```bash
-bee init my-app
-bee create my-app js
-bee create my-ts-app ts
-bee add lodash
-bee add lodash@4.17.21 --save-exact
-bee add vitest --dev
-bee install
-bee prune
-bee remove lodash
-bee upgrade
-bee bunx <package>
+amber init my-app
+amber create my-app js
+amber create my-ts-app ts
+amber add lodash
+amber add lodash@4.17.21 --save-exact
+amber add vitest --dev
+amber install
+amber prune
+amber remove lodash
+amber upgrade
+amber bunx <package>
 ```
 
-`bee create` 的当前参数顺序是 `<name> [template]`；历史文档中的 `bee create ts my-ts-app` 形式仍会被兼容为 TypeScript 模板项目。
+`amber create` 的当前参数顺序是 `<name> [template]`；历史文档中的 `amber create ts my-ts-app` 形式仍会被兼容为 TypeScript 模板项目。
 
 包管理能力仍处于轻量实现阶段，遇到 npm 生态边界时应以实际命令结果为准。
 
@@ -173,15 +173,15 @@ amber run app.js --watch --websocket-port 9999
 
 ## 调试
 
-Chrome DevTools / VS Code 附加请用 `amber run --inspect` 或 `amber run --inspect-brk`（默认端口 9229），不要用 `bee debug`。见 [DEBUGGER_USAGE.md](DEBUGGER_USAGE.md)。
+Chrome DevTools / VS Code 附加请用 `amber run --inspect` 或 `amber run --inspect-brk`（默认端口 9229），不要用 `amber debug`。见 [DEBUGGER_USAGE.md](DEBUGGER_USAGE.md)。
 
 ```bash
 amber run --inspect-brk --inspect-port 9229 script.js
-bee debug script.js
-bee debug --deny-fs --allow-read script.js script.js
+amber debug script.js
+amber debug --deny-fs --allow-read script.js script.js
 ```
 
-`bee debug` 是 Experimental：多打印诊断，不是 Inspector。`debug` 的目标文件读取会进入同一套文件系统权限 broker；使用 `--deny-fs` 时需要为目标脚本显式 `--allow-read`。
+`amber debug` 是 Experimental：多打印诊断，不是 Inspector。`debug` 的目标文件读取会进入同一套文件系统权限 broker；使用 `--deny-fs` 时需要为目标脚本显式 `--allow-read`。
 
 ## 开发验证
 
@@ -189,7 +189,7 @@ bee debug --deny-fs --allow-read script.js script.js
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
 cargo test --lib
-cargo test --test beejs_core_tests
+cargo test --test amberjs_core_tests
 cargo test --test cli_release_tests
 cargo build --release
 ```
@@ -198,10 +198,10 @@ cargo build --release
 
 v1.16.0 预编译包当前覆盖：
 
-- macOS x86_64 (`bee-v<ver>-x86_64-apple-darwin.tar.gz`)
-- macOS arm64 (`bee-v<ver>-aarch64-apple-darwin.tar.gz`)
-- Linux x86_64 (`bee-v<ver>-x86_64-unknown-linux-gnu.tar.gz`)
-- Linux aarch64 (`bee-v<ver>-aarch64-unknown-linux-gnu.tar.gz`)
-- Windows x64 (`bee-v<ver>-x86_64-pc-windows-msvc.zip`)
+- macOS x86_64 (`amber-v<ver>-x86_64-apple-darwin.tar.gz`)
+- macOS arm64 (`amber-v<ver>-aarch64-apple-darwin.tar.gz`)
+- Linux x86_64 (`amber-v<ver>-x86_64-unknown-linux-gnu.tar.gz`)
+- Linux aarch64 (`amber-v<ver>-aarch64-unknown-linux-gnu.tar.gz`)
+- Windows x64 (`amber-v<ver>-x86_64-pc-windows-msvc.zip`)
 
 Homebrew `Formula/amber.rb` SHA256 由 GitHub Release job 从上述 tar.gz 回写。容器镜像 `ghcr.io/zh30/amberjs` 仅为 linux/amd64。

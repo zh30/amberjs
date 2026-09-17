@@ -1,20 +1,20 @@
-//! Integration tests for Beejs v1.3.0 features
+//! Integration tests for Amber v1.3.0 features
 //!
 //! Tests:
-//! 1. Native Zero-Dependency Embedding Engine (`bee:ai` embed, embedBatch, cosineSimilarity)
-//! 2. Model Context Protocol 2.0 (`bee:mcp` McpServer, McpClient, connectLocal, tools, resources, prompts)
-//! 3. Deterministic In-Memory Virtual Filesystem (`--virtual-fs`, `bee:vfs`, `fs` interception, COW)
+//! 1. Native Zero-Dependency Embedding Engine (`amber:ai` embed, embedBatch, cosineSimilarity)
+//! 2. Model Context Protocol 2.0 (`amber:mcp` McpServer, McpClient, connectLocal, tools, resources, prompts)
+//! 3. Deterministic In-Memory Virtual Filesystem (`--virtual-fs`, `amber:vfs`, `fs` interception, COW)
 
 use std::process::Command;
 
-fn bee_path() -> &'static str {
+fn amber_path() -> &'static str {
     env!("CARGO_BIN_EXE_amber")
 }
 
 #[test]
-fn test_bee_ai_native_embedding_and_similarity() {
+fn test_amber_ai_native_embedding_and_similarity() {
     let script = r#"
-        const { embed, embedBatch, cosineSimilarity, Tensor } = require('bee:ai');
+        const { embed, embedBatch, cosineSimilarity, Tensor } = require('amber:ai');
 
         // Test single embedding
         const v1 = embed("rust systems programming");
@@ -64,10 +64,10 @@ fn test_bee_ai_native_embedding_and_similarity() {
         console.log(`v1_len=${v1.length},simHigh=${simHigh > 0.6},simLow=${simLow < simHigh},batch=${batch.length}`);
     "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", script])
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     assert!(
         output.status.success(),
@@ -79,18 +79,18 @@ fn test_bee_ai_native_embedding_and_similarity() {
 }
 
 #[test]
-fn test_bee_ai_embedding_with_vector_db() {
+fn test_amber_ai_embedding_with_vector_db() {
     let script = r#"
-        const { embed } = require('bee:ai');
-        const { VectorDB } = require('bee:vector');
+        const { embed } = require('amber:ai');
+        const { VectorDB } = require('amber:vector');
 
         const db = new VectorDB({ dimensions: 64, metric: 'cosine' });
 
-        const doc1 = "Beejs runtime with Rust and V8 engine";
+        const doc1 = "Amber runtime with Rust and V8 engine";
         const doc2 = "Node.js JavaScript server runtime";
         const doc3 = "Italian pasta recipes with tomatoes and basil";
 
-        db.insert("doc1", embed(doc1), { title: "Beejs" });
+        db.insert("doc1", embed(doc1), { title: "Amber" });
         db.insert("doc2", embed(doc2), { title: "NodeJS" });
         db.insert("doc3", embed(doc3), { title: "Pasta" });
 
@@ -103,10 +103,10 @@ fn test_bee_ai_embedding_with_vector_db() {
         console.log(`top=${results[0].id},title=${results[0].metadata.title}`);
     "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", script])
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     assert!(
         output.status.success(),
@@ -114,13 +114,13 @@ fn test_bee_ai_embedding_with_vector_db() {
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    assert_eq!(stdout, "top=doc1,title=Beejs");
+    assert_eq!(stdout, "top=doc1,title=Amber");
 }
 
 #[test]
 fn test_mcp_server_and_client_local_transport() {
     let script = r#"
-        const { McpServer } = require('bee:mcp');
+        const { McpServer } = require('amber:mcp');
 
         const server = new McpServer({ name: 'test-server', version: '1.0.0' });
 
@@ -146,7 +146,7 @@ fn test_mcp_server_and_client_local_transport() {
             'memo://project/info',
             'Project Information',
             (uri) => {
-                return { uri, name: 'Beejs', version: '1.3.0' };
+                return { uri, name: 'Amber', version: '1.3.0' };
             },
             'application/json'
         );
@@ -214,10 +214,10 @@ fn test_mcp_server_and_client_local_transport() {
         run();
     "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", script])
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     assert!(
         output.status.success(),
@@ -230,10 +230,10 @@ fn test_mcp_server_and_client_local_transport() {
 
 #[test]
 fn test_mcp_cli_inspect() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["mcp", "--inspect"])
         .output()
-        .expect("failed to execute bee mcp --inspect");
+        .expect("failed to execute amber mcp --inspect");
 
     assert!(
         output.status.success(),
@@ -258,7 +258,7 @@ fn test_virtual_fs_memory_sandbox_isolation() {
     let script = format!(
         r#"
         const fs = require('fs');
-        const vfs = require('bee:vfs');
+        const vfs = require('amber:vfs');
 
         vfs.enable(true);
 
@@ -301,10 +301,10 @@ fn test_virtual_fs_memory_sandbox_isolation() {
         test_virtual_file
     );
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", &script])
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     assert!(
         output.status.success(),
@@ -325,7 +325,7 @@ fn test_virtual_fs_memory_sandbox_isolation() {
 fn test_cli_virtual_fs_flag() {
     let script = r#"
         const fs = require('fs');
-        const vfs = require('bee:vfs');
+        const vfs = require('amber:vfs');
 
         if (!vfs.isEnabled()) {
             throw new Error("Virtual FS should be enabled via CLI flag");
@@ -336,10 +336,10 @@ fn test_cli_virtual_fs_flag() {
         console.log(`enabled=${vfs.isEnabled()},read=${read}`);
     "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "--virtual-fs", script])
         .output()
-        .expect("failed to execute bee with --virtual-fs");
+        .expect("failed to execute amber with --virtual-fs");
 
     assert!(
         output.status.success(),

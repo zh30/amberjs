@@ -14,7 +14,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_node_registration_and_discovery() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(100),
             node_timeout: Duration::from_secs(5),
         };
@@ -44,7 +44,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_heartbeat_and_failure_detection() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(50),
             node_timeout: Duration::from_millis(300),
         };
@@ -80,7 +80,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_node_status_synchronization() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(100),
             node_timeout: Duration::from_secs(5),
         };
@@ -116,7 +116,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_cluster_topology_management() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(100),
             node_timeout: Duration::from_secs(5),
         };
@@ -169,7 +169,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_node_metadata_management() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(100),
             node_timeout: Duration::from_secs(5),
         };
@@ -206,7 +206,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_health_check_system() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(100),
             node_timeout: Duration::from_secs(5),
         };
@@ -243,7 +243,7 @@ mod cluster_node_tests {
 
         for i in 0..3 {
             let config = DiscoveryConfig {
-                cluster_name: "beejs-test".to_string(),
+                cluster_name: "amberjs-test".to_string(),
                 gossip_interval: Duration::from_millis(50),
                 node_timeout: Duration::from_secs(5),
             };
@@ -278,7 +278,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_node_auto_cleanup() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(100),
             node_timeout: Duration::from_millis(500),
         };
@@ -318,7 +318,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_batch_node_operations() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(100),
             node_timeout: Duration::from_secs(5),
         };
@@ -354,7 +354,7 @@ mod cluster_node_tests {
     #[tokio::test]
     async fn test_node_load_reporting() {
         let config = DiscoveryConfig {
-            cluster_name: "beejs-test".to_string(),
+            cluster_name: "amberjs-test".to_string(),
             gossip_interval: Duration::from_millis(100),
             node_timeout: Duration::from_secs(5),
         };

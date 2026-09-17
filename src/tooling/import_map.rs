@@ -1,4 +1,4 @@
-//! WICG Import Maps Implementation for Beejs
+//! WICG Import Maps Implementation for Amber
 //!
 //! Provides bare module specifier remapping and scoped resolution.
 

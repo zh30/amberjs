@@ -256,18 +256,18 @@ mod tests {
     #[test]
     fn test_argocd_application_creation() {
         let app = ArgoCDApplication::new(
-            "beejs-app".to_string(),
+            "amberjs-app".to_string(),
             "production".to_string(),
-            "https://github.com/example/beejs-manifests.git".to_string(),
+            "https://github.com/example/amberjs-manifests.git".to_string(),
             "main".to_string(),
             "/manifests".to_string(),
         );
 
-        assert_eq!(app.name, "beejs-app");
+        assert_eq!(app.name, "amberjs-app");
         assert_eq!(app.environment, "production");
         assert_eq!(
             app.repo_url,
-            "https://github.com/example/beejs-manifests.git"
+            "https://github.com/example/amberjs-manifests.git"
         );
         assert_eq!(app.target_revision, "main");
         assert_eq!(app.path, "/manifests");
@@ -276,18 +276,18 @@ mod tests {
     #[test]
     fn test_flux_helm_release() {
         let mut release = FluxHelmRelease::new(
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "production".to_string(),
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "https://helm.github.io/charts".to_string(),
         );
 
         release.add_value("replicaCount".to_string(), "3".to_string());
         release.add_value("image.tag".to_string(), "v1.0.0".to_string());
 
-        assert_eq!(release.name, "beejs");
+        assert_eq!(release.name, "amberjs");
         assert_eq!(release.namespace, "production");
-        assert_eq!(release.chart_name, "beejs");
+        assert_eq!(release.chart_name, "amberjs");
         assert_eq!(release.chart_repo, "https://helm.github.io/charts");
         assert_eq!(release.values.len(), 2);
         assert_eq!(release.values.get("replicaCount"), Some(&"3".to_string()));
@@ -343,7 +343,7 @@ mod tests {
     #[test]
     fn test_gitlab_ci_pipeline() {
         let mut pipeline =
-            GitLabCIPipeline::new("beejs-pipeline".to_string(), "production".to_string());
+            GitLabCIPipeline::new("amberjs-pipeline".to_string(), "production".to_string());
 
         pipeline.add_stage("build".to_string());
         pipeline.add_stage("test".to_string());
@@ -352,11 +352,11 @@ mod tests {
         pipeline.add_job(
             "build-job".to_string(),
             "build".to_string(),
-            vec!["docker build -t beejs .".to_string()],
+            vec!["docker build -t amberjs .".to_string()],
         );
 
         assert_eq!(pipeline.stages.len(), 3);
-        assert_eq!(pipeline.name, "beejs-pipeline");
+        assert_eq!(pipeline.name, "amberjs-pipeline");
         assert_eq!(pipeline.environment, "production");
         assert!(pipeline.has_stage("build"));
         assert_eq!(pipeline.jobs.len(), 1);
@@ -364,14 +364,14 @@ mod tests {
 
     #[test]
     fn test_jenkins_pipeline() {
-        let mut pipeline = JenkinsPipeline::new("beejs-pipeline".to_string());
+        let mut pipeline = JenkinsPipeline::new("amberjs-pipeline".to_string());
 
         pipeline.add_stage("Build".to_string(), vec!["sh 'npm install'".to_string()]);
 
         pipeline.add_stage("Test".to_string(), vec!["sh 'npm test'".to_string()]);
 
         assert_eq!(pipeline.stages.len(), 2);
-        assert_eq!(pipeline.name, "beejs-pipeline");
+        assert_eq!(pipeline.name, "amberjs-pipeline");
         assert_eq!(pipeline.stages[0].0, "Build");
         assert_eq!(pipeline.stages[1].0, "Test");
     }
@@ -379,13 +379,13 @@ mod tests {
     #[test]
     fn test_blue_green_deployment() {
         let deployment = BlueGreenDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
         );
 
-        assert_eq!(deployment.service_name, "beejs-service");
+        assert_eq!(deployment.service_name, "amberjs-service");
         assert_eq!(deployment.environment, "production");
         assert_eq!(deployment.current_version, "v1.0.0");
         assert_eq!(deployment.next_version, "v1.1.0");
@@ -394,14 +394,14 @@ mod tests {
     #[test]
     fn test_canary_deployment() {
         let deployment = CanaryDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
             10,
         );
 
-        assert_eq!(deployment.service_name, "beejs-service");
+        assert_eq!(deployment.service_name, "amberjs-service");
         assert_eq!(deployment.environment, "production");
         assert_eq!(deployment.current_version, "v1.0.0");
         assert_eq!(deployment.next_version, "v1.1.0");
@@ -411,7 +411,7 @@ mod tests {
     #[test]
     fn test_rolling_deployment() {
         let deployment = RollingDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -419,7 +419,7 @@ mod tests {
         .max_unavailable(2)
         .max_surge(2);
 
-        assert_eq!(deployment.service_name, "beejs-service");
+        assert_eq!(deployment.service_name, "amberjs-service");
         assert_eq!(deployment.environment, "production");
         assert_eq!(deployment.current_version, "v1.0.0");
         assert_eq!(deployment.next_version, "v1.1.0");
@@ -446,7 +446,7 @@ mod tests {
     #[test]
     fn test_multi_stage_pipeline() {
         let mut pipeline =
-            GitLabCIPipeline::new("beejs-pipeline".to_string(), "production".to_string());
+            GitLabCIPipeline::new("amberjs-pipeline".to_string(), "production".to_string());
 
         let stages = vec!["build", "test", "deploy", "notify"];
         for stage in stages {
@@ -463,9 +463,9 @@ mod tests {
     #[test]
     fn test_helm_values_override() {
         let mut release = FluxHelmRelease::new(
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "production".to_string(),
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "https://helm.github.io/charts".to_string(),
         );
 

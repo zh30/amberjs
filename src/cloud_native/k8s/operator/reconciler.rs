@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use super::super::crd::{
-    BeejsCluster, BeejsWorkload, ClusterPhase, Condition, ConditionStatus, ConditionType,
+    AmberCluster, AmberWorkload, ClusterPhase, Condition, ConditionStatus, ConditionType,
     WorkloadPhase,
 };
 use k8s_openapi::api::apps::v1::{Deployment, StatefulSet};
@@ -20,16 +20,16 @@ impl Reconciler {
     pub fn new(client: Client) -> Self {
         Self { client }
     }
-    /// Reconcile BeejsCluster
+    /// Reconcile AmberCluster
     pub async fn reconcile_cluster(
         &self,
-        cluster: Arc<BeejsCluster>,
+        cluster: Arc<AmberCluster>,
     ) -> Result<ReconcileResult, super::controller::Error> {
         let start_time: _ = Instant::now();
         let name: _ = cluster.name_any();
         let namespace: _ = cluster.namespace().unwrap_or_default();
         info!(
-            "Starting reconciliation for BeejsCluster: {} in {}",
+            "Starting reconciliation for AmberCluster: {} in {}",
             name, namespace
         );
         // Get current state
@@ -52,16 +52,16 @@ impl Reconciler {
             message: "Reconciliation completed successfully".to_string(),
         })
     }
-    /// Reconcile BeejsWorkload
+    /// Reconcile AmberWorkload
     pub async fn reconcile_workload(
         &self,
-        workload: Arc<BeejsWorkload>,
+        workload: Arc<AmberWorkload>,
     ) -> Result<ReconcileResult, super::controller::Error> {
         let start_time: _ = Instant::now();
         let name: _ = workload.name_any();
         let namespace: _ = workload.namespace().unwrap_or_default();
         info!(
-            "Starting reconciliation for BeejsWorkload: {} in {}",
+            "Starting reconciliation for AmberWorkload: {} in {}",
             name, namespace
         );
         // Get current state
@@ -88,7 +88,7 @@ impl Reconciler {
     /// Get current state of cluster
     async fn get_current_state(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
     ) -> Result<ClusterState, super::controller::Error> {
         let namespace: _ = cluster.namespace().unwrap_or_default();
         // Create API instances
@@ -138,7 +138,7 @@ impl Reconciler {
     /// Calculate desired state for cluster
     fn calculate_desired_state(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
     ) -> Result<ClusterState, super::controller::Error> {
         Ok(ClusterState {
             phase: ClusterPhase::Running,
@@ -169,7 +169,7 @@ impl Reconciler {
     /// Apply changes to cluster
     async fn apply_changes(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
         diff: &ClusterDiff,
     ) -> Result<(), super::controller::Error> {
         if diff.needs_scale {
@@ -186,7 +186,7 @@ impl Reconciler {
     /// Update cluster status
     async fn update_status(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
         state: &ClusterState,
     ) -> Result<(), super::controller::Error> {
         // TODO: Implement status update
@@ -195,7 +195,7 @@ impl Reconciler {
     /// Get current state of workload
     async fn get_workload_current_state(
         &self,
-        workload: &BeejsWorkload,
+        workload: &AmberWorkload,
     ) -> Result<WorkloadState, super::controller::Error> {
         let namespace: _ = workload.namespace().unwrap_or_default();
         // Create API instance
@@ -229,7 +229,7 @@ impl Reconciler {
     /// Calculate desired state for workload
     fn calculate_workload_desired_state(
         &self,
-        workload: &BeejsWorkload,
+        workload: &AmberWorkload,
     ) -> Result<WorkloadState, super::controller::Error> {
         Ok(WorkloadState {
             phase: WorkloadPhase::Running,
@@ -253,7 +253,7 @@ impl Reconciler {
     /// Apply changes to workload
     async fn apply_workload_changes(
         &self,
-        workload: &BeejsWorkload,
+        workload: &AmberWorkload,
         diff: &WorkloadDiff,
     ) -> Result<(), super::controller::Error> {
         if diff.needs_scale {
@@ -270,7 +270,7 @@ impl Reconciler {
     /// Update workload status
     async fn update_workload_status(
         &self,
-        workload: &BeejsWorkload,
+        workload: &AmberWorkload,
         state: &WorkloadState,
     ) -> Result<(), super::controller::Error> {
         // TODO: Implement status update

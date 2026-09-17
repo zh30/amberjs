@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
-fn beejs_path() -> PathBuf {
+fn amberjs_path() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
@@ -16,11 +16,11 @@ fn run_js_test(code: &str) -> String {
     let test_file = temp_dir.path().join("test.js");
     fs::write(&test_file, code).unwrap();
 
-    let output = Command::new(beejs_path())
+    let output = Command::new(amberjs_path())
         .arg("run")
         .arg(&test_file)
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let lines: Vec<&str> = stdout
@@ -114,12 +114,12 @@ const cases = [
 for (const [algorithm, key] of cases) {
     try {
         const cipher = crypto.createCipheriv(algorithm, key, iv);
-        const encrypted = cipher.update('Bee alias', 'utf8', 'hex') + cipher.final('hex');
+        const encrypted = cipher.update('Amber alias', 'utf8', 'hex') + cipher.final('hex');
 
         const decipher = crypto.createDecipheriv(algorithm, key, iv);
         const decrypted = decipher.update(encrypted, 'hex', 'utf8') + decipher.final('utf8');
 
-        console.log(decrypted === 'Bee alias' ? 'PASS' : `FAIL:${algorithm}:${decrypted}`);
+        console.log(decrypted === 'Amber alias' ? 'PASS' : `FAIL:${algorithm}:${decrypted}`);
     } catch (error) {
         console.log(`FAIL:${algorithm}:${error.message}`);
     }

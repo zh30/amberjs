@@ -34,10 +34,10 @@ pub fn clear_module_resolution_cache() {
 
 const JS_EXTENSIONS: &[&str] = &["js", "json", "ts", "mjs", "cjs", "tsx"];
 const COMMONJS_EXPORT_CONDITIONS: &[&str] = &[
-    "require", "wintercg", "wintertc", "node", "beejs", "default",
+    "require", "wintercg", "wintertc", "node", "amber", "amberjs", "default",
 ];
 const ESM_EXPORT_CONDITIONS: &[&str] = &[
-    "import", "wintercg", "wintertc", "node", "amber", "amberjs", "beejs", "default",
+    "import", "wintercg", "wintertc", "node", "amber", "amberjs", "default",
 ];
 const BUILTIN_MODULES: &[&str] = &[
     "ai",
@@ -71,34 +71,6 @@ const BUILTIN_MODULES: &[&str] = &[
     "assert",
     "assert/strict",
     "async_hooks",
-    "bee:ai",
-    "bee:db",
-    "bee:ffi",
-    "bee:pool",
-    "bee:wasm",
-    "bee:replay",
-    "bee:weights",
-    "bee:security",
-    "bee:permissions",
-    "bee:kv",
-    "bee:tools",
-    "bee:bus",
-    "bee:grammar",
-    "bee:checkpoint",
-    "bee:sockets",
-    "bee:sqlite",
-    "bee:vector",
-    "bee:std",
-    "bee:std/dotenv",
-    "bee:std/cli",
-    "bee:std/fs",
-    "bee:std/crypto",
-    "bee:std/assert",
-    "bee:mcp",
-    "bee:sandbox",
-    "bee:vfs",
-    "bee:test",
-    "bee:wasm",
     "db",
     "ffi",
     "pool",
@@ -434,10 +406,6 @@ fn normalize_builtin_specifier(specifier: &str) -> Option<&str> {
     let without_amber = specifier.strip_prefix("amber:").unwrap_or(specifier);
     if BUILTIN_MODULES.contains(&without_amber) {
         return Some(without_amber);
-    }
-    let without_bee = specifier.strip_prefix("bee:").unwrap_or(specifier);
-    if BUILTIN_MODULES.contains(&without_bee) {
-        return Some(without_bee);
     }
     let without_wintertc = specifier.strip_prefix("wintertc:").unwrap_or(specifier);
     if BUILTIN_MODULES.contains(&without_wintertc) {

@@ -7,12 +7,12 @@ function assert(cond, msg) {
 assert(typeof crypto.createHash === 'function', 'createHash exists');
 assert(typeof crypto.randomBytes === 'function', 'randomBytes exists');
 
-const digest = crypto.createHash('sha256').update('beejs').digest('hex');
+const digest = crypto.createHash('sha256').update('amberjs').digest('hex');
 assert(typeof digest === 'string', 'digest hex is string');
 assert(digest.length === 64, 'sha256 hex length, got: ' + digest.length);
 assert(/^[0-9a-f]{64}$/.test(digest), 'sha256 hex charset');
 
-const again = crypto.createHash('sha256').update('beejs').digest('hex');
+const again = crypto.createHash('sha256').update('amberjs').digest('hex');
 assert(digest === again, 'createHash is deterministic');
 
 const bytes = crypto.randomBytes(16);

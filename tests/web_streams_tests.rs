@@ -1,4 +1,4 @@
-// Web Streams API tests for Beejs runtime
+// Web Streams API tests for Amber runtime
 // Tests for ReadableStream, WritableStream, TransformStream, TextDecoderStream
 // Stage 75: Web Streams API for AI workloads
 

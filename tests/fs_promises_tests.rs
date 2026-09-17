@@ -1,4 +1,4 @@
-// fs/promises module tests for Beejs runtime
+// fs/promises module tests for Amber runtime
 // v0.3.7: Promise-based fs API implementation
 
 use serial_test::serial;

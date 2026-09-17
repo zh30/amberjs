@@ -58,7 +58,7 @@ fn test_wintertc_navigator_and_globals() {
 
     // 4. navigator conforming to ECMA-429 Section 7
     if (typeof navigator === 'undefined') throw new Error('navigator is undefined');
-    if (typeof navigator.userAgent !== 'string' || !navigator.userAgent.startsWith('Beejs/')) {
+    if (typeof navigator.userAgent !== 'string' || !navigator.userAgent.startsWith('Amber/')) {
         throw new Error('Invalid userAgent: ' + navigator.userAgent);
     }
     if (typeof navigator.hardwareConcurrency !== 'number' || navigator.hardwareConcurrency < 1) {
@@ -160,9 +160,9 @@ fn test_wintertc_sockets_api() {
 
     let code = format!(
         r#"
-    // 1. Require from bee:sockets or global
-    const sockets = require('bee:sockets');
-    if (!sockets || typeof sockets.connect !== 'function') throw new Error('bee:sockets.connect missing');
+    // 1. Require from amber:sockets or global
+    const sockets = require('amber:sockets');
+    if (!sockets || typeof sockets.connect !== 'function') throw new Error('amber:sockets.connect missing');
     if (typeof globalThis.connect !== 'function') throw new Error('globalThis.connect missing');
     if (typeof globalThis.Socket !== 'function') throw new Error('globalThis.Socket missing');
 
@@ -202,7 +202,7 @@ fn test_wintertc_sockets_tls_rejects_untrusted_self_signed() {
     let code = format!(
         r#"
     globalThis.__tlsErr = 'pending';
-    const tlsSocket = require('bee:sockets').connect(
+    const tlsSocket = require('amber:sockets').connect(
         {{ hostname: '127.0.0.1', port: {port} }},
         {{ secureTransport: 'on', sni: 'localhost' }}
     );
@@ -241,7 +241,7 @@ fn test_wintertc_sockets_tls_handshake_with_test_ca() {
         r#"
     globalThis.__tlsOpened = 'pending';
     globalThis.__tlsUpgraded = false;
-    const tlsSocket = require('bee:sockets').connect(
+    const tlsSocket = require('amber:sockets').connect(
         {{ hostname: '127.0.0.1', port: {port} }},
         {{ secureTransport: 'on', sni: 'localhost' }}
     );
@@ -283,7 +283,7 @@ fn test_wintertc_sockets_start_tls_upgrades_opened_socket() {
         r#"
     globalThis.__startTls = 'pending';
     (async () => {{
-        const sockets = require('bee:sockets');
+        const sockets = require('amber:sockets');
         const socket = sockets.connect({{ hostname: '127.0.0.1', port: {port} }}, {{ sni: 'localhost' }});
         await socket.opened;
         if (socket.upgraded) throw new Error('plain connect must not be upgraded');
@@ -318,7 +318,7 @@ fn test_wintertc_sockets_start_tls_rejects_untrusted_and_does_not_upgrade() {
     globalThis.__startTlsFail = 'pending';
     globalThis.__startTlsUpgraded = null;
     (async () => {{
-        const sockets = require('bee:sockets');
+        const sockets = require('amber:sockets');
         const socket = sockets.connect({{ hostname: '127.0.0.1', port: {port} }}, {{ sni: 'localhost' }});
         await socket.opened;
         if (socket.upgraded) throw new Error('plain connect must not be upgraded');

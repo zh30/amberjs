@@ -1,4 +1,4 @@
-// Microbenchmark example for `bee bench`
+// Microbenchmark example for `amber bench`
 
 bench("Array.prototype.push (1000 items)", () => {
     const arr = [];
@@ -8,7 +8,7 @@ bench("Array.prototype.push (1000 items)", () => {
 });
 
 bench("JSON.parse & JSON.stringify", () => {
-    const obj = { id: 1, name: "beejs", active: true, scores: [10, 20, 30] };
+    const obj = { id: 1, name: "amberjs", active: true, scores: [10, 20, 30] };
     const str = JSON.stringify(obj);
     const parsed = JSON.parse(str);
 });

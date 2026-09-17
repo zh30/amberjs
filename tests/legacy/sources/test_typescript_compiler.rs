@@ -6,7 +6,7 @@ fn main() {
 const x: number = 42;
 const greet = (name: string): string => `Hello, ${name}!`;
 console.log("TS Test:", x);
-console.log(greet("Beejs"));
+console.log(greet("Amber"));
 "#;
 
     println!("原始 TypeScript 代码:");

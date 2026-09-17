@@ -1,4 +1,4 @@
-// BroadcastChannel API Tests for Beejs
+// BroadcastChannel API Tests for Amber
 // v0.3.312: Tests for BroadcastChannel cross-tab communication API
 // Enables real-time communication between browsing contexts (tabs, windows, frames)
 
@@ -7,16 +7,16 @@ mod broadcast_channel_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     /// Test 1: Basic BroadcastChannel creation
     #[test]
     fn test_broadcast_channel_creation() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -26,7 +26,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -44,7 +44,7 @@ mod broadcast_channel_tests {
     /// Test 2: BroadcastChannel with different name
     #[test]
     fn test_broadcast_channel_different_names() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -54,7 +54,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -67,7 +67,7 @@ mod broadcast_channel_tests {
     /// Test 3: postMessage delivers to same-name peers, not the sender
     #[test]
     fn test_post_message() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -86,7 +86,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -99,7 +99,7 @@ mod broadcast_channel_tests {
     /// Test 4: postMessage with object data
     #[test]
     fn test_post_message_object() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -114,7 +114,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -127,7 +127,7 @@ mod broadcast_channel_tests {
     /// Test 5: postMessage with array data
     #[test]
     fn test_post_message_array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -142,7 +142,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -155,7 +155,7 @@ mod broadcast_channel_tests {
     /// Test 6: addEventListener for message
     #[test]
     fn test_add_event_listener() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -170,7 +170,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -183,7 +183,7 @@ mod broadcast_channel_tests {
     /// Test 7: removeEventListener removes the matching listener
     #[test]
     fn test_remove_event_listener() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -199,7 +199,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -212,7 +212,7 @@ mod broadcast_channel_tests {
     /// Test 8: close method removes the channel from future delivery
     #[test]
     fn test_close() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -228,7 +228,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -241,7 +241,7 @@ mod broadcast_channel_tests {
     /// Test 9: message event has correct origin
     #[test]
     fn test_message_event_origin() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -257,7 +257,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -270,7 +270,7 @@ mod broadcast_channel_tests {
     /// Test 10: message event data property is correct
     #[test]
     fn test_message_event_data() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -285,7 +285,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -298,7 +298,7 @@ mod broadcast_channel_tests {
     /// Test 11: messageerror event
     #[test]
     fn test_message_error_event() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -315,7 +315,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -328,7 +328,7 @@ mod broadcast_channel_tests {
     /// Test 12: Empty name channel
     #[test]
     fn test_empty_name_channel() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -337,7 +337,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -350,7 +350,7 @@ mod broadcast_channel_tests {
     /// Test 13: Unicode name channel
     #[test]
     fn test_unicode_name_channel() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -359,7 +359,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -372,7 +372,7 @@ mod broadcast_channel_tests {
     /// Test 14: Multiple channels with same name receive peer messages only
     #[test]
     fn test_multiple_channels_same_name() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -392,7 +392,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -405,7 +405,7 @@ mod broadcast_channel_tests {
     /// Test 15: channels with different names are isolated for delivery
     #[test]
     fn test_different_name_channels_are_isolated() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -420,7 +420,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -433,7 +433,7 @@ mod broadcast_channel_tests {
     /// Test 16: object payloads are delivered as structured clones, not shared references
     #[test]
     fn test_post_message_object_payload_is_cloned() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -464,7 +464,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -477,7 +477,7 @@ mod broadcast_channel_tests {
     /// Test 17: uncloneable payloads fail closed and do not dispatch message events
     #[test]
     fn test_post_message_uncloneable_payload_throws_without_dispatch() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -498,7 +498,7 @@ mod broadcast_channel_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(

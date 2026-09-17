@@ -132,7 +132,7 @@ mod edge_computing_tests {
     #[tokio::test]
     async fn test_anycast_dns_routing() {
         let dns = AnycastDns::new();
-        let routes = dns.resolve("beejs-edge.com").await;
+        let routes = dns.resolve("amberjs-edge.com").await;
         assert!(routes.is_ok());
         let ips = routes.unwrap();
         assert!(!ips.is_empty());
@@ -143,7 +143,7 @@ mod edge_computing_tests {
         let geo_dns = GeoDns::new();
         let client_ip = "203.0.113.1"; // Example IP
         let result = geo_dns
-            .resolve_with_region("beejs-edge.com", client_ip)
+            .resolve_with_region("amberjs-edge.com", client_ip)
             .await;
         assert!(result.is_ok());
         let endpoint = result.unwrap();

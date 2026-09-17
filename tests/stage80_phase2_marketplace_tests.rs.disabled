@@ -9,11 +9,11 @@ mod tests {
     use chrono::Utc;
 
     // 导入模块
-    use beejs::ecosystem::marketplace::{
+    use amberjs::ecosystem::marketplace::{
         ModuleRegistry, VersionManager, SearchQuery, SearchContext,
         ModuleId, ModuleInfo, ModuleVersion, CDNEndpoints,
     };
-    use beejs::ecosystem::types::{PackageManifest, Version, VersionConstraint};
+    use amberjs::ecosystem::types::{PackageManifest, Version, VersionConstraint};
 
     /// 测试模块注册
     #[tokio::test]
@@ -271,7 +271,7 @@ mod tests {
 
         let endpoints = version_manager.distribute_to_cdn(&module).await.unwrap();
 
-        assert_eq!(endpoints.primary, "https://cdn.beejs.dev/modules/test-module/latest");
+        assert_eq!(endpoints.primary, "https://cdn.amberjs.dev/modules/test-module/latest");
         assert_eq!(endpoints.mirrors.len(), 3);
         assert!(endpoints.mirrors[0].contains("cdn-us"));
         assert!(endpoints.mirrors[1].contains("cdn-eu"));

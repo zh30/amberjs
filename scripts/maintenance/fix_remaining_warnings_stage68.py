@@ -152,7 +152,7 @@ def main():
 
     # 步骤 4: 测试功能
     print("\n步骤 4: 测试基本功能...")
-    stdout, stderr, code = run_command("./bee test_basic_functionality.js")
+    stdout, stderr, code = run_command("./amber test_basic_functionality.js")
     if code == 0:
         print("✓ 基本功能测试通过")
     else:

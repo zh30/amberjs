@@ -23,18 +23,18 @@ mod cicd_integration_tests {
     #[test]
     fn test_argocd_application_creation() {
         let app = ArgoCDApplication::new(
-            "beejs-app".to_string(),
+            "amberjs-app".to_string(),
             "production".to_string(),
-            "https://github.com/example/beejs-manifests.git".to_string(),
+            "https://github.com/example/amberjs-manifests.git".to_string(),
             "main".to_string(),
             "/manifests".to_string(),
         );
 
-        assert_eq!(app.name, "beejs-app");
+        assert_eq!(app.name, "amberjs-app");
         assert_eq!(app.environment, "production");
         assert_eq!(
             app.repo_url,
-            "https://github.com/example/beejs-manifests.git"
+            "https://github.com/example/amberjs-manifests.git"
         );
         assert_eq!(app.target_revision, "main");
         assert_eq!(app.path, "/manifests");
@@ -65,15 +65,15 @@ mod cicd_integration_tests {
     #[test]
     fn test_flux_helm_release() {
         let release = FluxHelmRelease::new(
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "production".to_string(),
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "https://helm.github.io/charts".to_string(),
         );
 
-        assert_eq!(release.name, "beejs");
+        assert_eq!(release.name, "amberjs");
         assert_eq!(release.namespace, "production");
-        assert_eq!(release.chart_name, "beejs");
+        assert_eq!(release.chart_name, "amberjs");
         assert_eq!(release.chart_repo, "https://helm.github.io/charts");
         assert!(release.wait_for_jobs);
         assert!(release.disable_webhooks);
@@ -83,9 +83,9 @@ mod cicd_integration_tests {
     #[test]
     fn test_flux_helm_values() {
         let mut release = FluxHelmRelease::new(
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "production".to_string(),
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "https://helm.github.io/charts".to_string(),
         );
 
@@ -103,16 +103,16 @@ mod cicd_integration_tests {
         let mut manager = GitOpsManager::new("argocd".to_string());
 
         let app = ArgoCDApplication::new(
-            "beejs-app".to_string(),
+            "amberjs-app".to_string(),
             "production".to_string(),
-            "https://github.com/example/beejs-manifests.git".to_string(),
+            "https://github.com/example/amberjs-manifests.git".to_string(),
             "main".to_string(),
             "/manifests".to_string(),
         );
 
         manager.add_application(app);
         assert_eq!(manager.applications.len(), 1);
-        assert!(manager.get_application("beejs-app").is_some());
+        assert!(manager.get_application("amberjs-app").is_some());
     }
 
     #[test]
@@ -120,15 +120,15 @@ mod cicd_integration_tests {
         let mut manager = GitOpsManager::new("flux".to_string());
 
         let release = FluxHelmRelease::new(
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "production".to_string(),
-            "beejs".to_string(),
+            "amberjs".to_string(),
             "https://helm.github.io/charts".to_string(),
         );
 
         manager.add_helm_release(release);
         assert_eq!(manager.helm_releases.len(), 1);
-        assert!(manager.get_helm_release("beejs").is_some());
+        assert!(manager.get_helm_release("amberjs").is_some());
     }
 
     #[test]
@@ -213,7 +213,7 @@ mod cicd_integration_tests {
     #[test]
     fn test_gitlab_ci_pipeline() {
         let mut pipeline =
-            GitLabCIPipeline::new("beejs-pipeline".to_string(), "production".to_string());
+            GitLabCIPipeline::new("amberjs-pipeline".to_string(), "production".to_string());
 
         pipeline.add_stage("build".to_string());
         pipeline.add_stage("test".to_string());
@@ -225,8 +225,8 @@ mod cicd_integration_tests {
             "build-job".to_string(),
             "build".to_string(),
             vec![
-                "docker build -t beejs:$CI_COMMIT_SHA .".to_string(),
-                "docker push beejs:$CI_COMMIT_SHA".to_string(),
+                "docker build -t amberjs:$CI_COMMIT_SHA .".to_string(),
+                "docker push amberjs:$CI_COMMIT_SHA".to_string(),
             ],
         );
 
@@ -241,7 +241,7 @@ mod cicd_integration_tests {
         pipeline.add_job(
             "deploy-job".to_string(),
             "deploy".to_string(),
-            vec!["kubectl set image deployment/beejs beejs=beejs:$CI_COMMIT_SHA".to_string()],
+            vec!["kubectl set image deployment/amberjs amberjs=amberjs:$CI_COMMIT_SHA".to_string()],
         );
 
         assert_eq!(pipeline.stages.len(), 4);
@@ -252,11 +252,11 @@ mod cicd_integration_tests {
 
     #[test]
     fn test_jenkins_pipeline() {
-        let mut pipeline = JenkinsPipeline::new("beejs-pipeline".to_string());
+        let mut pipeline = JenkinsPipeline::new("amberjs-pipeline".to_string());
 
         pipeline.add_stage(
             "Checkout".to_string(),
-            vec!["git branch: 'main', url: 'https://github.com/example/beejs.git'".to_string()],
+            vec!["git branch: 'main', url: 'https://github.com/example/amberjs.git'".to_string()],
         );
 
         pipeline.add_stage(
@@ -277,7 +277,7 @@ mod cicd_integration_tests {
 
         pipeline.add_stage(
             "Deploy".to_string(),
-            vec!["kubernetesDeploy configs: 'k8s/', kubeconfigId: 'beejs-kubeconfig'".to_string()],
+            vec!["kubernetesDeploy configs: 'k8s/', kubeconfigId: 'amberjs-kubeconfig'".to_string()],
         );
 
         assert_eq!(pipeline.stages.len(), 4);
@@ -308,30 +308,30 @@ mod cicd_integration_tests {
         let mut manager = PipelineManager::new("gitlab".to_string());
 
         let mut pipeline =
-            GitLabCIPipeline::new("beejs-pipeline".to_string(), "production".to_string());
+            GitLabCIPipeline::new("amberjs-pipeline".to_string(), "production".to_string());
 
         pipeline.add_stage("build".to_string());
         pipeline.add_job(
             "build-job".to_string(),
             "build".to_string(),
-            vec!["docker build -t beejs .".to_string()],
+            vec!["docker build -t amberjs .".to_string()],
         );
 
         manager.add_pipeline(pipeline);
         assert_eq!(manager.pipelines.len(), 1);
-        assert!(manager.get_pipeline("beejs-pipeline").is_some());
+        assert!(manager.get_pipeline("amberjs-pipeline").is_some());
     }
 
     #[test]
     fn test_pipeline_manager_jenkins() {
         let mut manager = PipelineManager::new("jenkins".to_string());
 
-        let mut pipeline = JenkinsPipeline::new("beejs-pipeline".to_string());
+        let mut pipeline = JenkinsPipeline::new("amberjs-pipeline".to_string());
         pipeline.add_stage("Build".to_string(), vec!["sh 'npm install'".to_string()]);
 
         manager.add_pipeline(pipeline);
         assert_eq!(manager.pipelines.len(), 1);
-        assert!(manager.get_pipeline("beejs-pipeline").is_some());
+        assert!(manager.get_pipeline("amberjs-pipeline").is_some());
     }
 
     #[test]
@@ -366,13 +366,13 @@ mod cicd_integration_tests {
     #[test]
     fn test_blue_green_deployment() {
         let mut deployment = BlueGreenDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
         );
 
-        assert_eq!(deployment.service_name, "beejs-service");
+        assert_eq!(deployment.service_name, "amberjs-service");
         assert_eq!(deployment.environment, "production");
         assert_eq!(deployment.current_version, "v1.0.0");
         assert_eq!(deployment.next_version, "v1.1.0");
@@ -393,14 +393,14 @@ mod cicd_integration_tests {
     #[test]
     fn test_canary_deployment() {
         let mut deployment = CanaryDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
             10, // 10% traffic
         );
 
-        assert_eq!(deployment.service_name, "beejs-service");
+        assert_eq!(deployment.service_name, "amberjs-service");
         assert_eq!(deployment.environment, "production");
         assert_eq!(deployment.current_version, "v1.0.0");
         assert_eq!(deployment.next_version, "v1.1.0");
@@ -423,7 +423,7 @@ mod cicd_integration_tests {
     #[test]
     fn test_canary_promotion() {
         let mut deployment = CanaryDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -446,7 +446,7 @@ mod cicd_integration_tests {
     #[test]
     fn test_canary_rollback() {
         let mut deployment = CanaryDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -466,13 +466,13 @@ mod cicd_integration_tests {
     #[test]
     fn test_rolling_deployment() {
         let mut deployment = RollingDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
         );
 
-        assert_eq!(deployment.service_name, "beejs-service");
+        assert_eq!(deployment.service_name, "amberjs-service");
         assert_eq!(deployment.environment, "production");
         assert_eq!(deployment.current_version, "v1.0.0");
         assert_eq!(deployment.next_version, "v1.1.0");
@@ -492,7 +492,7 @@ mod cicd_integration_tests {
     #[test]
     fn test_rolling_deployment_params() {
         let mut deployment = RollingDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -516,7 +516,7 @@ mod cicd_integration_tests {
         // Test blue-green selection
         let config = DeploymentConfig {
             strategy: "blue-green".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             environment: "production".to_string(),
             current_version: "v1.0.0".to_string(),
             next_version: "v1.1.0".to_string(),
@@ -533,7 +533,7 @@ mod cicd_integration_tests {
 
         let config = DeploymentConfig {
             strategy: "canary".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             environment: "production".to_string(),
             current_version: "v1.0.0".to_string(),
             next_version: "v1.1.0".to_string(),
@@ -547,7 +547,7 @@ mod cicd_integration_tests {
         // Test rolling selection
         let config = DeploymentConfig {
             strategy: "rolling".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             environment: "production".to_string(),
             current_version: "v1.0.0".to_string(),
             next_version: "v1.1.0".to_string(),
@@ -584,7 +584,7 @@ mod cicd_integration_tests {
             platform: "github".to_string(),
             trigger: "push".to_string(),
             branches: vec!["main".to_string(), "develop".to_string()],
-            secret_name: "beejs-secrets".to_string(),
+            secret_name: "amberjs-secrets".to_string(),
         };
 
         assert_eq!(config.platform, "github");
@@ -592,7 +592,7 @@ mod cicd_integration_tests {
         assert_eq!(config.branches.len(), 2);
         assert!(config.branches.contains(&"main".to_string()));
         assert!(config.branches.contains(&"develop".to_string()));
-        assert_eq!(config.secret_name, "beejs-secrets");
+        assert_eq!(config.secret_name, "amberjs-secrets");
     }
 
     #[test]
@@ -603,7 +603,7 @@ mod cicd_integration_tests {
 
         let config = DeploymentConfig {
             strategy: "canary".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             environment: "production".to_string(),
             current_version: "v1.0.0".to_string(),
             next_version: "v1.1.0".to_string(),
@@ -611,7 +611,7 @@ mod cicd_integration_tests {
         };
 
         assert_eq!(config.strategy, "canary");
-        assert_eq!(config.service_name, "beejs-service");
+        assert_eq!(config.service_name, "amberjs-service");
         assert_eq!(config.environment, "production");
         assert_eq!(config.current_version, "v1.0.0");
         assert_eq!(config.next_version, "v1.1.0");
@@ -638,9 +638,9 @@ mod cicd_integration_tests {
         // Setup GitOps manager
         let mut gitops = GitOpsManager::new("argocd".to_string());
         let app = ArgoCDApplication::new(
-            "beejs-app".to_string(),
+            "amberjs-app".to_string(),
             "production".to_string(),
-            "https://github.com/example/beejs-manifests.git".to_string(),
+            "https://github.com/example/amberjs-manifests.git".to_string(),
             "main".to_string(),
             "/manifests".to_string(),
         );
@@ -659,7 +659,7 @@ mod cicd_integration_tests {
             name: "deploy".to_string(),
             environment: "production".to_string(),
             runs_on: "ubuntu-latest".to_string(),
-            steps: vec!["argocd app sync beejs-app".to_string()],
+            steps: vec!["argocd app sync amberjs-app".to_string()],
         });
         pipelines.add_workflow(workflow);
 
@@ -667,7 +667,7 @@ mod cicd_integration_tests {
         let mut deployment = DeploymentStrategy::new();
         let config = DeploymentConfig {
             strategy: "rolling".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             environment: "production".to_string(),
             current_version: "v1.0.0".to_string(),
             next_version: "v1.1.0".to_string(),
@@ -692,16 +692,16 @@ mod cicd_integration_tests {
             let mut gitops = GitOpsManager::new("flux".to_string());
 
             let release = FluxHelmRelease::new(
-                "beejs".to_string(),
+                "amberjs".to_string(),
                 env.clone(),
-                "beejs".to_string(),
+                "amberjs".to_string(),
                 "https://helm.github.io/charts".to_string(),
             );
 
             gitops.add_helm_release(release);
 
             assert_eq!(gitops.helm_releases.len(), 1);
-            assert_eq!(gitops.get_helm_release("beejs").unwrap().namespace, env);
+            assert_eq!(gitops.get_helm_release("amberjs").unwrap().namespace, env);
         }
     }
 

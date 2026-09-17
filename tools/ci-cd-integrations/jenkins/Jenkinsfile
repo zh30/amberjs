@@ -1,14 +1,14 @@
-// Beejs Jenkins Pipeline
-// This Jenkinsfile provides CI/CD integration for Beejs projects
+// Amber Jenkins Pipeline
+// This Jenkinsfile provides CI/CD integration for Amber projects
 
 pipeline {
     agent any
 
     environment {
-        BEEJS_VERSION = 'latest'
+        AMBER_VERSION = 'latest'
         NODE_VERSION = '18'
         DOCKER_REGISTRY = 'your-registry.com'
-        IMAGE_NAME = 'beejs-app'
+        IMAGE_NAME = 'amberjs-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
@@ -22,21 +22,21 @@ pipeline {
             }
         }
 
-        stage('Setup Beejs') {
+        stage('Setup Amber') {
             steps {
                 script {
-                    println '🐝 Setting up Beejs runtime...'
+                    println '🐝 Setting up Amber runtime...'
 
-                    // Download and install Beejs
+                    // Download and install Amber
                     sh '''
-                        curl -L "https://github.com/beejs-team/beejs/releases/download/v0.1.0/bee-linux-x64.tar.gz" -o bee.tar.gz
-                        tar -xzf bee.tar.gz
-                        chmod +x bee
-                        sudo mv bee /usr/local/bin/
+                        curl -L "https://github.com/amberjs-team/amberjs/releases/download/v0.1.0/amber-linux-x64.tar.gz" -o amber.tar.gz
+                        tar -xzf amber.tar.gz
+                        chmod +x amber
+                        sudo mv amber /usr/local/bin/
                     '''
 
                     // Verify installation
-                    sh 'bee --version'
+                    sh 'amber --version'
                 }
             }
         }
@@ -63,10 +63,10 @@ pipeline {
                 script {
                     println '🔍 Running linter...'
 
-                    // Run linter with Beejs
+                    // Run linter with Amber
                     sh '''
                         if [ -f .eslintrc.js ] || [ -f .eslintrc.json ]; then
-                            bee run node_modules/.bin/eslint src/ --format=json --output-file=eslint-results.json
+                            amber run node_modules/.bin/eslint src/ --format=json --output-file=eslint-results.json
                         fi
                     '''
                 }
@@ -91,9 +91,9 @@ pipeline {
                         script {
                             println '🧪 Running unit tests...'
 
-                            // Run tests with Beejs
+                            // Run tests with Amber
                             sh '''
-                                bee test --reporter=json --output=test-results.json
+                                amber test --reporter=json --output=test-results.json
                             '''
                         }
 
@@ -109,7 +109,7 @@ pipeline {
 
                             // Run integration tests
                             sh '''
-                                bee test tests/integration --reporter=json --output=integration-results.json
+                                amber test tests/integration --reporter=json --output=integration-results.json
                             '''
                         }
 
@@ -124,7 +124,7 @@ pipeline {
 
                             // Run performance benchmarks
                             sh '''
-                                bee run benchmarks/comprehensive_benchmark.js > performance-results.txt 2>&1
+                                amber run benchmarks/comprehensive_benchmark.js > performance-results.txt 2>&1
                             '''
                         }
 
@@ -139,16 +139,16 @@ pipeline {
                 script {
                     println '🔨 Building application...'
 
-                    // Build with Beejs
+                    // Build with Amber
                     sh '''
                         # TypeScript compilation
                         if [ -f tsconfig.json ]; then
-                            bee run build.ts
+                            amber run build.ts
                         fi
 
                         # Bundle JavaScript
                         if [ -f src/index.js ]; then
-                            bee bundle src/index.js --outfile=dist/bundle.js --minify
+                            amber bundle src/index.js --outfile=dist/bundle.js --minify
                         fi
                     '''
 
@@ -165,7 +165,7 @@ pipeline {
 
                     // Run security scan
                     sh '''
-                        bee run scripts/security-scan.js > security-report.txt 2>&1 || true
+                        amber run scripts/security-scan.js > security-report.txt 2>&1 || true
                     '''
 
                     archiveArtifacts artifacts: 'security-report.txt', allowEmptyArchive: true
@@ -247,7 +247,7 @@ pipeline {
 
                 // Send notification
                 emailext (
-                    subject: "✅ Beejs Build #${BUILD_NUMBER} - Production Deployment",
+                    subject: "✅ Amber Build #${BUILD_NUMBER} - Production Deployment",
                     body: "Production deployment successful for build #${BUILD_NUMBER}",
                     to: "${env.CHANGE_AUTHOR_EMAIL}"
                 )
@@ -263,7 +263,7 @@ pipeline {
 
                             // Generate comprehensive report
                             sh '''
-                                bee run scripts/generate-build-report.js \
+                                amber run scripts/generate-build-report.js \
                                     --build-number=${BUILD_NUMBER} \
                                     --commit=${GIT_COMMIT} \
                                     --branch=${GIT_BRANCH} \
@@ -290,7 +290,7 @@ pipeline {
 
                             // Clean up temporary files
                             sh '''
-                                rm -f bee.tar.gz
+                                rm -f amber.tar.gz
                                 docker system prune -f
                             '''
                         }
@@ -328,7 +328,7 @@ pipeline {
 
                 // Send failure notification
                 emailext (
-                    subject: "❌ Beejs Build #${BUILD_NUMBER} Failed",
+                    subject: "❌ Amber Build #${BUILD_NUMBER} Failed",
                     body: "Build #${BUILD_NUMBER} failed. Check console output for details.",
                     to: "${env.CHANGE_AUTHOR_EMAIL}"
                 )

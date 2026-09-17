@@ -5,19 +5,19 @@ use serial_test::serial;
 use std::path::PathBuf;
 use std::process::Command;
 
-fn bee_path() -> PathBuf {
+fn amber_path() -> PathBuf {
     PathBuf::from(
-        std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+        std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/amber".to_string()),
     )
 }
 
 #[test]
 #[serial]
 fn test_global_object_exists() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "typeof globalThis.global"])
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -30,10 +30,10 @@ fn test_global_object_exists() {
 #[test]
 #[serial]
 fn test_global_equals_global_this() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "globalThis.global === globalThis"])
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -46,10 +46,10 @@ fn test_global_equals_global_this() {
 #[test]
 #[serial]
 fn test_global_contains_all_globals() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "globalThis.global.setTimeout === setTimeout"])
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -62,10 +62,10 @@ fn test_global_contains_all_globals() {
 #[test]
 #[serial]
 fn test_global_contains_process() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "globalThis.global.process === process"])
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -78,10 +78,10 @@ fn test_global_contains_process() {
 #[test]
 #[serial]
 fn test_global_contains_console() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "globalThis.global.console === console"])
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -94,10 +94,10 @@ fn test_global_contains_console() {
 #[test]
 #[serial]
 fn test_global_contains_buffer() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "globalThis.global.Buffer === Buffer"])
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -111,10 +111,10 @@ fn test_global_contains_buffer() {
 #[serial]
 fn test_global_this_is_same_reference() {
     // Test that globalThis.global and globalThis point to the same object reference
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "Object.is(globalThis.global, globalThis)"])
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(

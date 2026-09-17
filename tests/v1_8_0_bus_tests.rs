@@ -7,7 +7,7 @@ fn test_bus_topic_wildcards_and_pubsub() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createBus, topicMatches } = require('bee:bus');
+    const { createBus, topicMatches } = require('amber:bus');
 
     // 1. Test topic pattern matching helper
     if (!topicMatches('agent.*.task', 'agent.planner.task')) throw new Error('Wildcard * failed');
@@ -64,7 +64,7 @@ fn test_bus_request_reply_pattern() {
 
     let code = r#"
     (async () => {
-        const bus = require('bee:bus');
+        const bus = require('amber:bus');
 
         // Subscriber listening for calculation requests
         bus.subscribe('service.calculator.add', (msg) => {
@@ -92,7 +92,7 @@ fn test_bus_priority_and_dead_letter_queue() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createBus } = require('bee:bus');
+    const { createBus } = require('amber:bus');
     const bus = createBus();
 
     const order = [];
@@ -143,7 +143,7 @@ fn test_bus_middleware_pipeline() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createBus } = require('bee:bus');
+    const { createBus } = require('amber:bus');
     const bus = createBus();
 
     // Middleware: inject tracing header

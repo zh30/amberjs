@@ -13,13 +13,13 @@ function add(a: number, b: number): number {
 }
 
 const user: User = {
-    name: "Beejs",
+    name: "Amber",
     version: "0.3.102"
 };
 
 const sum = add(1, 2);
 
-console.log("Hello World for Beejs!");
+console.log("Hello World for Amber!");
 console.log(greet(user));
 console.log(sum);
 

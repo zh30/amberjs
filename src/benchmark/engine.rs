@@ -162,7 +162,7 @@ impl BenchmarkEngine {
         let test_name: _ = &benchmark.name;
         info!("Running benchmark: {}", test_name);
         // 创建结果
-        let mut result = BenchmarkResult::new(test_name, Runtime::Beejs);
+        let mut result = BenchmarkResult::new(test_name, Runtime::Amber);
         // 添加环境变量
         for (key, value) in suite_env {
             result.add_metadata(&format!("env_{}", key), value);
@@ -346,7 +346,7 @@ impl BenchmarkRun {
     }
     /// 执行基准测试
     pub async fn run(&self) -> Result<BenchmarkResult> {
-        let mut result = BenchmarkResult::new(&self.name, Runtime::Beejs);
+        let mut result = BenchmarkResult::new(&self.name, Runtime::Amber);
         result.start();
         for i in 0..self.iterations {
             let start: _ = Instant::now();
@@ -380,7 +380,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_benchmark_result_statistics() {
-        let mut result = BenchmarkResult::new("test", Runtime::Beejs);
+        let mut result = BenchmarkResult::new("test", Runtime::Amber);
         result.start();
         // 添加一些迭代
         for i in 1..=10 {

@@ -1,5 +1,5 @@
 // Multi-language Support Module
-// Provides seamless integration between Beejs and multiple programming languages
+// Provides seamless integration between Amber and multiple programming languages
 pub mod go_runtime;
 pub mod python_runtime;
 pub mod rust_native;
@@ -27,13 +27,13 @@ impl MultiLanguageRuntime {
         }
     }
     /// Initialize Python runtime
-    pub fn init_python(&mut self, bee_api: Arc<go_runtime::BeeAPI>) -> Result<()> {
-        self.python = Some(PythonRuntime::new(bee_api)?);
+    pub fn init_python(&mut self, amber_api: Arc<go_runtime::AmberAPI>) -> Result<()> {
+        self.python = Some(PythonRuntime::new(amber_api)?);
         Ok(())
     }
     /// Initialize Go runtime
-    pub fn init_go(&mut self, bee_api: Arc<go_runtime::BeeAPI>) -> Result<()> {
-        self.go = Some(GoRuntime::new(bee_api)?);
+    pub fn init_go(&mut self, amber_api: Arc<go_runtime::AmberAPI>) -> Result<()> {
+        self.go = Some(GoRuntime::new(amber_api)?);
         Ok(())
     }
     /// Execute code in specified language
@@ -65,21 +65,21 @@ impl MultiLanguageRuntime {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::multilang::go_runtime::BeeRuntimeInterface;
+    use crate::multilang::go_runtime::AmberRuntimeInterface;
 
     #[tokio::test]
     async fn test_multilang_runtime() {
         let mut runtime = MultiLanguageRuntime::new();
         // Test Python execution
-        let python_api: _ = Arc::new(go_runtime::BeeAPI {
-            runtime: Arc::new(MockBeeRuntime),
+        let python_api: _ = Arc::new(go_runtime::AmberAPI {
+            runtime: Arc::new(MockAmberRuntime),
         });
         runtime.init_python(python_api).unwrap();
         let result: _ = runtime.execute("python", "print('Hello Python')").await;
         assert!(result.is_ok());
         // Test Go execution
-        let go_api: _ = Arc::new(go_runtime::BeeAPI {
-            runtime: Arc::new(MockBeeRuntime),
+        let go_api: _ = Arc::new(go_runtime::AmberAPI {
+            runtime: Arc::new(MockAmberRuntime),
         });
         runtime.init_go(go_api).unwrap();
         let result: _ = runtime.execute("go", "fmt.Println('Hello Go')").await;
@@ -90,8 +90,8 @@ mod tests {
             .await;
         assert!(result.is_ok());
     }
-    struct MockBeeRuntime;
-    impl BeeRuntimeInterface for MockBeeRuntime {
+    struct MockAmberRuntime;
+    impl AmberRuntimeInterface for MockAmberRuntime {
         fn execute_script(&self, script: &str) -> Result<String> {
             Ok(format!("Executed: {}", script))
         }

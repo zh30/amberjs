@@ -205,7 +205,7 @@ impl TestSuite {
             config: BenchmarkConfig::default(),
             benchmarks: Vec::new(),
             workloads: Vec::new(),
-            runtimes: vec![Runtime::Beejs],
+            runtimes: vec![Runtime::Amber],
             dependencies: Vec::new(),
             environment: HashMap::new(),
             setup_script: None,
@@ -596,7 +596,7 @@ pub struct RuntimeComparison {
     pub name: String,
     /// 对比描述
     pub description: String,
-    /// 基准运行时 (Beejs)
+    /// 基准运行时 (Amber)
     pub baseline_runtime: Runtime,
     /// 对比运行时列表
     pub comparison_runtimes: Vec<Runtime>,
@@ -626,7 +626,7 @@ impl Default for RuntimeComparison {
         Self {
             name: "default_comparison".to_string(),
             description: "Default runtime comparison".to_string(),
-            baseline_runtime: Runtime::Beejs,
+            baseline_runtime: Runtime::Amber,
             comparison_runtimes: vec![Runtime::NodeJs, Runtime::Bun],
             benchmarks: Vec::new(),
             workloads: Vec::new(),

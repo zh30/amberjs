@@ -1,4 +1,4 @@
-// Module system tests for Beejs runtime
+// Module system tests for Amber runtime
 // v0.3.0: require(), module, exports implementation
 
 use serial_test::serial;

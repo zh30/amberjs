@@ -50,7 +50,7 @@ fn get_fetch_runtime() -> &'static Runtime {
         tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
-            .thread_name("beejs-fetch-worker")
+            .thread_name("amberjs-fetch-worker")
             .build()
             .expect("Failed to initialize fetch runtime")
     })
@@ -63,7 +63,7 @@ static FETCH_BLOCKING_CLIENT: OnceLock<reqwest::blocking::Client> = OnceLock::ne
 fn get_fetch_client() -> &'static reqwest::Client {
     FETCH_CLIENT.get_or_init(|| {
         reqwest::Client::builder()
-            .user_agent(format!("Beejs/{}", env!("CARGO_PKG_VERSION")))
+            .user_agent(format!("Amber/{}", env!("CARGO_PKG_VERSION")))
             .timeout(std::time::Duration::from_secs(30))
             .pool_idle_timeout(std::time::Duration::from_secs(90))
             .pool_max_idle_per_host(32)
@@ -75,7 +75,7 @@ fn get_fetch_client() -> &'static reqwest::Client {
 fn get_blocking_fetch_client() -> &'static reqwest::blocking::Client {
     FETCH_BLOCKING_CLIENT.get_or_init(|| {
         reqwest::blocking::Client::builder()
-            .user_agent(format!("Beejs/{}", env!("CARGO_PKG_VERSION")))
+            .user_agent(format!("Amber/{}", env!("CARGO_PKG_VERSION")))
             .timeout(std::time::Duration::from_secs(30))
             .pool_idle_timeout(std::time::Duration::from_secs(90))
             .pool_max_idle_per_host(32)
@@ -271,7 +271,7 @@ pub struct FetchConfig {
 impl Default for FetchConfig {
     fn default() -> Self {
         Self {
-            user_agent: format!("Beejs/{}", env!("CARGO_PKG_VERSION")),
+            user_agent: format!("Amber/{}", env!("CARGO_PKG_VERSION")),
             timeout: std::time::Duration::from_secs(30),
             max_redirects: 20,
         }
@@ -2037,7 +2037,7 @@ fn store_response_body(
     cache.insert(response_id, (url, body_vec));
     drop(cache);
 
-    let response_id_key: _ = v8::String::new(scope, "__beejsResponseId").unwrap();
+    let response_id_key: _ = v8::String::new(scope, "__amberjsResponseId").unwrap();
     let response_id_val: _ = v8::Integer::new_from_unsigned(scope, response_id as u32).into();
     response_obj.set(scope, response_id_key.into(), response_id_val);
 
@@ -2091,7 +2091,7 @@ fn attach_response_clone_method(scope: &mut v8::PinScope, response_obj: v8::Loca
                 "body",
                 "bodyUsed",
                 "headers",
-                "__beejsResponseId",
+                "__amberjsResponseId",
             ];
 
             for name in &key_names {
@@ -2317,7 +2317,7 @@ fn response_body_for_object(
     scope: &mut v8::PinScope,
     response_obj: v8::Local<v8::Object>,
 ) -> Option<Vec<u8>> {
-    let response_id_key = v8::String::new(scope, "__beejsResponseId").unwrap().into();
+    let response_id_key = v8::String::new(scope, "__amberjsResponseId").unwrap().into();
     if let Some(response_id_val) = response_obj.get(scope, response_id_key) {
         if let Some(response_id_int) = response_id_val.to_integer(scope) {
             let response_id = response_id_int.value() as usize;
@@ -2356,7 +2356,7 @@ mod tests {
         let config: _ = FetchConfig::default();
         assert_eq!(
             config.user_agent,
-            format!("Beejs/{}", env!("CARGO_PKG_VERSION"))
+            format!("Amber/{}", env!("CARGO_PKG_VERSION"))
         );
         assert_eq!(config.timeout, std::time::Duration::from_secs(30));
         assert_eq!(config.max_redirects, 20);

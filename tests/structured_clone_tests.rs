@@ -1,4 +1,4 @@
-// structuredClone Tests for Beejs
+// structuredClone Tests for Amber
 // Tests for v0.3.300: structuredClone enhanced with Date, RegExp, Map, Set support
 // Enables deep cloning of objects for AI workloads
 
@@ -7,17 +7,17 @@ mod structured_clone_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
             std::env::var("CARGO_BIN_EXE_amber")
-                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     /// Test 1: structuredClone with null
     #[test]
     fn test_clone_null() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -26,7 +26,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -39,7 +39,7 @@ mod structured_clone_tests {
     /// Test 2: structuredClone with undefined
     #[test]
     fn test_clone_undefined() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -48,7 +48,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -61,18 +61,18 @@ mod structured_clone_tests {
     /// Test 3: structuredClone with string
     #[test]
     fn test_clone_string() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
-                const original = "Hello, Beejs!";
+                const original = "Hello, Amber!";
                 const cloned = structuredClone(original);
                 console.log('string result:', cloned === original);
                 console.log('string value:', cloned);
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -81,7 +81,7 @@ mod structured_clone_tests {
             stdout
         );
         assert!(
-            stdout.contains("string value: Hello, Beejs!"),
+            stdout.contains("string value: Hello, Amber!"),
             "Expected correct string value. Got: {}",
             stdout
         );
@@ -90,7 +90,7 @@ mod structured_clone_tests {
     /// Test 4: structuredClone with number
     #[test]
     fn test_clone_number() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -100,7 +100,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -113,7 +113,7 @@ mod structured_clone_tests {
     /// Test 5: structuredClone with boolean
     #[test]
     fn test_clone_boolean() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -122,7 +122,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -135,11 +135,11 @@ mod structured_clone_tests {
     /// Test 6: structuredClone with plain object
     #[test]
     fn test_clone_plain_object() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
-                const original = { name: "Beejs", version: "0.3.299" };
+                const original = { name: "Amber", version: "0.3.299" };
                 const cloned = structuredClone(original);
                 console.log('object cloned:', cloned !== original);
                 console.log('object name:', cloned.name);
@@ -147,7 +147,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -156,7 +156,7 @@ mod structured_clone_tests {
             stdout
         );
         assert!(
-            stdout.contains("object name: Beejs"),
+            stdout.contains("object name: Amber"),
             "Expected name to be preserved. Got: {}",
             stdout
         );
@@ -170,7 +170,7 @@ mod structured_clone_tests {
     /// Test 7: structuredClone with array
     #[test]
     fn test_clone_array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -182,7 +182,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -205,7 +205,7 @@ mod structured_clone_tests {
     /// Test 8: structuredClone with nested object
     #[test]
     fn test_clone_nested_object() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -223,7 +223,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -246,7 +246,7 @@ mod structured_clone_tests {
     /// Test 9: structuredClone with empty object
     #[test]
     fn test_clone_empty_object() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -257,7 +257,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -275,7 +275,7 @@ mod structured_clone_tests {
     /// Test 10: structuredClone with empty array
     #[test]
     fn test_clone_empty_array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -286,7 +286,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -304,7 +304,7 @@ mod structured_clone_tests {
     /// Test 11: structuredClone creates deep copy (no shared references)
     #[test]
     fn test_clone_creates_deep_copy() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -321,7 +321,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -344,7 +344,7 @@ mod structured_clone_tests {
     /// Test 12: structuredClone with object containing multiple types
     #[test]
     fn test_clone_mixed_types() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -369,7 +369,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -399,7 +399,7 @@ mod structured_clone_tests {
     /// Date might not have full prototype chain. We test both scenarios.
     #[test]
     fn test_clone_date() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -419,7 +419,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Skip assertion if Date is not fully supported in this runtime
@@ -452,7 +452,7 @@ mod structured_clone_tests {
     /// Test 14: structuredClone with RegExp
     #[test]
     fn test_clone_regexp() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -465,7 +465,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -493,7 +493,7 @@ mod structured_clone_tests {
     /// Test 15: structuredClone with Map
     #[test]
     fn test_clone_map() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -510,7 +510,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -543,7 +543,7 @@ mod structured_clone_tests {
     /// Test 16: structuredClone with Set
     #[test]
     fn test_clone_set() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -560,7 +560,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -593,7 +593,7 @@ mod structured_clone_tests {
     /// Test 17: structuredClone with nested Map containing objects
     #[test]
     fn test_clone_map_with_nested_objects() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -608,7 +608,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -626,7 +626,7 @@ mod structured_clone_tests {
     /// Test 18: structuredClone with Set containing objects
     #[test]
     fn test_clone_set_with_objects() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -640,7 +640,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -658,7 +658,7 @@ mod structured_clone_tests {
     /// Test 19: structuredClone with complex nested structure (AI workload scenario)
     #[test]
     fn test_clone_complex_ai_workload() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -685,7 +685,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Date type depends on runtime support
@@ -714,7 +714,7 @@ mod structured_clone_tests {
     /// Test 20: structuredClone handles circular references with new types
     #[test]
     fn test_clone_circular_with_maps_sets() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -728,7 +728,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -746,7 +746,7 @@ mod structured_clone_tests {
     /// Test 21: structuredClone with Uint8Array
     #[test]
     fn test_clone_uint8array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -759,7 +759,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -787,7 +787,7 @@ mod structured_clone_tests {
     /// Test 22: structuredClone with Int32Array
     #[test]
     fn test_clone_int32array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -799,7 +799,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -822,7 +822,7 @@ mod structured_clone_tests {
     /// Test 23: structuredClone with Float64Array
     #[test]
     fn test_clone_float64array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -834,7 +834,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -857,7 +857,7 @@ mod structured_clone_tests {
     /// Test 24: structuredClone with ArrayBuffer
     #[test]
     fn test_clone_arraybuffer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const original = new ArrayBuffer(32);
                 const view = new Uint8Array(original);
@@ -870,7 +870,7 @@ mod structured_clone_tests {
                 console.log('arraybuffer different ref:', cloned !== original);
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -898,7 +898,7 @@ mod structured_clone_tests {
     /// Test 25: structuredClone with object containing ArrayBuffer
     #[test]
     fn test_clone_object_with_arraybuffer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -915,7 +915,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -943,7 +943,7 @@ mod structured_clone_tests {
     /// Test 26: structuredClone with large ArrayBuffer
     #[test]
     fn test_clone_large_arraybuffer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -959,7 +959,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -982,7 +982,7 @@ mod structured_clone_tests {
     /// Test 27: structuredClone with transfer option (basic - cloning works)
     #[test]
     fn test_clone_with_transfer_option() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -998,7 +998,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1021,7 +1021,7 @@ mod structured_clone_tests {
     /// Test 28: structuredClone with nested object and TypedArray
     #[test]
     fn test_clone_nested_with_typedarray() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1042,7 +1042,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1075,7 +1075,7 @@ mod structured_clone_tests {
     /// Test 29: structuredClone with Error object (v0.3.302)
     #[test]
     fn test_clone_error() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1087,7 +1087,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1110,7 +1110,7 @@ mod structured_clone_tests {
     /// Test 30: structuredClone with TypeError (v0.3.302)
     #[test]
     fn test_clone_type_error() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1122,7 +1122,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1145,7 +1145,7 @@ mod structured_clone_tests {
     /// Test 31: structuredClone with RangeError (v0.3.302)
     #[test]
     fn test_clone_range_error() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1157,7 +1157,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1180,7 +1180,7 @@ mod structured_clone_tests {
     /// Test 32: structuredClone with ReferenceError (v0.3.302)
     #[test]
     fn test_clone_reference_error() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1192,7 +1192,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1215,7 +1215,7 @@ mod structured_clone_tests {
     /// Test 33: structuredClone with SyntaxError (v0.3.302)
     #[test]
     fn test_clone_syntax_error() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1227,7 +1227,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1250,7 +1250,7 @@ mod structured_clone_tests {
     /// Test 34: structuredClone with Error with custom properties (v0.3.302)
     #[test]
     fn test_clone_error_with_custom_properties() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1266,7 +1266,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1299,7 +1299,7 @@ mod structured_clone_tests {
     /// Test 35: structuredClone with Error in nested object (v0.3.302)
     #[test]
     fn test_clone_error_in_nested_object() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const original = {
                     success: false,
@@ -1313,7 +1313,7 @@ mod structured_clone_tests {
                 console.log('deep copy:', original.error !== cloned.error);
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1341,7 +1341,7 @@ mod structured_clone_tests {
     /// Test 36: structuredClone with WeakMap throws DataCloneError (v0.3.304)
     #[test]
     fn test_clone_weakmap_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1357,7 +1357,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1380,7 +1380,7 @@ mod structured_clone_tests {
     /// Test 37: structuredClone with WeakSet throws DataCloneError (v0.3.304)
     #[test]
     fn test_clone_weakset_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1396,7 +1396,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1419,7 +1419,7 @@ mod structured_clone_tests {
     /// Test 38: structuredClone object containing WeakMap throws DataCloneError (v0.3.304)
     #[test]
     fn test_clone_object_with_weakmap_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1438,7 +1438,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1456,7 +1456,7 @@ mod structured_clone_tests {
     /// Test 39: structuredClone object containing WeakSet throws DataCloneError (v0.3.304)
     #[test]
     fn test_clone_object_with_weakset_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1475,7 +1475,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1493,7 +1493,7 @@ mod structured_clone_tests {
     /// Test 40: structuredClone with Symbol throws DataCloneError (v0.3.306)
     #[test]
     fn test_clone_symbol_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1509,7 +1509,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1532,7 +1532,7 @@ mod structured_clone_tests {
     /// Test 41: structuredClone with well-known Symbol throws DataCloneError (v0.3.306)
     #[test]
     fn test_clone_well_known_symbol_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1547,7 +1547,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1565,7 +1565,7 @@ mod structured_clone_tests {
     /// Test 42: structuredClone object containing Symbol throws DataCloneError (v0.3.306)
     #[test]
     fn test_clone_object_with_symbol_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1584,7 +1584,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1602,7 +1602,7 @@ mod structured_clone_tests {
     /// Test 43: structuredClone with Symbol in array throws DataCloneError (v0.3.306)
     #[test]
     fn test_clone_array_with_symbol_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1617,7 +1617,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1635,7 +1635,7 @@ mod structured_clone_tests {
     /// Test 44: structuredClone with Symbol as Map key throws DataCloneError (v0.3.306)
     #[test]
     fn test_clone_map_with_symbol_key_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1651,7 +1651,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1669,7 +1669,7 @@ mod structured_clone_tests {
     /// Test 45: structuredClone with Symbol in Set throws DataCloneError (v0.3.306)
     #[test]
     fn test_clone_set_with_symbol_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1684,7 +1684,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1703,7 +1703,7 @@ mod structured_clone_tests {
     /// Note: v0.3.316 now supports cloning resolved Promises per WHATWG spec
     #[test]
     fn test_clone_resolved_promise_is_cloneable() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1715,7 +1715,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1734,7 +1734,7 @@ mod structured_clone_tests {
     /// Note: v0.3.316 now supports cloning rejected Promises per WHATWG spec
     #[test]
     fn test_clone_rejected_promise_is_cloneable() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1746,7 +1746,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1764,7 +1764,7 @@ mod structured_clone_tests {
     /// Test 48: structuredClone with pending Promise throws DataCloneError (v0.3.307)
     #[test]
     fn test_clone_pending_promise_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1779,7 +1779,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1797,7 +1797,7 @@ mod structured_clone_tests {
     /// Test 49: structuredClone with function throws DataCloneError (v0.3.309)
     #[test]
     fn test_clone_function_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1813,7 +1813,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1836,7 +1836,7 @@ mod structured_clone_tests {
     /// Test 50: structuredClone with arrow function throws DataCloneError (v0.3.309)
     #[test]
     fn test_clone_arrow_function_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1851,7 +1851,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1869,7 +1869,7 @@ mod structured_clone_tests {
     /// Test 51: structuredClone object containing function throws DataCloneError (v0.3.309)
     #[test]
     fn test_clone_object_with_function_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const original = { name: "test", method: function() {} };
                 try {
@@ -1882,7 +1882,7 @@ mod structured_clone_tests {
                 }
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1905,7 +1905,7 @@ mod structured_clone_tests {
     /// Test 52: structuredClone array containing function throws DataCloneError (v0.3.309)
     #[test]
     fn test_clone_array_with_function_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1920,7 +1920,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1938,7 +1938,7 @@ mod structured_clone_tests {
     /// Test 53: structuredClone Map containing function throws DataCloneError (v0.3.309)
     #[test]
     fn test_clone_map_with_function_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1953,7 +1953,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -1971,7 +1971,7 @@ mod structured_clone_tests {
     /// Test 54: structuredClone Set containing function throws DataCloneError (v0.3.309)
     #[test]
     fn test_clone_set_with_function_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -1986,7 +1986,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2004,7 +2004,7 @@ mod structured_clone_tests {
     /// Test 55: structuredClone with EvalError (v0.3.313)
     #[test]
     fn test_clone_eval_error() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2016,7 +2016,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2039,7 +2039,7 @@ mod structured_clone_tests {
     /// Test 56: structuredClone with URIError (v0.3.313)
     #[test]
     fn test_clone_uri_error() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2051,7 +2051,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2074,7 +2074,7 @@ mod structured_clone_tests {
     /// Test 57: structuredClone with DataView (v0.3.313)
     #[test]
     fn test_clone_dataview() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2092,7 +2092,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2125,7 +2125,7 @@ mod structured_clone_tests {
     /// Test 58: structuredClone with object containing DataView (v0.3.313)
     #[test]
     fn test_clone_object_with_dataview() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2143,7 +2143,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2166,7 +2166,7 @@ mod structured_clone_tests {
     /// Test 59: structuredClone with BigInt (v0.3.313)
     #[test]
     fn test_clone_bigint() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2178,7 +2178,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2201,7 +2201,7 @@ mod structured_clone_tests {
     /// Test 60: structuredClone with BigInt in object (v0.3.313)
     #[test]
     fn test_clone_object_with_bigint() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const original = {
                     name: "big number",
@@ -2214,7 +2214,7 @@ mod structured_clone_tests {
                 console.log('obj bigint array:', Array.isArray(cloned.items) && cloned.items[0] === 1n);
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2237,7 +2237,7 @@ mod structured_clone_tests {
     /// Test 61: structuredClone with SharedArrayBuffer throws DataCloneError (v0.3.313)
     #[test]
     fn test_clone_shared_array_buffer_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2252,7 +2252,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Note: SharedArrayBuffer may or may not be supported depending on runtime
@@ -2276,7 +2276,7 @@ mod structured_clone_tests {
     /// Test 62: structuredClone with Int8Array (v0.3.313)
     #[test]
     fn test_clone_int8array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2289,7 +2289,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2317,7 +2317,7 @@ mod structured_clone_tests {
     /// Test 63: structuredClone with Uint16Array (v0.3.313)
     #[test]
     fn test_clone_uint16array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2329,7 +2329,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2352,7 +2352,7 @@ mod structured_clone_tests {
     /// Test 64: structuredClone with Int16Array (v0.3.313)
     #[test]
     fn test_clone_int16array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2365,7 +2365,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2393,7 +2393,7 @@ mod structured_clone_tests {
     /// Test 65: structuredClone with Uint32Array (v0.3.313)
     #[test]
     fn test_clone_uint32array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2405,7 +2405,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2428,7 +2428,7 @@ mod structured_clone_tests {
     /// Test 66: structuredClone with Float32Array (v0.3.313)
     #[test]
     fn test_clone_float32array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2440,7 +2440,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2463,7 +2463,7 @@ mod structured_clone_tests {
     /// Test 67: structuredClone with BigInt64Array (v0.3.314)
     #[test]
     fn test_clone_bigint64array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2480,7 +2480,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2508,7 +2508,7 @@ mod structured_clone_tests {
     /// Test 68: structuredClone with BigUint64Array (v0.3.314)
     #[test]
     fn test_clone_biguint64array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2525,7 +2525,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2553,7 +2553,7 @@ mod structured_clone_tests {
     /// Test 69: structuredClone with BigInt64Array in object (v0.3.314)
     #[test]
     fn test_clone_bigint64array_in_object() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const arr = new BigInt64Array(3);
                 arr[0] = BigInt('1');
@@ -2570,7 +2570,7 @@ mod structured_clone_tests {
                 console.log('obj count preserved:', cloned.count === 3);
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2598,7 +2598,7 @@ mod structured_clone_tests {
     /// Test 70: structuredClone with empty BigInt64Array (v0.3.314)
     #[test]
     fn test_clone_empty_bigint64array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2610,7 +2610,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2633,7 +2633,7 @@ mod structured_clone_tests {
     /// Test 71: structuredClone with resolved Promise (v0.3.316)
     #[test]
     fn test_clone_resolved_promise() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2643,7 +2643,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2656,7 +2656,7 @@ mod structured_clone_tests {
     /// Test 72: structuredClone with resolved Promise value (v0.3.316)
     #[test]
     fn test_clone_resolved_promise_value() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2666,7 +2666,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2679,7 +2679,7 @@ mod structured_clone_tests {
     /// Test 73: structuredClone with rejected Promise (v0.3.316)
     #[test]
     fn test_clone_rejected_promise() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2689,7 +2689,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2702,14 +2702,14 @@ mod structured_clone_tests {
     /// Test 74: structuredClone with rejected Promise reason (v0.3.316)
     #[test]
     fn test_clone_rejected_promise_reason() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const original = Promise.reject(new Error('test error'));
                 const cloned = structuredClone(original);
                 cloned.catch(e => console.log('rejection message contains test:', e.message.includes('test error')));
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2722,7 +2722,7 @@ mod structured_clone_tests {
     /// Test 75: structuredClone with pending Promise throws DataCloneError (v0.3.316)
     #[test]
     fn test_clone_pending_promise_throws_dataclone_error() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2737,7 +2737,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2750,7 +2750,7 @@ mod structured_clone_tests {
     /// Test 76: structuredClone with Promise resolving object (v0.3.316)
     #[test]
     fn test_clone_promise_resolving_object() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2763,7 +2763,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2781,7 +2781,7 @@ mod structured_clone_tests {
     /// Test 77: structuredClone with Promise resolving array (v0.3.316)
     #[test]
     fn test_clone_promise_resolving_array() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2795,7 +2795,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -2818,7 +2818,7 @@ mod structured_clone_tests {
     /// Test 78: structuredClone with Promise rejecting with object (v0.3.316)
     #[test]
     fn test_clone_promise_rejecting_object() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -2832,7 +2832,7 @@ mod structured_clone_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(

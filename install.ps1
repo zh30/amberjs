@@ -1,8 +1,8 @@
 # Amber Windows installer. Downloads amber-vX-x86_64-pc-windows-msvc.zip from GitHub Releases.
 param(
-    [string]$Version = $(if ($env:AMBER_VERSION) { $env:AMBER_VERSION } else { $env:BEEJS_VERSION }),
-    [string]$InstallDir = $(if ($env:AMBER_INSTALL_DIR) { $env:AMBER_INSTALL_DIR } elseif ($env:BEEJS_INSTALL_DIR) { $env:BEEJS_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "amber\bin" }),
-    [string]$Repo = $(if ($env:AMBER_REPO) { $env:AMBER_REPO } elseif ($env:BEEJS_REPO) { $env:BEEJS_REPO } else { "zh30/amberjs" })
+    [string]$Version = $env:AMBER_VERSION,
+    [string]$InstallDir = $(if ($env:AMBER_INSTALL_DIR) { $env:AMBER_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "amber\bin" }),
+    [string]$Repo = $(if ($env:AMBER_REPO) { $env:AMBER_REPO } else { "zh30/amberjs" })
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,7 +30,7 @@ Expand-Archive -Path $tmp -DestinationPath $extract -Force
 
 $src = Get-ChildItem -Path $extract -Recurse -Filter "amber.exe" | Select-Object -First 1
 if (-not $src) {
-    $src = Get-ChildItem -Path $extract -Recurse -Filter "bee.exe" | Select-Object -First 1
+    $src = Get-ChildItem -Path $extract -Recurse -Filter "amber.exe" | Select-Object -First 1
 }
 if (-not $src) {
     throw "amber.exe not found in archive"

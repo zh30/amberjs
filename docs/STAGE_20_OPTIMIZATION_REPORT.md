@@ -1,4 +1,4 @@
-# 🚀 Beejs Stage 20 优化报告
+# 🚀 Amber Stage 20 优化报告
 
 ## 📋 优化概览
 
@@ -150,7 +150,7 @@ pub fn read_file_cached(&self, path: &Path) -> Result<String> {
 ### 启动时间测试结果
 
 ```
-🚀 Beejs 启动时间基准测试
+🚀 Amber 启动时间基准测试
 =====================================
 
 📊 测试: Hello World

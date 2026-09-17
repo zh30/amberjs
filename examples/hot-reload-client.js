@@ -1,19 +1,19 @@
 /**
- * Beejs Hot Reload Client
+ * Amber Hot Reload Client
  *
  * This script provides browser-side hot reload functionality.
- * It connects to the Beejs WebSocket server and reloads the page
+ * It connects to the Amber WebSocket server and reloads the page
  * when file changes are detected.
  *
  * Usage:
- *   1. Start beejs in watch mode: bee run app.js --watch
+ *   1. Start amberjs in watch mode: amber run app.js --watch
  *   2. Include this script in your HTML page
  *   3. The page will automatically reload when files change
  *
  * Example HTML:
  *   <script src="hot-reload-client.js"></script>
  *   <script>
- *     new BeejsHotReload({
+ *     new AmberHotReload({
  *       port: 9999,
  *       onReload: (event) => console.log('Reloading:', event),
  *       onError: (error) => console.error('Hot reload error:', error)
@@ -21,7 +21,7 @@
  *   </script>
  */
 
-class BeejsHotReload {
+class AmberHotReload {
   /**
    * Create a new hot reload client
    * @param {Object} options - Configuration options
@@ -37,7 +37,7 @@ class BeejsHotReload {
     this.port = options.port || 9999;
     this.host = options.host || (typeof location !== 'undefined' ? location.hostname : 'localhost');
     this.onReload = options.onReload || (() => {});
-    this.onError = options.onError || ((err) => console.error('[beejs] Hot reload error:', err));
+    this.onError = options.onError || ((err) => console.error('[amberjs] Hot reload error:', err));
     this.onConnect = options.onConnect || (() => {});
     this.autoReload = options.autoReload !== false;
     this.showNotifications = options.showNotifications !== false;
@@ -55,13 +55,13 @@ class BeejsHotReload {
   connect() {
     const wsUrl = `ws://${this.host}:${this.port}`;
 
-    console.log(`[beejs] Connecting to hot reload server: ${wsUrl}`);
+    console.log(`[amberjs] Connecting to hot reload server: ${wsUrl}`);
 
     try {
       this.socket = new WebSocket(wsUrl);
 
       this.socket.onopen = () => {
-        console.log('[beejs] Hot reload connected');
+        console.log('[amberjs] Hot reload connected');
         this.reconnectAttempts = 0;
 
         if (this.showNotifications && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
@@ -78,23 +78,23 @@ class BeejsHotReload {
           const data = JSON.parse(event.data);
           this.handleMessage(data);
         } catch (err) {
-          console.error('[beejs] Failed to parse hot reload message:', err);
+          console.error('[amberjs] Failed to parse hot reload message:', err);
         }
       };
 
       this.socket.onclose = (event) => {
-        console.log('[beejs] Hot reload disconnected:', event.code, event.reason);
+        console.log('[amberjs] Hot reload disconnected:', event.code, event.reason);
         this.scheduleReconnect();
       };
 
       this.socket.onerror = (error) => {
-        console.error('[beejs] Hot reload WebSocket error:', error);
+        console.error('[amberjs] Hot reload WebSocket error:', error);
         if (this.onError) {
           this.onError(error);
         }
       };
     } catch (err) {
-      console.error('[beejs] Failed to create WebSocket:', err);
+      console.error('[amberjs] Failed to create WebSocket:', err);
       this.scheduleReconnect();
     }
   }
@@ -106,7 +106,7 @@ class BeejsHotReload {
   handleMessage(data) {
     switch (data.event_type) {
       case 'reload':
-        console.log('[beejs] File changed:', data.file_path);
+        console.log('[amberjs] File changed:', data.file_path);
 
         if (this.onReload) {
           this.onReload(data);
@@ -118,18 +118,18 @@ class BeejsHotReload {
         break;
 
       case 'error':
-        console.error('[beejs] Hot reload error:', data.message);
+        console.error('[amberjs] Hot reload error:', data.message);
         if (this.onError) {
           this.onError(new Error(data.message));
         }
         break;
 
       case 'status':
-        console.log('[beejs] Hot reload status:', data.message);
+        console.log('[amberjs] Hot reload status:', data.message);
         break;
 
       default:
-        console.log('[beejs] Unknown hot reload event:', data);
+        console.log('[amberjs] Unknown hot reload event:', data);
     }
   }
 
@@ -138,7 +138,7 @@ class BeejsHotReload {
    * @param {Object} event - The reload event data
    */
   reloadPage(event) {
-    console.log('[beejs] Reloading page...', event.file_path);
+    console.log('[amberjs] Reloading page...', event.file_path);
 
     if (this.showNotifications && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       this.showNotification('Reloading', `File changed: ${event.file_path || 'unknown'}`);
@@ -155,14 +155,14 @@ class BeejsHotReload {
    */
   scheduleReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('[beejs] Max reconnect attempts reached, giving up');
+      console.log('[amberjs] Max reconnect attempts reached, giving up');
       return;
     }
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1);
 
-    console.log(`[beejs] Reconnecting in ${Math.round(delay)}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    console.log(`[amberjs] Reconnecting in ${Math.round(delay)}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     setTimeout(() => {
       this.connect();
@@ -205,12 +205,12 @@ class BeejsHotReload {
 
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = BeejsHotReload;
+  module.exports = AmberHotReload;
 }
 
 // Auto-initialize if running in browser and autoInit option is set
 if (typeof window !== 'undefined') {
-  window.BeejsHotReload = BeejsHotReload;
+  window.AmberHotReload = AmberHotReload;
 
   // Auto-initialize with data attributes from script tag
   const script = document.currentScript;
@@ -227,6 +227,6 @@ if (typeof window !== 'undefined') {
       Notification.requestPermission();
     }
 
-    window.hotReload = new BeejsHotReload(config);
+    window.hotReload = new AmberHotReload(config);
   }
 }

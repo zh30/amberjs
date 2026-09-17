@@ -31,6 +31,6 @@ def fix_file(filepath):
         return True
     return False
 
-src = Path('/Users/henry/code/beejs/src')
+src = Path('/Users/henry/code/amberjs/src')
 fixed = sum(1 for f in src.rglob('*.rs') if fix_file(f))
 print(f"Fixed {fixed} files")

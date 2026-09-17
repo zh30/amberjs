@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
-fn beejs_path() -> PathBuf {
+fn amberjs_path() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
@@ -20,11 +20,11 @@ fn run_js_test(code: &str) -> String {
     let test_file = temp_dir.path().join("test.js");
     fs::write(&test_file, code).unwrap();
 
-    let output = Command::new(beejs_path())
+    let output = Command::new(amberjs_path())
         .arg("run")
         .arg(&test_file)
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let lines: Vec<&str> = stdout
@@ -165,7 +165,7 @@ console.log(typeof exported === 'string' && exported.includes('BEGIN RSA PRIVATE
 #[serial]
 fn test_create_private_key_export_encrypted_pkcs8_pem_with_passphrase() {
     let code = r#"
-const passphrase = 'beejs-keyobject-export-passphrase';
+const passphrase = 'amberjs-keyobject-export-passphrase';
 const generated = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
 const privateKey = crypto.createPrivateKey(generated.privateKey);
 const exported = privateKey.export({
@@ -256,7 +256,7 @@ console.log(verify.verify(generated.publicKey, signature, 'base64') === true ? '
 #[test]
 #[serial]
 fn test_create_private_key_import_encrypted_pkcs8_pem_with_passphrase() {
-    let passphrase = "beejs-test-passphrase";
+    let passphrase = "amberjs-test-passphrase";
     let (encrypted_private_pem, public_pem) = encrypted_rsa_pkcs8_pair(passphrase.as_bytes());
     let encrypted_private_pem = serde_json::to_string(&encrypted_private_pem).unwrap();
     let public_pem = serde_json::to_string(&public_pem).unwrap();

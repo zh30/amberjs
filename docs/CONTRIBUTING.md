@@ -81,11 +81,11 @@
 ```bash
 # 点击 GitHub 上的 Fork 按钮
 # 然后克隆您的 fork
-git clone https://github.com/YOUR_USERNAME/beejs.git
-cd beejs
+git clone https://github.com/YOUR_USERNAME/amberjs.git
+cd amberjs
 
 # 添加上游仓库
-git remote add upstream https://github.com/ORIGINAL_OWNER/beejs.git
+git remote add upstream https://github.com/ORIGINAL_OWNER/amberjs.git
 ```
 
 2. **安装 Rust**
@@ -426,7 +426,7 @@ mod tests {
 
 ```rust
 // tests/integration_test.rs
-use beejs::RuntimeLite;
+use amberjs::RuntimeLite;
 
 #[test]
 fn test_execute_file() {

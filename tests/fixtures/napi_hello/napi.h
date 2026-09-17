@@ -1,5 +1,5 @@
-#ifndef BEEJS_NAPI_HELLO_H
-#define BEEJS_NAPI_HELLO_H
+#ifndef AMBER_NAPI_HELLO_H
+#define AMBER_NAPI_HELLO_H
 
 #include <stddef.h>
 

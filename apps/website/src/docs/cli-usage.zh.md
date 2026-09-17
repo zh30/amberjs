@@ -62,7 +62,7 @@ amber run --inspect-brk app.ts
 | :--- | :--- |
 | `amber serve [file]` | WinterCG `fetch` 处理器。`--https --cert --key` 是 rustls HTTP/1.1。 |
 | `amber bundle <entry>` | oxc 模块图 → 单个 JS |
-| `amber compile <file>` | 复制 `amber` 并追加 payload + `BEE_STANDALONE` trailer |
+| `amber compile <file>` | 复制 `amber` 并追加 payload + `AMBER_STANDALONE` trailer |
 | TypeScript / TSX | oxc 类型擦除，不是 `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 

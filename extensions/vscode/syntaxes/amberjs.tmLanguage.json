@@ -1,0 +1,46 @@
+{
+  "name": "Amber",
+  "scopeName": "source.amberjs",
+  "patterns": [
+    {
+      "include": "#amberjs-keywords"
+    },
+    {
+      "include": "#amberjs-globals"
+    },
+    {
+      "include": "source.js"
+    }
+  ],
+  "repository": {
+    "amberjs-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.amberjs",
+          "match": "\\b(amberjs)\\b"
+        },
+        {
+          "name": "keyword.operator.amberjs",
+          "match": "\\.(run|bundle|test|profile|benchmark|compile)\\b"
+        },
+        {
+          "name": "support.function.amberjs",
+          "match": "\\bamberjs\\.(run|bundle|test|profile|benchmark|compile)\\b"
+        }
+      ]
+    },
+    "amberjs-globals": {
+      "patterns": [
+        {
+          "name": "variable.language.amberjs",
+          "match": "\\bamberjs\\b"
+        },
+        {
+          "name": "meta.function.call.amberjs",
+          "match": "\\b(amberjs\\.(run|bundle|test|profile|benchmark|compile))\\s*(?=\\()"
+        }
+      ]
+    }
+  },
+  "uuid": "amberjs-syntax-highlighting"
+}

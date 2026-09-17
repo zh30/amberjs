@@ -13,7 +13,7 @@ fn get_sockets_runtime() -> &'static Runtime {
         tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
-            .thread_name("beejs-sockets-worker")
+            .thread_name("amberjs-sockets-worker")
             .build()
             .expect("Failed to initialize sockets runtime")
     })
@@ -32,7 +32,7 @@ where
         let _ = tx.send(output);
     });
     rx.recv_timeout(std::time::Duration::from_secs(30))
-        .expect("beejs sockets worker timed out or dropped")
+        .expect("amberjs sockets worker timed out or dropped")
 }
 
 pub fn setup_sockets_api(
@@ -43,23 +43,23 @@ pub fn setup_sockets_api(
 
     // Register low-level bridge functions
     let connect_raw_fn = v8::Function::new(scope, socket_connect_raw).unwrap();
-    let k_conn = v8::String::new(scope, "__bee_socket_connect").unwrap();
+    let k_conn = v8::String::new(scope, "__amber_socket_connect").unwrap();
     global.set(scope, k_conn.into(), connect_raw_fn.into());
 
     let read_raw_fn = v8::Function::new(scope, socket_read_raw).unwrap();
-    let k_read = v8::String::new(scope, "__bee_socket_read").unwrap();
+    let k_read = v8::String::new(scope, "__amber_socket_read").unwrap();
     global.set(scope, k_read.into(), read_raw_fn.into());
 
     let write_raw_fn = v8::Function::new(scope, socket_write_raw).unwrap();
-    let k_write = v8::String::new(scope, "__bee_socket_write").unwrap();
+    let k_write = v8::String::new(scope, "__amber_socket_write").unwrap();
     global.set(scope, k_write.into(), write_raw_fn.into());
 
     let close_raw_fn = v8::Function::new(scope, socket_close_raw).unwrap();
-    let k_close = v8::String::new(scope, "__bee_socket_close").unwrap();
+    let k_close = v8::String::new(scope, "__amber_socket_close").unwrap();
     global.set(scope, k_close.into(), close_raw_fn.into());
 
     let start_tls_raw_fn = v8::Function::new(scope, socket_start_tls_raw).unwrap();
-    let k_tls = v8::String::new(scope, "__bee_socket_start_tls").unwrap();
+    let k_tls = v8::String::new(scope, "__amber_socket_start_tls").unwrap();
     global.set(scope, k_tls.into(), start_tls_raw_fn.into());
 
     // Inject high-level Socket and connect() implementation into global
@@ -102,7 +102,7 @@ pub fn setup_sockets_api(
                 this._resolveClosed = resolveClosed;
 
                 // Establish connection
-                __bee_socket_connect(hostname, port, options.secureTransport || 'off', options.sni || null, options.alpn || [])
+                __amber_socket_connect(hostname, port, options.secureTransport || 'off', options.sni || null, options.alpn || [])
                     .then(info => {
                         this._socketId = info.id;
                         this._upgraded = (options.secureTransport === 'on');
@@ -127,7 +127,7 @@ pub fn setup_sockets_api(
                             return;
                         }
                         try {
-                            const chunk = await __bee_socket_read(this._socketId, 65536);
+                            const chunk = await __amber_socket_read(this._socketId, 65536);
                             if (chunk === null || (chunk && chunk.length === 0)) {
                                 controller.close();
                                 this._closeInternal();
@@ -152,7 +152,7 @@ pub fn setup_sockets_api(
                             throw new Error('Socket is closed');
                         }
                         const u8 = chunk instanceof Uint8Array ? chunk : new TextEncoder().encode(String(chunk));
-                        await __bee_socket_write(this._socketId, u8);
+                        await __amber_socket_write(this._socketId, u8);
                     },
                     close: async () => {
                         await this.close();
@@ -172,7 +172,7 @@ pub fn setup_sockets_api(
                 this._isClosed = true;
                 if (this._socketId) {
                     try {
-                        await __bee_socket_close(this._socketId);
+                        await __amber_socket_close(this._socketId);
                     } catch (_) {}
                 }
                 this._resolveClosed();
@@ -192,7 +192,7 @@ pub fn setup_sockets_api(
                 if (this._upgraded) {
                     return this;
                 }
-                await __bee_socket_start_tls(this._socketId, this._options.sni || this._hostname);
+                await __amber_socket_start_tls(this._socketId, this._options.sni || this._hostname);
                 this._upgraded = true;
                 return this;
             }
@@ -206,7 +206,7 @@ pub fn setup_sockets_api(
         globalThis.connect = connect;
 
         const socketsModule = { connect, Socket, default: { connect, Socket } };
-        globalThis.__bee_sockets = socketsModule;
+        globalThis.__amber_sockets = socketsModule;
         globalThis.__sockets = socketsModule;
         globalThis.sockets = socketsModule;
     })();

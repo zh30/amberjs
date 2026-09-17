@@ -1,4 +1,4 @@
-// Error handling tests for Beejs runtime
+// Error handling tests for Amber runtime
 // v0.3.235: Tests for error types, boundary cases, and error messages
 
 use amberjs::runtime_minimal::MinimalRuntime;
@@ -206,7 +206,7 @@ fn test_error_in_module_context() {
 fn test_json_parse_error() {
     let mut runtime = MinimalRuntime::new().unwrap();
     // 测试 JSON 相关的边界情况 - 使用无效的 JSON 字符串
-    // 注意: Beejs 的 JSON 实现比较宽容，返回 null 而不是抛出错误
+    // 注意: Amber 的 JSON 实现比较宽容，返回 null 而不是抛出错误
     // 这个测试验证 JSON 处理的正确性
     let result = runtime.execute_code(
         r#"

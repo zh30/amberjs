@@ -1,4 +1,4 @@
-//! oxc-backed TypeScript/TSX transpile for the default Beejs runtime path.
+//! oxc-backed TypeScript/TSX transpile for the default Amber runtime path.
 //!
 //! This is transpile-only: parse + transform + emit. It does not run `tsc`
 //! type-checking. Target is ES2022 so `using` / Stage-3 decorators downlevel
@@ -239,7 +239,7 @@ fn offset_to_line_column(source: &str, offset: usize) -> (u32, u32) {
     (line, column)
 }
 
-/// Convert an oxc diagnostic into the historical Beejs error struct.
+/// Convert an oxc diagnostic into the historical Amber error struct.
 #[allow(dead_code)]
 pub fn diagnostic_to_error(
     file_name: &str,

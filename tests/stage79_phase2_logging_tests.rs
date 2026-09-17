@@ -57,7 +57,7 @@ mod tests {
 
         // 创建日志上下文
         let context = LogContext {
-            service: "beejs".to_string(),
+            service: "amberjs".to_string(),
             version: "1.0.0".to_string(),
             request_id: Some("req-12345".to_string()),
             user_id: Some("user-789".to_string()),
@@ -76,7 +76,7 @@ mod tests {
         assert!(matches!(log_entry.level, LogLevel::Info));
 
         // 验证日志上下文
-        assert_eq!(context.service, "beejs");
+        assert_eq!(context.service, "amberjs");
         assert_eq!(context.version, "1.0.0");
         assert_eq!(context.request_id, Some("req-12345".to_string()));
         assert_eq!(context.user_id, Some("user-789".to_string()));
@@ -137,13 +137,13 @@ mod tests {
         let mut context = HashMap::new();
 
         // 添加上下文信息
-        context.insert("service".to_string(), "beejs".to_string());
+        context.insert("service".to_string(), "amberjs".to_string());
         context.insert("endpoint".to_string(), "/api/users".to_string());
         context.insert("method".to_string(), "GET".to_string());
         context.insert("status_code".to_string(), "200".to_string());
 
         // 验证上下文内容
-        assert_eq!(context.get("service"), Some(&"beejs".to_string()));
+        assert_eq!(context.get("service"), Some(&"amberjs".to_string()));
         assert_eq!(context.get("endpoint"), Some(&"/api/users".to_string()));
         assert_eq!(context.get("method"), Some(&"GET".to_string()));
         assert_eq!(context.get("status_code"), Some(&"200".to_string()));

@@ -116,7 +116,7 @@ memmap2 = "0.9"
 # HTTP Server for Server mode
 tiny_http = "0.12"
 
-# Embedded SQLite for bee:db
+# Embedded SQLite for amber:db
 rusqlite = { version = "0.31", features = ["bundled"] }
 
 # System calls for zero-copy network I/O
@@ -264,7 +264,7 @@ futures-util = "0.3"
 serial_test = "3.0"
 
 # [[bin]]
-# name = "beejs-benchmark"
+# name = "amberjs-benchmark"
 # path = "tools/benchmark_runner.rs"
 
 [[bin]]

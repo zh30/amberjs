@@ -127,7 +127,7 @@ def merge_duplicate_imports(file_path):
 
 def main():
     """主函数"""
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
 
     if not src_dir.exists():
         print(f"Source directory not found: {src_dir}")

@@ -97,7 +97,7 @@ impl PerformanceVisualizer {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beejs Performance Report</title>
+    <title>Amber Performance Report</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         body {
@@ -201,7 +201,7 @@ impl PerformanceVisualizer {
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Beejs Performance Report</h1>
+        <h1>🚀 Amber Performance Report</h1>
         <p>Generated at: "#);
         // Add timestamp
         html.push_str(&chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string());
@@ -424,7 +424,7 @@ impl PerformanceVisualizer {
     ) -> String {
         let mut md = String::new();
         // Title
-        md.push_str("# 🚀 Beejs Performance Report\n\n");
+        md.push_str("# 🚀 Amber Performance Report\n\n");
         md.push_str(&format!("**Generated at:** {}\n\n", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")));
         // Key Metrics
         md.push_str("## 📊 Key Metrics\n\n");
@@ -544,7 +544,7 @@ mod tests {
         let suggestions: _ = vec![];
         let html: _ = visualizer.generate_html_report(&report, &bottlenecks, &suggestions);
         assert!(html.contains("<!DOCTYPE html>"));
-        assert!(html.contains("Beejs Performance Report"));
+        assert!(html.contains("Amber Performance Report"));
         assert!(html.contains("15.00"));
     }
     #[test]
@@ -561,7 +561,7 @@ mod tests {
         let bottlenecks: _ = vec![];
         let suggestions: _ = vec![];
         let md: _ = visualizer.generate_markdown_report(&report, &bottlenecks, &suggestions);
-        assert!(md.contains("# 🚀 Beejs Performance Report"));
+        assert!(md.contains("# 🚀 Amber Performance Report"));
         assert!(md.contains("Average Execution Time"));
     }
     #[test]

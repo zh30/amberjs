@@ -57,9 +57,9 @@ fn test_process_versions_node() {
 
 #[test]
 #[serial]
-fn test_process_versions_beejs() {
+fn test_process_versions_amberjs() {
     let mut runtime = MinimalRuntime::new().unwrap();
-    let result = runtime.execute_code("typeof process.versions.beejs");
+    let result = runtime.execute_code("typeof process.versions.amberjs");
     assert!(result.is_ok());
     assert_eq!(result.unwrap().trim(), "string");
 }
@@ -313,9 +313,9 @@ fn test_process_features_ipc() {
 
 #[test]
 #[serial]
-fn test_process_is_beejs() {
+fn test_process_is_amberjs() {
     let mut runtime = MinimalRuntime::new().unwrap();
-    let result = runtime.execute_code("process.isBeejs === true");
+    let result = runtime.execute_code("process.isAmber === true");
     assert!(result.is_ok());
     assert_eq!(result.unwrap().trim(), "true");
 }

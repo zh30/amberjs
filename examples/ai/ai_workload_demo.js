@@ -1,7 +1,7 @@
 // AI 工作负载演示脚本
-// 展示 Beejs 的 AI 批量处理能力
+// 展示 Amber 的 AI 批量处理能力
 
-console.log("=== Beejs AI 工作负载演示 ===\n");
+console.log("=== Amber AI 工作负载演示 ===\n");
 
 // 模拟 AI 文本生成任务
 function simulateAITask(taskId, type) {
@@ -141,7 +141,7 @@ async function main() {
     monitorMemoryUsage();
 
     console.log("\n🎉 AI 工作负载演示完成！");
-    console.log("Beejs 的 AI 优化特性：");
+    console.log("Amber 的 AI 优化特性：");
     console.log("  • AI 批量处理器 - 高效批量任务处理");
     console.log("  • AI 内存预分配 - 智能模型内存管理");
     console.log("  • AI 异步队列 - 高性能任务调度");

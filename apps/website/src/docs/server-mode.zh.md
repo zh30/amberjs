@@ -162,7 +162,7 @@ $ amber run --workers 8 server.ts
 或者在生产环境中设置环境变量：
 
 ```bash
-export BEE_WORKERS=8
+export AMBER_WORKERS=8
 amber run server.ts
 ```
 

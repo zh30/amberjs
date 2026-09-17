@@ -59,15 +59,15 @@ impl CloudflareIntegration {
 impl CdnProvider for CloudflareIntegration {
     /// Deploy code to Cloudflare Workers
     async fn deploy(&self, code: &[u8], region: &str) -> Result<DeploymentResult> {
-        let worker_name: _ = format!("beejs-worker-{}", region));
+        let worker_name: _ = format!("amberjs-worker-{}", region));
         let deployment_id: _ = self.create_worker(&worker_name, code).await?;
-        let route_pattern: _ = format!("*.{}.beejs-edge.com/*", region));
+        let route_pattern: _ = format!("*.{}.amberjs-edge.com/*", region));
         self.publish_worker(&worker_name, &route_pattern).await?;
         Ok(DeploymentResult {
             deployment_id,
             endpoint_id: format!("cf-{}-endpoint", region),
             status: DeploymentStatus::Complete,
-            deployment_url: Some(format!("https://{}.beejs-edge.com", region)),
+            deployment_url: Some(format!("https://{}.amberjs-edge.com", region)),
             estimated_propagation_time: 30,
         })
     }

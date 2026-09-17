@@ -7,7 +7,7 @@ mod stage_33_edge_computing_optimization_tests {
     use std::sync::Arc;
     use tokio::sync::RwLock;
     use anyhow::Result;
-    use beejs::edge::global_router::{GlobalRouter, RouteResult};
+    use amberjs::edge::global_router::{GlobalRouter, RouteResult};
 
     // ==================== CDN 集成优化测试 ====================
 

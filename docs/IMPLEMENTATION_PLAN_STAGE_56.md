@@ -2,7 +2,7 @@
 
 ## 📋 阶段概述
 
-Stage 56 专注于完善 Beejs 的 CLI 功能，使其具备 Bun 运行时的大部分 CLI 能力，为用户提供熟悉的命令行体验。
+Stage 56 专注于完善 Amber 的 CLI 功能，使其具备 Bun 运行时的大部分 CLI 能力，为用户提供熟悉的命令行体验。
 
 **目标**: 构建完整的 CLI 系统，支持脚本执行、包管理、测试运行等核心功能。
 
@@ -18,11 +18,11 @@ Stage 56 专注于完善 Beejs 的 CLI 功能，使其具备 Bun 运行时的大
 - [ ] **热重载**: `--watch` 模式支持文件监听和自动重载
 
 ### CLI 命令
-- [ ] `beejs run <script>` - 执行脚本
-- [ ] `beejs test` - 运行测试
-- [ ] `beejs repl` - 启动 REPL
-- [ ] `beejs <file>` - 直接执行文件
-- [ ] `beejs --watch <file>` - 热重载模式
+- [ ] `amberjs run <script>` - 执行脚本
+- [ ] `amberjs test` - 运行测试
+- [ ] `amberjs repl` - 启动 REPL
+- [ ] `amberjs <file>` - 直接执行文件
+- [ ] `amberjs --watch <file>` - 热重载模式
 
 ### 兼容性
 - [ ] **Bun 兼容**: 90%+ Bun CLI 命令兼容
@@ -66,7 +66,7 @@ Stage 56 专注于完善 Beejs 的 CLI 功能，使其具备 Bun 运行时的大
   - [ ] `.js` / `.mjs` - JavaScript
   - [ ] `.ts` - TypeScript（需编译）
   - [ ] `.json` - JSON 脚本
-  - [ ] Shebang 检测（`#!/usr/bin/env beejs`）
+  - [ ] Shebang 检测（`#!/usr/bin/env amberjs`）
 
 #### 2.2 执行上下文
 - [ ] **脚本执行环境**
@@ -155,7 +155,7 @@ Stage 56 专注于完善 Beejs 的 CLI 功能，使其具备 Bun 运行时的大
 ```rust
 /// 主 CLI 应用
 #[derive(Command, Debug)]
-#[command(name = "beejs")]
+#[command(name = "amberjs")]
 #[command(about = "High-performance JavaScript/TypeScript runtime")]
 pub struct CliApp {
     /// 启用详细输出
@@ -271,11 +271,11 @@ impl ModuleResolver {
 ## 📊 预期成果
 
 ### CLI 功能对比
-| 功能 | Bun | Beejs Stage 56 | Node.js |
+| 功能 | Bun | Amber Stage 56 | Node.js |
 |------|-----|----------------|---------|
-| `beejs script.js` | ✅ | ✅ | ✅ |
-| `beejs test` | ✅ | ✅ | ❌ |
-| `beejs repl` | ✅ | ✅ | ✅ |
+| `amberjs script.js` | ✅ | ✅ | ✅ |
+| `amberjs test` | ✅ | ✅ | ❌ |
+| `amberjs repl` | ✅ | ✅ | ✅ |
 | `--watch` 模式 | ✅ | ✅ | ❌ |
 | TypeScript 支持 | ✅ | ✅ | ❌ |
 | 包管理器 | ✅ | 🟡 | ❌ |

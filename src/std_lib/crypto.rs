@@ -1,4 +1,4 @@
-//! Cryptographic helpers, JWT tokens, and UUID generation (`bee:std/crypto`).
+//! Cryptographic helpers, JWT tokens, and UUID generation (`amber:std/crypto`).
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;

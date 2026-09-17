@@ -1,7 +1,7 @@
 //! Integration tests for lock_free module
 //! This module tests the lock-free concurrency primitives for performance optimization
 
-use beejs::{
+use amberjs::{
     LockFreeCounter, LockFreeTaskScheduler, LockFreeQueue, ShardedLock,
     LockFreeBufferPool, AtomicStats
 };

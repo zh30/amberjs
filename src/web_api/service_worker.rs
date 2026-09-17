@@ -1,6 +1,6 @@
 // ServiceWorker API boundary for Web standard compatibility.
 //
-// Beejs exposes the discovery surface (`navigator.serviceWorker`) but does not
+// Amber exposes the discovery surface (`navigator.serviceWorker`) but does not
 // yet have a real registration store, worker lifecycle, fetch interception, or
 // `waitUntil`/`respondWith` scheduling. Registration must therefore fail closed
 // instead of returning a resolved ServiceWorkerRegistration-shaped object.
@@ -240,7 +240,7 @@ fn fetch_event_constructor_callback(
     };
 
     // FetchEvent follows the DOM constructor shape: new FetchEvent(type, init).
-    // Older Beejs tests also passed a URL as the first argument, so keep that
+    // Older Amber tests also passed a URL as the first argument, so keep that
     // fallback when no init object is provided.
     let request_url = if args.length() > 1 {
         let init = args.get(1);
@@ -484,7 +484,7 @@ fn setup_cache_api(
 
 /// CacheStorage.open callback.
 ///
-/// Beejs does not currently have a real CacheStorage backend. Reject instead of
+/// Amber does not currently have a real CacheStorage backend. Reject instead of
 /// returning a Cache-shaped object whose mutating methods silently succeed.
 fn cache_storage_open_callback(
     scope: &mut v8::PinScope,
@@ -723,7 +723,7 @@ fn push_subscription_constructor_callback(
 
 /// PushSubscription.getKey() boundary.
 ///
-/// No real PushSubscription instances exist until Beejs has a push service,
+/// No real PushSubscription instances exist until Amber has a push service,
 /// subscription store, and key generation backend. Direct prototype calls must
 /// not return fixed key material.
 fn push_subscription_get_key_callback(

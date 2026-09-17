@@ -62,7 +62,7 @@ Present in the default binary; the contract is still tightening.
 | :--- | :--- |
 | `amber serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
 | `amber bundle <entry>` | oxc module graph → one JS file |
-| `amber compile <file>` | Append payload + `BEE_STANDALONE` trailer to a copy of `amber` |
+| `amber compile <file>` | Append payload + `AMBER_STANDALONE` trailer to a copy of `amber` |
 | TypeScript / TSX | oxc type-strip, not `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 

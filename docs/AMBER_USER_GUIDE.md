@@ -1,6 +1,6 @@
 # Amber 用户指南
 
-> 发布校验说明（2026-05-26）：本文命令以当前 public CLI 为准：`amber run <file>`、`bee eval <code>`、`bee repl`、`bee test <path>`、`bee debug <file>`、`bee serve`。
+> 发布校验说明（2026-05-26）：本文命令以当前 public CLI 为准：`amber run <file>`、`amber eval <code>`、`amber repl`、`amber test <path>`、`amber debug <file>`、`amber serve`。
 
 欢迎使用 Amber - 高性能 JavaScript/TypeScript 运行时！本指南将帮助您快速上手并充分利用 Amber 的强大功能。
 
@@ -68,8 +68,8 @@ amber run hello.ts
 
 ```bash
 # 克隆仓库
-git clone https://github.com/zh30/beejs.git
-cd beejs
+git clone https://github.com/zh30/amberjs.git
+cd amberjs
 
 # 构建发布版本
 cargo build --release
@@ -84,7 +84,7 @@ cargo install --path .
 ### 一键安装 (推荐)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zh30/beejs/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/zh30/amberjs/main/install.sh | sh
 amber --version
 ```
 
@@ -96,16 +96,16 @@ VERSION=v0.1.1
 TARGET=x86_64-unknown-linux-gnu
 
 # 下载指定版本
-curl -L https://github.com/zh30/beejs/releases/download/${VERSION}/bee-${VERSION}-${TARGET}.tar.gz -o bee.tar.gz
+curl -L https://github.com/zh30/amberjs/releases/download/${VERSION}/amber-${VERSION}-${TARGET}.tar.gz -o amber.tar.gz
 
 # 解压
-tar -xzf bee.tar.gz
+tar -xzf amber.tar.gz
 
 # 安装
-mkdir -p ~/.beejs/bin
-mv bee ~/.beejs/bin/
-chmod +x ~/.beejs/bin/bee
-export PATH=\"$HOME/.beejs/bin:$PATH\"
+mkdir -p ~/.amberjs/bin
+mv amber ~/.amberjs/bin/
+chmod +x ~/.amberjs/bin/amber
+export PATH=\"$HOME/.amberjs/bin:$PATH\"
 ```
 
 ## 🔧 基础使用
@@ -114,7 +114,7 @@ export PATH=\"$HOME/.beejs/bin:$PATH\"
 
 ```bash
 # 查看帮助
-bee --help
+amber --help
 
 # 查看版本
 amber --version
@@ -123,17 +123,17 @@ amber --version
 amber run script.js
 
 # 交互式 REPL
-bee repl
+amber repl
 
 # 启用详细输出
-bee --verbose run script.js
+amber --verbose run script.js
 
 # 当前 public CLI 不支持 --max-heap-size
 ```
 
 ### 配置文件
 
-创建 `beejs.config.json`：
+创建 `amberjs.config.json`：
 
 ```json
 {
@@ -223,14 +223,14 @@ Amber 提供了多种性能优化功能：
 
 ```javascript
 // 启用所有优化
-import { optimization } from 'beejs/optimization';
+import { optimization } from 'amberjs/optimization';
 
 optimization.enableJit(true);
 optimization.enableInlineCache(true);
 optimization.enableFastPaths(true);
 
 // 性能监控
-import { monitor } from 'beejs/monitor';
+import { monitor } from 'amberjs/monitor';
 
 monitor.startProfiling('my-function');
 
@@ -244,7 +244,7 @@ console.log(profile.memoryUsage);
 ### 并发执行
 
 ```javascript
-import { concurrent } from 'beejs/concurrent';
+import { concurrent } from 'amberjs/concurrent';
 
 // 并发执行多个函数
 const results = await concurrent.run([
@@ -259,7 +259,7 @@ console.log(results); // [result1, result2, result3]
 ### 智能缓存
 
 ```javascript
-import { cache } from 'beejs/cache';
+import { cache } from 'amberjs/cache';
 
 // 创建缓存
 const myCache = cache.create({
@@ -280,7 +280,7 @@ const result2 = await cachedFunction('key1');
 ### AI 集成
 
 ```javascript
-import { ai } from 'beejs/ai';
+import { ai } from 'amberjs/ai';
 
 // AI 代码生成
 const code = await ai.generateCode('create a function to sort an array');
@@ -297,10 +297,10 @@ console.log(suggestions);
 
 ```javascript
 // 启用调试模式
-bee debug script.js
+amber debug script.js
 
 // 在脚本中使用调试器
-import { debugger } from 'beejs/debugger';
+import { debugger } from 'amberjs/debugger';
 
 // 设置断点
 debugger.setBreakpoint('script.js', 10);
@@ -318,7 +318,7 @@ debugger.backtrace();
 ### 性能分析器
 
 ```javascript
-import { profiler } from 'beejs/profiler';
+import { profiler } from 'amberjs/profiler';
 
 // 开始分析
 profiler.start();
@@ -336,7 +336,7 @@ console.log('优化建议:', report.recommendations);
 ### 内存分析器
 
 ```javascript
-import { memory } from 'beejs/memory';
+import { memory } from 'amberjs/memory';
 
 // 启用内存监控
 memory.startMonitoring();
@@ -362,13 +362,13 @@ console.log('内存效率:', report.efficiency);
 
 1. **启用 JIT 优化**
    ```javascript
-   import { optimization } from 'beejs/optimization';
+   import { optimization } from 'amberjs/optimization';
    optimization.enableJit(true);
    ```
 
 2. **使用智能缓存**
    ```javascript
-   import { cache } from 'beejs/cache';
+   import { cache } from 'amberjs/cache';
    const cached = cache.wrap(expensiveFunction);
    ```
 
@@ -386,7 +386,7 @@ console.log('内存效率:', report.efficiency);
 
 4. **使用并发执行 I/O 密集型任务**
    ```javascript
-   import { concurrent } from 'beejs/concurrent';
+   import { concurrent } from 'amberjs/concurrent';
    const results = await concurrent.run([
        () => readFile('file1.txt'),
        () => readFile('file2.txt'),
@@ -405,7 +405,7 @@ console.log('内存效率:', report.efficiency);
 
 2. **监控内存使用**
    ```javascript
-   import { memory } from 'beejs/memory';
+   import { memory } from 'amberjs/memory';
    memory.startMonitoring();
    // 定期检查内存使用
    setInterval(() => {
@@ -416,7 +416,7 @@ console.log('内存效率:', report.efficiency);
 
 3. **使用对象池**
    ```javascript
-   import { pool } from 'beejs/pool';
+   import { pool } from 'amberjs/pool';
    const objectPool = pool.create(ObjectClass, 100);
 
    // 获取对象
@@ -441,7 +441,7 @@ console.log('内存效率:', report.efficiency);
 
 2. **启用详细错误信息**
    ```javascript
-   import { error } from 'beejs/error';
+   import { error } from 'amberjs/error';
    error.setLevel('verbose');
    error.enableStackTrace(true);
    ```
@@ -461,7 +461,7 @@ A: Amber 是用 Rust 和 V8 构建的高性能 JavaScript 运行时，专为 AI 
 
 A: 启用 Amber 的优化功能：
 ```javascript
-import { optimization } from 'beejs/optimization';
+import { optimization } from 'amberjs/optimization';
 optimization.enableAll();
 ```
 
@@ -477,7 +477,7 @@ A: Amber 用 oxc 转译 TypeScript 6.0 语法（与 TypeScript 7.0 语言面兼�
 
 A: 使用 Amber 的内存分析器：
 ```javascript
-import { memory } from 'beejs/memory';
+import { memory } from 'amberjs/memory';
 memory.startMonitoring();
 // 运行你的应用
 const leaks = memory.detectLeaks();
@@ -487,7 +487,7 @@ console.log('泄漏:', leaks);
 ### Q: 如何报告 bug？
 
 A: 请在 GitHub 上提交 issue：
-1. 访问 https://github.com/zh30/beejs/issues
+1. 访问 https://github.com/zh30/amberjs/issues
 2. 点击 "New issue"
 3. 选择 "Bug report"
 4. 填写详细信息
@@ -501,9 +501,9 @@ A: 请在 GitHub 上提交 issue：
 
 ## 🤝 社区与支持
 
-- [GitHub](https://github.com/zh30/beejs)
-- [讨论区](https://github.com/zh30/beejs/discussions)
-- [问题反馈](https://github.com/zh30/beejs/issues)
+- [GitHub](https://github.com/zh30/amberjs)
+- [讨论区](https://github.com/zh30/amberjs/discussions)
+- [问题反馈](https://github.com/zh30/amberjs/issues)
 
 ---
 

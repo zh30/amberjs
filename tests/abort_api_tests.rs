@@ -1,6 +1,6 @@
 // AbortController/AbortSignal API 测试套件 - v0.3.340
 //
-// 目标：验证 Beejs 对 AbortController 和 AbortSignal 接口的完整支持
+// 目标：验证 Amber 对 AbortController 和 AbortSignal 接口的完整支持
 // 用于异步操作取消、fetch 请求取消等场景
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
-// 测试 Beejs v0.1.7 fs Web API 完整功能
-console.log("🧪 测试 Beejs v0.1.7 fs Web API 完整功能");
+// 测试 Amber v0.1.7 fs Web API 完整功能
+console.log("🧪 测试 Amber v0.1.7 fs Web API 完整功能");
 
 // 测试 fs API 是否可用
 console.log("\n1. fs API 可用性测试:");
@@ -12,7 +12,7 @@ console.log("fs.exists('./nonexistent.txt') =", fs.exists('./nonexistent.txt'));
 
 // 测试 fs.writeFile
 console.log("\n3. fs.writeFile() 测试:");
-const testContent = 'Hello from Beejs v0.1.7! Time: ' + new Date().toISOString();
+const testContent = 'Hello from Amber v0.1.7! Time: ' + new Date().toISOString();
 console.log("fs.writeFile('./test_fs.txt', '" + testContent + "')");
 const writeResult = fs.writeFile('./test_fs.txt', testContent);
 console.log("Result:", writeResult);

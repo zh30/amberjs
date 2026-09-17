@@ -1,7 +1,7 @@
 //! Stage 45: 基本 JavaScript 执行功能测试
-//! 验证 Beejs 运行时在 V8 API 修复后能否执行基本的 JavaScript 代码
+//! 验证 Amber 运行时在 V8 API 修复后能否执行基本的 JavaScript 代码
 
-use beejs::runtime::Runtime;
+use amberjs::runtime::Runtime;
 use rusty_v8 as v8;
 
 #[test]
@@ -16,7 +16,7 @@ fn test_simple_js_execution() {
 
     // 测试基本 JavaScript 代码
     let test_cases = vec![
-        ("console.log('Hello, Beejs!')", "执行基本 console.log"),
+        ("console.log('Hello, Amber!')", "执行基本 console.log"),
         ("1 + 1", "执行基本算术运算"),
         ("const x = 42; x * 2", "执行变量和运算"),
         ("[1, 2, 3].map(x => x * 2)", "执行数组方法"),

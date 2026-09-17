@@ -1,6 +1,6 @@
 // EventTarget/Event API 测试套件
 //
-// 目标：验证 Beejs 对 EventTarget、Event 和 CustomEvent 的完整支持
+// 目标：验证 Amber 对 EventTarget、Event 和 CustomEvent 的完整支持
 
 #[cfg(test)]
 mod tests {

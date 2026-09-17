@@ -1,11 +1,11 @@
 #![allow(clippy::all)]
-// Beejs: Rust + V8 JavaScript/TypeScript runtime
+// Amber: Rust + V8 JavaScript/TypeScript runtime
 //
 // Fact sources for capability claims: Cargo.toml, this file, src/main.rs,
 // docs/CURRENT_SCOPE.md, and executable tests. Do not treat historical STAGE_*
 // reports as the current product surface.
 //
-// Default path: MinimalRuntime (src/runtime_minimal.rs) via the `bee` CLI.
+// Default path: MinimalRuntime (src/runtime_minimal.rs) via the `amber` CLI.
 // Node/Web compatibility is incremental; AI features behind `feature = "ai"`
 // are experimental and must not claim unverified performance multipliers.
 use std::collections::HashMap;
@@ -18,7 +18,7 @@ use std::hash::Hash;
 // 模块声明
 // Stage 92: AI 原生性能引擎 (enabled via feature "ai")
 // Historical `src/ai/*` still does not rustc (std RwLock used with `.await`).
-// Default `bee:ai` is `src/nodejs_core/ai.rs` and is compiled without this feature.
+// Default `amber:ai` is `src/nodejs_core/ai.rs` and is compiled without this feature.
 // #[cfg(feature = "ai")]
 // pub mod ai { ... }
 
@@ -64,7 +64,7 @@ pub mod security;
 
 // Historical `aiops` / `ai_inference` trees are not compiled with `feature = "ai"`.
 // They still fail rustc (`TokioDuration` aliases, `_` struct fields). Default
-// `bee:ai` lives in `src/nodejs_core/ai.rs` and does not need these modules.
+// `amber:ai` lives in `src/nodejs_core/ai.rs` and does not need these modules.
 // #[cfg(feature = "ai")]
 // pub mod aiops;
 // #[cfg(feature = "ai")]
@@ -80,31 +80,31 @@ pub mod platform;
 pub mod cloud_native;
 
 pub mod ai_engine; // Native text embeddings and semantic vector engine
-pub mod bus; // Multi-Agent Message Bus & PubSub Channel Fabric (bee:bus)
-pub mod capability; // Enterprise capability-based security (bee:security / bee:permissions)
-pub mod checkpoint; // Agent State Checkpoint & Time-Travel Snapshot Engine (bee:checkpoint)
+pub mod bus; // Multi-Agent Message Bus & PubSub Channel Fabric (amber:bus)
+pub mod capability; // Enterprise capability-based security (amber:security / amber:permissions)
+pub mod checkpoint; // Agent State Checkpoint & Time-Travel Snapshot Engine (amber:checkpoint)
 pub mod database; // Embedded SQLite and Vector similarity database
 pub mod error; // Unified error handling system
 pub mod fallback; // Fallback mechanisms
-pub mod ffi; // Native zero-dependency C ABI foreign function interface (bee:ffi)
-pub mod grammar; // Streaming Structured JSON & LLM Token Grammar Engine (bee:grammar)
-pub mod kv; // Embedded Persistent Key-Value & Durable State Engine (bee:kv)
+pub mod ffi; // Native zero-dependency C ABI foreign function interface (amber:ffi)
+pub mod grammar; // Streaming Structured JSON & LLM Token Grammar Engine (amber:grammar)
+pub mod kv; // Embedded Persistent Key-Value & Durable State Engine (amber:kv)
 pub mod memory; // Memory management
 pub mod napi; // Minimal N-API host for process.dlopen (hello addons)
-pub mod pool; // High-density multi-tenant IsolatePool for serverless & multi-agent execution (bee:pool)
+pub mod pool; // High-density multi-tenant IsolatePool for serverless & multi-agent execution (amber:pool)
 pub mod repl; // Enhanced interactive REPL
-pub mod replay; // Deterministic Agent Replay engine (bee:replay)
+pub mod replay; // Deterministic Agent Replay engine (amber:replay)
 pub mod sandbox; // In-memory deterministic Virtual Filesystem (VFS) sandbox
-pub mod sockets; // WinterTC Sockets API native engine (bee:sockets)
+pub mod sockets; // WinterTC Sockets API native engine (amber:sockets)
 pub mod std_lib; // Modern standard library (dotenv, cli, fs, crypto, assert)
 pub mod task_runner; // Task runner for package.json scripts
 pub mod testing; // Testing framework support
 pub mod tooling; // Developer tooling (formatter, linter, benchmark, compiler, coverage, profiler)
-pub mod tools; // Agent Tool Auto-Synthesis & OpenAPI Schema Compiler (bee:tools)
+pub mod tools; // Agent Tool Auto-Synthesis & OpenAPI Schema Compiler (amber:tools)
 pub mod types_export; // TypeScript types exporter
 pub mod typescript;
-pub mod wasm; // WebAssembly 2.0 zero-copy shared memory bridge (bee:wasm)
-pub mod weights; // Native GGUF and SafeTensors model weights loader (bee:weights)
+pub mod wasm; // WebAssembly 2.0 zero-copy shared memory bridge (amber:wasm)
+pub mod weights; // Native GGUF and SafeTensors model weights loader (amber:weights)
 
 pub use repl::{Repl, ReplConfig};
 // pub use wasm_integration::{initialize_wasm, check_wasm_support};
@@ -218,7 +218,7 @@ pub use runtime_minimal::MinimalRuntime;
 // 重新导出云原生集成相关类型
 // pub use cloud_native::{  // Temporarily disabled
 //     // Kubernetes CRDs
-//     BeejsCluster, BeejsClusterSpec, BeejsWorkload, BeejsWorkloadSpec,
+//     AmberCluster, AmberClusterSpec, AmberWorkload, AmberWorkloadSpec,
 //     ClusterPhase, Condition, ConditionStatus, ConditionType,
 //     DistributedConfig, HPAConfig, MonitoringConfig, NetworkPolicyConfig,
 //     PodAffinity, PodAntiAffinity, PreferredSchedulingTerm,
@@ -323,7 +323,7 @@ pub fn initialize_v8() -> Result<()> {
             v8_flags.push(extra);
         }
         if let Ok(extra) =
-            std::env::var("AMBER_V8_FLAGS").or_else(|_| std::env::var("BEE_V8_FLAGS"))
+            std::env::var("AMBER_V8_FLAGS")
         {
             v8_flags.push(extra);
         }
@@ -379,7 +379,7 @@ impl Default for PerformanceConfig {
         }
     }
 }
-/// 主要的 Beejs 运行时
+/// 主要的 Amber 运行时
 pub struct Runtime {
     config: PerformanceConfig,
     _verbose: bool,
@@ -482,7 +482,7 @@ pub fn get_smart_runtime(
     optimize_mode: OptimizeMode,
 ) -> Result<Runtime> {
     if verbose {
-        println!("[beejs] Initializing smart runtime...");
+        println!("[amberjs] Initializing smart runtime...");
     }
     // TODO: 根据代码特征选择最佳优化策略
     // 目前使用默认实现
@@ -506,7 +506,7 @@ pub fn get_global_runtime(
     optimize_mode: OptimizeMode,
 ) -> Result<Runtime> {
     if verbose {
-        println!("[beejs] Initializing global runtime...");
+        println!("[amberjs] Initializing global runtime...");
     }
     get_smart_runtime(None, stack_size, max_heap, verbose, optimize_mode)
 }

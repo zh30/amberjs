@@ -14,7 +14,7 @@ fn run_js(code: &str) -> String {
 #[serial]
 fn test_wasm_module_exports_and_aliases() {
     let script = r#"
-    const wasm1 = require('bee:wasm');
+    const wasm1 = require('amber:wasm');
     const wasm2 = require('wasm');
     const hasGlobal = typeof globalThis.wasm === 'object';
     const isSame = wasm1 === wasm2 && wasm1 === globalThis.wasm;
@@ -28,7 +28,7 @@ fn test_wasm_module_exports_and_aliases() {
 #[serial]
 fn test_wasm_ptr_extraction_and_memory_ops() {
     let script = r#"
-    const wasm = require('bee:wasm');
+    const wasm = require('amber:wasm');
     const mem = new WebAssembly.Memory({ initial: 1 });
     const ptr = wasm.ptr(mem);
 
@@ -60,7 +60,7 @@ fn test_wasm_ptr_extraction_and_memory_ops() {
 #[serial]
 fn test_wasm_memory_view_typed_accessors() {
     let script = r#"
-    const wasm = require('bee:wasm');
+    const wasm = require('amber:wasm');
     const mem = new WebAssembly.Memory({ initial: 1 });
     const view = new wasm.MemoryView(mem);
 
@@ -68,8 +68,8 @@ fn test_wasm_memory_view_typed_accessors() {
     view.setInt32(4, -123456);
     view.setFloat32(8, 3.14159);
     view.setFloat64(16, 2.718281828459);
-    view.setString(32, 'Beejs Wasm 2.0');
-    view.setUint8(32 + 'Beejs Wasm 2.0'.length, 0); // null terminate
+    view.setString(32, 'Amber Wasm 2.0');
+    view.setUint8(32 + 'Amber Wasm 2.0'.length, 0); // null terminate
 
     const u8Val = view.getUint8(0);
     const i32Val = view.getInt32(4);
@@ -81,14 +81,14 @@ fn test_wasm_memory_view_typed_accessors() {
     `${u8Val}:${i32Val}:${f32Val}:${f64Val}:${cstr}:${str}`;
     "#;
     let output = run_js(script);
-    assert_eq!(output, "255:-123456:3.142:2.71828:Beejs Wasm 2.0:Beejs");
+    assert_eq!(output, "255:-123456:3.142:2.71828:Amber Wasm 2.0:Amber");
 }
 
 #[test]
 #[serial]
 fn test_wasm_wrap_pointer_proxy() {
     let script = r#"
-    const wasm = require('bee:wasm');
+    const wasm = require('amber:wasm');
     const mem = new WebAssembly.Memory({ initial: 1 });
     const ptr = wasm.ptr(mem);
 
@@ -112,7 +112,7 @@ fn test_wasm_wrap_pointer_proxy() {
 #[serial]
 fn test_wasm_tensor_zero_copy_bridge() {
     let script = r#"
-    const wasm = require('bee:wasm');
+    const wasm = require('amber:wasm');
     const mem = new WebAssembly.Memory({ initial: 1 });
 
     // Create tensor backed directly by Wasm linear memory
@@ -143,7 +143,7 @@ fn test_wasm_tensor_zero_copy_bridge() {
 fn test_wasm_shared_memory_and_mmap_load() {
     let script = r#"
     const fs = require('fs');
-    const wasm = require('bee:wasm');
+    const wasm = require('amber:wasm');
 
     // 1. Test shared memory creation
     const sharedMem = wasm.createSharedMemory({ initial: 1, maximum: 2 });
@@ -159,7 +159,7 @@ fn test_wasm_shared_memory_and_mmap_load() {
         0x0a, 0x09, 0x01, 0x07, 0x00, 0x20, 0x00, 0x20, 0x01, 0x6a, 0x0b // code section: local.get 0, local.get 1, i32.add
     ]);
 
-    const tempPath = '/tmp/test_beejs_v1_5_0_add.wasm';
+    const tempPath = '/tmp/test_amberjs_v1_5_0_add.wasm';
     fs.writeFileSync(tempPath, wasmBinary);
 
     let testResult = '';

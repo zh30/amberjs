@@ -82,7 +82,7 @@ const response = fetch("__URL__");
 JSON.stringify({
     ok: response.ok,
     status: response.status,
-    fallback: response.headers["x-beejs-fetch-fallback"] || null
+    fallback: response.headers["x-amberjs-fetch-fallback"] || null
 });
 "#
             .replace("__URL__", &url),
@@ -92,6 +92,6 @@ JSON.stringify({
     assert_eq!(
         result.trim(),
         r#"{"ok":false,"status":500,"fallback":null}"#,
-        "HTTP error fixtures should expose the real status without Beejs fallback headers"
+        "HTTP error fixtures should expose the real status without Amber fallback headers"
     );
 }

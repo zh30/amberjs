@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use rusty_v8 as v8;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-/// Beejs Runtime - High-performance JavaScript/TypeScript execution engine using V8
+/// Amber Runtime - High-performance JavaScript/TypeScript execution engine using V8
 pub struct Runtime {
     stack_size: usize,
     max_heap: usize,
@@ -18,7 +18,7 @@ pub struct Runtime {
     context: v8::Global<v8::Context>,
 }
 impl Runtime {
-    /// Create a new Beejs runtime instance
+    /// Create a new Amber runtime instance
     pub fn new(
         stack_size: usize,
         max_heap: usize,

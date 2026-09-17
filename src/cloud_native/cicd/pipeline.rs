@@ -478,19 +478,19 @@ mod tests {
     #[test]
     fn test_gitlab_ci_pipeline() {
         let mut pipeline =
-            GitLabCIPipeline::new("beejs-pipeline".to_string(), "production".to_string());
+            GitLabCIPipeline::new("amberjs-pipeline".to_string(), "production".to_string());
         pipeline.add_stage("build".to_string());
         pipeline.add_job(
             "build-job".to_string(),
             "build".to_string(),
-            vec!["docker build -t beejs .".to_string()],
+            vec!["docker build -t amberjs .".to_string()],
         );
         assert_eq!(pipeline.stages.len(), 1);
         assert!(pipeline.has_job("build-job"));
     }
     #[test]
     fn test_jenkins_pipeline() {
-        let mut pipeline = JenkinsPipeline::new("beejs-pipeline".to_string());
+        let mut pipeline = JenkinsPipeline::new("amberjs-pipeline".to_string());
         pipeline.add_stage("Build".to_string(), vec!["sh 'npm install'".to_string()]);
         assert_eq!(pipeline.stages.len(), 1);
         assert_eq!(pipeline.agent, "kubernetes");

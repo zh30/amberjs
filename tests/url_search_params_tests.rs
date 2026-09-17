@@ -129,8 +129,8 @@ mod url_search_params_tests {
 
         let result = runtime.execute_code(
             r#"
-            const parsed = new URLSearchParams('q=bee+runtime&plus=a%2Bb');
-            const built = new URLSearchParams({ q: 'bee runtime', plus: 'a+b' });
+            const parsed = new URLSearchParams('q=amber+runtime&plus=a%2Bb');
+            const built = new URLSearchParams({ q: 'amber runtime', plus: 'a+b' });
             `${parsed.get('q')}:${parsed.get('plus')}:${built.toString()}`;
         "#,
         );
@@ -142,7 +142,7 @@ mod url_search_params_tests {
         let binding = result.unwrap();
         let output = binding.trim();
         assert_eq!(
-            output, "bee runtime:a+b:q=bee+runtime&plus=a%2Bb",
+            output, "amber runtime:a+b:q=amber+runtime&plus=a%2Bb",
             "Expected + to decode as space and spaces to serialize as +, got: {output}"
         );
     }
@@ -156,7 +156,7 @@ mod url_search_params_tests {
             r#"
             const params = new URLSearchParams(new Map([
                 ['topic', 'runtime'],
-                ['space', 'bee js']
+                ['space', 'amber js']
             ]));
             `${params.get('topic')}:${params.toString()}`;
         "#,
@@ -169,7 +169,7 @@ mod url_search_params_tests {
         let binding = result.unwrap();
         let output = binding.trim();
         assert_eq!(
-            output, "runtime:topic=runtime&space=bee+js",
+            output, "runtime:topic=runtime&space=amber+js",
             "Expected Map iterable pairs to initialize URLSearchParams in order, got: {output}"
         );
     }
@@ -183,7 +183,7 @@ mod url_search_params_tests {
             r#"
             const cases = [
                 () => new URLSearchParams([['name']]),
-                () => new URLSearchParams([['name', 'bee', 'extra']]),
+                () => new URLSearchParams([['name', 'amber', 'extra']]),
                 () => new URLSearchParams(['not-a-pair'])
             ];
             cases.map((run) => {

@@ -68,7 +68,7 @@ fn test_generate_key_pair_sync_rsa_key_format() {
 fn test_generate_key_pair_sync_private_key_encoding_cipher_passphrase_round_trip() {
     let mut runtime = MinimalRuntime::new().unwrap();
     let code = r#"
-        const passphrase = 'beejs-generated-key-passphrase';
+        const passphrase = 'amberjs-generated-key-passphrase';
         const result = crypto.generateKeyPairSync('rsa', {
             modulusLength: 2048,
             publicKeyEncoding: { type: 'spki', format: 'pem' },

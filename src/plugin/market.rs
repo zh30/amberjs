@@ -22,7 +22,7 @@ impl PluginMarket {
             description: "TypeScript code transformer".to_string(),
             downloads: 1000,
             rating: 4.5,
-            author: "Beejs Team".to_string(),
+            author: "Amber Team".to_string(),
         });
         plugins.insert("css-minifier".to_string(), PluginInfo {
             name: "css-minifier".to_string(),
@@ -30,7 +30,7 @@ impl PluginMarket {
             description: "CSS code minifier".to_string(),
             downloads: 800,
             rating: 4.2,
-            author: "Beejs Team".to_string(),
+            author: "Amber Team".to_string(),
         });
         Self { plugins }
     }

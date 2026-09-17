@@ -1,5 +1,5 @@
 // Go Runtime Integration
-// Provides seamless integration between Beejs and Go
+// Provides seamless integration between Amber and Go
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ pub struct GoRoutineId(pub String);
 pub struct GoRuntime {
     vm: Arc<GoVM>,
     goroutines: Arc<RwLock<HashMap<GoRoutineId, GoRoutine>>>,
-    bee_api: Arc<BeeAPI>,
+    amber_api: Arc<AmberAPI>,
     executor: Arc<GoExecutor>,
 }
 /// Go routine information
@@ -45,13 +45,13 @@ pub enum GoMessage {
     Result(String),
     Error(String),
 }
-/// Bee API exposed to Go
+/// Amber API exposed to Go
 #[derive(Debug)]
-pub struct BeeAPI {
-    pub(crate) runtime: Arc<dyn BeeRuntimeInterface>,
+pub struct AmberAPI {
+    pub(crate) runtime: Arc<dyn AmberRuntimeInterface>,
 }
-/// Interface for Bee runtime operations
-pub trait BeeRuntimeInterface: Send + Sync {
+/// Interface for Amber runtime operations
+pub trait AmberRuntimeInterface: Send + Sync {
     fn execute_script(&self, script: &str) -> Result<String>;
     fn get_variable(&self, name: &str) -> Result<String>;
     fn set_variable(&self, name: &str, value: &str) -> Result<()>;
@@ -59,7 +59,7 @@ pub trait BeeRuntimeInterface: Send + Sync {
 /// Go executor for running scripts
 #[derive(Debug)]
 pub struct GoExecutor {
-    bee_runtime: Arc<dyn BeeRuntimeInterface>,
+    amber_runtime: Arc<dyn AmberRuntimeInterface>,
 }
 impl GoVM {
     /// Create a new Go VM
@@ -71,16 +71,16 @@ impl GoVM {
 }
 impl GoRuntime {
     /// Create a new Go runtime
-    pub fn new(bee_api: Arc<BeeAPI>) -> Result<Self> {
+    pub fn new(amber_api: Arc<AmberAPI>) -> Result<Self> {
         let vm: _ = Arc::new(GoVM::new()?);
         let goroutines: _ = Arc::new(RwLock::new(HashMap::new()));
         let executor: _ = Arc::new(GoExecutor {
-            bee_runtime: bee_api.runtime.clone(),
+            amber_runtime: amber_api.runtime.clone(),
         });
         Ok(GoRuntime {
             vm,
             goroutines,
-            bee_api,
+            amber_api,
             executor,
         })
     }
@@ -114,9 +114,9 @@ impl GoRuntime {
         }
         // Spawn async task for the goroutine
         let script_clone: _ = script.to_string();
-        let bee_api: _ = self.bee_api.clone();
+        let amber_api: _ = self.amber_api.clone();
         tokio::spawn(async move {
-            let result: _ = execute_go_script(&script_clone, &bee_api).await;
+            let result: _ = execute_go_script(&script_clone, &amber_api).await;
             match result {
                 Ok(output) => {
                     // Send result back
@@ -152,22 +152,22 @@ impl GoRuntime {
         Ok(map.keys().cloned().collect())
     }
 }
-/// Go-Beejs bridge for bidirectional calls
+/// Go-Amber bridge for bidirectional calls
 #[derive(Debug)]
-pub struct GoBeeBridge {
-    bee_runtime: Arc<dyn BeeRuntimeInterface>,
+pub struct GoAmberBridge {
+    amber_runtime: Arc<dyn AmberRuntimeInterface>,
     go_vm: Arc<GoVM>,
 }
-impl GoBeeBridge {
-    /// Create a new Go-Bee bridge
-    pub fn new(bee_runtime: Arc<dyn BeeRuntimeInterface>, go_vm: Arc<GoVM>) -> Self {
-        GoBeeBridge { bee_runtime, go_vm }
+impl GoAmberBridge {
+    /// Create a new Go-Amber bridge
+    pub fn new(amber_runtime: Arc<dyn AmberRuntimeInterface>, go_vm: Arc<GoVM>) -> Self {
+        GoAmberBridge { amber_runtime, go_vm }
     }
-    /// Call Beejs from Go
-    pub async fn call_bee_from_go(&self, script: &str) -> Result<String> {
-        self.bee_runtime.execute_script(script)
+    /// Call Amber from Go
+    pub async fn call_amber_from_go(&self, script: &str) -> Result<String> {
+        self.amber_runtime.execute_script(script)
     }
-    /// Execute Go code from Beejs
+    /// Execute Go code from Amber
     pub async fn execute_go_from_bee(&self, code: &str) -> Result<String> {
         // Simulate Go execution
         tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
@@ -178,7 +178,7 @@ impl GoBeeBridge {
         }
     }
 }
-async fn execute_go_script(script: &str, bee_api: &BeeAPI) -> Result<String> {
+async fn execute_go_script(script: &str, amber_api: &AmberAPI) -> Result<String> {
     // Simulate Go script execution
     tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
     if script.contains("fmt.Println") {
@@ -192,15 +192,15 @@ async fn execute_go_script(script: &str, bee_api: &BeeAPI) -> Result<String> {
 mod tests {
     use super::*;
 
-    fn bee_api() -> Arc<BeeAPI> {
-        Arc::new(BeeAPI {
-            runtime: Arc::new(MockBeeRuntime),
+    fn amber_api() -> Arc<AmberAPI> {
+        Arc::new(AmberAPI {
+            runtime: Arc::new(MockAmberRuntime),
         })
     }
 
     #[tokio::test]
     async fn test_go_basic_execution() {
-        let runtime: _ = GoRuntime::new(bee_api()).unwrap();
+        let runtime: _ = GoRuntime::new(amber_api()).unwrap();
         let code: _ = r#"
 package main
 import "fmt"
@@ -213,7 +213,7 @@ func main() {
     }
     #[tokio::test]
     async fn test_go_goroutine_spawn() {
-        let runtime: _ = GoRuntime::new(bee_api()).unwrap();
+        let runtime: _ = GoRuntime::new(amber_api()).unwrap();
         let script: _ = r#"
 go func() {
     fmt.Println("Running in goroutine")
@@ -226,25 +226,25 @@ go func() {
         assert!(result.is_ok());
     }
     #[tokio::test]
-    async fn test_go_bee_interop() {
-        let runtime: _ = GoRuntime::new(bee_api()).unwrap();
-        let bridge: _ = GoBeeBridge::new(Arc::new(MockBeeRuntime), Arc::new(GoVM::new().unwrap()));
+    async fn test_go_amber_interop() {
+        let runtime: _ = GoRuntime::new(amber_api()).unwrap();
+        let bridge: _ = GoAmberBridge::new(Arc::new(MockAmberRuntime), Arc::new(GoVM::new().unwrap()));
         let result: _ = bridge
-            .call_bee_from_go("console.log('Hello from Go calling Bee')")
+            .call_amber_from_go("console.log('Hello from Go calling Amber')")
             .await;
         assert!(result.is_ok());
         let result: _ = bridge
-            .execute_go_from_bee("fmt.Println('Hello from Bee calling Go')")
+            .execute_go_from_bee("fmt.Println('Hello from Amber calling Go')")
             .await;
         assert!(result.is_ok());
     }
-    struct MockBeeRuntime;
-    impl BeeRuntimeInterface for MockBeeRuntime {
+    struct MockAmberRuntime;
+    impl AmberRuntimeInterface for MockAmberRuntime {
         fn execute_script(&self, script: &str) -> Result<String> {
-            Ok(format!("Bee executed: {}", script))
+            Ok(format!("Amber executed: {}", script))
         }
         fn get_variable(&self, name: &str) -> Result<String> {
-            Ok(format!("bee_value_of_{}", name))
+            Ok(format!("amber_value_of_{}", name))
         }
         fn set_variable(&self, name: &str, value: &str) -> Result<()> {
             Ok(())

@@ -19,7 +19,7 @@ fn test_aes_ctr_encrypt_decrypt_roundtrip_with_imported_raw_key() {
                 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
                 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
             ]);
-            const plaintext = new TextEncoder().encode('beejs aes-ctr roundtrip');
+            const plaintext = new TextEncoder().encode('amberjs aes-ctr roundtrip');
             const key = await crypto.subtle.importKey(
                 'raw',
                 keyData,
@@ -46,7 +46,7 @@ fn test_aes_ctr_encrypt_decrypt_roundtrip_with_imported_raw_key() {
                     break;
                 }
             }
-            return new TextDecoder().decode(decrypted) === 'beejs aes-ctr roundtrip' &&
+            return new TextDecoder().decode(decrypted) === 'amberjs aes-ctr roundtrip' &&
                 ciphertext.byteLength === plaintext.byteLength &&
                 !sameBytes;
         })();

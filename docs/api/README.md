@@ -1,11 +1,11 @@
-# Beejs API 文档
+# Amber API 文档
 
-> 当前状态：此文件保留为历史 API 设计草案，不代表 Beejs v0.1 当前公开用户合同。
+> 当前状态：此文件保留为历史 API 设计草案，不代表 Amber v0.1 当前公开用户合同。
 > v0.1 的公开入口以 `Cargo.toml`、`src/main.rs`、`src/lib.rs`、`docs/CLI_USAGE_GUIDE.md`
 > 和可执行测试为准。下面提到的 JS `Runtime` 构造器、覆盖率、benchmark、heap/profile
 > 等接口需要重新验证或重新设计后才能作为公开 API 发布。
 
-欢迎使用 Beejs API 文档！这里记录历史阶段的 API 设计意图。
+欢迎使用 Amber API 文档！这里记录历史阶段的 API 设计意图。
 
 ## 📚 目录
 
@@ -254,7 +254,7 @@ test("快照测试", () => {
 运行快照测试:
 
 ```bash
-bee test --update-snapshot  # 更新快照
+amber test --update-snapshot  # 更新快照
 ```
 
 #### 性能测试
@@ -292,7 +292,7 @@ describe("并行测试", () => {
 启用并行执行:
 
 ```bash
-bee test --parallel
+amber test --parallel
 ```
 
 ### 测试选项
@@ -320,7 +320,7 @@ module.exports = {
 #### 启动调试
 
 ```bash
-bee debug script.js
+amber debug script.js
 ```
 
 #### 断点类型
@@ -406,7 +406,7 @@ async function asyncFunction() {
 
 ```javascript
 // 启动时启用远程调试
-bee debug --remote --port 9229 script.js
+amber debug --remote --port 9229 script.js
 ```
 
 在 Chrome 中打开: `chrome://inspect`
@@ -420,9 +420,9 @@ bee debug --remote --port 9229 script.js
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "beejs",
+            "type": "amberjs",
             "request": "launch",
-            "name": "Debug Beejs Script",
+            "name": "Debug Amber Script",
             "program": "${workspaceFolder}/script.js",
             "port": 9229
         }
@@ -439,7 +439,7 @@ bee debug --remote --port 9229 script.js
 #### 安装包
 
 ```javascript
-const { PackageManager } = require('beejs/package');
+const { PackageManager } = require('amberjs/package');
 
 const pm = new PackageManager();
 
@@ -555,7 +555,7 @@ function benchmark(name, fn, iterations = 10000) {
 
 ### 全局配置
 
-创建 `beejs.config.json`:
+创建 `amberjs.config.json`:
 
 ```json
 {
@@ -590,9 +590,9 @@ function benchmark(name, fn, iterations = 10000) {
 ### 命令行选项
 
 ```bash
-bee run script.js
-bee test examples/testing/math.test.js --parallel
-bee debug script.js
+amber run script.js
+amber test examples/testing/math.test.js --parallel
+amber debug script.js
 ```
 
 ## 错误处理

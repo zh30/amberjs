@@ -47,11 +47,11 @@ Layout of the output binary:
 +----------------------------------------------------------+
 |  Bundled user script payload                             |
 +----------------------------------------------------------+
-|  payload size (u64)  |  magic BEE_STANDALONE (16 bytes)  |
+|  payload size (u64)  |  magic AMBER_STANDALONE (16 bytes)  |
 +----------------------------------------------------------+
 ```
 
-On boot, `amber` inspects its own trailer. If `BEE_STANDALONE` is present, it runs the embedded payload and skips the normal CLI parser.
+On boot, `amber` inspects its own trailer. If `AMBER_STANDALONE` is present, it runs the embedded payload and skips the normal CLI parser.
 
 Limitations: the result is roughly the size of `amber` plus your script; native addons and a full Node module graph are out of scope.
 

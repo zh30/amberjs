@@ -1,7 +1,7 @@
 const assert = require('assert');
 const zlib = require('zlib');
 
-const input = 'Beejs deterministic engine & zlib compression test string!';
+const input = 'Amber deterministic engine & zlib compression test string!';
 const compressed = zlib.gzipSync(input);
 assert(compressed.length > 0, 'compressed output should not be empty');
 assert.strictEqual(typeof compressed.toString, 'function', 'gzipSync should return a Buffer');

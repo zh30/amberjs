@@ -1,5 +1,5 @@
 /**
- * Beejs Agent Tool Auto-Calling & Structured Reasoning Demo
+ * Amber Agent Tool Auto-Calling & Structured Reasoning Demo
  *
  * Demonstrates:
  * 1. Registering deterministic tools in `AgentPipeline`
@@ -7,12 +7,12 @@
  * 3. Execution loop with conversation history
  */
 
-const { LLM, AgentPipeline } = require('bee:ai');
+const { LLM, AgentPipeline } = require('amber:ai');
 
 async function main() {
-    console.log('=== Beejs AgentPipeline Tool Calling ===\n');
+    console.log('=== Amber AgentPipeline Tool Calling ===\n');
 
-    const llm = await LLM.load('bee-agent-orchestrator', {
+    const llm = await LLM.load('amber-agent-orchestrator', {
         device: 'cpu'
     });
 
@@ -36,7 +36,7 @@ async function main() {
         description: 'Returns runtime system information',
         execute: () => {
             return {
-                runtime: 'Beejs',
+                runtime: 'Amber',
                 v8Version: process.versions.v8,
                 nodeVersion: process.versions.node,
                 arch: process.arch

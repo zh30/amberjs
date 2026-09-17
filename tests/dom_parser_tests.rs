@@ -1,6 +1,6 @@
 // DOMParser API 测试套件 - v0.3.341
 //
-// 目标：验证 Beejs 对 DOMParser 接口的完整支持
+// 目标：验证 Amber 对 DOMParser 接口的完整支持
 // DOMParser 用于解析 HTML/XML 文档，适用于 AI 工作负载处理网页内容
 
 #[cfg(test)]

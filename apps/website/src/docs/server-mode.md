@@ -160,7 +160,7 @@ amber run --workers 8 server.ts
 Or via environment variable:
 
 ```bash
-export BEE_WORKERS=8
+export AMBER_WORKERS=8
 amber run server.ts
 ```
 

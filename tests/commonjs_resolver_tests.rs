@@ -2034,7 +2034,7 @@ fn runtime_require_loads_mjs_module_namespace() {
         r#"
         globalThis.__mjsLoadCount = (globalThis.__mjsLoadCount || 0) + 1;
         export const value = 42;
-        export default { label: 'bee' };
+        export default { label: 'amber' };
         "#,
     )
     .unwrap();
@@ -2052,7 +2052,7 @@ fn runtime_require_loads_mjs_module_namespace() {
 
     let result = runtime.execute_code(&code).unwrap();
 
-    assert_eq!(result.trim(), "bee:42:true:1");
+    assert_eq!(result.trim(), "amber:42:true:1");
 }
 
 #[test]
@@ -2208,7 +2208,7 @@ fn runtime_require_loads_js_inside_type_module_package_namespace() {
         package_dir.join("index.js"),
         r#"
         export const answer = 42;
-        export default 'bee';
+        export default 'amber';
         "#,
     )
     .unwrap();
@@ -2225,7 +2225,7 @@ fn runtime_require_loads_js_inside_type_module_package_namespace() {
 
     let result = runtime.execute_code(&code).unwrap();
 
-    assert_eq!(result.trim(), "bee:42");
+    assert_eq!(result.trim(), "amber:42");
 }
 
 #[test]

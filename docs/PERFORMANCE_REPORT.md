@@ -1,4 +1,4 @@
-Beejs Performance Benchmark Report
+Amber Performance Benchmark Report
 Generated: 2025-12-19 17:14:27
 Iterations per test: 100
 Warmup iterations: 10
@@ -90,4 +90,4 @@ Max Time: 38.83μs
 Operations/sec: 51462
 
 Overall Performance Score: 4.93/100
-Status: 🔴 NEEDS IMPROVEMENT - Beejs requires optimization to meet targets
+Status: 🔴 NEEDS IMPROVEMENT - Amber requires optimization to meet targets

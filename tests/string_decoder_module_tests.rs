@@ -133,10 +133,10 @@ fn test_string_decoder_utf8_characters() {
 fn test_string_decoder_emoji_characters() {
     let mut runtime = MinimalRuntime::new().unwrap();
     let result = runtime.execute_code(
-        "const decoder = new string_decoder.StringDecoder(); decoder.write('🚀 Beejs')",
+        "const decoder = new string_decoder.StringDecoder(); decoder.write('🚀 Amber')",
     );
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().trim(), "🚀 Beejs");
+    assert_eq!(result.unwrap().trim(), "🚀 Amber");
 }
 
 #[test]

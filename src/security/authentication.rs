@@ -88,7 +88,7 @@ impl TokenManager {
     }
     pub async fn generate_token(&self, user: &User) -> Result<Token, AuthError> {
         let token_string: _ = format!(
-            "beejs-token-{}-{}",
+            "amberjs-token-{}-{}",
             user.id,
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)

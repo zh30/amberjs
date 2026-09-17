@@ -1,4 +1,4 @@
-use beejs::{Profiler, ProfileTarget, ProfilingMode};
+use amberjs::{Profiler, ProfileTarget, ProfilingMode};
 use std::time::Duration;
 
 #[cfg(test)]

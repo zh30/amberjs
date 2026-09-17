@@ -2,7 +2,7 @@
 use amberjs::runtime_minimal::MinimalRuntime;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🐝 Testing Beejs Core Functionality");
+    println!("🐝 Testing Amber Core Functionality");
 
     // Test 1: Create runtime
     let mut runtime = MinimalRuntime::new()?;
@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✅ Simple arithmetic: 1 + 1 = {}", result.trim());
 
     // Test 3: Execute with console.log
-    let result = runtime.execute_code("console.log('Hello from Beejs!'); 42;")?;
+    let result = runtime.execute_code("console.log('Hello from Amber!'); 42;")?;
     assert_eq!(result.trim(), "42");
     println!("✅ Console.log test passed");
 
@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!();
     println!("🎉 All core tests passed!");
-    println!("Beejs is working correctly!");
+    println!("Amber is working correctly!");
 
     Ok(())
 }

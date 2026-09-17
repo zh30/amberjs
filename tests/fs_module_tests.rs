@@ -1,4 +1,4 @@
-// FS module tests for Beejs runtime
+// FS module tests for Amber runtime
 // v0.3.5: fs module implementation (readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync, rmdirSync)
 
 use serial_test::serial;
@@ -31,7 +31,7 @@ fn test_readfilesync_returns_file_content() {
     // Create a temporary file with known content
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("test.txt");
-    fs::write(&test_file, "Hello, Beejs!").expect("Failed to write test file");
+    fs::write(&test_file, "Hello, Amber!").expect("Failed to write test file");
 
     let code = format!(
         r#"
@@ -44,7 +44,7 @@ fn test_readfilesync_returns_file_content() {
     let result = runtime.execute_code(&code).expect("Execution failed");
     assert_eq!(
         result.trim(),
-        "Hello, Beejs!",
+        "Hello, Amber!",
         "readFileSync should return file content"
     );
 }
@@ -61,7 +61,7 @@ fn test_writefilesync_creates_file() {
     let code = format!(
         r#"
         const fs = require('fs');
-        fs.writeFileSync("{}", "Test content from Beejs!");
+        fs.writeFileSync("{}", "Test content from Amber!");
     "#,
         test_file.to_string_lossy().into_owned()
     );
@@ -75,7 +75,7 @@ fn test_writefilesync_creates_file() {
     // Verify file was created
     let content = fs::read_to_string(&test_file).expect("Failed to read output file");
     assert_eq!(
-        content, "Test content from Beejs!",
+        content, "Test content from Amber!",
         "File should contain written content"
     );
 }

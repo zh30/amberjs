@@ -66,7 +66,7 @@ fn test_snapshot_corrupted_file_self_heals() {
     }
 
     // Write corrupted garbage bytes to simulate dirty / corrupted cache
-    fs::write(&path, b"CORRUPTED_GARBAGE_PAYLOAD_NOT_BEEJS_HEADER").expect("Write corrupted file");
+    fs::write(&path, b"CORRUPTED_GARBAGE_PAYLOAD_NOT_AMBER_HEADER").expect("Write corrupted file");
     assert!(path.exists());
 
     // Calling rebuild_startup_blob should overwrite with valid wrapped snapshot

@@ -5,7 +5,7 @@
 
 ## 问题分析
 
-当前 `beejs run test.ts` 失败的原因：
+当前 `amberjs run test.ts` 失败的原因：
 1. `run_script()` 在 `main.rs` 第 172 行直接将 TypeScript 代码传给 V8
 2. 虽然 `transpile_ts` 配置存在，但实际没有调用转译逻辑
 3. V8 无法直接执行 TypeScript 语法（如 `: number` 类型标注）
@@ -21,7 +21,7 @@
 match file_type {
     FileType::TypeScript => {
         // 调用 TypeScript 编译器转译
-        let output = beejs::typescript::compile_typescript(&code, &script_path.to_string_lossy())?;
+        let output = amberjs::typescript::compile_typescript(&code, &script_path.to_string_lossy())?;
         let js_code = format!("{}\n{}", setup_code, output.js_code);
         runtime.execute_code(&js_code)?;
     }
@@ -36,7 +36,7 @@ match file_type {
 - 添加更多语法支持
 
 ## 成功标准
-- [x] `beejs run test.ts` 正确执行 TypeScript 代码
+- [x] `amberjs run test.ts` 正确执行 TypeScript 代码
 - [x] 类型标注被正确移除
 - [x] 测试用例通过
 
@@ -46,7 +46,7 @@ match file_type {
 const x: number = 42;
 const greet = (name: string): string => `Hello, ${name}!`;
 console.log("TS Test:", x);
-console.log(greet("Beejs"));
+console.log(greet("Amber"));
 ```
 
 ## 估计改动量
