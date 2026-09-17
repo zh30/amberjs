@@ -37,13 +37,17 @@ fn main() {
 
                                             // Test 6: Execute function
                                             println!("Test 6: Executing function...");
-                                            match runtime.execute("function add(a, b) { return a + b; } add(5, 10);") {
+                                            match runtime.execute(
+                                                "function add(a, b) { return a + b; } add(5, 10);",
+                                            ) {
                                                 Ok(result) => {
                                                     println!("✅ Result: {}\n", result);
 
                                                     // Test 7: Execute arrow function
                                                     println!("Test 7: Executing arrow function...");
-                                                    match runtime.execute("const double = x => x * 2; double(21);") {
+                                                    match runtime.execute(
+                                                        "const double = x => x * 2; double(21);",
+                                                    ) {
                                                         Ok(result) => {
                                                             println!("✅ Result: {}\n", result);
 
@@ -59,7 +63,9 @@ fn main() {
                                                                 Err(e) => println!("❌ Test 8 failed: {}", e),
                                                             }
                                                         }
-                                                        Err(e) => println!("❌ Test 7 failed: {}", e),
+                                                        Err(e) => {
+                                                            println!("❌ Test 7 failed: {}", e)
+                                                        }
                                                     }
                                                 }
                                                 Err(e) => println!("❌ Test 6 failed: {}", e),

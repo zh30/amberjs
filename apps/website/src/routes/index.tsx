@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useLang } from "../lib/i18n";
 import { BEEJS_VERSION } from "../lib/version";
 
-const INSTALL = "curl -fsSL https://amberjs.com/install.sh | sh";
+const INSTALL = "curl -fsSL https://get.amberjs.com/install.sh | sh";
 
 export default function HomeComponent() {
   const { copy } = useLang();

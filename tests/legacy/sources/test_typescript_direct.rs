@@ -4,18 +4,12 @@
 fn main() {
     // 模拟测试用例
     let test_cases = vec![
-        (
-            "简单箭头函数",
-            "const double = (x: number) => x * 2;",
-        ),
+        ("简单箭头函数", "const double = (x: number) => x * 2;"),
         (
             "多参数箭头函数",
             "const add = (a: number, b: number): number => a + b;",
         ),
-        (
-            "无参数箭头函数",
-            "const getAnswer = () => 42;",
-        ),
+        ("无参数箭头函数", "const getAnswer = () => 42;"),
         (
             "函数类型标注",
             "function greet(name: string): string { return `Hello, ${name}!`; }",

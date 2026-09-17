@@ -56,16 +56,16 @@ Prebuilt archives: macOS (arm64, x64), Linux gnu (x64, arm64), Windows (x64 zip)
 
 ```sh
 # macOS / Linux
-curl -fsSL https://amberjs.com/install.sh | sh
+curl -fsSL https://get.amberjs.com/install.sh | sh
 
 # pin a release
-curl -fsSL https://amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
+curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
 ```
 
 Windows (PowerShell):
 
 ```powershell
-irm https://amberjs.com/install.ps1 | iex
+irm https://get.amberjs.com/install.ps1 | iex
 ```
 
 Homebrew (formula in this repo; SHA256 is rewritten on each GitHub Release):

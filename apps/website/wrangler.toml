@@ -15,6 +15,14 @@ custom_domain = true
 pattern = "www.amberjs.com"
 custom_domain = true
 
+[[routes]]
+pattern = "get.amberjs.com"
+custom_domain = true
+
+[[r2_buckets]]
+binding = "DIST_BUCKET"
+bucket_name = "amber-dist"
+
 [build]
 command = "cp ../../install.sh public/install.sh && cp ../../install.ps1 public/install.ps1 && npx vite build"
 watch_dir = "src"

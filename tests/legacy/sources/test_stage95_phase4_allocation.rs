@@ -3,17 +3,17 @@
 //! 本测试套件全面验证智能资源分配功能的正确性和性能。
 
 use amberjs::aiops::allocation::{
+    load_balancer::{
+        Backend, BalanceStrategy, LoadBalanceResult, LoadBalancer, LoadBalancerStatistics,
+        LoadDistribution, Request, RequestPriority,
+    },
     resource_optimizer::{
-        ResourceOptimizer, AllocationPlan, ResourceRequest, ResourceType, Workload,
-        Cluster, AllocationStrategy, RebalanceResult, ResourceForecast,
+        AllocationPlan, AllocationStrategy, Cluster, RebalanceResult, ResourceForecast,
+        ResourceOptimizer, ResourceRequest, ResourceType, Workload,
     },
     scheduler::{
-        Scheduler, Task, TaskPriority, SchedulingDecision, SchedulingStrategy,
-        ScheduleResult, TaskExecution,
-    },
-    load_balancer::{
-        LoadBalancer, Backend, Request, RequestPriority, LoadDistribution,
-        BalanceStrategy, LoadBalanceResult, LoadBalancerStatistics,
+        ScheduleResult, Scheduler, SchedulingDecision, SchedulingStrategy, Task, TaskExecution,
+        TaskPriority,
     },
 };
 use std::collections::HashMap;
@@ -142,33 +142,42 @@ async fn test_resource_forecast() {
 
     let mut history = Vec::new();
     for i in 0..10 {
-        history.push(amberjs::aiops::allocation::resource_optimizer::ResourceUsage {
-            resource_type: ResourceType::Cpu,
-            usage: 100.0 + i as f64 * 10.0,
-            capacity: 1000.0,
-            utilization_rate: 10.0 + i as f64,
-            timestamp: Instant::now(),
-        });
+        history.push(
+            amberjs::aiops::allocation::resource_optimizer::ResourceUsage {
+                resource_type: ResourceType::Cpu,
+                usage: 100.0 + i as f64 * 10.0,
+                capacity: 1000.0,
+                utilization_rate: 10.0 + i as f64,
+                timestamp: Instant::now(),
+            },
+        );
 
-        history.push(amberjs::aiops::allocation::resource_optimizer::ResourceUsage {
-            resource_type: ResourceType::Memory,
-            usage: 500.0 + i as f64 * 50.0,
-            capacity: 8192.0,
-            utilization_rate: 6.0 + i as f64 * 0.6,
-            timestamp: Instant::now(),
-        });
+        history.push(
+            amberjs::aiops::allocation::resource_optimizer::ResourceUsage {
+                resource_type: ResourceType::Memory,
+                usage: 500.0 + i as f64 * 50.0,
+                capacity: 8192.0,
+                utilization_rate: 6.0 + i as f64 * 0.6,
+                timestamp: Instant::now(),
+            },
+        );
     }
 
     let forecast = optimizer.predict_resource_needs(&history).await;
 
     println!("✅ 测试 3: 资源需求预测");
     println!("  - 预测的资源类型数: {}", forecast.predicted_demand.len());
-    println!("  - 预测时间窗口: {} 分钟", forecast.forecast_horizon_minutes);
+    println!(
+        "  - 预测时间窗口: {} 分钟",
+        forecast.forecast_horizon_minutes
+    );
     println!("  - 置信区间: {:.2}", forecast.confidence_interval);
 
     assert!(!forecast.predicted_demand.is_empty());
     assert!(forecast.predicted_demand.contains_key(&ResourceType::Cpu));
-    assert!(forecast.predicted_demand.contains_key(&ResourceType::Memory));
+    assert!(forecast
+        .predicted_demand
+        .contains_key(&ResourceType::Memory));
     assert!(forecast.confidence_interval > 0.0);
 
     println!("  ✅ 测试 3 通过!\n");
@@ -297,7 +306,10 @@ async fn test_scheduling_strategies() {
 
     println!("✅ 测试 6: 调度策略");
     println!("  - 优先级优先策略:");
-    println!("    - 调度任务数: {}", result_priority.scheduled_tasks.len());
+    println!(
+        "    - 调度任务数: {}",
+        result_priority.scheduled_tasks.len()
+    );
     println!("    - 效率分数: {:.2}", result_priority.efficiency_score);
 
     assert!(result_priority.scheduled_tasks.len() >= 0);
@@ -356,12 +368,20 @@ async fn test_load_balancer_basic() {
         estimated_processing_time_ms: 200,
     };
 
-    let result = lb.select_backend(&request, BalanceStrategy::IntelligentAI).await;
+    let result = lb
+        .select_backend(&request, BalanceStrategy::IntelligentAI)
+        .await;
 
     println!("✅ 测试 7: 负载均衡器基本功能");
     println!("  - 选择成功: {}", result.success);
-    println!("  - 选中的后端: {}",
-        result.selected_backend.as_ref().map(|b| &b.id).unwrap_or("None"));
+    println!(
+        "  - 选中的后端: {}",
+        result
+            .selected_backend
+            .as_ref()
+            .map(|b| &b.id)
+            .unwrap_or("None")
+    );
     println!("  - 整体负载分数: {:.2}", result.overall_load_score);
     println!("  - 资源利用率: {:.2}%", result.resource_utilization);
 
@@ -409,30 +429,62 @@ async fn test_load_balancer_strategies() {
     };
 
     // 测试轮询策略
-    let result_rr = lb.select_backend(&request, BalanceStrategy::RoundRobin).await;
+    let result_rr = lb
+        .select_backend(&request, BalanceStrategy::RoundRobin)
+        .await;
 
     // 测试加权轮询策略
-    let result_wrr = lb.select_backend(&request, BalanceStrategy::WeightedRoundRobin).await;
+    let result_wrr = lb
+        .select_backend(&request, BalanceStrategy::WeightedRoundRobin)
+        .await;
 
     // 测试最少连接策略
-    let result_lc = lb.select_backend(&request, BalanceStrategy::LeastConnections).await;
+    let result_lc = lb
+        .select_backend(&request, BalanceStrategy::LeastConnections)
+        .await;
 
     // 测试最快响应策略
-    let result_fr = lb.select_backend(&request, BalanceStrategy::FastestResponse).await;
+    let result_fr = lb
+        .select_backend(&request, BalanceStrategy::FastestResponse)
+        .await;
 
     println!("✅ 测试 8: 负载均衡策略");
-    println!("  - 轮询策略: 后端={}, 负载分数={:.2}",
-        result_rr.selected_backend.as_ref().map(|b| &b.id).unwrap_or("None"),
-        result_rr.overall_load_score);
-    println!("  - 加权轮询策略: 后端={}, 负载分数={:.2}",
-        result_wrr.selected_backend.as_ref().map(|b| &b.id).unwrap_or("None"),
-        result_wrr.overall_load_score);
-    println!("  - 最少连接策略: 后端={}, 负载分数={:.2}",
-        result_lc.selected_backend.as_ref().map(|b| &b.id).unwrap_or("None"),
-        result_lc.overall_load_score);
-    println!("  - 最快响应策略: 后端={}, 负载分数={:.2}",
-        result_fr.selected_backend.as_ref().map(|b| &b.id).unwrap_or("None"),
-        result_fr.overall_load_score);
+    println!(
+        "  - 轮询策略: 后端={}, 负载分数={:.2}",
+        result_rr
+            .selected_backend
+            .as_ref()
+            .map(|b| &b.id)
+            .unwrap_or("None"),
+        result_rr.overall_load_score
+    );
+    println!(
+        "  - 加权轮询策略: 后端={}, 负载分数={:.2}",
+        result_wrr
+            .selected_backend
+            .as_ref()
+            .map(|b| &b.id)
+            .unwrap_or("None"),
+        result_wrr.overall_load_score
+    );
+    println!(
+        "  - 最少连接策略: 后端={}, 负载分数={:.2}",
+        result_lc
+            .selected_backend
+            .as_ref()
+            .map(|b| &b.id)
+            .unwrap_or("None"),
+        result_lc.overall_load_score
+    );
+    println!(
+        "  - 最快响应策略: 后端={}, 负载分数={:.2}",
+        result_fr
+            .selected_backend
+            .as_ref()
+            .map(|b| &b.id)
+            .unwrap_or("None"),
+        result_fr.overall_load_score
+    );
 
     assert!(result_rr.success);
     assert!(result_wrr.success);
@@ -473,11 +525,13 @@ async fn test_load_distribution() {
     println!("  - 分布条目数: {}", distribution.len());
 
     for dist in &distribution {
-        println!("  - 后端 {}: 分配={:.1}%, 负载分数={:.2}, 预计响应时间={:.1}ms",
+        println!(
+            "  - 后端 {}: 分配={:.1}%, 负载分数={:.2}, 预计响应时间={:.1}ms",
             dist.backend_id,
             dist.allocation_percentage,
             dist.load_score,
-            dist.predicted_response_time_ms);
+            dist.predicted_response_time_ms
+        );
     }
 
     assert_eq!(distribution.len(), 3);
@@ -572,9 +626,10 @@ async fn test_integrated_resource_allocation() {
 
     // 2. 分配资源
     let allocation_plan = optimizer.allocate_resources(&workload).await;
-    println!("  - 资源分配完成: 预期改进={:.2}%, 置信度={:.2}",
-        allocation_plan.expected_improvement,
-        allocation_plan.confidence);
+    println!(
+        "  - 资源分配完成: 预期改进={:.2}%, 置信度={:.2}",
+        allocation_plan.expected_improvement, allocation_plan.confidence
+    );
 
     // 3. 创建任务
     let task = Task {
@@ -583,16 +638,22 @@ async fn test_integrated_resource_allocation() {
         priority: TaskPriority::High,
         resource_requirements: {
             let mut map = HashMap::new();
-            map.insert("cpu".to_string(), allocation_plan
-                .allocations
-                .get(&ResourceType::Cpu)
-                .copied()
-                .unwrap_or(100.0));
-            map.insert("memory".to_string(), allocation_plan
-                .allocations
-                .get(&ResourceType::Memory)
-                .copied()
-                .unwrap_or(512.0));
+            map.insert(
+                "cpu".to_string(),
+                allocation_plan
+                    .allocations
+                    .get(&ResourceType::Cpu)
+                    .copied()
+                    .unwrap_or(100.0),
+            );
+            map.insert(
+                "memory".to_string(),
+                allocation_plan
+                    .allocations
+                    .get(&ResourceType::Memory)
+                    .copied()
+                    .unwrap_or(512.0),
+            );
             map
         },
         estimated_duration_ms: 10000,
@@ -616,9 +677,11 @@ async fn test_integrated_resource_allocation() {
     let schedule_result = scheduler
         .schedule_next(&available_resources, SchedulingStrategy::IntelligentAI)
         .await;
-    println!("  - 任务调度完成: 调度任务数={}, 效率分数={:.2}",
+    println!(
+        "  - 任务调度完成: 调度任务数={}, 效率分数={:.2}",
         schedule_result.scheduled_tasks.len(),
-        schedule_result.efficiency_score);
+        schedule_result.efficiency_score
+    );
 
     // 5. 设置负载均衡
     for i in 0..2 {
@@ -654,9 +717,15 @@ async fn test_integrated_resource_allocation() {
     };
 
     let balance_result = lb.select_backend(&request, BalanceStrategy::Adaptive).await;
-    println!("  - 负载均衡完成: 选择后端={}, 整体负载分数={:.2}",
-        balance_result.selected_backend.as_ref().map(|b| &b.id).unwrap_or("None"),
-        balance_result.overall_load_score);
+    println!(
+        "  - 负载均衡完成: 选择后端={}, 整体负载分数={:.2}",
+        balance_result
+            .selected_backend
+            .as_ref()
+            .map(|b| &b.id)
+            .unwrap_or("None"),
+        balance_result.overall_load_score
+    );
 
     // 验证集成流程
     assert!(allocation_plan.expected_improvement >= 0.0);

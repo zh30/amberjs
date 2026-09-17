@@ -9,7 +9,8 @@ mod performance_api_tests {
 
     fn beejs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
         )
     }
 

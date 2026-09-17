@@ -379,7 +379,8 @@ fn test_bundler_multi_module_and_minify() {
         import_map: None,
     };
 
-    let result = amberjs::tooling::bundler::bundle_project(&options).expect("bundle should succeed");
+    let result =
+        amberjs::tooling::bundler::bundle_project(&options).expect("bundle should succeed");
 
     assert_eq!(result.module_count, 2);
     assert!(result.code.contains("function(modules)"));

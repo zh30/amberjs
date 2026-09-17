@@ -10,7 +10,8 @@ mod real_benchmark_tests {
 
     fn beejs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
         )
     }
 
@@ -304,7 +305,8 @@ mod performance_regression_tests {
 
     fn beejs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
         )
     }
 
@@ -394,7 +396,8 @@ mod comparative_benchmarks {
 
     fn beejs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/bee".to_string()),
         )
     }
 

@@ -12,7 +12,7 @@ usage() {
 Amber installer
 
 Usage:
-  curl -fsSL https://amberjs.com/install.sh | sh
+  curl -fsSL https://get.amberjs.com/install.sh | sh
 
 Environment variables:
   AMBER_VERSION     Version tag to install (example: v1.16.0 or 1.16.0)

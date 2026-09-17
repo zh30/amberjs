@@ -102,8 +102,12 @@ impl AIOpsEngine {
 
     pub async fn start(&mut self) -> Result<()> {
         // Initialize components
-        self.model_manager.load_model("anomaly_v1", ModelType::AnomalyDetection).await?;
-        self.model_manager.load_model("prediction_v1", ModelType::TrendPrediction).await?;
+        self.model_manager
+            .load_model("anomaly_v1", ModelType::AnomalyDetection)
+            .await?;
+        self.model_manager
+            .load_model("prediction_v1", ModelType::TrendPrediction)
+            .await?;
         Ok(())
     }
 
@@ -134,13 +138,17 @@ async fn test_model_manager() {
     let mut manager = ModelManager::new();
 
     // Test model loading
-    let result = manager.load_model("test_model", ModelType::AnomalyDetection).await;
+    let result = manager
+        .load_model("test_model", ModelType::AnomalyDetection)
+        .await;
     assert!(result.is_ok());
     assert!(manager.model_exists("test_model"));
     assert_eq!(manager.list_models().len(), 1);
 
     // Test duplicate model
-    let result = manager.load_model("test_model", ModelType::AnomalyDetection).await;
+    let result = manager
+        .load_model("test_model", ModelType::AnomalyDetection)
+        .await;
     assert!(result.is_err());
 
     // Test model unloading
