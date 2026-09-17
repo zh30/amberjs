@@ -1,8 +1,8 @@
-# Beejs 用户指南
+# Amber 用户指南
 
-> 发布校验说明（2026-05-26）：本文命令以当前 public CLI 为准：`bee run <file>`、`bee eval <code>`、`bee repl`、`bee test <path>`、`bee debug <file>`、`bee serve`。
+> 发布校验说明（2026-05-26）：本文命令以当前 public CLI 为准：`amber run <file>`、`bee eval <code>`、`bee repl`、`bee test <path>`、`bee debug <file>`、`bee serve`。
 
-欢迎使用 Beejs - 高性能 JavaScript/TypeScript 运行时！本指南将帮助您快速上手并充分利用 Beejs 的强大功能。
+欢迎使用 Amber - 高性能 JavaScript/TypeScript 运行时！本指南将帮助您快速上手并充分利用 Amber 的强大功能。
 
 ## 📚 目录
 
@@ -21,19 +21,19 @@
 创建 `hello.js` 文件：
 
 ```javascript
-console.log("Hello from Beejs!");
+console.log("Hello from Amber!");
 console.log("高性能 JavaScript/TypeScript 运行时");
 ```
 
 运行：
 
 ```bash
-bee run hello.js
+amber run hello.js
 ```
 
 ### TypeScript 支持
 
-Beejs 原生支持 TypeScript，无需额外编译步骤：
+Amber 原生支持 TypeScript，无需额外编译步骤：
 
 ```typescript
 // hello.ts
@@ -43,7 +43,7 @@ interface User {
 }
 
 const user: User = {
-    name: "Beejs",
+    name: "Amber",
     age: 1
 };
 
@@ -53,7 +53,7 @@ console.log(`Hello, ${user.name}!`);
 直接运行：
 
 ```bash
-bee run hello.ts
+amber run hello.ts
 ```
 
 ## 📦 安装指南
@@ -85,7 +85,7 @@ cargo install --path .
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/zh30/beejs/main/install.sh | sh
-bee --version
+amber --version
 ```
 
 ### 预编译二进制 (手动)
@@ -117,10 +117,10 @@ export PATH=\"$HOME/.beejs/bin:$PATH\"
 bee --help
 
 # 查看版本
-bee --version
+amber --version
 
 # 运行脚本
-bee run script.js
+amber run script.js
 
 # 交互式 REPL
 bee repl
@@ -197,7 +197,7 @@ import { http } from 'net';
 
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Hello from Beejs!');
+    res.end('Hello from Amber!');
 });
 
 server.listen(3000, () => {
@@ -211,7 +211,7 @@ server.listen(3000, () => {
 import { crypto } from 'crypto';
 
 const hash = crypto.createHash('sha256');
-hash.update('Hello, Beejs!');
+hash.update('Hello, Amber!');
 console.log(hash.digest('hex'));
 ```
 
@@ -219,7 +219,7 @@ console.log(hash.digest('hex'));
 
 ### 性能优化
 
-Beejs 提供了多种性能优化功能：
+Amber 提供了多种性能优化功能：
 
 ```javascript
 // 启用所有优化
@@ -448,9 +448,9 @@ console.log('内存效率:', report.efficiency);
 
 ## ❓ 常见问题
 
-### Q: Beejs 与 Node.js 有什么区别？
+### Q: Amber 与 Node.js 有什么区别？
 
-A: Beejs 是用 Rust 和 V8 构建的高性能 JavaScript 运行时，专为 AI 时代优化。与 Node.js 相比：
+A: Amber 是用 Rust 和 V8 构建的高性能 JavaScript 运行时，专为 AI 时代优化。与 Node.js 相比：
 - 启动速度更快 (5ms vs 50ms)
 - 内存使用更少 (10MB vs 30MB)
 - 执行性能更高 (100M+ ops/sec)
@@ -459,7 +459,7 @@ A: Beejs 是用 Rust 和 V8 构建的高性能 JavaScript 运行时，专为 AI 
 
 ### Q: 如何提升性能？
 
-A: 启用 Beejs 的优化功能：
+A: 启用 Amber 的优化功能：
 ```javascript
 import { optimization } from 'beejs/optimization';
 optimization.enableAll();
@@ -467,7 +467,7 @@ optimization.enableAll();
 
 ### Q: 支持哪些 TypeScript 功能？
 
-A: Beejs 用 oxc 转译 TypeScript 6.0 语法（与 TypeScript 7.0 语言面兼容），再交给 V8 执行。这是 transpile-only，不做完整 `tsc` 类型检查。已覆盖的语法包括：
+A: Amber 用 oxc 转译 TypeScript 6.0 语法（与 TypeScript 7.0 语言面兼容），再交给 V8 执行。这是 transpile-only，不做完整 `tsc` 类型检查。已覆盖的语法包括：
 - 类型注解、泛型、接口、枚举、命名空间
 - `satisfies`、`import type`、`as const`
 - `const` 类型参数、Stage 3 装饰器、`using` / `await using`
@@ -475,7 +475,7 @@ A: Beejs 用 oxc 转译 TypeScript 6.0 语法（与 TypeScript 7.0 语言面兼�
 
 ### Q: 如何调试内存泄漏？
 
-A: 使用 Beejs 的内存分析器：
+A: 使用 Amber 的内存分析器：
 ```javascript
 import { memory } from 'beejs/memory';
 memory.startMonitoring();
@@ -507,4 +507,4 @@ A: 请在 GitHub 上提交 issue：
 
 ---
 
-感谢使用 Beejs！如果您有任何问题或建议，欢迎随时联系我们。
+感谢使用 Amber！如果您有任何问题或建议，欢迎随时联系我们。

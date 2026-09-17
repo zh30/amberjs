@@ -1,17 +1,17 @@
 ---
 title: "官方 TypeScript 类型定义 (TypeScript Types)"
-subtitle: "一键导出覆盖 bee:ai、Web 标准 API 与全局命名空间的官方类型声明"
+subtitle: "一键导出覆盖 amber:ai、Web 标准 API 与全局命名空间的官方类型声明"
 group: "Agent 与高级特性"
 id: "types-lsp"
 ---
 
-为了在现代 IDE（VS Code、WebStorm、Cursor）中获得丝滑的代码补全、参数提示与类型校验，Beejs 提供了全量内置的官方 TypeScript 类型声明文件 (`types/beejs.d.ts`)。
+为了在现代 IDE（VS Code、WebStorm、Cursor）中获得丝滑的代码补全、参数提示与类型校验，Amber 提供了全量内置的官方 TypeScript 类型声明文件 (`types/beejs.d.ts`)。
 
 ---
 
 ## 1. 导出类型文件 (`bee types`)
 
-Beejs 将官方类型定义内嵌于运行时二进制中，使用 `bee types` 即可零网络开销、亚毫秒级导出声明文件：
+Amber 将官方类型定义内嵌于运行时二进制中，使用 `bee types` 即可零网络开销、亚毫秒级导出声明文件：
 
 ```bash
 # 直接在控制台打印类型声明
@@ -49,12 +49,12 @@ $ bee types -o beejs.d.ts
 
 ## 3. 涵盖的核心类型体系
 
-导出的类型声明涵盖 Beejs 特有的全部底层基础设施：
+导出的类型声明涵盖 Amber 特有的全部底层基础设施：
 
-### 3.1 `bee:ai` 模块
+### 3.1 `amber:ai` 模块
 包含张量运算与本地大模型流式推理定义：
 ```typescript
-import { Tensor, LLM, AgentPipeline } from "bee:ai";
+import { Tensor, LLM, AgentPipeline } from "amber:ai";
 
 // 强类型矩阵与相似度运算
 const a = new Tensor([1.0, 2.0, 3.0], [1, 3]);

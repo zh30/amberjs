@@ -1,5 +1,5 @@
 ---
-title: "Model Context Protocol 2.0 (bee:mcp)"
+title: "Model Context Protocol 2.0 (amber:mcp)"
 subtitle: "业界领先的原生 MCP 标准实现：在运行时直接构建服务、连接工具、发布资源并支持可视化 CLI 检查"
 group: "Agent 与高级特性"
 id: "mcp-protocol"
@@ -12,7 +12,7 @@ id: "mcp-protocol"
 2. **读取资源 (Resources)**：获取动态上下文、项目元数据与结构化数据；
 3. **加载提示词模板 (Prompts)**：标准化系统提示词交互工作流。
 
-在传统架构中，运行 MCP 服务器通常需要安装专门的 Node.js 库与外部转译工具。**Beejs v1.3.0 在运行时核心内置了官方标准的 `bee:mcp` 原生引擎**，不仅支持标准的跨进程 Stdio 协议与 Claude Desktop / Cursor 直连，还首创支持进程内 `connectLocal()` 零拷贝互通与 CLI 可视化检查！
+在传统架构中，运行 MCP 服务器通常需要安装专门的 Node.js 库与外部转译工具。**Amber v1.3.0 在运行时核心内置了官方标准的 `amber:mcp` 原生引擎**，不仅支持标准的跨进程 Stdio 协议与 Claude Desktop / Cursor 直连，还首创支持进程内 `connectLocal()` 零拷贝互通与 CLI 可视化检查！
 
 ---
 
@@ -21,7 +21,7 @@ id: "mcp-protocol"
 引入官方模块：
 
 ```typescript
-import { McpServer, McpClient } from 'bee:mcp';
+import { McpServer, McpClient } from 'amber:mcp';
 ```
 
 ---
@@ -49,7 +49,7 @@ server.tool(
     required: ["data"]
   },
   async ({ data, algorithm = "sha256" }) => {
-    const { crypto } = require('bee:std');
+    const { crypto } = require('amber:std');
     return { hash: crypto.hash(algorithm, data) };
   }
 );
@@ -99,7 +99,7 @@ const tools = await client.listTools();
 console.log("注册的工具列表:", tools.map(t => t.name));
 
 // 3. 调用指定工具
-const result = await client.callTool("calculate_hash", { data: "Hello Beejs", algorithm: "sha256" });
+const result = await client.callTool("calculate_hash", { data: "Hello Amber", algorithm: "sha256" });
 console.log("工具执行结果:", result);
 
 // 4. 读取指定资源
@@ -125,16 +125,16 @@ server.startStdio();
 
 ---
 
-## 3. CLI 命令行检查与可视化 (`bee mcp --inspect`)
+## 3. CLI 命令行检查与可视化 (`amber mcp --inspect`)
 
-Beejs 提供了开箱即用的 MCP 命令行调试套件：
+Amber 提供了开箱即用的 MCP 命令行调试套件：
 
 ```bash
 # 1. 快速检查运行时内置工具
-bee mcp --inspect
+amber mcp --inspect
 
 # 2. 检查自定义 MCP 脚本暴露的全部工具与参数模式
-bee mcp --inspect ./my_tools.ts
+amber mcp --inspect ./my_tools.ts
 ```
 
 输出示例：

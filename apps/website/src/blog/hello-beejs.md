@@ -1,14 +1,14 @@
 ---
-title: "Beejs v0.1 Public Scope"
+title: "Amber v0.1 Public Scope"
 date: "2026-05-25"
-author: "Beejs Core Team"
+author: "Amber Core Team"
 readTime: "3 min read"
 tag: "Release"
 ---
 
-# Beejs v0.1 Public Scope
+# Amber v0.1 Public Scope
 
-Beejs v0.1 is the first public core release target for the runtime. The goal is narrow and practical: make the default CLI installable, runnable, and honest about what the current build supports.
+Amber v0.1 is the first public core release target for the runtime. The goal is narrow and practical: make the default CLI installable, runnable, and honest about what the current build supports.
 
 ## What v0.1 Includes
 
@@ -27,8 +27,8 @@ For v0.1, performance claims must come from fresh, reproducible benchmark runs. 
 ## Try It
 
 ```bash
-curl -fsSL https://bee.zhanghe.dev/install.sh | sh
-bee --version
-bee eval "1 + 1"
-bee run hello.js
+curl -fsSL https://get.amberjs.com/install.sh | sh
+amber --version
+amber eval "1 + 1"
+amber run hello.js
 ```

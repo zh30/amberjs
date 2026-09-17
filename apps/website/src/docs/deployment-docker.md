@@ -12,7 +12,7 @@ Shipping code from local machines to production often introduces friction:
 - **Environment Fragmentation**: Different delivery targets (Docker containers, standalone binaries, Kubernetes clusters) require disparate configuration templates.
 - **Missing Reliability Best Practices**: Forgetting readiness probes, liveness probes, or CPU/memory limits in Kubernetes manifests.
 
-Beejs provides built-in **`bee deploy`**: automatically inspects your project layout and generates hardened, production-ready configurations.
+Amber provides built-in **`bee deploy`**: automatically inspects your project layout and generates hardened, production-ready configurations.
 
 ---
 
@@ -58,7 +58,7 @@ Generated `Dockerfile` example:
 FROM ghcr.io/zh30/beejs:latest AS builder
 WORKDIR /app
 COPY . .
-RUN bee bundle --minify --outfile dist/server.js server.ts
+RUN amber bundle --minify --outfile dist/server.js server.ts
 
 # Production runner stage
 FROM debian:bookworm-slim
@@ -81,7 +81,7 @@ For air-gapped systems, IoT devices, or single-binary CLI distribution, compile 
 bee deploy --target compile --entry app.ts
 ```
 
-This compiles your TypeScript source, bundled assets, and the Beejs V8 runtime into a single, dependency-free binary. The target environment requires zero installations of Node.js, Rust, or Beejs.
+This compiles your TypeScript source, bundled assets, and the Amber V8 runtime into a single, dependency-free binary. The target environment requires zero installations of Node.js, Rust, or Amber.
 
 ---
 

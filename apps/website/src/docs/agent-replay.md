@@ -7,7 +7,7 @@ id: "agent-replay"
 
 Autonomous AI Agents depend heavily on external tools, model inference, dynamic timers, and stochastic sampling. When an Agent makes an unpredicted decision or encounters a runtime error, recreating the exact state in production has traditionally been nearly impossible.
 
-**Beejs v1.6.0 introduces the Deterministic Agent Replay Engine (`bee:replay`)** and dedicated CLI commands (`bee record` / `bee replay`). It captures non-deterministic external events, serializes execution into compact `.bee-trace.json` files, and re-executes them offline with zero external network or model dependency.
+**Amber v1.6.0 introduces the Deterministic Agent Replay Engine (`bee:replay`)** and dedicated CLI commands (`bee record` / `amber replay`). It captures non-deterministic external events, serializes execution into compact `.bee-trace.json` files, and re-executes them offline with zero external network or model dependency.
 
 ---
 
@@ -25,7 +25,7 @@ The replay engine operates in three distinct lifecycle phases:
   - File reads & network mocks
          |
          v (Outputs: agent_run.bee-trace.json)
-[ Offline Replay & Verification ] (bee replay --verify)
+[ Offline Replay & Verification ] (amber replay --verify)
   - Intercepts step() calls
   - Injects recorded outputs without API calls
   - Compares inputs and detects divergence
@@ -34,7 +34,7 @@ The replay engine operates in three distinct lifecycle phases:
 ### Key Replay Engine Invariants
 - **Offline Self-Sufficiency**: Replaying a trace requires no active LLM API keys, database credentials, or network interfaces.
 - **Automated Divergence Detection**: If the Agent's code logic has changed and produces different arguments during a step, the engine throws an immediate `Step divergence detected` error.
-- **Native CLI Integration**: Seamless one-line recording and playback through `bee record` and `bee replay`.
+- **Native CLI Integration**: Seamless one-line recording and playback through `bee record` and `amber replay`.
 
 ---
 
@@ -58,10 +58,10 @@ Re-execute the recorded session offline:
 
 ```bash
 # Replay with verified deterministic execution
-$ bee replay traces/search_task.bee-trace.json
+$ amber replay traces/search_task.bee-trace.json
 
 # Enable strict step divergence verification and verbose logging
-$ bee replay --verify -v traces/search_task.bee-trace.json
+$ amber replay --verify -v traces/search_task.bee-trace.json
 ```
 
 ---

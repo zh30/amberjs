@@ -5,7 +5,7 @@ group: "工程工具链"
 id: "code-quality"
 ---
 
-在大型代码库中，Prettier 与 ESLint 通常因为体积庞大和启动缓慢而显著拖慢开发效率与 CI 流水线。Beejs 内置了由 **OXC**（The JavaScript Oxidation Compiler）驱动的超高速代码格式化与语法检查器。
+在大型代码库中，Prettier 与 ESLint 通常因为体积庞大和启动缓慢而显著拖慢开发效率与 CI 流水线。Amber 内置了由 **OXC**（The JavaScript Oxidation Compiler）驱动的超高速代码格式化与语法检查器。
 
 ---
 
@@ -56,7 +56,7 @@ $ bee lint src/
 ```text
 🚨 Lint issue in src/auth.ts:18:5
   18 |     eval(userPayload);
-     |     ^^^^ no-eval: eval() is unsafe and prohibited in Beejs secure runtime.
+     |     ^^^^ no-eval: eval() is unsafe and prohibited in Amber secure runtime.
 
 Summary: 1 error, 0 warnings found in 18 files (checked in 3.1ms).
 ```

@@ -1,17 +1,17 @@
 ---
-title: "Testing, Coverage & Benchmarking (bee test & bee bench)"
+title: "Testing, Coverage & Benchmarking (amber test & bee bench)"
 subtitle: "Built-in Jest-compatible test runner, LCOV coverage reporting, microbenchmark suite & CPU flamecharts"
 group: "Developer Tooling"
 id: "testing-benchmarking"
 ---
 
-In production and performance-sensitive systems, quality tests, code coverage metrics, and microbenchmarks are essential. Beejs provides native tools without needing Jest, Vitest, or C8.
+In production and performance-sensitive systems, quality tests, code coverage metrics, and microbenchmarks are essential. Amber provides native tools without needing Jest, Vitest, or C8.
 
 ---
 
-## 1. Automated Testing & Code Coverage (`bee test --coverage`)
+## 1. Automated Testing & Code Coverage (`amber test --coverage`)
 
-Beejs features a native test runner supporting Jest and Vitest syntax.
+Amber features a native test runner supporting Jest and Vitest syntax.
 
 ### 1.1 Running Tests
 
@@ -20,14 +20,14 @@ Beejs features a native test runner supporting Jest and Vitest syntax.
 $ bee test
 
 # Run a specific test file
-$ bee test tests/auth.test.ts
+$ amber test tests/auth.test.ts
 ```
 
 ### 1.2 Collecting Code Coverage (`--coverage`)
-Add the `--coverage` flag to track line-level coverage. Beejs outputs an aligned summary table to the console and generates a standard `coverage/lcov.info` file (ready for Codecov, Coveralls, or CI):
+Add the `--coverage` flag to track line-level coverage. Amber outputs an aligned summary table to the console and generates a standard `coverage/lcov.info` file (ready for Codecov, Coveralls, or CI):
 
 ```bash
-$ bee test --coverage
+$ amber test --coverage
 ```
 
 Output:

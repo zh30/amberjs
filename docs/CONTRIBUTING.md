@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢您对 Beejs 项目的兴趣！我们欢迎所有形式的贡献，包括但不限于代码、文档、测试、问题报告和功能建议。
+感谢您对 Amber 项目的兴趣！我们欢迎所有形式的贡献，包括但不限于代码、文档、测试、问题报告和功能建议。
 
 ## 📋 目录
 
@@ -126,8 +126,8 @@ cargo test
 5. **验证安装**
 
 ```bash
-./target/debug/bee --version
-./target/debug/bee run examples/basics/hello_world.js
+./target/debug/amber --version
+./target/debug/amber run examples/basics/hello_world.js
 ```
 
 ### IDE 配置
@@ -544,7 +544,7 @@ pub fn execute_string(&self, code: &str) -> Result<Value> {
 **环境信息**
  - OS: [e.g. macOS 13.0]
  - Rust 版本: [e.g. 1.70.0]
- - Beejs 版本: [e.g. v0.1.0]
+ - Amber 版本: [e.g. v0.1.0]
 
 **额外信息**
 添加任何其他关于问题的信息。
@@ -606,7 +606,7 @@ pub fn execute_string(&self, code: &str) -> Result<Value> {
 
 ## 🙏 致谢
 
-感谢所有为 Beejs 项目做出贡献的开发者！
+感谢所有为 Amber 项目做出贡献的开发者！
 
 ## 📄 许可证
 

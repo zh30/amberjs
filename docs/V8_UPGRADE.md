@@ -2,7 +2,7 @@
 
 ## Current state
 
-- Beejs pins `rusty_v8 = "0.22"` in `Cargo.toml`.
+- Amber pins `rusty_v8 = "0.22"` in `Cargo.toml`.
 - crates.io latest of the same package line is `rusty_v8 0.32.1`.
 - The modern Deno-aligned binding is also published as `v8` (versioned with Chromium).
 

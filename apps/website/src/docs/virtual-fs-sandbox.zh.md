@@ -17,7 +17,7 @@ id: "virtual-fs-sandbox"
 - **资源浪费**：需要挂载完整的根文件系统与特权环境；
 - **清理繁琐**：必须编写复杂的后置脚本清理临时卷。
 
-Beejs v1.3.0 独创了 **线程安全、轻量级的确定性 Virtual Filesystem (VFS)** 沙箱机制：
+Amber v1.3.0 独创了 **线程安全、轻量级的确定性 Virtual Filesystem (VFS)** 沙箱机制：
 - **纯内存存储**：所有文件写入、目录创建均在 RAM 中完成，**宿主机磁盘物理上 100% 零修改**；
 - **写时复制 (Copy-on-Write)**：默认允许读取宿主机的只读基础文件，写操作仅影响内存影子层；
 - **纯净严格模式**：通过 `--virtual-fs-strict` 切断宿主基底只读映射，打造绝对密闭的空白虚拟盘；
@@ -31,25 +31,25 @@ Beejs v1.3.0 独创了 **线程安全、轻量级的确定性 Virtual Filesystem
 
 ```bash
 # 1. 启用标准写时复制 (COW) 虚拟文件系统
-bee run --virtual-fs ./untrusted_agent.js
-bee eval --virtual-fs "require('fs').writeFileSync('/etc/passwd', 'hack'); console.log('Wrote to memory!')"
+amber run --virtual-fs ./untrusted_agent.js
+amber eval --virtual-fs "require('fs').writeFileSync('/etc/passwd', 'hack'); console.log('Wrote to memory!')"
 
 # 2. 启用严格纯内存模式 (完全隔离宿主磁盘读取)
-bee run --virtual-fs --virtual-fs-strict ./agent_task.ts
+amber run --virtual-fs --virtual-fs-strict ./agent_task.ts
 
 # 3. 组合使用沙箱与虚拟文件系统
-bee run --sandbox --virtual-fs ./sandboxed_script.js
+amber run --sandbox --virtual-fs ./sandboxed_script.js
 ```
 
 ---
 
-## 3. JavaScript / TypeScript API (`bee:vfs`)
+## 3. JavaScript / TypeScript API (`amber:vfs`)
 
-在程序运行时可通过 `bee:vfs` 模块动态控制沙箱生命周期：
+在程序运行时可通过 `amber:vfs` 模块动态控制沙箱生命周期：
 
 ```typescript
 import fs from 'fs';
-import * as vfs from 'bee:vfs';
+import * as vfs from 'amber:vfs';
 
 // 1. 检查 VFS 状态
 console.log("VFS 是否激活:", vfs.isEnabled());
@@ -79,7 +79,7 @@ vfs.disable();  // 退出沙箱模式
 
 ## 4. 关键安全保障
 
-| 维度 | 传统执行 | Beejs --virtual-fs |
+| 维度 | 传统执行 | Amber --virtual-fs |
 | :--- | :--- | :--- |
 | **宿主磁盘写入** | 真实写入磁盘，存在污染与越权风险 | **100% 内存拦截，宿主物理文件零修改** |
 | **初始化开销** | Docker/VM 需 500ms ~ 3s | **0.001ms 瞬时生效** |

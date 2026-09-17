@@ -5,13 +5,13 @@ group: "工程工具链"
 id: "testing-benchmarking"
 ---
 
-在工程研发与性能敏感系统中，代码质量测试、覆盖率统计与微基准性能剖析是不可或缺的利器。Beejs 提供了全套原生内置方案，无需安装 Jest、Vitest 或 C8。
+在工程研发与性能敏感系统中，代码质量测试、覆盖率统计与微基准性能剖析是不可或缺的利器。Amber 提供了全套原生内置方案，无需安装 Jest、Vitest 或 C8。
 
 ---
 
-## 1. 自动化测试与覆盖率 (`bee test --coverage`)
+## 1. 自动化测试与覆盖率 (`amber test --coverage`)
 
-Beejs 具备原生的 Jest/Vitest 兼容测试断言库与测试发现执行器。
+Amber 具备原生的 Jest/Vitest 兼容测试断言库与测试发现执行器。
 
 ### 1.1 基础运行测试
 
@@ -20,14 +20,14 @@ Beejs 具备原生的 Jest/Vitest 兼容测试断言库与测试发现执行器�
 $ bee test
 
 # 运行指定测试文件
-$ bee test tests/auth.test.ts
+$ amber test tests/auth.test.ts
 ```
 
 ### 1.2 收集代码覆盖率 (`--coverage`)
-通过 `--coverage` 标志，Beejs 将跟踪脚本行覆盖率并在控制台打印摘要报表，同时在 `coverage/` 目录导出工业级标准的 `lcov.info` 文件（支持无缝集成 Codecov、Coveralls 与 GitHub Actions）：
+通过 `--coverage` 标志，Amber 将跟踪脚本行覆盖率并在控制台打印摘要报表，同时在 `coverage/` 目录导出工业级标准的 `lcov.info` 文件（支持无缝集成 Codecov、Coveralls 与 GitHub Actions）：
 
 ```bash
-$ bee test --coverage
+$ amber test --coverage
 ```
 
 控制台报表输出：
@@ -45,7 +45,7 @@ Lines        : 96.42% ( 538/558 )
 
 ## 2. 语言级微基准测试套件 (`bee bench`)
 
-为了精准测量算法优化、序列化或数学计算的性能收益，Beejs 提供了专用的 `bee bench` 套件。
+为了精准测量算法优化、序列化或数学计算的性能收益，Amber 提供了专用的 `bee bench` 套件。
 
 ### 2.1 编写 Benchmark 文件
 

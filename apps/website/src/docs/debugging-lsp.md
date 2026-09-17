@@ -5,19 +5,19 @@ group: "Developer Tooling"
 id: "debugging-lsp"
 ---
 
-High developer velocity requires rich interactive exploration, visual breakpoint debugging, and intelligent IDE completion. Beejs delivers three integrated systems:
-1. **Interactive REPL (`bee repl`)**: Powered by Rustyline with smart multiline detection and persistent command history;
+High developer velocity requires rich interactive exploration, visual breakpoint debugging, and intelligent IDE completion. Amber delivers three integrated systems:
+1. **Interactive REPL (`amber repl`)**: Powered by Rustyline with smart multiline detection and persistent command history;
 2. **CDP Debugger (`bee debug` / `--inspect`)**: Standard Chrome DevTools Protocol compatible endpoint;
 3. **Language Server (`bee lsp`)**: LSP 3.17 compliant server providing real-time diagnostics, formatting, and hover docs.
 
 ---
 
-## 1. Modern Interactive REPL (`bee repl`)
+## 1. Modern Interactive REPL (`amber repl`)
 
 Launch the REPL from the command line:
 
 ```bash
-$ bee repl
+$ amber repl
 ```
 
 ### 1.1 Features
@@ -33,7 +33,7 @@ $ bee repl
 
 ## 2. Chrome DevTools Protocol Debugging (`bee debug`)
 
-Beejs implements the standard **Chrome DevTools Protocol (CDP)**. You can attach Chrome DevTools or VS Code to set breakpoints, step through code, and inspect scopes.
+Amber implements the standard **Chrome DevTools Protocol (CDP)**. You can attach Chrome DevTools or VS Code to set breakpoints, step through code, and inspect scopes.
 
 ### 2.1 Starting a Debugging Session
 
@@ -42,7 +42,7 @@ Beejs implements the standard **Chrome DevTools Protocol (CDP)**. You can attach
 $ bee debug app.ts
 
 # Or with flag
-$ bee run --inspect-brk app.ts
+$ amber run --inspect-brk app.ts
 ```
 
 Console output:
@@ -54,7 +54,7 @@ Waiting for debugger connection before executing code...
 
 ### 2.2 Connecting in Chrome
 1. Open `chrome://inspect` in Google Chrome or Chromium;
-2. Under **Remote Target**, locate your running Beejs target;
+2. Under **Remote Target**, locate your running Amber target;
 3. Click **inspect** to launch dedicated DevTools;
 4. Set breakpoints, step over (`F10`), step into (`F11`), and inspect call stacks and variables.
 
@@ -62,7 +62,7 @@ Waiting for debugger connection before executing code...
 
 ## 3. Language Server Protocol (`bee lsp`)
 
-Beejs includes a **Language Server Protocol (LSP 3.17)** daemon for editors such as VS Code, Neovim, Helix, and Sublime Text.
+Amber includes a **Language Server Protocol (LSP 3.17)** daemon for editors such as VS Code, Neovim, Helix, and Sublime Text.
 
 ### 3.1 Running the Server
 
@@ -73,4 +73,4 @@ $ bee lsp
 ### 3.2 Implemented Capabilities
 - **`textDocument/publishDiagnostics`**: Pushes AST diagnostics and syntax errors in real-time as you type;
 - **`textDocument/formatting`**: Calls `bee fmt` for zero-config document formatting;
-- **`textDocument/hover`**: Provides rich Markdown tooltips and type signatures for `bee:ai`, `Tensor`, `LLM`, and `AgentPipeline`.
+- **`textDocument/hover`**: Provides rich Markdown tooltips and type signatures for `amber:ai`, `Tensor`, `LLM`, and `AgentPipeline`.

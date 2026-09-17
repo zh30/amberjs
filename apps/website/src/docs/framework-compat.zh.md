@@ -7,16 +7,16 @@ id: "framework-compat"
 
 ## 1. 概述与设计理念
 
-Beejs 的目标不仅是运行简单的脚本，更致力于成为现代主流 TypeScript/JavaScript 框架的无缝运行底座。
+Amber 的目标不仅是运行简单的脚本，更致力于成为现代主流 TypeScript/JavaScript 框架的无缝运行底座。
 
-在 **Beejs v1.5.0** 中，我们对三大核心生态支柱进行了全方位对齐与强化验证：
+在 **Amber v1.5.0** 中，我们对三大核心生态支柱进行了全方位对齐与强化验证：
 1. **Hono**：基于 Web 标准的极速轻量级 Web 框架。
 2. **Express**：经典的 Node.js 企业级服务端框架。
 3. **LangChain**：主流的大模型应用开发与多 Agent 编排框架。
 
 ---
 
-## 2. Hono 框架在 Beejs 上的运行
+## 2. Hono 框架在 Amber 上的运行
 
 Hono 深度依赖 Web 标准接口（`Request`, `Response`, `Headers`, `fetch`）以及 Node.js 的 `AsyncLocalStorage` 进行请求上下文传递。
 
@@ -52,7 +52,7 @@ export default app;
 
 ---
 
-## 3. Express 框架在 Beejs 上的运行
+## 3. Express 框架在 Amber 上的运行
 
 Express 应用依赖于 `http.IncomingMessage`、`http.ServerResponse` 的事件流机制与方法增强。
 
@@ -85,7 +85,7 @@ server.listen(3000, () => {
 
 ---
 
-## 4. LangChain 在 Beejs 上的运行
+## 4. LangChain 在 Amber 上的运行
 
 LangChain 与各类大模型应用深度使用 **Web Streams**、Server-Sent Events (SSE) 流式传输以及异步迭代。
 
@@ -98,7 +98,7 @@ LangChain 与各类大模型应用深度使用 **Web Streams**、Server-Sent Eve
 ### 示例：LLM Token 流式处理管道
 
 ```typescript
-// 模拟来自 Beejs 本地 Edge SLM 的 Token 流
+// 模拟来自 Amber 本地 Edge SLM 的 Token 流
 const tokenStream = ReadableStream.from([
   '思考', '中', '...', '分析', '完成', '！'
 ]);

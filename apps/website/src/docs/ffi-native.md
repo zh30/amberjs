@@ -11,7 +11,7 @@ Modern systems programming often requires invoking native shared libraries (`.dy
 
 Historically, Node.js developers had to rely on heavy third-party native addons like `node-ffi-napi`, requiring `node-gyp`, Python, and local C++ compiler toolchains.
 
-**Beejs v1.4.0 introduces `bee:ffi`**, a zero-dependency, ultra-fast C ABI Foreign Function Interface built directly into the Beejs runtime binary via OS-native dynamic linkers (`dlopen` on Unix/macOS, `LoadLibraryA` on Windows).
+**Amber v1.4.0 introduces `bee:ffi`**, a zero-dependency, ultra-fast C ABI Foreign Function Interface built directly into the Amber runtime binary via OS-native dynamic linkers (`dlopen` on Unix/macOS, `LoadLibraryA` on Windows).
 
 ### Key Features
 - **Zero External Dependencies**: Zero npm packages or compiler toolchains required at runtime.

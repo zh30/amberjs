@@ -4,7 +4,7 @@ import { AmberLogo } from "../components/Logo";
 import "../global.css";
 import { LangProvider, useLang } from "../lib/i18n";
 import { RouteScroll } from "../lib/route-scroll";
-import { BEEJS_VERSION } from "../lib/version";
+import { AMBER_VERSION } from "../lib/version";
 import { ThemeProvider, useTheme } from "../lib/theme";
 import {
   Check,
@@ -137,7 +137,7 @@ function RootLayoutInner() {
                 Beejs
               </span>
               <span className="hidden font-mono text-xs text-[var(--honey-text)] sm:inline">
-                {BEEJS_VERSION}
+                {AMBER_VERSION}
               </span>
             </Link>
 

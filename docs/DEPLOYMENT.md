@@ -1,10 +1,10 @@
-# Beejs 生产环境部署指南
+# Amber 生产环境部署指南
 
-> 发布校验说明（2026-05-26）：本文已按当前 public CLI 做基础修正。当前二进制名为 `bee`，脚本执行使用 `bee run <file>`，表达式执行使用 `bee eval <code>`；历史性能调优 flag（如 `--max-heap`、`--optimize`）不是当前公开 CLI 契约。
+> 发布校验说明（2026-05-26）：本文已按当前 public CLI 做基础修正。当前二进制名为 `bee`，脚本执行使用 `amber run <file>`，表达式执行使用 `amber eval <code>`；历史性能调优 flag（如 `--max-heap`、`--optimize`）不是当前公开 CLI 契约。
 
 ## 概述
 
-Beejs 是一个高性能的 JavaScript/TypeScript 运行时，专为 AI 时代的高性能脚本执行而设计。本指南将帮助您在生产环境中部署和优化 Beejs。
+Amber 是一个高性能的 JavaScript/TypeScript 运行时，专为 AI 时代的高性能脚本执行而设计。本指南将帮助您在生产环境中部署和优化 Amber。
 
 ## 系统要求
 
@@ -24,8 +24,8 @@ Beejs 是一个高性能的 JavaScript/TypeScript 运行时，专为 AI 时代�
 ### 方式一：一键安装 (推荐)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zh30/beejs/main/install.sh | sh
-bee --version
+curl -fsSL https://get.amberjs.com/install.sh | sh
+amber --version
 ```
 
 ### 方式二：二进制部署 (手动)
@@ -37,7 +37,7 @@ bee --version
    TARGET=x86_64-unknown-linux-gnu
 
    # 下载指定版本
-   curl -L https://github.com/zh30/beejs/releases/download/${VERSION}/bee-${VERSION}-${TARGET}.tar.gz -o bee.tar.gz
+   curl -L https://github.com/zh30/amberjs/releases/download/${VERSION}/bee-${VERSION}-${TARGET}.tar.gz -o bee.tar.gz
    tar -xzf bee.tar.gz
    chmod +x bee
    ```
@@ -47,12 +47,12 @@ bee --version
    mkdir -p ~/.beejs/bin
    mv bee ~/.beejs/bin/
    export PATH=\"$HOME/.beejs/bin:$PATH\"
-   bee --version
+   amber --version
    ```
 
 3. **验证安装**
    ```bash
-   bee eval 'console.log("Hello from Beejs!"); 1+1'
+   amber eval 'console.log("Hello from Amber!"); 1+1'
    ```
 
 ### 方式二：源码编译
@@ -65,7 +65,7 @@ bee --version
 
 2. **编译项目**
    ```bash
-   git clone https://github.com/zh30/beejs.git
+   git clone https://github.com/zh30/amberjs.git
    cd beejs
    cargo build --release
    ```
@@ -82,19 +82,19 @@ bee --version
 ```bash
 # 当前 public CLI 不支持 --max-heap / --stack-size；
 # 请用容器、systemd 或操作系统资源限制管理生产内存。
-bee run script.js
+amber run script.js
 ```
 
 ### V8 优化
 
 ```bash
 # 当前 public CLI 不支持 --optimize flag。
-bee run script.js
+amber run script.js
 ```
 
 ### Isolate 池化
 
-Beejs 自动使用 V8 Isolate 池化以提高性能：
+Amber 自动使用 V8 Isolate 池化以提高性能：
 - 默认池大小: CPU 核心数 (最大 8)
 - 在生产环境中自动启用
 
@@ -102,19 +102,19 @@ Beejs 自动使用 V8 Isolate 池化以提高性能：
 
 ### 1. 进程管理
 
-使用 systemd 管理 Beejs 进程：
+使用 systemd 管理 Amber 进程：
 
 ```ini
 # /etc/systemd/system/beejs.service
 [Unit]
-Description=Beejs Runtime
+Description=Amber Runtime
 After=network.target
 
 [Service]
 Type=simple
 User=beejs
 WorkingDirectory=/opt/beejs
-ExecStart=/usr/local/bin/bee run /opt/beejs/app.js
+ExecStart=/usr/local/bin/amber run /opt/beejs/app.js
 Restart=always
 RestartSec=3
 
@@ -157,7 +157,7 @@ sudo cgexec -g memory:beejs bee script.js
 
 #### 文件权限
 ```bash
-# 确保 Beejs 二进制文件权限正确
+# 确保 Amber 二进制文件权限正确
 sudo chmod 755 /usr/local/bin/bee
 sudo chown root:root /usr/local/bin/bee
 ```
@@ -191,7 +191,7 @@ pm2 status
        ca-certificates \
        && rm -rf /var/lib/apt/lists/*
 
-   # 复制 Beejs 二进制文件
+   # 复制 Amber 二进制文件
    COPY bee /usr/local/bin/bee
    RUN chmod +x /usr/local/bin/bee
 
@@ -240,13 +240,13 @@ services:
 1. **内存不足错误**
    ```bash
    # 增加堆内存大小
-   bee run script.js
+   amber run script.js
    ```
 
 2. **V8 编译错误**
    ```bash
    # 禁用优化
-   bee run script.js
+   amber run script.js
    ```
 
 3. **性能问题**
@@ -269,7 +269,7 @@ tail -f /var/log/beejs.log
 
 ## 升级指南
 
-### 升级 Beejs
+### 升级 Amber
 
 1. **备份当前版本**
    ```bash
@@ -280,15 +280,15 @@ tail -f /var/log/beejs.log
    ```bash
    VERSION=v0.1.0
    TARGET=x86_64-unknown-linux-gnu
-   curl -L https://github.com/zh30/beejs/releases/download/${VERSION}/bee-${VERSION}-${TARGET}.tar.gz -o bee.tar.gz
+   curl -L https://github.com/zh30/amberjs/releases/download/${VERSION}/bee-${VERSION}-${TARGET}.tar.gz -o bee.tar.gz
    tar -xzf bee.tar.gz
    cp bee ~/.beejs/bin/bee
    ```
 
 3. **验证升级**
    ```bash
-   bee --version
-   bee eval 'console.log("Upgrade test"); 1+1'
+   amber --version
+   amber eval 'console.log("Upgrade test"); 1+1'
    ```
 
 4. **回滚（如需要）**
@@ -309,8 +309,8 @@ tail -f /var/log/beejs.log
 ## 支持
 
 - **文档**: [https://docs.beejs.dev](https://docs.beejs.dev)
-- **GitHub**: [https://github.com/zh30/beejs](https://github.com/zh30/beejs)
-- **问题报告**: [https://github.com/zh30/beejs/issues](https://github.com/zh30/beejs/issues)
+- **GitHub**: [https://github.com/zh30/amberjs](https://github.com/zh30/amberjs)
+- **问题报告**: [https://github.com/zh30/amberjs/issues](https://github.com/zh30/amberjs/issues)
 - **社区**: [https://discord.gg/beejs](https://discord.gg/beejs)
 
 ---

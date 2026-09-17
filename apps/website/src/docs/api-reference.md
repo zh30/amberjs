@@ -1,40 +1,40 @@
 ---
 title: "Comprehensive API Reference"
-subtitle: "Complete API directory for Beejs native modules (bee:*), Node.js compatibility, and Web standards"
+subtitle: "Complete API directory for Amber native modules (bee:*), Node.js compatibility, and Web standards"
 group: "Reference & Specs"
 id: "api-reference"
 ---
 
-Beejs delivers a unified runtime environment exposing three foundational API tiers:
-1. **Beejs Native Modules (`bee:*`)**: Purpose-built subsystems for AI Agent execution, persistent state, streaming grammars, and sandboxing.
+Amber delivers a unified runtime environment exposing three foundational API tiers:
+1. **Amber Native Modules (`bee:*`)**: Purpose-built subsystems for AI Agent execution, persistent state, streaming grammars, and sandboxing.
 2. **Node.js Core Modules (`node:*`)**: 51/51 conformance suites passing for drop-in npm package compatibility.
 3. **W3C / WHATWG Web Standards**: Universal browser-compatible primitives (`fetch`, `WebCrypto`, `WebStreams`, `Worker`).
 
 ---
 
-## 1. Beejs Native API Reference (`bee:*`)
+## 1. Amber Native API Reference (`bee:*`)
 
-All native Beejs modules can be imported using the canonical `bee:<module>` specifier or its unqualified short identifier (e.g. `import { open } from 'bee:kv'` or `const { open } = require('kv')`).
+All native Amber modules can be imported using the canonical `bee:<module>` specifier or its unqualified short identifier (e.g. `import { open } from 'bee:kv'` or `const { open } = require('kv')`).
 
 ```
-                              [ Beejs Native Fabric ]
+                              [ Amber Native Fabric ]
    +------------------------------------+------------------------------------+
    |   Autonomous Agent Subsystems      |   Runtime & Infrastructure         |
    |   ---------------------------      |   ------------------------         |
-   |   • bee:ai        (Tensors & LLM)  |   • bee:kv        (ACID State)     |
-   |   • bee:bus       (PubSub Fabric)  |   • bee:sandbox   (Micro-Enclaves) |
-   |   • bee:grammar   (Stream Repair)  |   • bee:security  (Permissions)    |
-   |   • bee:checkpoint(Time-Travel)    |   • bee:db        (SQLite Engine)  |
-   |   • bee:tools     (OpenAPI Synth)  |   • bee:vector    (Vector Search)  |
-   |   • bee:replay    (Trace Replay)   |   • bee:wasm      (Zero-Copy JIT)  |
+   |   • amber:ai        (Tensors & LLM)  |   • bee:kv        (ACID State)     |
+   |   • amber:bus       (PubSub Fabric)  |   • amber:sandbox   (Micro-Enclaves) |
+   |   • amber:grammar   (Stream Repair)  |   • amber:security  (Permissions)    |
+   |   • amber:checkpoint(Time-Travel)    |   • amber:db        (SQLite Engine)  |
+   |   • amber:tools     (OpenAPI Synth)  |   • bee:vector    (Vector Search)  |
+   |   • bee:replay    (Trace Replay)   |   • amber:wasm      (Zero-Copy JIT)  |
    |   • bee:weights   (GGUF Slicing)   |   • bee:ffi       (Native C ABI)   |
-   |   • bee:mcp       (MCP 2.0 Client) |   • bee:std       (Std Library)    |
+   |   • amber:mcp       (MCP 2.0 Client) |   • amber:std       (Std Library)    |
    +------------------------------------+------------------------------------+
 ```
 
-### 1.1 `bee:ai` — Edge Tensor Computing & Agent Pipelines
+### 1.1 `amber:ai` — Edge Tensor Computing & Agent Pipelines
 ```typescript
-import { Tensor, LLM, AgentPipeline, embed, embedBatch, generate, generateStream, cosineSimilarity } from 'bee:ai';
+import { Tensor, LLM, AgentPipeline, embed, embedBatch, generate, generateStream, cosineSimilarity } from 'amber:ai';
 ```
 | Function / Class | Signature | Description |
 | :--- | :--- | :--- |
@@ -47,9 +47,9 @@ import { Tensor, LLM, AgentPipeline, embed, embedBatch, generate, generateStream
 
 ---
 
-### 1.2 `bee:bus` — Multi-Agent Message Bus & PubSub Channel Fabric
+### 1.2 `amber:bus` — Multi-Agent Message Bus & PubSub Channel Fabric
 ```typescript
-import { createBus, getDefaultBus, subscribe, once, unsubscribe, publish, broadcast, request, reply, use, topicMatches } from 'bee:bus';
+import { createBus, getDefaultBus, subscribe, once, unsubscribe, publish, broadcast, request, reply, use, topicMatches } from 'amber:bus';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
@@ -64,9 +64,9 @@ import { createBus, getDefaultBus, subscribe, once, unsubscribe, publish, broadc
 
 ---
 
-### 1.3 `bee:grammar` — Streaming Structured Output & Token Grammar Engine
+### 1.3 `amber:grammar` — Streaming Structured Output & Token Grammar Engine
 ```typescript
-import { parsePartialJSON, createStreamDecoder, parseSSEChunk, createGrammar, createChoiceGrammar, createRegexGrammar, createJSONGrammar } from 'bee:grammar';
+import { parsePartialJSON, createStreamDecoder, parseSSEChunk, createGrammar, createChoiceGrammar, createRegexGrammar, createJSONGrammar } from 'amber:grammar';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
@@ -79,9 +79,9 @@ import { parsePartialJSON, createStreamDecoder, parseSSEChunk, createGrammar, cr
 
 ---
 
-### 1.4 `bee:checkpoint` — Agent State Checkpoint & Time-Travel Snapshotting
+### 1.4 `amber:checkpoint` — Agent State Checkpoint & Time-Travel Snapshotting
 ```typescript
-import { createCheckpointManager, getDefaultManager, save, restore, get, list, diff, fork, clear } from 'bee:checkpoint';
+import { createCheckpointManager, getDefaultManager, save, restore, get, list, diff, fork, clear } from 'amber:checkpoint';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
@@ -112,9 +112,9 @@ import { open, openInMemory, KVStore } from 'bee:kv';
 
 ---
 
-### 1.6 `bee:tools` — Agent Tool Auto-Synthesis & OpenAPI Schema Compiler
+### 1.6 `amber:tools` — Agent Tool Auto-Synthesis & OpenAPI Schema Compiler
 ```typescript
-import { compileSchemaTool, fromOpenAPI, parseToolCalls, registerTools, AgentTool } from 'bee:tools';
+import { compileSchemaTool, fromOpenAPI, parseToolCalls, registerTools, AgentTool } from 'amber:tools';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
@@ -125,9 +125,9 @@ import { compileSchemaTool, fromOpenAPI, parseToolCalls, registerTools, AgentToo
 
 ---
 
-### 1.7 `bee:sandbox` — Hardened Micro-Enclaves & Real-time Audit Logging
+### 1.7 `amber:sandbox` — Hardened Micro-Enclaves & Real-time Audit Logging
 ```typescript
-import { createEnclave, startAuditLog, stopAuditLog, getAuditLogPath, isEnabled, enable, disable } from 'bee:sandbox';
+import { createEnclave, startAuditLog, stopAuditLog, getAuditLogPath, isEnabled, enable, disable } from 'amber:sandbox';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
@@ -163,9 +163,9 @@ import { readGGUFMetadata, readSafeTensorsMetadata, loadTensor } from 'bee:weigh
 
 ---
 
-### 1.10 `bee:security` & `bee:permissions` — Enterprise Capability Security
+### 1.10 `amber:security` & `amber:permissions` — Enterprise Capability Security
 ```typescript
-import { permissions, createSandboxPolicy, attenuate } from 'bee:security';
+import { permissions, createSandboxPolicy, attenuate } from 'amber:security';
 ```
 | Method | Signature | Description |
 | :--- | :--- | :--- |
@@ -177,9 +177,9 @@ import { permissions, createSandboxPolicy, attenuate } from 'bee:security';
 
 ---
 
-### 1.11 `bee:db` & `bee:vector` — Embedded SQLite & Vector Search
+### 1.11 `amber:db` & `bee:vector` — Embedded SQLite & Vector Search
 ```typescript
-import { Database } from 'bee:db';
+import { Database } from 'amber:db';
 import { VectorDB } from 'bee:vector';
 
 // SQLite
@@ -196,13 +196,13 @@ const results = vecDb.search(queryEmbedding, { limit: 5 });
 
 ---
 
-### 1.12 `bee:std` — Modern Standard Library
+### 1.12 `amber:std` — Modern Standard Library
 ```typescript
-import { config } from 'bee:std/dotenv';
-import { colors, table } from 'bee:std/cli';
-import { walkDir, ensureDir } from 'bee:std/fs';
-import { uuid, signJwt, verifyJwt } from 'bee:std/crypto';
-import { assert, assertEquals } from 'bee:std/assert';
+import { config } from 'amber:std/dotenv';
+import { colors, table } from 'amber:std/cli';
+import { walkDir, ensureDir } from 'amber:std/fs';
+import { uuid, signJwt, verifyJwt } from 'amber:std/crypto';
+import { assert, assertEquals } from 'amber:std/assert';
 
 config({ path: '.env' });
 console.log(colors.green('Environment loaded successfully'));
@@ -210,10 +210,10 @@ console.log(colors.green('Environment loaded successfully'));
 
 ---
 
-### 1.13 `bee:wasm`, `bee:ffi` & `bee:pool` — Native Interop & Concurrency
+### 1.13 `amber:wasm`, `bee:ffi` & `bee:pool` — Native Interop & Concurrency
 ```typescript
-// WebAssembly 2.0 Shared Memory Bridge (bee:wasm)
-import { compile, instantiate, MemoryView } from 'bee:wasm';
+// WebAssembly 2.0 Shared Memory Bridge (amber:wasm)
+import { compile, instantiate, MemoryView } from 'amber:wasm';
 
 // Native C ABI FFI (bee:ffi)
 import { dlopen, CString, types } from 'bee:ffi';
@@ -229,7 +229,7 @@ const result = await pool.execute('2 + 3');
 
 ## 2. Node.js Core Modules Reference (`node:*`)
 
-Beejs passes 51/51 official Node.js conformance test suites with hardware SIMD acceleration:
+Amber passes 51/51 official Node.js conformance test suites with hardware SIMD acceleration:
 
 | Module | Specifier | Primary APIs | Status |
 | :--- | :--- | :--- | :---: |

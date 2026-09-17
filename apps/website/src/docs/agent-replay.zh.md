@@ -7,7 +7,7 @@ id: "agent-replay"
 
 自治 AI Agent 深度依赖外部工具、大模型推理、动态定时器以及随机采样。当生产环境中的 Agent 做出不可预期的决策或报错时，以往几乎无法完全重现其执行上下文。
 
-**Beejs v1.6.0 正式引入确定性 Agent 回放引擎（`bee:replay`）**与专属 CLI 工具（`bee record` / `bee replay`）。它能够捕获所有非确定性外部输入，将其序列化为紧凑的 `.bee-trace.json` 轨迹文件，并在无外网、无模型依赖的环境下百分之百精准复现历史执行。
+**Amber v1.6.0 正式引入确定性 Agent 回放引擎（`bee:replay`）**与专属 CLI 工具（`bee record` / `amber replay`）。它能够捕获所有非确定性外部输入，将其序列化为紧凑的 `.bee-trace.json` 轨迹文件，并在无外网、无模型依赖的环境下百分之百精准复现历史执行。
 
 ---
 
@@ -25,7 +25,7 @@ id: "agent-replay"
   - 拦截并持久化文件与网络响应
      |
      v (生成: agent_run.bee-trace.json)
-[ 离线重放与确定性校验 ] (bee replay --verify)
+[ 离线重放与确定性校验 ] (amber replay --verify)
   - 拦截 step() 调用并注入历史结果（无需调用 LLM）
   - 校验当前执行入参与历史轨迹的一致性
   - 触发分歧警告（Divergence Detection）
@@ -34,7 +34,7 @@ id: "agent-replay"
 ### 核心设计优势
 - **脱机自给自足**：离线重放不需要配置 LLM API 密钥、数据库凭证或公网连接。
 - **自动化分歧检测**：若 Agent 代码逻辑发生改动导致某一步入参发生变化，引擎立即抛出分歧错误，精确定位逻辑漂移点。
-- **无缝 CLI 支持**：通过 `bee record` 与 `bee replay` 实现单命令行轨迹录制与离线验证。
+- **无缝 CLI 支持**：通过 `bee record` 与 `amber replay` 实现单命令行轨迹录制与离线验证。
 
 ---
 
@@ -58,10 +58,10 @@ $ bee record -o traces/search_task.bee-trace.json agent.ts --query "量子计算
 
 ```bash
 # 离线重放已录制的轨迹
-$ bee replay traces/search_task.bee-trace.json
+$ amber replay traces/search_task.bee-trace.json
 
 # 开启严格步骤入参校验与详细事件日志
-$ bee replay --verify -v traces/search_task.bee-trace.json
+$ amber replay --verify -v traces/search_task.bee-trace.json
 ```
 
 ---

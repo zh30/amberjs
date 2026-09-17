@@ -5,7 +5,7 @@ group: "Developer Tooling"
 id: "code-quality"
 ---
 
-In large codebases, Prettier and ESLint often slow down developer loops and CI pipelines due to substantial bootstrap and memory overhead. Beejs integrates a high-performance formatter and linter driven by **OXC** (The JavaScript Oxidation Compiler) written in Rust.
+In large codebases, Prettier and ESLint often slow down developer loops and CI pipelines due to substantial bootstrap and memory overhead. Amber integrates a high-performance formatter and linter driven by **OXC** (The JavaScript Oxidation Compiler) written in Rust.
 
 ---
 
@@ -56,7 +56,7 @@ When violations are detected, `bee lint` prints formatted diagnostics with line 
 ```text
 🚨 Lint issue in src/auth.ts:18:5
   18 |     eval(userPayload);
-     |     ^^^^ no-eval: eval() is unsafe and prohibited in Beejs secure runtime.
+     |     ^^^^ no-eval: eval() is unsafe and prohibited in Amber secure runtime.
 
 Summary: 1 error, 0 warnings found in 18 files (checked in 3.1ms).
 ```

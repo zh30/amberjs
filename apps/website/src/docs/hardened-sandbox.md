@@ -1,5 +1,5 @@
 ---
-title: "Hardened Sandbox & Audit Logging Engine (bee:sandbox)"
+title: "Hardened Sandbox & Audit Logging Engine (amber:sandbox)"
 subtitle: "Isolated micro-enclaves, real-time ResourceBroker JSONL audit trails, and strict fail-closed defense"
 group: "Agent & Advanced"
 id: "hardened-sandbox"
@@ -7,7 +7,7 @@ id: "hardened-sandbox"
 
 Running untrusted agent code or dynamically synthesized tools in enterprise environments requires robust boundary defense and tamper-evident compliance logs. If an agent attempts an unauthorized file access or network connection, security teams need immediate visibility.
 
-**Beejs v1.7.0 brings a Hardened Sandbox & Audit Logging Engine (`bee:sandbox` & CLI `--audit-log`)**. It introduces secure execution micro-enclaves that insulate host globals, alongside streaming real-time JSONL audit logging for every runtime resource decision.
+**Amber v1.7.0 brings a Hardened Sandbox & Audit Logging Engine (`amber:sandbox` & CLI `--audit-log`)**. It introduces secure execution micro-enclaves that insulate host globals, alongside streaming real-time JSONL audit logging for every runtime resource decision.
 
 ---
 
@@ -16,7 +16,7 @@ Running untrusted agent code or dynamically synthesized tools in enterprise envi
 When evaluating dynamic code strings or executing sub-agent logic, `createEnclave` restricts the global namespace to safe ECMAScript built-ins:
 
 ```typescript
-import { createEnclave } from 'bee:sandbox';
+import { createEnclave } from 'amber:sandbox';
 
 // Execute code inside an isolated enclave
 const result = createEnclave('25 * 4 + 10');
@@ -46,8 +46,8 @@ Track every capability request and security check performed by the runtime:
 ### 2.1 Programmatic Audit Control
 
 ```typescript
-import { startAuditLog, stopAuditLog, getAuditLogPath } from 'bee:sandbox';
-import { query, revoke } from 'bee:permissions';
+import { startAuditLog, stopAuditLog, getAuditLogPath } from 'amber:sandbox';
+import { query, revoke } from 'amber:permissions';
 
 // Start streaming audit log to file
 startAuditLog('./audit/agent_decisions.jsonl');
@@ -67,7 +67,7 @@ You can also enable audit logging at the CLI level for any script execution:
 
 ```bash
 # Append every ResourceBroker decision to audit.jsonl
-$ bee run --audit-log ./audit.jsonl agent.ts
+$ amber run --audit-log ./audit.jsonl agent.ts
 ```
 
 ---

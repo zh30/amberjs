@@ -5,10 +5,10 @@ group: "Core Systems"
 id: "server-mode"
 ---
 
-Beejs offers two high-performance paradigms for building web services:
+Amber offers two high-performance paradigms for building web services:
 
-1. **Modern Standard Web Serving (`bee serve [file]`)**: Built on W3C / WinterCG standard `Request` / `Response` and `export default { fetch(req) }` model;
-2. **Node.js Compatible Serving (`bee run server.ts`)**: Built on `node:http` backed by a lockless multi-Worker thread pool in Rust Tokio.
+1. **Modern Standard Web Serving (`amber serve [file]`)**: Built on W3C / WinterCG standard `Request` / `Response` and `export default { fetch(req) }` model;
+2. **Node.js Compatible Serving (`amber run server.ts`)**: Built on `node:http` backed by a lockless multi-Worker thread pool in Rust Tokio.
 
 ---
 
@@ -28,7 +28,7 @@ export default {
 
     // Route matching
     if (url.pathname === "/") {
-      return new Response("🚀 Welcome to Beejs Web Server!");
+      return new Response("🚀 Welcome to Amber Web Server!");
     }
 
     if (url.pathname === "/api/echo" && req.method === "POST") {
@@ -62,13 +62,13 @@ export default {
 $ bee serve
 
 # Or specify a custom file, port, and host
-$ bee serve app.ts --port 8080 --host 0.0.0.0
+$ amber serve app.ts --port 8080 --host 0.0.0.0
 ```
 
 Console output:
 
 ```text
-🚀 Starting Beejs Web Server on http://0.0.0.0:8080
+🚀 Starting Amber Web Server on http://0.0.0.0:8080
 📄 Serving application: app.ts
 ✅ Listening on http://0.0.0.0:8080 (Ctrl+C to stop)
 ```
@@ -115,7 +115,7 @@ server.listen(3000, () => {
 Run command:
 
 ```bash
-bee run server.ts
+amber run server.ts
 ```
 
 ---
@@ -126,9 +126,9 @@ bee run server.ts
 
 In conventional single-threaded runtimes, when a request triggers heavy JSON serialization, cryptography, or tensor inference, the event loop stalls and stalls all incoming requests.
 
-### Beejs Lockless Multi-Isolate Model
+### Amber Lockless Multi-Isolate Model
 
-Beejs features a built-in **multi-Worker thread pool** in Rust:
+Amber features a built-in **multi-Worker thread pool** in Rust:
 
 ```text
                         Concurrent TCP Traffic
@@ -154,14 +154,14 @@ Beejs features a built-in **multi-Worker thread pool** in Rust:
 Specify the number of worker isolates with `-W` or `--workers`:
 
 ```bash
-bee run --workers 8 server.ts
+amber run --workers 8 server.ts
 ```
 
 Or via environment variable:
 
 ```bash
 export BEE_WORKERS=8
-bee run server.ts
+amber run server.ts
 ```
 
 **Benefits**:
@@ -177,7 +177,7 @@ Benchmark with tools like `autocannon` or `wrk`:
 
 ```bash
 # Launch with 8 workers
-bee run --workers 8 server.ts
+amber run --workers 8 server.ts
 
 # Benchmark 100 concurrent connections for 10 seconds
 npx autocannon -c 100 -d 10 http://localhost:3000/api/users

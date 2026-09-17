@@ -1,15 +1,15 @@
 ---
-title: "Beejs v0.1 公开发布范围说明"
-excerpt: "Beejs v0.1 公开版本的定位与核心能力边界。"
+title: "Amber v0.1 公开发布范围说明"
+excerpt: "Amber v0.1 公开版本的定位与核心能力边界。"
 date: "2026-05-25"
-author: "Beejs 核心团队"
+author: "Amber 核心团队"
 readTime: "3 分钟阅读"
 tag: "版本发布"
 ---
 
-# Beejs v0.1 公开发布范围说明
+# Amber v0.1 公开发布范围说明
 
-Beejs v0.1 是本运行时的首个公开核心版本。我们的目标清晰且务实：确保默认 CLI 具备简单易用的安装体验、稳定的执行能力，并准确宣示当前版本的真实功能边界。
+Amber v0.1 是本运行时的首个公开核心版本。我们的目标清晰且务实：确保默认 CLI 具备简单易用的安装体验、稳定的执行能力，并准确宣示当前版本的真实功能边界。
 
 ## v0.1 包含的核心能力
 
@@ -28,8 +28,8 @@ Beejs v0.1 是本运行时的首个公开核心版本。我们的目标清晰且
 ## 快速体验
 
 ```bash
-curl -fsSL https://bee.zhanghe.dev/install.sh | sh
-bee --version
-bee eval "1 + 1"
-bee run hello.js
+curl -fsSL https://get.amberjs.com/install.sh | sh
+amber --version
+amber eval "1 + 1"
+amber run hello.js
 ```

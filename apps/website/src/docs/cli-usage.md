@@ -5,7 +5,7 @@ group: "Reference & Specs"
 id: "cli-usage"
 ---
 
-`bee --help` is the source of truth. This page groups the same commands by maturity. See [Current Scope](https://github.com/zh30/beejs/blob/main/docs/CURRENT_SCOPE.md) in the repo.
+`bee --help` is the source of truth. This page groups the same commands by maturity. See [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) in the repo.
 
 `--verbose` is global and must come **before** the subcommand: `bee --verbose run app.js`.
 
@@ -15,24 +15,24 @@ id: "cli-usage"
 
 | Command | What it does |
 | :--- | :--- |
-| `bee run <file> [args...]` | Run JS. `.ts` / `.tsx` go through oxc first (TS contract is Preview). |
-| `bee eval <code>` | Evaluate an expression |
-| `bee repl` | Interactive REPL |
-| `bee test [files...] [--watch]` | Jest-style runner |
+| `amber run <file> [args...]` | Run JS. `.ts` / `.tsx` go through oxc first (TS contract is Preview). |
+| `amber eval <code>` | Evaluate an expression |
+| `amber repl` | Interactive REPL |
+| `amber test [files...] [--watch]` | Jest-style runner |
 | `bee snapshot [build\|status\|clean]` | V8 startup snapshots |
 | `bee session <tool>` | JSON-RPC over stdin for agent hosts |
-| `bee mcp [tool]` | MCP stdio server |
-| `bee --version` / `bee version` | Version |
+| `amber mcp [tool]` | MCP stdio server |
+| `amber --version` / `bee version` | Version |
 
 ### `bee run`
 
 ```bash
-bee run app.ts
-bee run app.js -- arg1 arg2
-bee run --watch --debounce 200 app.ts
-bee run --preload ./setup.js app.js
-bee run --sandbox --permission-policy policy.json app.ts
-bee run --inspect-brk app.ts
+amber run app.ts
+amber run app.js -- arg1 arg2
+amber run --watch --debounce 200 app.ts
+amber run --preload ./setup.js app.js
+amber run --sandbox --permission-policy policy.json app.ts
+amber run --inspect-brk app.ts
 ```
 
 Useful flags:
@@ -50,7 +50,7 @@ Useful flags:
 | `--permission-policy <file>` | JSON policy (alias `--policy`) |
 | `--inspect` / `--inspect-brk` | CDP on `127.0.0.1:9229` (Preview) |
 
-`bee test --parallel` is rejected (exit code 2).
+`amber test --parallel` is rejected (exit code 2).
 
 ---
 
@@ -60,16 +60,16 @@ Present in the default binary; the contract is still tightening.
 
 | Command | What it does |
 | :--- | :--- |
-| `bee serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
-| `bee bundle <entry>` | oxc module graph → one JS file |
-| `bee compile <file>` | Append payload + `BEE_STANDALONE` trailer to a copy of `bee` |
+| `amber serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
+| `amber bundle <entry>` | oxc module graph → one JS file |
+| `amber compile <file>` | Append payload + `BEE_STANDALONE` trailer to a copy of `bee` |
 | TypeScript / TSX | oxc type-strip, not `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
 ```bash
-bee serve app.js --host 127.0.0.1 --port 3000
-bee bundle src/index.ts -o dist/bundle.js --minify
-bee compile app.ts -o myapp
+amber serve app.js --host 127.0.0.1 --port 3000
+amber bundle src/index.ts -o dist/bundle.js --minify
+amber compile app.ts -o myapp
 ```
 
 Details: [bundle & compile](/docs/bundling-compilation).
@@ -82,7 +82,7 @@ Do **not** treat these as product promises. They exist on the CLI; behavior may 
 
 `debug`, `record`, `replay`, `init`, `create`, `add`, `remove`, `install`, `prune`, `x`, `upgrade`, `fmt`, `lint`, `bench`, `compile` extras, `types`, `task`, `profile`, `lsp`, `deploy`.
 
-Chrome DevTools attach should use `bee run --inspect`, not `bee debug`.
+Chrome DevTools attach should use `amber run --inspect`, not `bee debug`.
 
 ---
 
@@ -91,9 +91,9 @@ Chrome DevTools attach should use `bee run --inspect`, not `bee debug`.
 Default is still allow-all unless `--sandbox` or `--deny-*` is set.
 
 ```bash
-bee eval --deny-fs "require('fs').readFileSync('secret.txt', 'utf8')"
-bee run --deny-fs --allow-read config.json app.js
-bee eval --deny-net --allow-net example.com "fetch('https://example.com')"
+amber eval --deny-fs "require('fs').readFileSync('secret.txt', 'utf8')"
+amber run --deny-fs --allow-read config.json app.js
+amber eval --deny-net --allow-net example.com "fetch('https://example.com')"
 ```
 
 Policy file (relative paths resolve from the policy file directory):

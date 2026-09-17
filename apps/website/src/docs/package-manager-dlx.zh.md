@@ -23,14 +23,14 @@ id: "package-manager-dlx"
 bee x <package-specifier> [arguments...]
 
 # 别名同样支持
-bee dlx cowsay "Hello Beejs!"
+bee dlx cowsay "Hello Amber!"
 ```
 
 ### 包版本与作用域指定
 
 ```bash
 # 1. 运行最新版包
-bee x cowsay "Hello Beejs!"
+bee x cowsay "Hello Amber!"
 
 # 2. 指定精准版本号
 bee x prettier@3.2.5 --write "src/**/*.ts"
@@ -46,7 +46,7 @@ bee x typescript tsc --init
 
 ## 3. 高级选项与安全沙箱
 
-`bee x` 继承了 Beejs 的安全执行哲学，支持对未知的第三方脚本施加确定性安全边界：
+`bee x` 继承了 Amber 的安全执行哲学，支持对未知的第三方脚本施加确定性安全边界：
 
 ```bash
 # 限制最大运行时间为 10 秒（防止远程脚本死循环）

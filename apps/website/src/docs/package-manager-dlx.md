@@ -23,14 +23,14 @@ Unlike traditional tools, `bee x` is implemented natively in Rust with three key
 bee x <package-specifier> [arguments...]
 
 # The dlx alias is also supported
-bee dlx cowsay "Hello Beejs!"
+bee dlx cowsay "Hello Amber!"
 ```
 
 ### Specifying Versions & Scopes
 
 ```bash
 # 1. Run the latest version
-bee x cowsay "Hello Beejs!"
+bee x cowsay "Hello Amber!"
 
 # 2. Specify exact version
 bee x prettier@3.2.5 --write "src/**/*.ts"
@@ -46,7 +46,7 @@ bee x typescript tsc --init
 
 ## 3. Sandboxing & CLI Options
 
-`bee x` inherits the Beejs security philosophy, allowing safe execution of untrusted scripts:
+`bee x` inherits the Amber security philosophy, allowing safe execution of untrusted scripts:
 
 ```bash
 # Cap execution time to 10 seconds

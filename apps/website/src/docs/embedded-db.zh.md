@@ -1,5 +1,5 @@
 ---
-title: "嵌入式数据与向量引擎 (bee:db & bee:vector)"
+title: "嵌入式数据与向量引擎 (amber:db & bee:vector)"
 subtitle: "零配置原生 SQLite 数据库与高维向量相似度检索引擎，为现代与 AI 应用提供全闭环数据底座"
 group: "生态与扩展"
 id: "embedded-db"
@@ -12,13 +12,13 @@ id: "embedded-db"
 - **CJS/Native 插件兼容陷阱**：在 Node.js 中使用 `better-sqlite3` 常常受制于 `node-gyp` 原生编译环境与多架构交叉编译失败；
 - **跨边界数据序列化损耗**：大批量向量数据在 JavaScript 堆与外部 Python / 数据库进程之间来回 JSON 序列化，产生严重的 CPU 与内存开销。
 
-Beejs 在底层直接使用 Rust 打包编译了原生的 **SQLite 3** 引擎与轻量级**高维向量检索（VectorDB）引擎**，通过 `bee:db` 与 `bee:vector` 提供开箱即用、零外部依赖的高性能数据体验。
+Amber 在底层直接使用 Rust 打包编译了原生的 **SQLite 3** 引擎与轻量级**高维向量检索（VectorDB）引擎**，通过 `amber:db` 与 `bee:vector` 提供开箱即用、零外部依赖的高性能数据体验。
 
 ---
 
-## 2. 嵌入式 SQLite (`bee:db` / `bee:sqlite`)
+## 2. 嵌入式 SQLite (`amber:db` / `bee:sqlite`)
 
-通过 `import { Database } from 'bee:db'` 或 `require('bee:db')` 即可直接使用。
+通过 `import { Database } from 'amber:db'` 或 `require('amber:db')` 即可直接使用。
 
 ### 核心特性
 - **内存数据库与磁盘持久化**：支持 `:memory:` 快速临时库与常规 `.db` 文件持久化。
@@ -29,7 +29,7 @@ Beejs 在底层直接使用 Rust 打包编译了原生的 **SQLite 3** 引擎与
 ### 使用示例
 
 ```typescript
-import { Database } from 'bee:db';
+import { Database } from 'amber:db';
 
 // 1. 初始化数据库连接（支持文件路径或 ':memory:'）
 const db = new Database('app.db');
@@ -90,7 +90,7 @@ import { VectorDB } from 'bee:vector';
 const vdb = new VectorDB(4, 'cosine');
 
 // 2. 插入带有结构化元数据的向量记录
-vdb.insert('doc-1', [0.1, 0.8, 0.2, 0.0], { title: 'Beejs 架构概览', tag: 'arch' });
+vdb.insert('doc-1', [0.1, 0.8, 0.2, 0.0], { title: 'Amber 架构概览', tag: 'arch' });
 vdb.insert('doc-2', [0.12, 0.79, 0.18, 0.05], { title: 'V8 内存模型解析', tag: 'v8' });
 vdb.insert('doc-3', [0.9, 0.1, 0.05, 0.2], { title: 'Docker 容器化指南', tag: 'devops' });
 
@@ -117,10 +117,10 @@ console.log('重建后索引记录数:', restoredVdb.count());
 
 ## 4. 最佳实践：打造本地 RAG 知识库微服务
 
-结合 `bee:ai`、`bee:db` 与 `bee:vector`，你可以在 30 行内使用纯 TypeScript 构建一个完全脱离 Python 与外部容器的自包含 AI 问答检索服务：
+结合 `amber:ai`、`amber:db` 与 `bee:vector`，你可以在 30 行内使用纯 TypeScript 构建一个完全脱离 Python 与外部容器的自包含 AI 问答检索服务：
 
 ```typescript
-import { Database } from 'bee:db';
+import { Database } from 'amber:db';
 import { VectorDB } from 'bee:vector';
 
 const db = new Database('knowledge.db');

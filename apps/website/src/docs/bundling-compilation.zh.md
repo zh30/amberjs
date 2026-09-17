@@ -17,8 +17,8 @@ id: "bundling-compilation"
 ## `bee bundle`
 
 ```bash
-bee bundle src/index.ts -o dist/bundle.js
-bee bundle src/index.ts -o dist/bundle.min.js --minify
+amber bundle src/index.ts -o dist/bundle.js
+amber bundle src/index.ts -o dist/bundle.min.js --minify
 ```
 
 当前会做的事：
@@ -35,7 +35,7 @@ bee bundle src/index.ts -o dist/bundle.min.js --minify
 ## `bee compile`
 
 ```bash
-bee compile app.ts -o myapp
+amber compile app.ts -o myapp
 ./myapp
 ```
 
@@ -43,7 +43,7 @@ bee compile app.ts -o myapp
 
 ```text
 +----------------------------------------------------------+
-|  Beejs 运行时（宿主 `bee` 的一份拷贝）                    |
+|  Amber 运行时（宿主 `bee` 的一份拷贝）                    |
 +----------------------------------------------------------+
 |  打包后的用户脚本                                        |
 +----------------------------------------------------------+

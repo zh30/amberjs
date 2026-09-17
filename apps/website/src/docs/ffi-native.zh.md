@@ -11,7 +11,7 @@ id: "ffi-native"
 
 在传统 Node.js 生态中，开发者必须依赖繁重的外部插件（如 `node-ffi-napi`），并且往往受限于 `node-gyp`、Python 环境与本地 C++ 编译器的构建痛点。
 
-**Beejs v1.4.0 原生内置了 `bee:ffi` 模块**，基于操作系统原生动态链接器（Unix/macOS 下的 `dlopen` 与 Windows 下的 `LoadLibraryA`），提供无需任何外部 npm 依赖或编译环境的超轻量 C 语言外部函数接口。
+**Amber v1.4.0 原生内置了 `bee:ffi` 模块**，基于操作系统原生动态链接器（Unix/macOS 下的 `dlopen` 与 Windows 下的 `LoadLibraryA`），提供无需任何外部 npm 依赖或编译环境的超轻量 C 语言外部函数接口。
 
 ### 核心亮点
 - **零外部依赖**：单二进制直接支持，无需安装 node-gyp、Python 或 C++ 编译器。

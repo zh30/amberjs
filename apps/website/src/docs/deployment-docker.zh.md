@@ -12,7 +12,7 @@ id: "deployment-docker"
 - **环境碎片化**：不同部署目标（Docker 容器、独立免依赖二进制、Kubernetes 集群）需要维护多套不一致的配置脚本；
 - **配置与安全合规缺漏**：在 K8s 中常常遗忘就绪探针（readinessProbe）、存活探针（livenessProbe）与 CPU/内存物理配额。
 
-Beejs 内置了 **`bee deploy`** 工具链：自动检测项目类型、自动生成开箱即用的多阶段优化部署配置。
+Amber 内置了 **`bee deploy`** 工具链：自动检测项目类型、自动生成开箱即用的多阶段优化部署配置。
 
 ---
 
@@ -58,7 +58,7 @@ bee deploy --target k8s
 FROM ghcr.io/zh30/beejs:latest AS builder
 WORKDIR /app
 COPY . .
-RUN bee bundle --minify --outfile dist/server.js server.ts
+RUN amber bundle --minify --outfile dist/server.js server.ts
 
 # Production runner stage
 FROM debian:bookworm-slim
@@ -81,7 +81,7 @@ CMD ["bee", "run", "dist/server.js"]
 bee deploy --target compile --entry app.ts
 ```
 
-该命令调用内置编译流水线，将你的 TypeScript 代码、转译产物与 Beejs V8 运行时打包进单一的可执行文件。目标机器无需安装 Node.js、Rust 或 Beejs，直接双击或通过命令行即可秒级启动！
+该命令调用内置编译流水线，将你的 TypeScript 代码、转译产物与 Amber V8 运行时打包进单一的可执行文件。目标机器无需安装 Node.js、Rust 或 Amber，直接双击或通过命令行即可秒级启动！
 
 ---
 

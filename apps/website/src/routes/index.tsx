@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, Copy, Terminal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLang } from "../lib/i18n";
-import { BEEJS_VERSION } from "../lib/version";
+import { AMBER_VERSION } from "../lib/version";
 
 const INSTALL = "curl -fsSL https://get.amberjs.com/install.sh | sh";
 
@@ -22,7 +22,7 @@ export default function HomeComponent() {
       <section className="bg-[var(--honey)] text-[var(--honey-ink)]">
         <div className="site-shell grid items-end gap-10 py-16 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
           <div>
-            <p className="font-mono text-sm font-medium">{BEEJS_VERSION}</p>
+            <p className="font-mono text-sm font-medium">{AMBER_VERSION}</p>
             <h1 className="mt-4 max-w-[16ch] text-[clamp(2.5rem,6vw,4.25rem)] font-bold leading-[1.05]">
               {home.heroTitlePrefix}
               {home.heroTitleAccent}
@@ -138,7 +138,7 @@ hello from Amber`}
                       <div className="text-zinc-500">{row.desc}</div>
                     </td>
                     <td className="bg-[var(--honey)] px-3 py-3.5 font-mono font-semibold whitespace-nowrap text-[var(--honey-ink)]">
-                      {row.beeValue}
+                      {row.amberValue || row.beeValue}
                     </td>
                     <td className="py-3.5 pr-4 pl-4 font-mono whitespace-nowrap text-zinc-300">
                       {row.nodeValue}

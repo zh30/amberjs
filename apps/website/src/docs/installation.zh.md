@@ -10,19 +10,19 @@ id: "installation"
 在 macOS 或 Linux 系统上，你可以直接在终端中运行以下一键安装脚本：
 
 ```bash
-curl -fsSL https://bee.zhanghe.dev/install.sh | sh
+curl -fsSL https://get.amberjs.com/install.sh | sh
 
 # 固定版本
-curl -fsSL https://bee.zhanghe.dev/install.sh | BEEJS_VERSION=v1.16.0 sh
+curl -fsSL https://amberjs.com/install.sh | BEEJS_VERSION=v1.16.0 sh
 ```
 
 Windows（PowerShell）：
 
 ```powershell
-irm https://bee.zhanghe.dev/install.ps1 | iex
+irm https://amberjs.com/install.ps1 | iex
 ```
 
-Homebrew（配方在 Beejs 仓库内；每次 GitHub Release 后填写 sha256）：
+Homebrew（配方在 Amber 仓库内；每次 GitHub Release 后填写 sha256）：
 
 ```bash
 brew install zh30/tap/bee
@@ -41,14 +41,14 @@ brew install zh30/tap/bee
 
 ## 验证安装
 
-运行以下命令，验证 Beejs 是否正确安装并就绪：
+运行以下命令，验证 Amber 是否正确安装并就绪：
 
 ```bash
 # 查看版本号
-bee --version
+amber --version
 
 # 快速运行 JavaScript 代码片段
-bee eval "1 + 1"
+amber eval "1 + 1"
 ```
 
 看到类似输出即可：
@@ -77,7 +77,7 @@ bee 1.16.0
 
 ## 从源码编译构建
 
-如果你需要对 Beejs 进行定制化开发、本地调试或在未提供预编译产物的操作系统上运行，可以通过 Rust 工具链从源码编译。
+如果你需要对 Amber 进行定制化开发、本地调试或在未提供预编译产物的操作系统上运行，可以通过 Rust 工具链从源码编译。
 
 ### 1. 安装编译依赖
 
@@ -102,33 +102,33 @@ xcode-select --install
 ### 2. 克隆仓库并构建
 
 ```bash
-git clone https://github.com/zh30/beejs.git
+git clone https://github.com/zh30/amberjs.git
 cd beejs
 
 # 生产级优化编译 (耗时约 5~15 分钟，视机器性能而定)
 cargo build --release
 
 # 编译生成的可执行文件位于：
-./target/release/bee --version
+./target/release/amber --version
 ```
 
 ### 3. 安装到全局 PATH
 
 ```bash
 sudo cp ./target/release/bee /usr/local/bin/
-bee --version
+amber --version
 ```
 
 ---
 
 ## 环境变量配置
 
-Beejs 支持通过环境变量调整全局运行时行为：
+Amber 支持通过环境变量调整全局运行时行为：
 
 | 环境变量 | 默认值 | 作用说明 |
 | :--- | :---: | :--- |
 | `BEE_WORKERS` | `1` | 设置 HTTP 服务或并发任务的默认 Worker 线程池并发数 |
-| `BEE_HOME` | `~/.bee` | 指定 Beejs 的缓存、下载与全局配置目录 |
+| `BEE_HOME` | `~/.bee` | 指定 Amber 的缓存、下载与全局配置目录 |
 | `BEE_AUDIT_LOG` | 无 | 指定沙箱全局安全审计日志 JSONL 输出文件路径 |
 | `BEE_LOG` | `info` | 设置日志级别（`error`、`warn`、`info`、`debug`、`trace`） |
 
@@ -143,7 +143,7 @@ export BEE_LOG=warn
 
 ## 卸载与清理
 
-如果需要卸载 Beejs，只需删除安装目录并移除 PATH 配置：
+如果需要卸载 Amber，只需删除安装目录并移除 PATH 配置：
 
 ```bash
 # 1. 移除二进制文件与缓存

@@ -7,7 +7,7 @@ id: "kv-store"
 
 Autonomous AI Agents require fast, reliable, and durable memory across isolate recycling, worker task restarts, and session boundaries. Traditional databases like SQLite or PostgreSQL are often too heavy for sub-millisecond key-value caching, while in-memory `Map` instances vanish when the process exits.
 
-**Beejs v1.7.0 introduces the Native Persistent Key-Value & Durable State Engine (`bee:kv`)**. Featuring zero external dependencies, it provides an embedded ACID transactional key-value store with in-memory mode, disk-backed Write-Ahead Log (WAL) persistence, automatic TTL expiration, prefix range scanning, and atomic batch operations.
+**Amber v1.7.0 introduces the Native Persistent Key-Value & Durable State Engine (`bee:kv`)**. Featuring zero external dependencies, it provides an embedded ACID transactional key-value store with in-memory mode, disk-backed Write-Ahead Log (WAL) persistence, automatic TTL expiration, prefix range scanning, and atomic batch operations.
 
 ---
 

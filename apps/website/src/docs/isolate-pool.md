@@ -9,7 +9,7 @@ id: "isolate-pool"
 
 Modern AI agent workflows, microservices, and serverless edge functions require executing untrusted or multi-tenant JavaScript/TypeScript code concurrently with absolute isolation, minimal memory overhead, and millisecond dispatch latency.
 
-While standard child processes or containers require tens of megabytes of memory and hundreds of milliseconds to boot, **Beejs v1.4.0 introduces `bee:pool`**—a thread-isolated, high-density V8 `IsolatePool`.
+While standard child processes or containers require tens of megabytes of memory and hundreds of milliseconds to boot, **Amber v1.4.0 introduces `bee:pool`**—a thread-isolated, high-density V8 `IsolatePool`.
 
 ### Key Advantages
 - **True Multi-Tenant Isolation**: Each worker thread encapsulates an independent V8 heap and garbage collector. Global variables or prototypes modified in one task cannot leak to another.

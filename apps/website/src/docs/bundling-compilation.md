@@ -17,8 +17,8 @@ The contract is still tightening. Do not treat this as webpack / esbuild / pkg p
 ## `bee bundle`
 
 ```bash
-bee bundle src/index.ts -o dist/bundle.js
-bee bundle src/index.ts -o dist/bundle.min.js --minify
+amber bundle src/index.ts -o dist/bundle.js
+amber bundle src/index.ts -o dist/bundle.min.js --minify
 ```
 
 What it does today:
@@ -35,7 +35,7 @@ What it does **not** claim: full `node_modules` ecosystem bundling, code splitti
 ## `bee compile`
 
 ```bash
-bee compile app.ts -o myapp
+amber compile app.ts -o myapp
 ./myapp
 ```
 
@@ -43,7 +43,7 @@ Layout of the output binary:
 
 ```text
 +----------------------------------------------------------+
-|  Beejs runtime (copy of the host `bee` executable)       |
+|  Amber runtime (copy of the host `bee` executable)       |
 +----------------------------------------------------------+
 |  Bundled user script payload                             |
 +----------------------------------------------------------+

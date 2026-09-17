@@ -1,5 +1,5 @@
 ---
-title: "原生 AI 引擎 (bee:ai)"
+title: "原生 AI 引擎 (amber:ai)"
 subtitle: "免除 Python 胶水层，在 V8 中直接驱动零拷贝张量、本地模型流式推理与 Agent 管线"
 group: "核心系统"
 id: "ai-engine"
@@ -13,16 +13,16 @@ id: "ai-engine"
 - **要么依赖 Python 子进程**：通过标准输入输出或 HTTP IPC 进行跨进程通信，带来巨大的序列化开销、内存翻倍与部署复杂性；
 - **要么依赖复杂的 node-gyp C++ 插件**：在不同平台和 Alpine Linux 上编译极易失败，且经常引发内存泄漏或 V8 崩溃。
 
-Beejs 率先在运行时原生内置了 **`bee:ai`** 模块：直接使用 Rust 在宿主层对接高性能数学库与本地推理后端，以零拷贝 `Float32Array` 直通 V8，让 JavaScript 开发者用纯粹的 TypeScript 原生编写高性能 AI 应用。
+Amber 率先在运行时原生内置了 **`amber:ai`** 模块：直接使用 Rust 在宿主层对接高性能数学库与本地推理后端，以零拷贝 `Float32Array` 直通 V8，让 JavaScript 开发者用纯粹的 TypeScript 原生编写高性能 AI 应用。
 
 ---
 
 ## 2. 核心组件 API
 
-通过 `import ... from 'bee:ai'` 即可直接引入原生模块：
+通过 `import ... from 'amber:ai'` 即可直接引入原生模块：
 
 ```typescript
-import { Tensor, LLM, AgentPipeline } from 'bee:ai';
+import { Tensor, LLM, AgentPipeline } from 'amber:ai';
 ```
 
 ---
@@ -89,11 +89,11 @@ console.log(`向量维度: ${vector.length}, 前 3 维:`, vector.slice(0, 3));
 
 ### 三、`AgentPipeline` 确定性智能体编排
 
-Beejs 为构建自主 AI Agent 提供了完整的状态机与工具调度管线：
+Amber 为构建自主 AI Agent 提供了完整的状态机与工具调度管线：
 
 ```typescript
 // agent_example.ts
-import { AgentPipeline } from 'bee:ai';
+import { AgentPipeline } from 'amber:ai';
 
 const agent = new AgentPipeline({
   name: 'DevOps Assistant',
@@ -130,14 +130,14 @@ console.log('智能体最终回复:', response.content);
 
 ## 3. 确定性回放与测试沙箱
 
-AI Agent 的自主行为往往具有随机性，在生产测试与调试重放时极难复现 Bug。Beejs 提供两项系统级标志，保证 AI 决策的绝对确定性：
+AI Agent 的自主行为往往具有随机性，在生产测试与调试重放时极难复现 Bug。Amber 提供两项系统级标志，保证 AI 决策的绝对确定性：
 
 - **`--seed <UINT64>`**：锁定伪随机数生成器（`Math.random()` 与 `crypto.getRandomValues()`）的种子；
 - **`--freeze-time <ISO_STRING>`**：冻结全局虚拟时钟（`Date.now()`、`new Date()` 与 `performance.now()`）。
 
 ```bash
 # 在固定种子与固定虚拟时间下回放 Agent 运行
-bee run --seed 42 --freeze-time "2026-09-07T08:00:00Z" agent_example.ts
+amber run --seed 42 --freeze-time "2026-09-07T08:00:00Z" agent_example.ts
 ```
 
 每次运行，所有随机采样的 Token、生成的 UUID、事件时间戳都将保持 100% 严丝合缝的一致，为自动化测试与安全审查提供了坚如磐石的保障。
