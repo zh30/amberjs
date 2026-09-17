@@ -232,7 +232,7 @@ k8s-openapi = { version = "0.20", default-features = false, features = ["schemar
 kube-runtime = { version = "0.87", optional = true }
 schemars = { version = "0.8", features = ["derive"], optional = true }
 elasticsearch = { version = "9.1.0-alpha.1", default-features = false, optional = true }
-git2 = { version = "0.18", optional = true }
+git2 = { version = "0.21", optional = true }
 
 # Stage 84: Security & Compliance dependencies
 rust-crypto = "0.2"
