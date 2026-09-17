@@ -97,7 +97,7 @@ amber_sandbox = { path = "crates/amber_sandbox" }
 wasm-bindgen-futures = "0.4"
 
 # WebAssembly binary format
-wasm-encoder = "0.243"
+wasm-encoder = "0.244"
 wasmparser = "0.217"
 
 # Cryptography for module hashing
