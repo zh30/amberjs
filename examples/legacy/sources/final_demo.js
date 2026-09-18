@@ -26,7 +26,11 @@ console.log('--- Web API 支持 ---');
 console.log('Math.PI:', Math.PI);
 console.log('Math.max(1,5,3):', Math.max(1, 5, 3));
 console.log('JSON.stringify:', JSON.stringify({test: true}));
-console.log('URL.host:', new URL('https://example.com/path').host);
+try {
+    console.log('URL.host:', new URL('https://example.com/path').host);
+} catch (error) {
+    console.log('URL.host: error', error);
+}
 console.log('crypto.randomUUID():', crypto.randomUUID());
 console.log('fetch 状态:', fetch('https://httpbin.org/json').status);
 console.log();

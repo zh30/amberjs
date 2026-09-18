@@ -1,6 +1,6 @@
 /**
- * Beejs-native AI tensor operator benchmarks (bee:ai.Tensor).
- * Skipped on runtimes without bee:ai.
+ * Amber-native AI tensor operator benchmarks (amber:ai.Tensor).
+ * Skipped on runtimes without amber:ai.
  */
 
 const WARMUP = 1;
@@ -31,8 +31,8 @@ async function runBench(name, fn) {
 }
 
 function loadTensor() {
-    const ai = require('bee:ai');
-    if (!ai || typeof ai.Tensor !== 'function') throw new Error('bee:ai.Tensor unavailable');
+    const ai = require('amber:ai');
+    if (!ai || typeof ai.Tensor !== 'function') throw new Error('amber:ai.Tensor unavailable');
     return ai.Tensor;
 }
 
@@ -92,7 +92,7 @@ function jsSoftmax(a) {
             maxMs: 0,
             opsSec: 0,
         }));
-        console.log('bee:ai unavailable, skipping tensor suite');
+        console.log('amber:ai unavailable, skipping tensor suite');
         console.log('\nSummary JSON:');
         console.log(JSON.stringify(skipped, null, 2));
         return;

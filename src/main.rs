@@ -8,6 +8,7 @@ use clap::{Args, Parser, Subcommand};
 use serde::Deserialize;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 #[derive(Parser, Debug)]
 #[command(name = "amber")]
@@ -152,8 +153,8 @@ enum Command {
         /// Port for V8 Inspector agent (default: 9229)
         #[arg(long = "inspect-port", default_value = "9229")]
         inspect_port: u16,
-        /// Use pre-warmed V8 isolate and CoW snapshot for sub-millisecond execution
-        #[arg(long = "warm")]
+        /// Ignored for one-shot CLI. Isolate pooling is used by `amber test`.
+        #[arg(long = "warm", hide = true)]
         warm: bool,
     },
     /// JSON-RPC session over stdin/stdout for Agent hosts
@@ -185,8 +186,8 @@ enum Command {
         permissions: PermissionCliOptions,
         /// JavaScript code to execute
         code: String,
-        /// Use pre-warmed V8 isolate and CoW snapshot for sub-millisecond execution
-        #[arg(long = "warm")]
+        /// Ignored for one-shot CLI. Isolate pooling is used by `amber test`.
+        #[arg(long = "warm", hide = true)]
         warm: bool,
     },
     /// Run in REPL mode
@@ -572,7 +573,8 @@ fn apply_permission_cli_options(options: &PermissionCliOptions) -> Result<()> {
     amberjs::permissions::reset_runtime_permission_state();
     amberjs::permissions::set_sandbox_strict_env(options.sandbox);
     if let Some(audit_log) = &options.audit_log {
-        amberjs::permissions::set_audit_log_path(Some(audit_log.clone())).map_err(|e| anyhow!(e))?;
+        amberjs::permissions::set_audit_log_path(Some(audit_log.clone()))
+            .map_err(|e| anyhow!(e))?;
     }
     amberjs::permissions::set_deterministic_seed(options.seed);
     if let Some(freeze_time_str) = &options.freeze_time {
@@ -1008,6 +1010,20 @@ fn parse_semver_triplet(version: &str) -> Option<SemverTriple> {
         minor,
         patch,
     })
+}
+
+fn startup_trace_enabled() -> bool {
+    std::env::var_os("AMBER_TRACE_STARTUP").is_some()
+}
+
+fn startup_mark(start: Instant, phase: &str) {
+    if startup_trace_enabled() {
+        eprintln!(
+            "amber_startup {:<18} {:>8.3} ms",
+            phase,
+            start.elapsed().as_secs_f64() * 1000.0
+        );
+    }
 }
 
 fn build_process_argv(file: &Path, args: &[String]) -> Vec<String> {
@@ -3850,7 +3866,8 @@ fn main() -> Result<()> {
             // Check if target is a package.json script name (e.g., `amber run build`)
             if !file.exists() {
                 if let Some(script_name) = file.to_str() {
-                    if let Some(pkg_path) = amberjs::task_runner::find_package_json(Path::new(".")) {
+                    if let Some(pkg_path) = amberjs::task_runner::find_package_json(Path::new("."))
+                    {
                         if let Ok(scripts) = amberjs::task_runner::load_scripts(&pkg_path) {
                             if scripts.contains_key(script_name) {
                                 let status = amberjs::task_runner::run_script(
@@ -4095,21 +4112,20 @@ fn main() -> Result<()> {
                     return Ok(());
                 }
 
-                // Default single-isolate execution
+                // Default single-isolate execution.
+                // `--warm` is a no-op here: a new process has no standby isolate to reuse.
+                let _ = warm;
+                let startup_t0 = Instant::now();
+                startup_mark(startup_t0, "cli_ready");
                 amberjs::v8_snapshot::enable_startup_snapshot_for_cli();
-                let is_warm_mode = warm
-                    || std::env::var_os("AMBER_WARM").is_some()
-                    || std::env::var_os("AMBER_WARM").is_some();
-                let mut runtime = if is_warm_mode {
-                    amberjs::isolate_prewarmer::global_prewarmer()
-                        .acquire()
-                        .expect("Failed to acquire prewarmed runtime")
-                } else if let Some(mem_mb) = permissions.max_memory {
+                let mut runtime = if let Some(mem_mb) = permissions.max_memory {
                     amberjs::runtime_minimal::MinimalRuntime::with_memory_limit(mem_mb)
                         .expect("Failed to create runtime with memory limit")
                 } else {
-                    amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime")
+                    amberjs::runtime_minimal::MinimalRuntime::new()
+                        .expect("Failed to create runtime")
                 };
+                startup_mark(startup_t0, "runtime_created");
                 runtime.set_process_argv(build_process_argv(&file, &args));
                 runtime.set_main_module_path(&file);
                 runtime.set_http_server_keep_alive(true);
@@ -4157,6 +4173,7 @@ fn main() -> Result<()> {
                 };
 
                 let exec_result = runtime.execute_code(&code);
+                startup_mark(startup_t0, "script_executed");
 
                 if let Some((cancel, thread)) = watchdog {
                     cancel.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -4196,18 +4213,13 @@ fn main() -> Result<()> {
                 println!("Evaluating JavaScript code");
             }
 
-            // Create or acquire a pre-warmed runtime
+            let _ = warm;
+            let startup_t0 = Instant::now();
+            startup_mark(startup_t0, "cli_ready");
             amberjs::v8_snapshot::enable_startup_snapshot_for_cli();
-            let is_warm_mode = warm
-                || std::env::var_os("AMBER_WARM").is_some()
-                || std::env::var_os("AMBER_WARM").is_some();
-            let mut runtime = if is_warm_mode {
-                amberjs::isolate_prewarmer::global_prewarmer()
-                    .acquire()
-                    .expect("Failed to acquire prewarmed runtime")
-            } else {
-                amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime")
-            };
+            let mut runtime =
+                amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+            startup_mark(startup_t0, "runtime_created");
             let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
             if code.contains("import ") || code.contains("export ") || code.contains("import{") {
                 runtime.set_main_module_path(cwd.join("eval.mjs"));
@@ -4217,12 +4229,14 @@ fn main() -> Result<()> {
 
             match runtime.execute_code(&code) {
                 Ok(result) => {
+                    startup_mark(startup_t0, "script_executed");
                     let trimmed = result.trim();
                     if !trimmed.is_empty() && trimmed != "undefined" {
                         println!("{trimmed}");
                     }
                 }
                 Err(e) => {
+                    startup_mark(startup_t0, "script_executed");
                     eprintln!("Error: {}", e);
                     std::process::exit(1);
                 }
@@ -4549,7 +4563,8 @@ fn main() -> Result<()> {
                         let watcher_config = amberjs::watcher::WatcherConfigBuilder::new()
                             .debounce_ms(200)
                             .build();
-                        let mut reloader = amberjs::watcher::HotReloader::with_config(watcher_config);
+                        let mut reloader =
+                            amberjs::watcher::HotReloader::with_config(watcher_config);
                         let rx = reloader
                             .watch(Path::new("."))
                             .map_err(|e| anyhow::anyhow!("Failed to start watcher: {}", e))?;
@@ -4900,7 +4915,9 @@ fn main() -> Result<()> {
                 let key_path = match key {
                     Some(path) => path,
                     None => {
-                        eprintln!("error: amber serve --https requires --key PATH (PEM private key)");
+                        eprintln!(
+                            "error: amber serve --https requires --key PATH (PEM private key)"
+                        );
                         std::process::exit(2);
                     }
                 };
@@ -5127,7 +5144,9 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
                 }
             } else {
                 println!("💡 No script specified, serving default health status");
-                println!("💡 Tip: Pass a script file `amber serve app.ts` to serve a custom web app");
+                println!(
+                    "💡 Tip: Pass a script file `amber serve app.ts` to serve a custom web app"
+                );
                 let server = tiny_http::Server::http(&addr)
                     .map_err(|e| anyhow::anyhow!("failed to bind {}: {}", addr, e))?;
                 println!("✅ Listening on http://{} (Ctrl+C to stop)", addr);
@@ -5555,7 +5574,10 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
                 }
             }
 
-            println!("\nRun 'cd {} && amber run index.{}' to start", name, template);
+            println!(
+                "\nRun 'cd {} && amber run index.{}' to start",
+                name, template
+            );
             return Ok(());
         }
         Some(Command::X {
@@ -5920,7 +5942,8 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
         Some(Command::Task { name, args }) => {
             match name {
                 Some(task_name) => {
-                    let status = amberjs::task_runner::run_script(Path::new("."), &task_name, &args)?;
+                    let status =
+                        amberjs::task_runner::run_script(Path::new("."), &task_name, &args)?;
                     if !status.success() {
                         std::process::exit(status.code().unwrap_or(1));
                     }

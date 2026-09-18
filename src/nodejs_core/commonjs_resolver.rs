@@ -862,18 +862,20 @@ fn read_package_json(
         return Ok(None);
     }
 
-    crate::permissions::check_global_permission(
+    // Sandbox may deny parent package.json (e.g. repo root while running a fixture).
+    // Treat that as "no package.json here" so type/exports probing does not abort startup.
+    if crate::permissions::check_global_permission(
         crate::permissions::PermissionKind::FileSystem,
         crate::permissions::PermissionAction::Read,
         crate::permissions::ResourceId::Path(package_json_path.clone()),
     )
-    .map_err(|error| {
-        CommonJsResolveError::with_reason(
-            package_json_path.to_string_lossy(),
-            package_root,
-            error.to_string(),
-        )
-    })?;
+    .is_err()
+    {
+        if let Ok(mut cache) = PACKAGE_JSON_CACHE.write() {
+            cache.insert(package_root.to_path_buf(), None);
+        }
+        return Ok(None);
+    }
 
     let content = fs::read_to_string(&package_json_path).map_err(|error| {
         CommonJsResolveError::invalid_package_config(
