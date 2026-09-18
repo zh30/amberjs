@@ -1,5 +1,5 @@
-use anyhow::{Context, Result};
 use amberjs::runtime_minimal::MinimalRuntime;
+use anyhow::{Context, Result};
 use serde_json::json;
 use std::hint::black_box;
 use std::time::{Duration, Instant};

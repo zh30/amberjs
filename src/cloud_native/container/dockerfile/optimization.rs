@@ -219,7 +219,8 @@ impl OptimizationStrategy for SecurityHardeningStrategy {
         let mut additions = Vec::new();
         if self.add_non_root_user {
             additions.push(
-                "RUN addgroup -g 1000 amberjs && adduser -D -s /bin/sh -G amberjs amberjs".to_string(),
+                "RUN addgroup -g 1000 amberjs && adduser -D -s /bin/sh -G amberjs amberjs"
+                    .to_string(),
             );
             additions.push("USER amberjs".to_string());
         }

@@ -117,7 +117,10 @@ fn inspect_brk_evaluate_and_resume() {
             Err(e) => panic!("wait: {e}"),
         }
     };
-    assert!(status.success(), "amber should exit 0 after resume: {status}");
+    assert!(
+        status.success(),
+        "amber should exit 0 after resume: {status}"
+    );
     assert!(side.exists(), "user script should run after resume");
     let _ = PathBuf::from(&side);
 }

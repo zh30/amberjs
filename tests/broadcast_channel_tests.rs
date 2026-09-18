@@ -9,7 +9,8 @@ mod broadcast_channel_tests {
 
     fn amberjs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/amber".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 

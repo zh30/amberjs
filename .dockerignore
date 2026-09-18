@@ -11,5 +11,9 @@
 !types/**
 !benches/
 !benches/**
+!crates/
+!crates/**
+!extensions/
+!extensions/**
 !examples/
 !examples/**

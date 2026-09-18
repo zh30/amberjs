@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod stage89_phase2_error_handling_tests {
-    use amberjs::error::{AutoRecovery, AmberError, ErrorContext};
+    use amberjs::error::{AmberError, AutoRecovery, ErrorContext};
     use amberjs::fallback::{FallbackManager, FallbackStrategy, Feature};
     use std::time::Duration;
 

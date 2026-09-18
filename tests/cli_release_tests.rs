@@ -14,7 +14,10 @@ fn version_uses_cargo_package_version() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert_eq!(stdout.trim(), format!("amber {}", env!("CARGO_PKG_VERSION")));
+    assert_eq!(
+        stdout.trim(),
+        format!("amber {}", env!("CARGO_PKG_VERSION"))
+    );
 }
 
 #[test]

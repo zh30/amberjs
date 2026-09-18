@@ -161,7 +161,10 @@ pub struct GoAmberBridge {
 impl GoAmberBridge {
     /// Create a new Go-Amber bridge
     pub fn new(amber_runtime: Arc<dyn AmberRuntimeInterface>, go_vm: Arc<GoVM>) -> Self {
-        GoAmberBridge { amber_runtime, go_vm }
+        GoAmberBridge {
+            amber_runtime,
+            go_vm,
+        }
     }
     /// Call Amber from Go
     pub async fn call_amber_from_go(&self, script: &str) -> Result<String> {
@@ -228,7 +231,8 @@ go func() {
     #[tokio::test]
     async fn test_go_amber_interop() {
         let runtime: _ = GoRuntime::new(amber_api()).unwrap();
-        let bridge: _ = GoAmberBridge::new(Arc::new(MockAmberRuntime), Arc::new(GoVM::new().unwrap()));
+        let bridge: _ =
+            GoAmberBridge::new(Arc::new(MockAmberRuntime), Arc::new(GoVM::new().unwrap()));
         let result: _ = bridge
             .call_amber_from_go("console.log('Hello from Go calling Amber')")
             .await;

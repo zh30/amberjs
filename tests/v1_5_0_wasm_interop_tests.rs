@@ -21,7 +21,7 @@ fn test_wasm_module_exports_and_aliases() {
     `${typeof wasm1.ptr}:${typeof wasm1.copyMemory}:${typeof wasm1.MemoryView}:${wasm1.version}:${isSame}:${hasGlobal}`;
     "#;
     let output = run_js(script);
-    assert_eq!(output, "function:function:function:1.5.0:true:true");
+    assert_eq!(output, "function:function:function:2.0.0:true:true");
 }
 
 #[test]

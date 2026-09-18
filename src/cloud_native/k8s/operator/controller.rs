@@ -907,7 +907,10 @@ impl ClusterController {
     > {
         BTreeMap::from([
             ("amberjs.io/cluster".to_string(), cluster.name_any()),
-            ("amberjs.io/version".to_string(), cluster.spec.version.clone()),
+            (
+                "amberjs.io/version".to_string(),
+                cluster.spec.version.clone(),
+            ),
             (
                 "amberjs.io/cluster-name".to_string(),
                 cluster.spec.distributed.cluster_name.clone(),

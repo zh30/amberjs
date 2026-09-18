@@ -277,7 +277,9 @@ mod cicd_integration_tests {
 
         pipeline.add_stage(
             "Deploy".to_string(),
-            vec!["kubernetesDeploy configs: 'k8s/', kubeconfigId: 'amberjs-kubeconfig'".to_string()],
+            vec![
+                "kubernetesDeploy configs: 'k8s/', kubeconfigId: 'amberjs-kubeconfig'".to_string(),
+            ],
         );
 
         assert_eq!(pipeline.stages.len(), 4);
