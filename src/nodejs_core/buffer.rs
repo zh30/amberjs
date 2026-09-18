@@ -131,8 +131,13 @@ fn buffer_from_callback(
             }
         }
         let buffer: _ = v8::ArrayBuffer::new(scope, length);
-        // Fixed: ArrayBuffer created successfully
-        // Note: Direct data access not available in rusty_v8 0.22
+        if !bytes.is_empty() {
+            let store = buffer.get_backing_store();
+            let slice = unsafe {
+                std::slice::from_raw_parts_mut(store.as_ref().as_ptr() as *mut u8, bytes.len())
+            };
+            slice.copy_from_slice(&bytes);
+        }
         let length_key: _ = v8::String::new(scope, "_length").unwrap();
         let length_key_val: _ = v8::Integer::new(scope, length as i32).into();
         buffer.set(scope, length_key.into(), length_key_val);
@@ -153,14 +158,24 @@ fn buffer_alloc_callback(
         .to_integer(scope)
         .unwrap_or(v8::Integer::new(scope, 0))
         .value() as usize;
-    let _fill_value: _ = args
+    let fill_value: _ = args
         .get(1)
         .to_integer(scope)
         .unwrap_or(v8::Integer::new(scope, 0))
         .value() as u8;
     let buffer: _ = v8::ArrayBuffer::new(scope, size);
-    // Fixed: Skipping actual fill operation
-    // Note: Direct data access not available in rusty_v8 0.22
+    if size > 0 && fill_value != 0 {
+        let store = buffer.get_backing_store();
+        let ptr = store
+            .data()
+            .map(|p| p.as_ptr() as *mut u8)
+            .unwrap_or(std::ptr::null_mut());
+        if !ptr.is_null() {
+            unsafe {
+                std::ptr::write_bytes(ptr, fill_value, size);
+            }
+        }
+    }
     let length_key: _ = v8::String::new(scope, "_length").unwrap();
     let length_key_val: _ = v8::Integer::new(scope, size as i32).into();
     buffer.set(scope, length_key.into(), length_key_val);

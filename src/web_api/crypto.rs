@@ -20,20 +20,22 @@ use openssl::symm::{
     decrypt as openssl_decrypt, encrypt as openssl_encrypt, Cipher as OpensslCipher, Crypter, Mode,
 };
 use ring::aead::{Aad, Algorithm, LessSafeKey, Nonce, UnboundKey, AES_128_GCM, AES_256_GCM};
+use ring::digest;
 use rusty_v8 as v8;
-use sha1::Sha1;
-use sha2::{Digest, Sha256, Sha384, Sha512};
 
 /// Get bytes from an ArrayBuffer or TypedArray.
-fn get_array_buffer_data(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> Option<Vec<u8>> {
+fn with_buffer_bytes<R>(
+    scope: &mut v8::PinScope,
+    value: v8::Local<v8::Value>,
+    f: impl FnOnce(&[u8]) -> R,
+) -> Option<R> {
     if value.is_array_buffer() {
         let buffer = v8::Local::<v8::ArrayBuffer>::try_from(value).ok()?;
         let len = buffer.byte_length();
-        if len == 0 {
-            return Some(Vec::new());
-        }
-
         let backing_store = buffer.get_backing_store();
+        if len == 0 {
+            return Some(f(&[]));
+        }
         let ptr = backing_store
             .data()
             .map(|p| p.as_ptr() as *const u8)
@@ -41,8 +43,7 @@ fn get_array_buffer_data(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) 
         if ptr.is_null() {
             return None;
         }
-
-        return Some(unsafe { std::slice::from_raw_parts(ptr, len).to_vec() });
+        return Some(f(unsafe { std::slice::from_raw_parts(ptr, len) }));
     }
 
     if !value.is_typed_array() {
@@ -52,11 +53,10 @@ fn get_array_buffer_data(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) 
     let typed_array = v8::Local::<v8::TypedArray>::try_from(value).ok()?;
     let buffer = typed_array.buffer(scope)?;
     let len = typed_array.byte_length();
-    if len == 0 {
-        return Some(Vec::new());
-    }
-
     let backing_store = buffer.get_backing_store();
+    if len == 0 {
+        return Some(f(&[]));
+    }
     let ptr = backing_store
         .data()
         .map(|p| p.as_ptr() as *const u8)
@@ -64,8 +64,30 @@ fn get_array_buffer_data(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) 
     if ptr.is_null() {
         return None;
     }
+    Some(f(unsafe {
+        std::slice::from_raw_parts(ptr.add(typed_array.byte_offset()), len)
+    }))
+}
 
-    Some(unsafe { std::slice::from_raw_parts(ptr.add(typed_array.byte_offset()), len).to_vec() })
+fn get_array_buffer_data(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> Option<Vec<u8>> {
+    with_buffer_bytes(scope, value, |bytes| bytes.to_vec())
+}
+
+fn copy_to_array_buffer(buffer: v8::Local<v8::ArrayBuffer>, bytes: &[u8]) {
+    if bytes.is_empty() {
+        return;
+    }
+    let store = buffer.get_backing_store();
+    let ptr = store
+        .data()
+        .map(|p| p.as_ptr() as *mut u8)
+        .unwrap_or(std::ptr::null_mut());
+    if ptr.is_null() {
+        return;
+    }
+    unsafe {
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len());
+    }
 }
 
 fn aes_cbc_cipher_for_key_len(key_len: usize) -> Option<OpensslCipher> {
@@ -452,29 +474,14 @@ fn ring_hmac_algorithm(hash_name: &str) -> Result<ring::hmac::Algorithm, String>
 
 /// Compute SHA digest
 fn compute_sha_digest(data: &[u8], algorithm: &str) -> Result<Vec<u8>, String> {
-    match algorithm {
-        "SHA-1" | "sha-1" => {
-            let mut hasher = Sha1::new();
-            hasher.update(data);
-            Ok(hasher.finalize().to_vec())
-        }
-        "SHA-256" | "sha-256" => {
-            let mut hasher = Sha256::new();
-            hasher.update(data);
-            Ok(hasher.finalize().to_vec())
-        }
-        "SHA-384" | "sha-384" => {
-            let mut hasher = Sha384::new();
-            hasher.update(data);
-            Ok(hasher.finalize().to_vec())
-        }
-        "SHA-512" | "sha-512" => {
-            let mut hasher = Sha512::new();
-            hasher.update(data);
-            Ok(hasher.finalize().to_vec())
-        }
-        _ => Err(format!("Unsupported hash algorithm: {}", algorithm)),
-    }
+    let algorithm = match algorithm {
+        "SHA-1" | "sha-1" | "SHA1" | "sha1" => &digest::SHA1_FOR_LEGACY_USE_ONLY,
+        "SHA-256" | "sha-256" | "SHA256" | "sha256" => &digest::SHA256,
+        "SHA-384" | "sha-384" | "SHA384" | "sha384" => &digest::SHA384,
+        "SHA-512" | "sha-512" | "SHA512" | "sha512" => &digest::SHA512,
+        _ => return Err(format!("Unsupported hash algorithm: {algorithm}")),
+    };
+    Ok(digest::digest(algorithm, data).as_ref().to_vec())
 }
 
 fn openssl_message_digest(hash_name: &str) -> Result<MessageDigest, String> {
@@ -3876,9 +3883,11 @@ fn setup_crypto_subtle_api(scope: &mut v8::PinScope, subtle_obj: &v8::Object) {
             // Get hash algorithm
             let hash_name = get_algorithm_hash_name(scope, algo_value);
 
-            // Get data
-            let data = match get_array_buffer_data(scope, data_value) {
-                Some(d) => d,
+            let hash_result = with_buffer_bytes(scope, data_value, |data| {
+                compute_sha_digest(data, &hash_name)
+            });
+            let hash_result = match hash_result {
+                Some(result) => result,
                 None => {
                     let error = v8::String::new(
                         scope,
@@ -3891,16 +3900,10 @@ fn setup_crypto_subtle_api(scope: &mut v8::PinScope, subtle_obj: &v8::Object) {
                 }
             };
 
-            // Compute hash
-            let hash_result = compute_sha_digest(&data, &hash_name);
-
             match hash_result {
                 Ok(hash) => {
                     let array_buffer = v8::ArrayBuffer::new(scope, hash.len());
-                    let backing_store = array_buffer.get_backing_store();
-                    for (i, byte) in hash.iter().enumerate() {
-                        backing_store[i].set(*byte);
-                    }
+                    copy_to_array_buffer(array_buffer, &hash);
                     let uint8_array = match v8::Uint8Array::new(scope, array_buffer, 0, hash.len())
                     {
                         Some(arr) => arr,

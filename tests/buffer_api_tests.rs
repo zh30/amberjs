@@ -351,3 +351,38 @@ fn test_global_this_url() {
         "globalThis.URL should be a function"
     );
 }
+
+#[test]
+#[serial]
+fn test_buffer_from_byte_array_copies_bytes() {
+    let mut runtime =
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+    let code = r#"
+        const buf = Buffer.from([0x41, 0x42, 0x43, 0x00, 0xff]);
+        [buf.length, buf[0], buf[1], buf[2], buf[3], buf[4]].join(',');
+    "#;
+    let result = runtime.execute_code(code).expect("Execution failed");
+    assert_eq!(
+        result.trim(),
+        "5,65,66,67,0,255",
+        "Buffer.from(array) should copy source bytes into the buffer"
+    );
+}
+
+#[test]
+#[serial]
+fn test_buffer_alloc_fill_writes_bytes() {
+    let mut runtime =
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+    let code = r#"
+        const filled = Buffer.alloc(4, 0xaa);
+        const zeroed = Buffer.alloc(3);
+        [filled[0], filled[1], filled[2], filled[3], zeroed[0], zeroed[1], zeroed[2]].join(',');
+    "#;
+    let result = runtime.execute_code(code).expect("Execution failed");
+    assert_eq!(
+        result.trim(),
+        "170,170,170,170,0,0,0",
+        "Buffer.alloc should fill with the given byte or zeroes"
+    );
+}

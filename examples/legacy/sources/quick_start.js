@@ -38,7 +38,12 @@ let data = {name: 'Amber', version: '0.2.0', features: ['高性能', '异步', '
 console.log('JSON.stringify:', JSON.stringify(data));
 
 // URL API
-let url = new URL('https://api.example.com/v1/data?key=value');
+let url;
+try {
+    url = new URL('https://api.example.com/v1/data?key=value');
+} catch (error) {
+    throw new Error(`URL parse failed: ${error}`);
+}
 console.log('URL.host:', url.host);
 console.log('URL.pathname:', url.pathname);
 

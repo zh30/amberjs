@@ -35,12 +35,22 @@ let testObj = {
 console.log('原始对象:', testObj);
 console.log('JSON.stringify:', JSON.stringify(testObj, null, 2));
 
-let parsedJson = JSON.parse('{"test": true, "value": 123}');
+let parsedJson;
+try {
+    parsedJson = JSON.parse('{"test": true, "value": 123}');
+} catch (error) {
+    throw new Error(`JSON.parse failed: ${error}`);
+}
 console.log('JSON.parse:', parsedJson);
 
 // 4. URL API
 console.log('\n--- 4. URL API ---');
-let url = new URL('https://api.example.com:8080/v1/users?sort=name&limit=10#profile');
+let url;
+try {
+    url = new URL('https://api.example.com:8080/v1/users?sort=name&limit=10#profile');
+} catch (error) {
+    throw new Error(`URL parse failed: ${error}`);
+}
 console.log('href:', url.href);
 console.log('protocol:', url.protocol);
 console.log('host:', url.host);

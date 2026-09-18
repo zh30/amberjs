@@ -9,6 +9,31 @@
 
 const { LLM, AgentPipeline } = require('amber:ai');
 
+function evalArithmetic(expr) {
+    const source = String(expr).replace(/\s+/g, '');
+    if (!source || !/^[0-9+\-]+$/.test(source)) {
+        throw new Error('unsupported arithmetic expression');
+    }
+    let total = 0;
+    let sign = 1;
+    let digits = '';
+    for (const ch of source) {
+        if (ch === '+' || ch === '-') {
+            if (digits) {
+                total += sign * Number(digits);
+                digits = '';
+            }
+            sign = ch === '+' ? 1 : -1;
+            continue;
+        }
+        digits += ch;
+    }
+    if (digits) {
+        total += sign * Number(digits);
+    }
+    return total;
+}
+
 async function main() {
     console.log('=== Amber AgentPipeline Tool Calling ===\n');
 
@@ -27,7 +52,7 @@ async function main() {
         description: 'Evaluates arithmetic expressions',
         execute: (expr) => {
             console.log(`  [Tool math_eval called with: "${expr}"]`);
-            return eval(expr);
+            return evalArithmetic(expr);
         }
     });
 
