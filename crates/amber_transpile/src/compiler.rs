@@ -976,6 +976,9 @@ impl TypeScriptCompiler {
                                 tokens.push(Token::Lt);
                             }
                         } else if c == '>' {
+                            // NOTE: For TypeScript, we don't combine >> into GtGt
+                            // because nested generics like A<B<C>> should be parsed
+                            // as separate > tokens, not as a right-shift operator
                             if pos + 1 < chars.len() && chars[pos + 1] == '=' {
                                 tokens.push(Token::GtEq);
                                 pos += 1;
@@ -1059,31 +1062,6 @@ impl TypeScriptCompiler {
                             tokens.push(Token::TemplateEnd);
                             pos += 1;
                             break;
-                        } else if c == '<' {
-                            if pos + 1 < chars.len() && chars[pos + 1] == '=' {
-                                tokens.push(Token::LtEq);
-                                pos += 1;
-                            } else if pos + 1 < chars.len() && chars[pos + 1] == '<' {
-                                if pos + 2 < chars.len() && chars[pos + 2] == '=' {
-                                    tokens.push(Token::LtLtEq);
-                                    pos += 2;
-                                } else {
-                                    tokens.push(Token::LtLt);
-                                    pos += 1;
-                                }
-                            } else {
-                                tokens.push(Token::Lt);
-                            }
-                        } else if c == '>' {
-                            // NOTE: For TypeScript, we don't combine >> into GtGt
-                            // because nested generics like A<B<C>> should be parsed
-                            // as separate > tokens, not as a right-shift operator
-                            if pos + 1 < chars.len() && chars[pos + 1] == '=' {
-                                tokens.push(Token::GtEq);
-                                pos += 1;
-                            } else {
-                                tokens.push(Token::Gt);
-                            }
                         } else if c == '?' {
                             if pos + 1 < chars.len() && chars[pos + 1] == '.' {
                                 tokens.push(Token::QuestionDot);
@@ -1566,36 +1544,31 @@ impl TypeScriptCompiler {
             ASTStatement::Return(expr) => {
                 if let Some(ref return_expr) = expr {
                     // 获取当前函数的返回类型
-                    if let Some(expected_opt) = ctx.return_type_stack.last() {
-                        if let Some(expected) = expected_opt {
-                            // 推断返回表达式的类型
-                            let actual_type = self.infer_type(return_expr, ctx)?;
+                    if let Some(Some(expected)) = ctx.return_type_stack.last() {
+                        // 推断返回表达式的类型
+                        let actual_type = self.infer_type(return_expr, ctx)?;
 
-                            // 检查类型兼容性
-                            if let Some(actual) = actual_type {
-                                if !self.is_type_compatible(expected, &actual, ctx) {
-                                    self.add_diagnostic(
-                                        format!(
-                                            "Type '{}' is not assignable to type '{}'",
-                                            actual, expected
-                                        ),
-                                        None,
-                                    );
-                                }
+                        // 检查类型兼容性
+                        if let Some(actual) = actual_type {
+                            if !self.is_type_compatible(expected, &actual, ctx) {
+                                self.add_diagnostic(
+                                    format!(
+                                        "Type '{}' is not assignable to type '{}'",
+                                        actual, expected
+                                    ),
+                                    None,
+                                );
                             }
                         }
                     }
                 } else {
                     // 检查返回类型是否应该是 void
-                    if let Some(expected_opt) = ctx.return_type_stack.last() {
-                        if let Some(expected) = expected_opt {
-                            if expected != "void" && expected != "undefined" && expected != "never"
-                            {
-                                self.add_diagnostic(
-                                    format!("Expected to return '{}', but got void", expected),
-                                    None,
-                                );
-                            }
+                    if let Some(Some(expected)) = ctx.return_type_stack.last() {
+                        if expected != "void" && expected != "undefined" && expected != "never" {
+                            self.add_diagnostic(
+                                format!("Expected to return '{}', but got void", expected),
+                                None,
+                            );
                         }
                     }
                 }
@@ -1855,14 +1828,9 @@ impl TypeScriptCompiler {
                         let left_type = self.infer_type(left, ctx)?;
                         let right_type = self.infer_type(right, ctx)?;
                         // 推断联合类型
-                        if left_type.is_some() && right_type.is_some() {
-                            Ok(Some(format!(
-                                "{} | {}",
-                                left_type.unwrap(),
-                                right_type.unwrap()
-                            )))
-                        } else {
-                            Ok(None)
+                        match (left_type, right_type) {
+                            (Some(l), Some(r)) => Ok(Some(format!("{} | {}", l, r))),
+                            _ => Ok(None),
                         }
                     }
                     _ => Ok(Some("any".to_string())),
@@ -2198,15 +2166,15 @@ impl TypeScriptCompiler {
         }
 
         // 检查只读修饰符
-        if type_name.starts_with("readonly ") {
-            return self.is_valid_type(&type_name[9..], ctx);
+        if let Some(inner) = type_name.strip_prefix("readonly ") {
+            return self.is_valid_type(inner, ctx);
         }
 
         false
     }
 
     /// 检查类型兼容性
-    fn is_type_compatible(&self, expected: &str, actual: &str, ctx: &TypeContext) -> bool {
+    fn is_type_compatible(&self, expected: &str, actual: &str, _ctx: &TypeContext) -> bool {
         // any 兼容所有类型
         if expected == "any" || actual == "any" {
             return true;
@@ -2245,14 +2213,14 @@ impl TypeScriptCompiler {
             let expected_types: Vec<&str> = expected.split('|').map(|s| s.trim()).collect();
             return expected_types
                 .iter()
-                .any(|t| self.is_type_compatible(t, actual, ctx));
+                .any(|t| self.is_type_compatible(t, actual, _ctx));
         }
 
         // 检查数组类型
         if expected.ends_with("[]") && actual.ends_with("[]") {
             let inner_expected = &expected[..expected.len() - 2];
             let inner_actual = &actual[..actual.len() - 2];
-            return self.is_type_compatible(inner_expected, inner_actual, ctx);
+            return self.is_type_compatible(inner_expected, inner_actual, _ctx);
         }
 
         false
@@ -3414,10 +3382,7 @@ impl Parser {
         self.for_loop_context = false;
 
         // 检查是否是 for...of
-        let is_for_of = match self.current_token() {
-            Token::Identifier(s) if s == "of" => true,
-            _ => false,
-        };
+        let is_for_of = matches!(self.current_token(), Token::Identifier(s) if s == "of");
         if is_for_of {
             // for...of 循环
             self.consume_any_identifier()?;
@@ -4687,11 +4652,7 @@ impl Parser {
                     }
                     Token::Gt => {
                         depth -= 1;
-                        if depth > 0 {
-                            self.advance();
-                        } else {
-                            self.advance();
-                        }
+                        self.advance();
                     }
                     _ => {
                         self.advance();
@@ -6062,11 +6023,7 @@ impl Parser {
                         }
                         Token::Gt => {
                             depth -= 1;
-                            if depth > 0 {
-                                self.advance();
-                            } else {
-                                self.advance();
-                            }
+                            self.advance();
                         }
                         _ => {
                             self.advance();
@@ -6216,11 +6173,7 @@ impl Parser {
                         }
                         Token::Gt => {
                             depth -= 1;
-                            if depth > 0 {
-                                self.advance();
-                            } else {
-                                self.advance();
-                            }
+                            self.advance();
                         }
                         _ => {
                             self.advance();
@@ -7852,9 +7805,8 @@ impl Parser {
                 }
 
                 // 处理分号或逗号分隔符
-                if self.current_token_eq(&Token::SemiColon) {
-                    self.advance();
-                } else if self.current_token_eq(&Token::Comma) {
+                if self.current_token_eq(&Token::SemiColon) || self.current_token_eq(&Token::Comma)
+                {
                     self.advance();
                 }
                 continue;
@@ -7880,9 +7832,9 @@ impl Parser {
                             method_params.unwrap_or_else(|| "any".to_string())
                         ));
                         // 处理分号或逗号分隔符
-                        if self.current_token_eq(&Token::SemiColon) {
-                            self.advance();
-                        } else if self.current_token_eq(&Token::Comma) {
+                        if self.current_token_eq(&Token::SemiColon)
+                            || self.current_token_eq(&Token::Comma)
+                        {
                             self.advance();
                         }
                         continue; // 已处理完整的方法签名，跳过后续的属性解析
@@ -7914,9 +7866,7 @@ impl Parser {
             }
 
             // 处理分号或逗号分隔符
-            if self.current_token_eq(&Token::SemiColon) {
-                self.advance();
-            } else if self.current_token_eq(&Token::Comma) {
+            if self.current_token_eq(&Token::SemiColon) || self.current_token_eq(&Token::Comma) {
                 self.advance();
             }
         }
@@ -10042,9 +9992,9 @@ mod tests {
     use super::*;
     #[test]
     fn test_lexical_analysis() {
-        let compiler: _ = TypeScriptCompiler::new(TypeScriptCompilerConfig::default());
-        let source: _ = "let x: number = 5;";
-        let tokens: _ = compiler.lexical_analysis(source, "test.ts").unwrap();
+        let compiler = TypeScriptCompiler::new(TypeScriptCompilerConfig::default());
+        let source = "let x: number = 5;";
+        let tokens = compiler.lexical_analysis(source, "test.ts").unwrap();
         assert!(tokens.iter().any(|t| matches!(t, Token::Let)));
         assert!(tokens.iter().any(|t| matches!(t, Token::Identifier(_))));
         assert!(tokens.iter().any(|t| matches!(t, Token::Colon)));
@@ -10055,8 +10005,8 @@ mod tests {
     #[test]
     fn test_compile_simple_typescript() {
         let mut compiler = TypeScriptCompiler::new(TypeScriptCompilerConfig::default());
-        let source: _ = "let x: number = 5;";
-        let result: _ = compiler.compile_source(source, "test.ts").unwrap();
+        let source = "let x: number = 5;";
+        let result = compiler.compile_source(source, "test.ts").unwrap();
         // 打印实际输出用于调试
         assert!(result.js_code.contains("let x"));
         assert!(!result.js_code.contains(": number"));
@@ -10064,8 +10014,8 @@ mod tests {
     #[test]
     fn test_compile_function() {
         let mut compiler = TypeScriptCompiler::new(TypeScriptCompilerConfig::default());
-        let source: _ = "function add(a: number, b: number): number { return a + b; }";
-        let result: _ = compiler.compile_source(source, "test.ts").unwrap();
+        let source = "function add(a: number, b: number): number { return a + b; }";
+        let result = compiler.compile_source(source, "test.ts").unwrap();
         // 打印实际输出用于调试
         assert!(result.js_code.contains("function add"));
         assert!(result.js_code.contains("a, b"));
