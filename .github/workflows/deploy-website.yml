@@ -1,0 +1,85 @@
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/website/**"
+      - "install.sh"
+      - "install.ps1"
+      - ".github/workflows/deploy-website.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/website
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/website/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo "::error::Missing secret CLOUDFLARE_API_TOKEN on Environment production"
+            exit 1
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "::error::Missing variable CLOUDFLARE_ACCOUNT_ID on Environment production"
+            exit 1
+          fi
+          if ! pnpm run deploy; then
+            echo "::error::wrangler deploy failed; Worker and static assets were not published"
+            exit 1
+          fi
+
+      # wrangler 4.x takes {bucket}/{key}; --bucket is not a valid flag on r2 object put.
+      # Quote content-type so the charset parameter is not split by the shell.
+      - name: Upload install scripts to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if ! npx wrangler r2 object put amber-dist/install.sh \
+            --file=../../install.sh \
+            --remote \
+            --content-type "text/plain; charset=utf-8"; then
+            echo "::error::Failed to upload install.sh to R2 bucket amber-dist"
+            exit 1
+          fi
+          if ! npx wrangler r2 object put amber-dist/install.ps1 \
+            --file=../../install.ps1 \
+            --remote \
+            --content-type "text/plain; charset=utf-8"; then
+            echo "::error::Failed to upload install.ps1 to R2 bucket amber-dist"
+            exit 1
+          fi
