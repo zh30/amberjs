@@ -107,7 +107,7 @@ impl IsolatePrewarmer {
         // macOS CI SIGSEGV'd in test_concurrent_multi_thread_checkout when four
         // workers created isolates from the same CoW startup blob at once.
         static CREATE_LOCK: Mutex<()> = Mutex::new(());
-        let mut runtime = {
+        let runtime = {
             let _guard = CREATE_LOCK
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
