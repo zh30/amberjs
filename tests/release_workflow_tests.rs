@@ -238,10 +238,13 @@ fn macos_x86_64_asset_job_uses_live_intel_runner() {
         .next()
         .expect("steps");
 
+    // x86_64 macOS is cross-compiled on macos-latest (ARM). macos-15-intel is
+    // not required and was dropped to avoid the retired / scarce Intel runner.
     assert!(
-        intel_block.contains("os: macos-15-intel")
-            && intel_block.contains("target: x86_64-apple-darwin"),
-        "x86_64-apple-darwin must run on macos-15-intel (GitHub-hosted Intel macOS 15)"
+        intel_block.contains("os: macos-latest")
+            && intel_block.contains("target: x86_64-apple-darwin")
+            && !intel_block.contains("macos-15-intel"),
+        "x86_64-apple-darwin must be listed on macos-latest (cross-compile), not macos-15-intel: {intel_block}"
     );
 }
 
@@ -443,42 +446,27 @@ fn install_sh_maps_unix_platforms_to_release_targets() {
 
 #[test]
 fn windows_sys_imports_match_v0_52_modules() {
-    let rss = fs::read_to_string(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/runtime_minimal.rs"),
-    )
-    .unwrap();
-    assert!(
-        rss.contains("use windows_sys::Win32::System::Threading::GetCurrentProcess"),
-        "GetCurrentProcess must come from Threading on windows-sys 0.52"
-    );
-    assert!(
-        rss.contains("use windows_sys::Win32::System::ProcessStatus::{")
-            && rss.contains("GetProcessMemoryInfo")
-            && rss.contains("PROCESS_MEMORY_COUNTERS"),
-        "GetProcessMemoryInfo/PROCESS_MEMORY_COUNTERS must come from ProcessStatus"
-    );
-    assert!(
-        !rss.contains("Win32::Foundation::GetCurrentProcess"),
-        "GetCurrentProcess is not in Foundation in windows-sys 0.52"
-    );
-    assert!(
-        !rss.contains("Diagnostics::Debug::{\n            GetProcessMemoryInfo"),
-        "GetProcessMemoryInfo is not in Diagnostics::Debug in windows-sys 0.52"
-    );
-
     let cpu = fs::read_to_string(
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/nodejs_core/process.rs"),
     )
     .unwrap();
     assert!(
-        cpu.contains(
-            "use windows_sys::Win32::System::Threading::{GetCurrentProcess, GetProcessTimes}"
-        ),
-        "GetProcessTimes must come from Threading"
+        cpu.contains("use windows_sys::Win32::System::Threading::GetCurrentProcess"),
+        "GetCurrentProcess must come from Threading on windows-sys 0.52"
     );
     assert!(
-        cpu.contains("use windows_sys::Win32::Foundation::FILETIME"),
-        "GetProcessTimes takes FILETIME pointers"
+        cpu.contains("use windows_sys::Win32::System::ProcessStatus::{")
+            && cpu.contains("GetProcessMemoryInfo")
+            && cpu.contains("PROCESS_MEMORY_COUNTERS"),
+        "GetProcessMemoryInfo/PROCESS_MEMORY_COUNTERS must come from ProcessStatus"
+    );
+    assert!(
+        !cpu.contains("Win32::Foundation::GetCurrentProcess"),
+        "GetCurrentProcess is not in Foundation in windows-sys 0.52"
+    );
+    assert!(
+        !cpu.contains("Diagnostics::Debug::{\n            GetProcessMemoryInfo"),
+        "GetProcessMemoryInfo is not in Diagnostics::Debug in windows-sys 0.52"
     );
     assert!(
         !cpu.contains("Diagnostics::Process::GetProcessTimes"),

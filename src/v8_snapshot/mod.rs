@@ -39,8 +39,11 @@ pub fn startup_cache_dir() -> std::path::PathBuf {
     std::env::var_os("AMBER_SNAPSHOT_DIR")
         .map(std::path::PathBuf::from)
         .or_else(|| {
-            std::env::var_os("HOME")
-                .map(|home| std::path::PathBuf::from(home).join(".cache").join("amberjs"))
+            std::env::var_os("HOME").map(|home| {
+                std::path::PathBuf::from(home)
+                    .join(".cache")
+                    .join("amberjs")
+            })
         })
         .unwrap_or_else(std::env::temp_dir)
 }

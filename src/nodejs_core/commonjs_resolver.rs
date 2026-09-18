@@ -768,7 +768,7 @@ fn resolve_package_main(
     package_root: &Path,
     conditions: &[&str],
 ) -> Result<Option<PathBuf>, CommonJsResolveError> {
-    let Some(package_json) = read_package_json(package_root)? else {
+    let Some(package_json) = read_package_json_required(package_root)? else {
         return Ok(None);
     };
 
@@ -806,7 +806,7 @@ fn resolve_package_subpath(
     subpath: &str,
     conditions: &[&str],
 ) -> Result<Option<PathBuf>, CommonJsResolveError> {
-    let Some(package_json) = read_package_json(package_root)? else {
+    let Some(package_json) = read_package_json_required(package_root)? else {
         return resolve_path_candidate(&package_root.join(subpath), conditions);
     };
 
@@ -845,8 +845,30 @@ fn resolve_package_subpath(
     }
 }
 
+#[derive(Clone, Copy)]
+enum PackageJsonDenyPolicy {
+    /// Walking ancestors for `type`/`imports` must not abort startup when a
+    /// parent `package.json` is sandboxed (e.g. repo root during a fixture).
+    TreatAsAbsent,
+    /// Reading the package we are actually resolving must surface the deny.
+    Fail,
+}
+
 fn read_package_json(
     package_root: &Path,
+) -> Result<Option<serde_json::Value>, CommonJsResolveError> {
+    read_package_json_with_policy(package_root, PackageJsonDenyPolicy::TreatAsAbsent)
+}
+
+fn read_package_json_required(
+    package_root: &Path,
+) -> Result<Option<serde_json::Value>, CommonJsResolveError> {
+    read_package_json_with_policy(package_root, PackageJsonDenyPolicy::Fail)
+}
+
+fn read_package_json_with_policy(
+    package_root: &Path,
+    deny_policy: PackageJsonDenyPolicy,
 ) -> Result<Option<serde_json::Value>, CommonJsResolveError> {
     if let Ok(cache) = PACKAGE_JSON_CACHE.read() {
         if let Some(cached) = cache.get(package_root) {
@@ -862,19 +884,19 @@ fn read_package_json(
         return Ok(None);
     }
 
-    // Sandbox may deny parent package.json (e.g. repo root while running a fixture).
-    // Treat that as "no package.json here" so type/exports probing does not abort startup.
-    if crate::permissions::check_global_permission(
+    if let Err(error) = crate::permissions::check_global_permission(
         crate::permissions::PermissionKind::FileSystem,
         crate::permissions::PermissionAction::Read,
         crate::permissions::ResourceId::Path(package_json_path.clone()),
-    )
-    .is_err()
-    {
-        if let Ok(mut cache) = PACKAGE_JSON_CACHE.write() {
-            cache.insert(package_root.to_path_buf(), None);
-        }
-        return Ok(None);
+    ) {
+        return match deny_policy {
+            PackageJsonDenyPolicy::TreatAsAbsent => Ok(None),
+            PackageJsonDenyPolicy::Fail => Err(CommonJsResolveError::with_reason(
+                package_json_path.to_string_lossy(),
+                package_root,
+                error.to_string(),
+            )),
+        };
     }
 
     let content = fs::read_to_string(&package_json_path).map_err(|error| {

@@ -458,18 +458,19 @@ pub fn setup_wasm_api(
             let array_buffer =
                 v8::ArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
 
-            // Compile via WebAssembly.compile(arrayBuffer)
+            // Compile synchronously from the mmap-backed buffer. WebAssembly.compile()
+            // returns a Promise that the CLI evaluate loop may not finish pumping.
             let global = scope.get_current_context().global(scope);
             let wasm_key = v8::String::new(scope, "WebAssembly").unwrap();
             if let Some(wasm_val) = global.get(scope, wasm_key.into()) {
                 if let Ok(wasm_obj) = v8::Local::<v8::Object>::try_from(wasm_val) {
-                    let compile_key = v8::String::new(scope, "compile").unwrap();
-                    if let Some(compile_val) = wasm_obj.get(scope, compile_key.into()) {
-                        if let Ok(compile_fn) = v8::Local::<v8::Function>::try_from(compile_val) {
-                            let compile_rv =
-                                compile_fn.call(scope, wasm_obj.into(), &[array_buffer.into()]);
-                            if let Some(res) = compile_rv {
-                                resolver.resolve(scope, res);
+                    let module_key = v8::String::new(scope, "Module").unwrap();
+                    if let Some(module_val) = wasm_obj.get(scope, module_key.into()) {
+                        if let Ok(module_fn) = v8::Local::<v8::Function>::try_from(module_val) {
+                            if let Some(module_obj) =
+                                module_fn.new_instance(scope, &[array_buffer.into()])
+                            {
+                                resolver.resolve(scope, module_obj.into());
                                 return;
                             }
                         }
@@ -477,7 +478,7 @@ pub fn setup_wasm_api(
                 }
             }
 
-            let err = v8::String::new(scope, "WebAssembly.compile is not available").unwrap();
+            let err = v8::String::new(scope, "WebAssembly.Module is not available").unwrap();
             let exc = v8::Exception::error(scope, err);
             resolver.reject(scope, exc);
         },

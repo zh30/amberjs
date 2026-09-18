@@ -2238,7 +2238,7 @@ test("supports core matchers", () => {
   expect([1, 2, 3]).toContain(2);
   expect("amberjs runtime").toContain("runtime");
   expect([1, 2, 3]).toHaveLength(3);
-  expect("amber").toHaveLength(3);
+  expect("amber").toHaveLength(5);
   expect("amber-123").toMatch(/amber-\d+/);
   expect("amber-123").toMatch("123");
   expect(1).not.toBe(2);

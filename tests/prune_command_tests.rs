@@ -19,7 +19,11 @@ mod prune_command_tests {
     #[test]
     fn test_prune_command_exists() {
         let amberjs = amberjs_path();
-        assert!(amberjs.exists(), "amber binary should exist at {:?}", amberjs);
+        assert!(
+            amberjs.exists(),
+            "amber binary should exist at {:?}",
+            amberjs
+        );
 
         let output = Command::new(&amberjs)
             .arg("prune")

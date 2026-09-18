@@ -16552,7 +16552,6 @@ impl MinimalRuntime {
                     }
                 } else if let Some(amber_name) = requested_module_id_str
                     .strip_prefix("amber:")
-                    
                 {
                     if crate::nodejs_core::commonjs_resolver::is_builtin_module(&requested_module_id_str)
                         || crate::nodejs_core::commonjs_resolver::is_builtin_module(amber_name)
@@ -17573,7 +17572,6 @@ impl MinimalRuntime {
                         // Try to get the module from global
                         let clean_id = module_id_str
                             .strip_prefix("amber:")
-                            
                             .unwrap_or(&module_id_str);
                         let mod_key = v8::String::new(scope, clean_id).unwrap();
                         if let Some(mod_val) = global_obj.get(scope, mod_key.into()) {
@@ -17629,7 +17627,6 @@ impl MinimalRuntime {
                             Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::Builtin(name)) => {
                                 let clean = name
                                     .strip_prefix("amber:")
-                                    
                                     .unwrap_or(&name);
                                 for candidate in &[
                                     name.as_str(),

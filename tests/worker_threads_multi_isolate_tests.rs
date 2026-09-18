@@ -107,7 +107,7 @@ worker.postMessage({{ text: 'hello amberjs' }});
     assert!(result.is_ok(), "Ping-pong failed: {:?}", result.err());
 
     let check = runtime.execute_code("replyReceived");
-    assert_eq!(check.unwrap(), "HELLO AMBER");
+    assert_eq!(check.unwrap(), "HELLO AMBERJS");
 }
 
 #[test]
