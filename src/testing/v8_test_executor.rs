@@ -734,7 +734,7 @@ mod tests {
             expect('amberjs').toContain('js');
             expect([1, 2]).toContain(2);
             expect([1, 2]).toHaveLength(2);
-            expect('amber').toHaveLength(3);
+            expect('amber').toHaveLength(5);
             expect(null).toBeNull();
             expect(1).toBeDefined();
             expect(() => { throw new Error('boom'); }).toThrow();
