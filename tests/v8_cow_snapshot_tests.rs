@@ -164,12 +164,13 @@ fn test_prewarmed_execution_latency_benchmark() {
             let prewarmer = global_prewarmer();
             // Warm this thread's TLS standby so acquire() is a cache hit, then
             // discard one execute so we measure a primed isolate, not first-call setup.
-            prewarmer.prewarm().expect("Failed to prewarm worker thread");
+            prewarmer
+                .prewarm()
+                .expect("Failed to prewarm worker thread");
             let mut rt = prewarmer
                 .acquire()
                 .expect("Failed to acquire prewarmed isolate");
-            rt.execute_code("0")
-                .expect("warmup execute should succeed");
+            rt.execute_code("0").expect("warmup execute should succeed");
 
             let start = Instant::now();
             let res = rt.execute_code("const a = 12345; const b = 67890; a + b");
