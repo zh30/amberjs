@@ -435,6 +435,10 @@ fn install_sh_maps_unix_platforms_to_release_targets() {
     let ps1_text = fs::read_to_string(&ps1).expect("install.ps1");
     assert!(ps1_text.contains("x86_64-pc-windows-msvc.zip"));
     assert!(ps1_text.contains("amber.exe"));
+    assert!(
+        ps1_text.contains("bee-$Version-$Target.zip") && ps1_text.contains("bee.exe"),
+        "install.ps1 must fall back to legacy bee- zip / bee.exe"
+    );
 }
 
 #[test]
