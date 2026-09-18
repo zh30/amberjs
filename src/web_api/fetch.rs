@@ -2317,7 +2317,9 @@ fn response_body_for_object(
     scope: &mut v8::PinScope,
     response_obj: v8::Local<v8::Object>,
 ) -> Option<Vec<u8>> {
-    let response_id_key = v8::String::new(scope, "__amberjsResponseId").unwrap().into();
+    let response_id_key = v8::String::new(scope, "__amberjsResponseId")
+        .unwrap()
+        .into();
     if let Some(response_id_val) = response_obj.get(scope, response_id_key) {
         if let Some(response_id_int) = response_id_val.to_integer(scope) {
             let response_id = response_id_int.value() as usize;

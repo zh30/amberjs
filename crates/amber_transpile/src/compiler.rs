@@ -607,30 +607,29 @@ impl TypeScriptCompiler {
                 continue;
             }
             // 处理注释
-            if ch == '/'
-                && pos + 1 < chars.len() {
-                    let next_ch = chars[pos + 1];
-                    // 单行注释 //
-                    if next_ch == '/' {
-                        // 跳过到行末
-                        while pos < chars.len() && chars[pos] != '\n' {
-                            pos += 1;
-                        }
-                        continue;
+            if ch == '/' && pos + 1 < chars.len() {
+                let next_ch = chars[pos + 1];
+                // 单行注释 //
+                if next_ch == '/' {
+                    // 跳过到行末
+                    while pos < chars.len() && chars[pos] != '\n' {
+                        pos += 1;
                     }
-                    // 多行注释 /* */
-                    if next_ch == '*' {
-                        pos += 2;
-                        while pos + 1 < chars.len() {
-                            if chars[pos] == '*' && chars[pos + 1] == '/' {
-                                pos += 2;
-                                break;
-                            }
-                            pos += 1;
-                        }
-                        continue;
-                    }
+                    continue;
                 }
+                // 多行注释 /* */
+                if next_ch == '*' {
+                    pos += 2;
+                    while pos + 1 < chars.len() {
+                        if chars[pos] == '*' && chars[pos + 1] == '/' {
+                            pos += 2;
+                            break;
+                        }
+                        pos += 1;
+                    }
+                    continue;
+                }
+            }
             // 处理标识符和关键字
             if ch.is_alphabetic() || ch == '_' || ch == '$' {
                 let start: usize = pos;
@@ -1681,10 +1680,7 @@ impl TypeScriptCompiler {
             }
             ASTStatement::Break { .. } => {}
             ASTStatement::Continue { .. } => {}
-            ASTStatement::Namespace {
-                body,
-                ..
-            } => {
+            ASTStatement::Namespace { body, .. } => {
                 for stmt in body {
                     self.check_node(stmt, ctx)?;
                 }
@@ -5040,10 +5036,9 @@ impl Parser {
                     brace_depth -= 1;
                 } else if self.current_token_eq(&Token::LParen) {
                     paren_depth += 1;
-                } else if self.current_token_eq(&Token::RParen)
-                    && paren_depth > 0 {
-                        paren_depth -= 1;
-                    }
+                } else if self.current_token_eq(&Token::RParen) && paren_depth > 0 {
+                    paren_depth -= 1;
+                }
                 if brace_depth > 0 {
                     self.advance();
                 }
@@ -5080,10 +5075,9 @@ impl Parser {
                         if paren_depth > 0 {
                             paren_depth -= 1;
                         }
-                    } else if self.current_token_eq(&Token::RBrace)
-                        && brace_depth > 0 {
-                            brace_depth -= 1;
-                        }
+                    } else if self.current_token_eq(&Token::RBrace) && brace_depth > 0 {
+                        brace_depth -= 1;
+                    }
                     self.advance();
                 }
                 Token::SemiColon => {
@@ -6585,7 +6579,7 @@ impl Parser {
                     // 检查参数类型注解
                     let param_type = if self.current_token_eq(&Token::Colon) {
                         self.consume(Token::Colon)?;
-                        
+
                         self.parse_type_annotation()
                     } else {
                         None
@@ -7046,9 +7040,10 @@ impl Parser {
                         Token::Identifier(_) | Token::String(_, _) | Token::Number(_) => {
                             // 找到属性名（标识符、字符串或数字），检查下一个是否是 :
                             if lookahead + 1 < self.tokens.len()
-                                && matches!(self.tokens[lookahead + 1], Token::Colon) {
-                                    is_object_literal = true;
-                                }
+                                && matches!(self.tokens[lookahead + 1], Token::Colon)
+                            {
+                                is_object_literal = true;
+                            }
                         }
                         Token::LBracket => {
                             // 计算属性名: { [expr] : ... } - 是对象字面量
@@ -9411,11 +9406,7 @@ impl CodeEmitter {
                                     } else if let Some(ref decl) = inline_declaration {
                                         // export const/function/class - 转换为 declare export const/function/class
                                         match decl.as_ref() {
-                                            ASTNode::VariableDeclaration {
-                                                kind,
-                                                name,
-                                                ..
-                                            } => {
+                                            ASTNode::VariableDeclaration { kind, name, .. } => {
                                                 self.output.push_str("declare export ");
                                                 self.output.push_str(kind);
                                                 self.output.push(' ');
@@ -15994,11 +15985,11 @@ fn validate_source_map(source_map: &str) -> SourceMapValidationResult {
                     result.mappings = Some(m_str.to_string());
                     // Validate VLQ encoding
                     for ch in m_str.chars() {
-                        if ch != ';' && ch != ','
-                            && !ch.is_alphanumeric() && ch != '+' && ch != '/' {
-                                result.errors.push(format!("Invalid VLQ character: {}", ch));
-                                result.is_valid = false;
-                            }
+                        if ch != ';' && ch != ',' && !ch.is_alphanumeric() && ch != '+' && ch != '/'
+                        {
+                            result.errors.push(format!("Invalid VLQ character: {}", ch));
+                            result.is_valid = false;
+                        }
                     }
                 }
             } else {

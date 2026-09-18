@@ -164,7 +164,10 @@ mod execution_context {
                 script_path: absolute_path.clone(),
                 dirname,
                 filename: absolute_path,
-                argv: vec!["amber".to_string(), script_path.to_string_lossy().to_string()],
+                argv: vec![
+                    "amber".to_string(),
+                    script_path.to_string_lossy().to_string(),
+                ],
                 env: std::env::vars().collect(),
             }
         }
