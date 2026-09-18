@@ -122,6 +122,8 @@ jobs:
         run: |
           mkdir -p staging
           src="target/${TARGET}/release/${BIN}"
+          # Prefix must stay amber-. v1.16.0 and earlier shipped bee- leftovers;
+          # install.sh / install.ps1 fall back to that name for old tags.
           if [ "${ARCHIVE}" = "zip" ]; then
             cp "${src}" staging/amber.exe
             python3 -c "import shutil; shutil.make_archive('amber-${RELEASE_TAG}-${TARGET}', 'zip', 'staging')"
