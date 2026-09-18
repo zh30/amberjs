@@ -119,6 +119,9 @@ fn test_prewarmed_isolation_integrity() {
 #[test]
 #[serial]
 fn test_concurrent_multi_thread_checkout() {
+    // Initialize V8 / snapshot / the global prewarmer on this thread first so
+    // workers only race thread-local acquire, not first-time platform setup.
+    let _ = global_prewarmer();
     let num_threads = 4;
     let completed = Arc::new(AtomicUsize::new(0));
     let mut handles = Vec::new();

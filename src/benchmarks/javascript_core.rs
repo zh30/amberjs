@@ -16,6 +16,16 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
+fn eval_js(isolate: &mut v8::OwnedIsolate, source: &str) {
+    v8::scope!(let scope, isolate);
+    let context = v8::Context::new(scope, Default::default());
+    let scope = &mut v8::ContextScope::new(scope, context);
+    let code = v8::String::new(scope, source).unwrap();
+    let script = v8::Script::compile(scope, code, None).unwrap();
+    let result = script.run(scope).unwrap();
+    let _ = result.to_string(scope);
+}
+
 /// JavaScript 核心基准测试套件
 pub struct JavaScriptCoreBenchmark;
 impl JavaScriptCoreBenchmark {
@@ -55,17 +65,7 @@ impl JavaScriptCoreBenchmark {
             || {
                 // 创建 V8 Isolate 和 Context
                 let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-                {
-                    let mut scope = v8::HandleScope::new(&mut isolate);
-                    let context: _ = v8::Context::new(&mut scope);
-                    let mut scope = v8::ContextScope::new(&mut scope, context);
-                    // 执行简单的 JavaScript 代码
-                    let code: _ = v8::String::new(&mut scope, "1 + 1").unwrap();
-                    let script: _ = v8::Script::compile(&mut scope, code, None).unwrap();
-                    let result: _ = script.run(&mut scope).unwrap();
-                    let _: _ = result.to_string(&mut scope);
-                }
-                // scope 在这里自动 drop，然后 isolate 可以安全 drop
+                eval_js(&mut isolate, "1 + 1");
             },
         )
     }
@@ -205,16 +205,7 @@ impl JavaScriptCoreBenchmark {
                     let handle: _ = thread::spawn(move || {
                         // 在每个线程中执行 JavaScript 代码
                         let mut isolate = v8::Isolate::new(v8::CreateParams::default());
-                        {
-                            let mut scope = v8::HandleScope::new(&mut isolate);
-                            let context: _ = v8::Context::new(&mut scope);
-                            let mut scope = v8::ContextScope::new(&mut scope, context);
-                            let code: _ =
-                                v8::String::new(&mut scope, "for(let i=0;i<1000;i++){}").unwrap();
-                            let script: _ = v8::Script::compile(&mut scope, code, None).unwrap();
-                            let _: _ = script.run(&mut scope);
-                        }
-                        // scope 在这里自动 drop，然后 isolate 可以安全 drop
+                        eval_js(&mut isolate, "for(let i=0;i<1000;i++){}");
                         let result: _ =
                             format!("thread_complete_{:?}", std::thread::current().id());
                         {

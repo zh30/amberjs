@@ -11,7 +11,7 @@ use crate::runtime_minimal::MinimalRuntime;
 use anyhow::Result;
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
 thread_local! {
@@ -103,17 +103,27 @@ impl IsolatePrewarmer {
     /// Pre-warm a single MinimalRuntime instance on the current thread
     pub fn prewarm_one(&self) -> Result<MinimalRuntime> {
         let start = Instant::now();
-        if self.config.enable_snapshots {
-            crate::v8_snapshot::enable_startup_snapshot_for_cli();
-        }
+        // Isolate::new + snapshot blob attach is not safe to race across threads.
+        // macOS CI SIGSEGV'd in test_concurrent_multi_thread_checkout when four
+        // workers created isolates from the same CoW startup blob at once.
+        static CREATE_LOCK: Mutex<()> = Mutex::new(());
+        let mut runtime = {
+            let _guard = CREATE_LOCK
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if self.config.enable_snapshots {
+                crate::v8_snapshot::enable_startup_snapshot_for_cli();
+            }
 
-        let mut runtime = if self.config.fast_heap {
-            MinimalRuntime::new_fast()?
-        } else {
-            MinimalRuntime::new()?
+            let mut runtime = if self.config.fast_heap {
+                MinimalRuntime::new_fast()?
+            } else {
+                MinimalRuntime::new()?
+            };
+
+            runtime.prewarm()?;
+            runtime
         };
-
-        runtime.prewarm()?;
         let elapsed_us = start.elapsed().as_micros() as usize;
 
         self.stats.total_prewarmed.fetch_add(1, Ordering::Relaxed);
