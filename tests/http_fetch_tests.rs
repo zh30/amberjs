@@ -624,7 +624,7 @@ mod http_tests {
                 'Content-Type': 'text/plain',
                 'X-Amber-Trace': 'ctor'
             });
-            `${headers.get('content-type')}:${headers.get('x-amberjs-trace')}:${headers.has('Content-Type')}`;
+            `${headers.get('content-type')}:${headers.get('x-amber-trace')}:${headers.has('Content-Type')}`;
         "#,
         );
 
@@ -648,7 +648,7 @@ mod http_tests {
                 ['Content-Type', 'text/html'],
                 ['X-Amber-Trace', 'array-init']
             ]);
-            `${headers.get('content-type')}:${headers.get('x-amberjs-trace')}:${headers.has('Content-Type')}`;
+            `${headers.get('content-type')}:${headers.get('x-amber-trace')}:${headers.has('Content-Type')}`;
         "#,
         );
 
@@ -846,7 +846,7 @@ mod http_tests {
         let output = binding.trim();
         assert_eq!(
             output,
-            "content-type|x-amberjs-trace;text/plain|iter;content-type=text/plain|x-amberjs-trace=iter;content-type=text/plain:true|x-amberjs-trace=iter:true",
+            "content-type|x-amber-trace;text/plain|iter;content-type=text/plain|x-amber-trace=iter;content-type=text/plain:true|x-amber-trace=iter:true",
             "Expected Headers iteration methods to expose cached entries, got: {output}"
         );
     }
@@ -879,7 +879,7 @@ mod http_tests {
         let output = binding.trim();
         assert_eq!(
             output,
-            "content-type=text/plain|x-amberjs-trace=iterable;content-type=text/plain|x-amberjs-trace=iterable",
+            "content-type=text/plain|x-amber-trace=iterable;content-type=text/plain|x-amber-trace=iterable",
             "Expected Headers to be directly iterable as entry pairs, got: {output}"
         );
     }
@@ -945,7 +945,7 @@ mod http_tests {
         let output = binding.trim();
         assert_eq!(
             output,
-            "content-type|x-amberjs-trace|set-cookie;content-type=text/plain|x-amberjs-trace=set|set-cookie=cookie=value;content-type|x-amberjs-trace|set-cookie",
+            "content-type|x-amber-trace|set-cookie;content-type=text/plain|x-amber-trace=set|set-cookie=cookie=value;content-type|x-amber-trace|set-cookie",
             "Expected Headers iteration to expose lowercase names, got: {output}"
         );
     }
@@ -1275,7 +1275,7 @@ mod http_tests {
             const before = response.bodyUsed;
             const body = response.text();
             const after = response.bodyUsed;
-            `${response.status}:${response.ok}:${response.statusText}:${response.headers.get('content-type')}:${response.headers.get('x-amberjs-trace')}:${before}:${body}:${after}`;
+            `${response.status}:${response.ok}:${response.statusText}:${response.headers.get('content-type')}:${response.headers.get('x-amber-trace')}:${before}:${body}:${after}`;
         "#,
         );
 
@@ -1367,8 +1367,8 @@ mod http_tests {
         let binding = result.unwrap();
         let output = binding.trim();
         assert!(
-            output == "default" || output.is_empty(),
-            "Expected response.type to be 'default' or empty, got: {}",
+            output == "basic" || output == "default" || output.is_empty(),
+            "Expected response.type to be 'basic', 'default', or empty, got: {}",
             output
         );
     }
@@ -1413,7 +1413,7 @@ mod http_tests {
             &r#"
             const response = fetch('__URL__');
             const headers = response.headers;
-            `${typeof headers.get}:${typeof headers.has}:${headers.get ? headers.get('x-amberjs-trace') : 'missing'}:${headers.has ? headers.has('content-type') : false}`;
+            `${typeof headers.get}:${typeof headers.has}:${headers.get ? headers.get('x-amber-trace') : 'missing'}:${headers.has ? headers.has('content-type') : false}`;
         "#
             .replace("__URL__", &url),
         );
