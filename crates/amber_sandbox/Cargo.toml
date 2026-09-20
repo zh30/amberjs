@@ -1,6 +1,6 @@
 [package]
 name = "amber_sandbox"
-version = "1.16.0"
+version = "1.16.1"
 edition = "2021"
 authors = ["Henry Zhang"]
 description = "Capability sandbox and in-memory virtual filesystem for Amber runtime"

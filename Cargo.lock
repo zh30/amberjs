@@ -74,7 +74,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "amber_sandbox"
-version = "1.16.0"
+version = "1.16.1"
 dependencies = [
  "chrono",
  "once_cell",
@@ -86,7 +86,7 @@ dependencies = [
 
 [[package]]
 name = "amber_transpile"
-version = "1.16.0"
+version = "1.16.1"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -99,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "amberjs"
-version = "1.16.0"
+version = "1.16.1"
 dependencies = [
  "amber_sandbox",
  "amber_transpile",
@@ -8414,7 +8414,7 @@ dependencies = [
 
 [[package]]
 name = "zed-amberjs"
-version = "1.16.0"
+version = "1.16.1"
 dependencies = [
  "tempfile",
  "zed_extension_api",

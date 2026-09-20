@@ -1,6 +1,6 @@
 [package]
 name = "amberjs"
-version = "1.16.0"
+version = "1.16.1"
 edition = "2021"
 default-run = "amber"
 autobins = false
@@ -62,8 +62,8 @@ wasm-bindgen = "0.2"
 # Workspace member crates (path for local builds; version for crates.io).
 # `cargo publish -p amberjs --dry-run` cannot resolve these until the same
 # versions exist on crates.io; Release Assets publishes the members first.
-amber_transpile = { path = "crates/amber_transpile", version = "1.16.0" }
-amber_sandbox = { path = "crates/amber_sandbox", version = "1.16.0" }
+amber_transpile = { path = "crates/amber_transpile", version = "1.16.1" }
+amber_sandbox = { path = "crates/amber_sandbox", version = "1.16.1" }
 wasm-bindgen-futures = "0.4"
 
 # WebAssembly binary format

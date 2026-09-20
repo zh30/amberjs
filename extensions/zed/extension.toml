@@ -1,7 +1,7 @@
 id = "amberjs"
 name = "Amber"
 description = "Launches Amber `amber lsp` for JavaScript, TypeScript, and .amberjs files."
-version = "1.16.0"
+version = "1.16.1"
 schema_version = 1
 authors = ["Henry Zhang <hello@zhanghe.dev>"]
 repository = "https://github.com/zh30/amberjs"

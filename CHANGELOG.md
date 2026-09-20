@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-09-20
+
 ### Changed
 
+- **crates.io publish**: workspace 成员 crate 使用 path+version 依赖，Release Assets 按 `amber_transpile` → `amber_sandbox` → `amberjs` 顺序发布。`v1.16.0` 标签仍指向 #95 之前的提交，本版本让 `v*` 发布带上该修复。
 - **Release Assets workflow**: CI uses thin LTO (Cargo.toml fat LTO unchanged), caches cargo registry only (no `target/` upload), installs Windows OpenSSL via vcpkg instead of Chocolatey, links Linux with lld, and cross-compiles `x86_64-apple-darwin` on `macos-latest`. Same five archives, checksums, SBOM, and cosign.
 
 ## [1.16.0] - 2026-09-16
