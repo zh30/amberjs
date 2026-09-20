@@ -28,6 +28,14 @@ Homebrew（配方在 Amber 仓库内；每次 GitHub Release 后填写 sha256）
 brew install zh30/tap/amber
 ```
 
+crates.io（GitHub `v*` 标签通过 Release Assets + `CARGO_REGISTRY_TOKEN` 按 `amber_transpile` → `amber_sandbox` → `amberjs` 发布）：
+
+```bash
+cargo install amberjs
+```
+
+会安装 `amber` 二进制。需要 Rust **1.97.1** 以及编译 V8 的 C++ 工具链。
+
 ### 安装脚本执行过程说明
 
 1. **自动识别硬件与系统**：自动检测你的系统（macOS / Linux）与 CPU 架构（Apple Silicon `arm64`、Intel `x86_64`）；

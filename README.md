@@ -14,6 +14,7 @@
   <a href="https://github.com/zh30/amberjs/releases/tag/v1.16.0"><img src="https://img.shields.io/badge/release-v1.16.0-22c55e" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
   <a href="https://github.com/zh30/amberjs/actions/workflows/ci.yml"><img src="https://github.com/zh30/amberjs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://crates.io/crates/amberjs"><img src="https://img.shields.io/crates/v/amberjs.svg" alt="crates.io"></a>
 </p>
 
 <p align="center">
@@ -72,6 +73,12 @@ Homebrew (formula in this repo; SHA256 is rewritten on each GitHub Release):
 
 ```sh
 brew install zh30/tap/amber
+```
+
+crates.io (each GitHub `v*` tag publishes via Release Assets + `CARGO_REGISTRY_TOKEN`; install the `amber` binary):
+
+```sh
+cargo install amberjs
 ```
 
 ```sh

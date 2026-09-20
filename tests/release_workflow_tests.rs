@@ -83,6 +83,170 @@ fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
     );
 }
 
+fn first_package_version(toml: &str) -> &str {
+    let package = toml
+        .split("[package]")
+        .nth(1)
+        .expect("[package] table")
+        .split('[')
+        .next()
+        .expect("package fields");
+    package
+        .lines()
+        .find_map(|line| {
+            let line = line.trim();
+            line.strip_prefix("version = \"")
+                .and_then(|rest| rest.strip_suffix('"'))
+        })
+        .expect("package version")
+}
+
+#[test]
+fn workspace_path_deps_have_crates_io_versions_matching_members() {
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let root = fs::read_to_string(manifest.join("Cargo.toml")).unwrap();
+    let transpile = fs::read_to_string(manifest.join("crates/amber_transpile/Cargo.toml")).unwrap();
+    let sandbox = fs::read_to_string(manifest.join("crates/amber_sandbox/Cargo.toml")).unwrap();
+    let zed = fs::read_to_string(manifest.join("extensions/zed/Cargo.toml")).unwrap();
+
+    let root_ver = first_package_version(&root);
+    let transpile_ver = first_package_version(&transpile);
+    let sandbox_ver = first_package_version(&sandbox);
+    assert_eq!(
+        root_ver, transpile_ver,
+        "amber_transpile version must match root"
+    );
+    assert_eq!(
+        root_ver, sandbox_ver,
+        "amber_sandbox version must match root"
+    );
+    assert!(
+        root.contains(&format!(
+            "amber_transpile = {{ path = \"crates/amber_transpile\", version = \"{root_ver}\" }}"
+        )),
+        "root must depend on amber_transpile with path + version for cargo publish: {root}"
+    );
+    assert!(
+        root.contains(&format!(
+            "amber_sandbox = {{ path = \"crates/amber_sandbox\", version = \"{root_ver}\" }}"
+        )),
+        "root must depend on amber_sandbox with path + version for cargo publish: {root}"
+    );
+
+    for (name, toml) in [("amber_transpile", &transpile), ("amber_sandbox", &sandbox)] {
+        assert!(
+            toml.contains("license = \"MIT\""),
+            "{name} must declare MIT license"
+        );
+        assert!(
+            toml.contains("repository = \"https://github.com/zh30/amberjs\""),
+            "{name} must declare the GitHub repository for crates.io"
+        );
+        assert!(
+            toml.contains("description = \""),
+            "{name} must have a crates.io description"
+        );
+        assert!(
+            !toml.contains("publish = false"),
+            "{name} must be publishable"
+        );
+    }
+    assert!(
+        zed.contains("publish = false"),
+        "Zed extension must not be published to crates.io"
+    );
+}
+
+#[test]
+fn cargo_package_include_covers_src_and_types_not_huge_trees() {
+    let cargo =
+        fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml")).unwrap();
+    let include = cargo
+        .split("include = [")
+        .nth(1)
+        .and_then(|rest| rest.split(']').next())
+        .expect("include list");
+    assert!(
+        include.contains("/src/**"),
+        "include must ship the whole src tree so the published crate builds: {include}"
+    );
+    assert!(
+        include.contains("/types/**") || include.contains("/types/*.d.ts"),
+        "include must ship types/ for include_str!(amberjs.d.ts): {include}"
+    );
+    assert!(
+        include.contains("/build.rs") && include.contains("/Cargo.lock"),
+        "published package must include build.rs and Cargo.lock: {include}"
+    );
+    for banned in [
+        "node_modules",
+        "benchmarks/",
+        "/apps/",
+        "/target/",
+        "/docs/STAGE_",
+    ] {
+        assert!(
+            !include.contains(banned),
+            "include must not whitelist {banned}: {include}"
+        );
+    }
+}
+
+#[test]
+fn crates_io_publish_is_ordered_and_idempotent_after_github_release() {
+    let yaml = release_assets_yaml();
+    let release_at = yaml
+        .find("uses: softprops/action-gh-release")
+        .expect("GitHub Release step");
+    let publish_at = yaml
+        .find("Publish to crates.io")
+        .expect("crates.io publish step");
+    assert!(
+        publish_at > release_at,
+        "crates.io publish must run after action-gh-release"
+    );
+    let publish = &yaml[publish_at..];
+    let transpile = publish
+        .find("amber_transpile")
+        .expect("publish amber_transpile");
+    let sandbox = publish
+        .find("amber_sandbox")
+        .expect("publish amber_sandbox");
+    let root = publish
+        .find("publish_one amberjs")
+        .or_else(|| publish.find("-p amberjs"))
+        .expect("publish amberjs");
+    assert!(
+        transpile < sandbox && sandbox < root,
+        "publish order must be amber_transpile, amber_sandbox, amberjs"
+    );
+    assert!(
+        publish.contains("already exists") && publish.contains("already uploaded"),
+        "re-running a tag must skip versions already on crates.io"
+    );
+    assert!(
+        publish.contains("--locked") && publish.contains("--token"),
+        "cargo publish must use --locked and CARGO_REGISTRY_TOKEN"
+    );
+    assert!(
+        publish.contains("CARGO_REGISTRY_TOKEN"),
+        "publish must use the existing CARGO_REGISTRY_TOKEN secret"
+    );
+    assert!(
+        !publish.contains("zed-amberjs"),
+        "Zed extension crate must not be published"
+    );
+    let publish_step = yaml.split("Publish to crates.io").nth(1).unwrap_or("");
+    let publish_step = publish_step
+        .split("\n      - name:")
+        .next()
+        .unwrap_or(publish_step);
+    assert!(
+        !publish_step.contains("continue-on-error"),
+        "crates.io publish must fail the job when the registry is down"
+    );
+}
+
 #[test]
 fn homebrew_formula_push_must_not_block_github_release() {
     let yaml = release_assets_yaml();
