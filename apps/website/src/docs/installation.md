@@ -28,6 +28,14 @@ Homebrew (formula in the Amber repo; tap hashes are filled after each GitHub Rel
 brew install zh30/tap/amber
 ```
 
+From crates.io (GitHub `v*` tags publish `amber_transpile`, `amber_sandbox`, then `amberjs` via Release Assets + `CARGO_REGISTRY_TOKEN`):
+
+```bash
+cargo install amberjs
+```
+
+This installs the `amber` binary. Needs Rust **1.97.1** and a C++ toolchain for V8.
+
 ### What the Install Script Does
 
 1. **Detects Environment**: Automatically identifies your OS (macOS / Linux) and CPU architecture (Apple Silicon `arm64` or Intel `x86_64`).

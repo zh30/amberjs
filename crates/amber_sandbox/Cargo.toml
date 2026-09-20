@@ -2,8 +2,15 @@
 name = "amber_sandbox"
 version = "1.16.0"
 edition = "2021"
+authors = ["Henry Zhang"]
 description = "Capability sandbox and in-memory virtual filesystem for Amber runtime"
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/zh30/amberjs"
+homepage = "https://amberjs.com"
+documentation = "https://docs.rs/amber_sandbox"
+keywords = ["sandbox", "vfs", "permissions"]
+categories = ["development-tools"]
 
 [dependencies]
 once_cell = "1.0"

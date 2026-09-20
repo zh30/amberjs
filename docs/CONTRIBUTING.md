@@ -596,6 +596,8 @@ pub fn execute_string(&self, code: &str) -> Result<Value> {
    - [ ] 更新 CHANGELOG.md
    - [ ] 创建 GitHub Release
 
+3. **crates.io**: 打 `v*` 标签（或对已有标签跑 Release Assets 的 `workflow_dispatch`）。GitHub Release / Homebrew / cosign 完成后，同一 job 用仓库 secret `CARGO_REGISTRY_TOKEN` 按 `amber_transpile` → `amber_sandbox` → `amberjs` 发布。token 为空则跳过并打 warning。用户安装：`cargo install amberjs`（二进制名 `amber`）。本地可 `cargo publish -p amber_transpile --dry-run` / `amber_sandbox`；根包 `amberjs` 的 dry-run 要等这两个 crate 的同一版本已在 crates.io 上（cargo 按 version 解析，工作流会先发布成员）。
+
 ## 📞 获取帮助
 
 如果您需要帮助，可以通过以下方式联系我们：
