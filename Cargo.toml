@@ -59,7 +59,9 @@ wasmtime-wasi = "38.0"
 # WebAssembly bindings
 wasm-bindgen = "0.2"
 
-# Workspace member crates (path for local builds; version for crates.io)
+# Workspace member crates (path for local builds; version for crates.io).
+# `cargo publish -p amberjs --dry-run` cannot resolve these until the same
+# versions exist on crates.io; Release Assets publishes the members first.
 amber_transpile = { path = "crates/amber_transpile", version = "1.16.0" }
 amber_sandbox = { path = "crates/amber_sandbox", version = "1.16.0" }
 wasm-bindgen-futures = "0.4"
