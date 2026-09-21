@@ -1,0 +1,27 @@
+name: Oneshot dispatch v1.16.1
+
+# Temporary: the cloud-agent token cannot call workflow_dispatch (403).
+# GITHUB_TOKEN *can* create workflow_dispatch runs. Delete this file after v1.16.1 publishes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/oneshot-dispatch-v1.16.1.yml"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    name: Dispatch Release Assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: workflow_dispatch Release Assets for v1.16.1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh workflow run release-assets.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag=v1.16.1
+          echo "dispatched Release Assets tag=v1.16.1"
