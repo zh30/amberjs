@@ -51,6 +51,37 @@ fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
         yaml.contains("cosign sign-blob") && yaml.contains("cdx.json"),
         "release must attach cosign signatures and a CycloneDX SBOM"
     );
+    let sbom = yaml
+        .split("Generate CycloneDX SBOM")
+        .nth(1)
+        .expect("SBOM step")
+        .split("\n      - name:")
+        .next()
+        .expect("SBOM step body");
+    assert!(
+        sbom.contains("file: Cargo.lock"),
+        "anchore/sbom-action path: is a directory; Cargo.lock must use file:: {sbom}"
+    );
+    assert!(
+        !sbom.contains("path: Cargo.lock"),
+        "path: Cargo.lock makes syft scan dir:Cargo.lock and fail: {sbom}"
+    );
+    assert!(
+        sbom.contains("format: cyclonedx-json"),
+        "SBOM must be CycloneDX JSON: {sbom}"
+    );
+    assert!(
+        sbom.contains("upload-release-assets: false"),
+        "SBOM action must not upload before action-gh-release creates the Release: {sbom}"
+    );
+    assert!(
+        sbom.contains("anchore/sbom-action@v0.24.2"),
+        "SBOM action must stay pinned so syft input mapping does not float: {sbom}"
+    );
+    assert!(
+        yaml.contains("Verify CycloneDX SBOM"),
+        "publish job must fail closed if the SBOM file is missing or not CycloneDX"
+    );
     assert!(
         yaml.contains("x86_64-unknown-linux-gnu")
             && yaml.contains("aarch64-unknown-linux-gnu")
@@ -72,6 +103,17 @@ fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
         yaml.contains("Windows zip amber-*-x86_64-pc-windows-msvc.zip")
             || yaml.contains("x86_64-pc-windows-msvc.zip"),
         "publish job must require the Windows zip"
+    );
+    let require = yaml
+        .split("Require Unix archives")
+        .nth(1)
+        .expect("require archives step")
+        .split("\n      - name:")
+        .next()
+        .expect("require step body");
+    assert!(
+        require.contains("x86_64-apple-darwin.tar.gz"),
+        "publish job must require the Intel mac archive for Homebrew: {require}"
     );
     assert!(
         yaml.contains("amber.exe"),
@@ -409,6 +451,35 @@ fn macos_x86_64_asset_job_uses_live_intel_runner() {
             && intel_block.contains("target: x86_64-apple-darwin")
             && !intel_block.contains("macos-15-intel"),
         "x86_64-apple-darwin must be listed on macos-latest (cross-compile), not macos-15-intel: {intel_block}"
+    );
+}
+
+#[test]
+fn macos_release_jobs_install_and_export_openssl() {
+    let yaml = release_assets_yaml();
+    assert!(
+        yaml.contains("brew install openssl@3") && yaml.contains("pkg-config"),
+        "macOS release jobs must brew install openssl@3 and pkg-config"
+    );
+    assert!(
+        yaml.contains("OPENSSL_DIR") && yaml.contains("PKG_CONFIG_PATH"),
+        "macOS release jobs must export OPENSSL_DIR and PKG_CONFIG_PATH for openssl-sys"
+    );
+    assert!(
+        yaml.contains("darwin64-x86_64-cc") && yaml.contains("lipo -info"),
+        "x86_64-apple-darwin must build/verify an x86_64 OpenSSL, not ARM Homebrew libs"
+    );
+    assert!(
+        yaml.contains("a8f84a39918ec6415ce765d9b429d313ba97b8143169c172e734b9514464f5b2"),
+        "x86_64 OpenSSL tarball SHA-256 must stay pinned"
+    );
+    assert!(
+        yaml.contains("Install OpenSSL (macOS)") && yaml.contains("Configure OpenSSL env (macOS)"),
+        "macOS OpenSSL install/env steps must be named in the workflow (inline, not a new tag script)"
+    );
+    assert!(
+        !yaml.contains("./scripts/macos_openssl_env"),
+        "do not call a repo script for macOS OpenSSL; workflow_dispatch checks out the tag"
     );
 }
 
