@@ -303,14 +303,41 @@ jobs:
             --version "${RELEASE_TAG}" \
             --write
 
+      # path: is a directory (syft scan dir:...). Cargo.lock must use file:.
+      # v1.16.1 failed with: local-directory: not a directory source: Cargo.lock
       - name: Generate CycloneDX SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.24.2
         with:
-          path: Cargo.lock
+          file: Cargo.lock
           format: cyclonedx-json
           artifact-name: amber-${{ env.RELEASE_TAG }}.cdx.json
           output-file: amber-${{ env.RELEASE_TAG }}.cdx.json
           upload-artifact: false
+          upload-release-assets: false
+          syft-version: v1.42.3
+
+      - name: Verify CycloneDX SBOM
+        run: |
+          set -euo pipefail
+          f="amber-${RELEASE_TAG}.cdx.json"
+          if [ ! -s "$f" ]; then
+            echo "::error::SBOM ${f} was not produced"
+            exit 1
+          fi
+          python3 - "$f" <<'PY'
+          import json, sys
+          path = sys.argv[1]
+          with open(path, encoding="utf-8") as fh:
+              data = json.load(fh)
+          bom = data.get("bomFormat") or data.get("bomformat")
+          if bom != "CycloneDX":
+              raise SystemExit(f"{path} is not CycloneDX JSON (bomFormat={bom!r})")
+          components = data.get("components") or []
+          if not components:
+              raise SystemExit(f"{path} has no components")
+          spec = data.get("specVersion")
+          print(f"{path}: CycloneDX spec={spec} components={len(components)}")
+          PY
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3

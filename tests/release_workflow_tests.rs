@@ -51,6 +51,37 @@ fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
         yaml.contains("cosign sign-blob") && yaml.contains("cdx.json"),
         "release must attach cosign signatures and a CycloneDX SBOM"
     );
+    let sbom = yaml
+        .split("Generate CycloneDX SBOM")
+        .nth(1)
+        .expect("SBOM step")
+        .split("\n      - name:")
+        .next()
+        .expect("SBOM step body");
+    assert!(
+        sbom.contains("file: Cargo.lock"),
+        "anchore/sbom-action path: is a directory; Cargo.lock must use file:: {sbom}"
+    );
+    assert!(
+        !sbom.contains("path: Cargo.lock"),
+        "path: Cargo.lock makes syft scan dir:Cargo.lock and fail: {sbom}"
+    );
+    assert!(
+        sbom.contains("format: cyclonedx-json"),
+        "SBOM must be CycloneDX JSON: {sbom}"
+    );
+    assert!(
+        sbom.contains("upload-release-assets: false"),
+        "SBOM action must not upload before action-gh-release creates the Release: {sbom}"
+    );
+    assert!(
+        sbom.contains("anchore/sbom-action@v0.24.2"),
+        "SBOM action must stay pinned so syft input mapping does not float: {sbom}"
+    );
+    assert!(
+        yaml.contains("Verify CycloneDX SBOM"),
+        "publish job must fail closed if the SBOM file is missing or not CycloneDX"
+    );
     assert!(
         yaml.contains("x86_64-unknown-linux-gnu")
             && yaml.contains("aarch64-unknown-linux-gnu")
