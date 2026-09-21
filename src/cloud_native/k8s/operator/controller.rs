@@ -1,11 +1,11 @@
 // Kubernetes Operator Controller
-// Implements the reconciliation loop for BeejsCluster and BeejsWorkload
+// Implements the reconciliation loop for AmberCluster and AmberWorkload
 
 use std::sync::Arc;
 
 use super::super::crd::{
-    BeejsCluster, BeejsClusterSpec, BeejsWorkload, BeejsWorkloadSpec, ClusterPhase,
-    Condition as BeejsCondition, ConditionStatus, ConditionType, WorkloadPhase,
+    AmberCluster, AmberClusterSpec, AmberWorkload, AmberWorkloadSpec, ClusterPhase,
+    Condition as AmberCondition, ConditionStatus, ConditionType, WorkloadPhase,
 };
 use k8s_openapi::api::apps::v1::{StatefulSet, StatefulSetSpec};
 use k8s_openapi::api::core::v1::{
@@ -27,12 +27,12 @@ use kube::{Api, Client, Resource, ResourceExt};
 use std::collections::BTreeMap;
 use tokio::time::Duration as TokioDuration;
 use tracing::{debug, error, info, warn};
-/// Cluster controller for managing BeejsCluster resources
+/// Cluster controller for managing AmberCluster resources
 pub struct ClusterController {
     /// Kubernetes client
     pub client: Client,
-    /// API for BeejsCluster resources
-    pub clusters: Api<BeejsCluster>,
+    /// API for AmberCluster resources
+    pub clusters: Api<AmberCluster>,
     /// API for StatefulSet resources
     pub statefulsets: Api<StatefulSet>,
     /// API for Service resources
@@ -45,11 +45,11 @@ pub struct ClusterController {
     pub recorder: Recorder,
 }
 /// Finalizer name for cluster resources
-const CLUSTER_FINALIZER: &str = "beejsclusters.cloudnative.beejs.io/finalizer";
+const CLUSTER_FINALIZER: &str = "amberjsclusters.cloudnative.amberjs.io/finalizer";
 impl ClusterController {
     /// Create a new cluster controller
     pub fn new(client: Client, namespace: &str) -> Self {
-        let clusters: _ = Api::<BeejsCluster>::namespaced(client.clone(), namespace);
+        let clusters: _ = Api::<AmberCluster>::namespaced(client.clone(), namespace);
         let statefulsets: _ = Api::<StatefulSet>::namespaced(client.clone(), namespace);
         let services: _ =
             Api::<k8s_openapi::api::core::v1::Service>::namespaced(client.clone(), namespace);
@@ -58,7 +58,7 @@ impl ClusterController {
         let secrets: _ =
             Api::<k8s_openapi::api::core::v1::Secret>::namespaced(client.clone(), namespace);
         let reporter: _ = Reporter {
-            controller: "beejs-cluster-controller".to_string(),
+            controller: "amberjs-cluster-controller".to_string(),
             instance: None,
         };
         let recorder: _ = Recorder::new(client.clone(), reporter, ObjectReference::default());
@@ -72,9 +72,9 @@ impl ClusterController {
             recorder,
         }
     }
-    /// Reconcile function for BeejsCluster
-    pub async fn reconcile(&self, cluster: Arc<BeejsCluster>) -> Result<Action, Error> {
-        info!("Reconciling BeejsCluster: {}", cluster.name_any());
+    /// Reconcile function for AmberCluster
+    pub async fn reconcile(&self, cluster: Arc<AmberCluster>) -> Result<Action, Error> {
+        info!("Reconciling AmberCluster: {}", cluster.name_any());
         // Check if finalizer exists
         let has_finalizer: _ = cluster.annotations().contains_key(CLUSTER_FINALIZER);
         // Get current phase
@@ -111,8 +111,8 @@ impl ClusterController {
         Ok(Action::requeue(Duration::from_secs(30)))
     }
     /// Handle cleanup when resource is deleted
-    pub async fn cleanup(&self, cluster: Arc<BeejsCluster>) -> Result<Action, Error> {
-        info!("Cleaning up BeejsCluster: {}", cluster.name_any());
+    pub async fn cleanup(&self, cluster: Arc<AmberCluster>) -> Result<Action, Error> {
+        info!("Cleaning up AmberCluster: {}", cluster.name_any());
         let name: _ = cluster.name_any();
         // Delete StatefulSet
         if let Err(e) = self
@@ -158,17 +158,17 @@ impl ClusterController {
                 warn!("Failed to delete Secret: {}", e);
             }
         }
-        info!("Successfully cleaned up BeejsCluster: {}", name);
+        info!("Successfully cleaned up AmberCluster: {}", name);
         Ok(Action::await_change())
     }
     /// Get current phase of the cluster
-    async fn get_current_phase(&self, cluster: &BeejsCluster) -> Result<ClusterPhase, Error> {
+    async fn get_current_phase(&self, cluster: &AmberCluster) -> Result<ClusterPhase, Error> {
         // TODO: Implement proper status phase detection
         // For now, always return Pending
         Ok(ClusterPhase::Pending)
     }
     /// Add finalizer to cluster
-    async fn add_finalizer(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn add_finalizer(&self, cluster: &AmberCluster) -> Result<(), Error> {
         let patch: _ = Patch::Merge(&serde_json::json!({
             "metadata": {
                 "annotations": {
@@ -182,7 +182,7 @@ impl ClusterController {
         Ok(())
     }
     /// Update the phase of the cluster
-    async fn update_phase(&self, cluster: &BeejsCluster, phase: ClusterPhase) -> Result<(), Error> {
+    async fn update_phase(&self, cluster: &AmberCluster, phase: ClusterPhase) -> Result<(), Error> {
         let is_ready: _ = matches!(phase, ClusterPhase::Running);
         let mut condition = serde_json::Map::new();
         condition.insert(
@@ -227,7 +227,7 @@ impl ClusterController {
         Ok(())
     }
     /// Reconcile cluster creation
-    async fn reconcile_create(&self, cluster: Arc<BeejsCluster>) -> Result<(), Error> {
+    async fn reconcile_create(&self, cluster: Arc<AmberCluster>) -> Result<(), Error> {
         info!("Creating cluster resources for: {}", cluster.name_any());
         // 1. Create ConfigMap
         self.create_configmap(&cluster).await?;
@@ -246,7 +246,7 @@ impl ClusterController {
         Ok(())
     }
     /// Reconcile running cluster
-    async fn reconcile_running(&self, cluster: Arc<BeejsCluster>) -> Result<(), Error> {
+    async fn reconcile_running(&self, cluster: Arc<AmberCluster>) -> Result<(), Error> {
         debug!("Checking cluster status for: {}", cluster.name_any());
         // Check if resources need updating
         if self.needs_update(&cluster).await? {
@@ -258,7 +258,7 @@ impl ClusterController {
         Ok(())
     }
     /// Reconcile cluster update
-    async fn reconcile_update(&self, cluster: Arc<BeejsCluster>) -> Result<(), Error> {
+    async fn reconcile_update(&self, cluster: Arc<AmberCluster>) -> Result<(), Error> {
         info!("Updating cluster: {}", cluster.name_any());
         // Update StatefulSet if needed
         if let Err(e) = self.update_statefulset(&cluster).await {
@@ -271,7 +271,7 @@ impl ClusterController {
         Ok(())
     }
     /// Reconcile cluster recovery from failed state
-    async fn reconcile_recovery(&self, cluster: Arc<BeejsCluster>) -> Result<(), Error> {
+    async fn reconcile_recovery(&self, cluster: Arc<AmberCluster>) -> Result<(), Error> {
         warn!(
             "Recovering cluster from failed state: {}",
             cluster.name_any()
@@ -287,7 +287,7 @@ impl ClusterController {
         Ok(())
     }
     /// Create ConfigMap for cluster configuration
-    async fn create_configmap(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn create_configmap(&self, cluster: &AmberCluster) -> Result<(), Error> {
         let name: _ = cluster.name_any();
         let mut data = BTreeMap::new();
         data.insert("version".to_string(), cluster.spec.version.clone());
@@ -315,7 +315,7 @@ impl ClusterController {
         Ok(())
     }
     /// Create Secret for cluster credentials
-    async fn create_secret(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn create_secret(&self, cluster: &AmberCluster) -> Result<(), Error> {
         let name: _ = cluster.name_any();
         let mut data = BTreeMap::new();
         let encoded: _ = base64::encode("dummy-token");
@@ -340,7 +340,7 @@ impl ClusterController {
         Ok(())
     }
     /// Create StatefulSet for cluster nodes
-    async fn create_statefulset(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn create_statefulset(&self, cluster: &AmberCluster) -> Result<(), Error> {
         let name: _ = cluster.name_any();
         let replicas: _ = cluster.spec.nodes as i32;
         let statefulset: _ = StatefulSet {
@@ -363,7 +363,7 @@ impl ClusterController {
                     metadata: Some(k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta {
                         labels: Some(self.get_labels(cluster)),
                         annotations: Some(BTreeMap::from([(
-                            "beejs.io/cluster".to_string(),
+                            "amberjs.io/cluster".to_string(),
                             name.clone(),
                         )])),
                         ..Default::default()
@@ -396,7 +396,7 @@ impl ClusterController {
         Ok(())
     }
     /// Create Service for cluster access
-    async fn create_service(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn create_service(&self, cluster: &AmberCluster) -> Result<(), Error> {
         let name: _ = cluster.name_any();
         // Headless service for StatefulSet
         let headless_service: _ = k8s_openapi::api::core::v1::Service {
@@ -481,22 +481,22 @@ impl ClusterController {
         Ok(())
     }
     /// Check if cluster needs update
-    async fn needs_update(&self, cluster: &BeejsCluster) -> Result<bool, Error> {
+    async fn needs_update(&self, cluster: &AmberCluster) -> Result<bool, Error> {
         // TODO: Implement update detection logic
         Ok(false)
     }
     /// Update StatefulSet if needed
-    async fn update_statefulset(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn update_statefulset(&self, cluster: &AmberCluster) -> Result<(), Error> {
         // TODO: Implement StatefulSet update logic
         Ok(())
     }
     /// Check cluster health
-    async fn check_health(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn check_health(&self, cluster: &AmberCluster) -> Result<(), Error> {
         // TODO: Implement health check logic
         Ok(())
     }
     /// Check if cluster resources exist
-    async fn resources_exist(&self, cluster: &BeejsCluster) -> Result<bool, Error> {
+    async fn resources_exist(&self, cluster: &AmberCluster) -> Result<bool, Error> {
         let name: _ = cluster.name_any();
         // Check StatefulSet
         if let Err(e) = self.statefulsets.get(&name).await {
@@ -509,28 +509,28 @@ impl ClusterController {
         Ok(true)
     }
     /// Recover cluster resources
-    async fn recover_resources(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn recover_resources(&self, cluster: &AmberCluster) -> Result<(), Error> {
         // TODO: Implement resource recovery logic
         Ok(())
     }
     /// Wait for pods to be ready
-    async fn wait_for_ready(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn wait_for_ready(&self, cluster: &AmberCluster) -> Result<(), Error> {
         // TODO: Implement readiness check
         Ok(())
     }
     /// Wait for update to complete
-    async fn wait_for_update(&self, cluster: &BeejsCluster) -> Result<(), Error> {
+    async fn wait_for_update(&self, cluster: &AmberCluster) -> Result<(), Error> {
         // TODO: Implement update wait logic
         Ok(())
     }
     /// Create pod specification
     fn create_pod_spec(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
     ) -> Result<k8s_openapi::api::core::v1::PodSpec, Error> {
         Ok(k8s_openapi::api::core::v1::PodSpec {
             containers: vec![k8s_openapi::api::core::v1::Container {
-                name: "beejs".to_string(),
+                name: "amberjs".to_string(),
                 image: Some(cluster.spec.image.clone()),
                 image_pull_policy: Some("IfNotPresent".to_string()),
                 ports: Some(vec![k8s_openapi::api::core::v1::ContainerPort {
@@ -542,12 +542,12 @@ impl ClusterController {
                 }]),
                 env: Some(vec![
                     k8s_openapi::api::core::v1::EnvVar {
-                        name: "BEEJS_CLUSTER_NAME".to_string(),
+                        name: "AMBER_CLUSTER_NAME".to_string(),
                         value: Some(cluster.spec.distributed.cluster_name.clone()),
                         value_from: None,
                     },
                     k8s_openapi::api::core::v1::EnvVar {
-                        name: "BEEJS_NODE_ID".to_string(),
+                        name: "AMBER_NODE_ID".to_string(),
                         value: None,
                         value_from: Some(k8s_openapi::api::core::v1::EnvVarSource {
                             field_ref: Some(k8s_openapi::api::core::v1::ObjectFieldSelector {
@@ -586,7 +586,7 @@ impl ClusterController {
                 }),
                 volume_mounts: Some(vec![k8s_openapi::api::core::v1::VolumeMount {
                     name: "config".to_string(),
-                    mount_path: "/etc/beejs".to_string(),
+                    mount_path: "/etc/amberjs".to_string(),
                     read_only: Some(true),
                     sub_path: None,
                     sub_path_expr: None,
@@ -610,7 +610,7 @@ impl ClusterController {
     /// Create PVC templates
     fn create_pvc_templates(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
     ) -> Result<Vec<k8s_openapi::api::core::v1::PersistentVolumeClaim>, Error> {
         let mut pvcs = Vec::new();
         // Add storage PVC if disk size is specified
@@ -646,7 +646,7 @@ impl ClusterController {
     /// Get labels for resources
     fn get_labels(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
     ) -> BTreeMap<
         String,
         String,
@@ -906,10 +906,13 @@ impl ClusterController {
         String,
     > {
         BTreeMap::from([
-            ("beejs.io/cluster".to_string(), cluster.name_any()),
-            ("beejs.io/version".to_string(), cluster.spec.version.clone()),
+            ("amberjs.io/cluster".to_string(), cluster.name_any()),
             (
-                "beejs.io/cluster-name".to_string(),
+                "amberjs.io/version".to_string(),
+                cluster.spec.version.clone(),
+            ),
+            (
+                "amberjs.io/cluster-name".to_string(),
                 cluster.spec.distributed.cluster_name.clone(),
             ),
         ])
@@ -917,7 +920,7 @@ impl ClusterController {
     /// Get annotations for resources
     fn get_annotations(
         &self,
-        cluster: &BeejsCluster,
+        cluster: &AmberCluster,
     ) -> BTreeMap<
         String,
         String,
@@ -1178,12 +1181,12 @@ impl ClusterController {
     > {
         BTreeMap::from([
             (
-                "beejs.io/created-by".to_string(),
-                "beejs-operator".to_string(),
+                "amberjs.io/created-by".to_string(),
+                "amberjs-operator".to_string(),
             ),
             (
-                "beejs.io/description".to_string(),
-                "Beejs Cluster".to_string(),
+                "amberjs.io/description".to_string(),
+                "Amber Cluster".to_string(),
             ),
         ])
     }

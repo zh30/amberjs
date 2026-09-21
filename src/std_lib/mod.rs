@@ -1,4 +1,4 @@
-//! Official modern standard library for Beejs (`bee:std`, `bee:std/*`).
+//! Official modern standard library for Amber (`amber:std`, `amber:std/*`).
 
 pub mod assert;
 pub mod cli;
@@ -202,7 +202,7 @@ pub fn setup_std_api(
     .get_function(scope)
     .unwrap();
 
-    // Attach native callbacks to __bee_std_native
+    // Attach native callbacks to __amber_std_native
     let std_internal = v8::Object::new(scope);
     let k_dotenv = v8::String::new(scope, "dotenvParse").unwrap();
     let k_table = v8::String::new(scope, "cliTable").unwrap();
@@ -220,7 +220,7 @@ pub fn setup_std_api(
     std_internal.set(scope, k_uuid.into(), crypto_uuid_fn.into());
     std_internal.set(scope, k_uuidv7.into(), crypto_uuidv7_fn.into());
 
-    let k_std_native = v8::String::new(scope, "__bee_std_native").unwrap();
+    let k_std_native = v8::String::new(scope, "__amber_std_native").unwrap();
     global.set(scope, k_std_native.into(), std_internal.into());
 
     // 2. Load assert JS implementation
@@ -232,8 +232,8 @@ pub fn setup_std_api(
     // 3. Inject rich JavaScript standard modules
     let js_code = r#"
     (function() {
-        const native = globalThis.__bee_std_native;
-        const assertModule = globalThis.__bee_assert;
+        const native = globalThis.__amber_std_native;
+        const assertModule = globalThis.__amber_assert;
 
         // ==========================================
         // 1. dotenv: Environment Variables
@@ -485,12 +485,12 @@ pub fn setup_std_api(
             version: '1.4.0'
         };
 
-        globalThis.__bee_std = beeStd;
-        globalThis.__bee_std_dotenv = dotenv;
-        globalThis.__bee_std_cli = cli;
-        globalThis.__bee_std_fs = stdFs;
-        globalThis.__bee_std_crypto = stdCrypto;
-        globalThis.__bee_std_assert = assertModule;
+        globalThis.__amber_std = beeStd;
+        globalThis.__amber_std_dotenv = dotenv;
+        globalThis.__amber_std_cli = cli;
+        globalThis.__amber_std_fs = stdFs;
+        globalThis.__amber_std_crypto = stdCrypto;
+        globalThis.__amber_std_assert = assertModule;
         globalThis.std = beeStd;
     })();
     "#;

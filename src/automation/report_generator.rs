@@ -162,7 +162,7 @@ impl ReportGenerator {
             report_type: ReportType::Benchmark,
             generated_at: timestamp,
             version: "1.0.0".to_string(),
-            author: "Beejs Performance Analyzer".to_string(),
+            author: "Amber Performance Analyzer".to_string(),
             environment: "Automated Testing".to_string(),
         };
         let report_data: _ = ReportData {
@@ -192,7 +192,7 @@ impl ReportGenerator {
             report_type: ReportType::Regression,
             generated_at: timestamp,
             version: "1.0.0".to_string(),
-            author: "Beejs Performance Analyzer".to_string(),
+            author: "Amber Performance Analyzer".to_string(),
             environment: "Automated Testing".to_string(),
         };
         let recommendations: _ = self.generate_recommendations_from_regression(regression_results);
@@ -223,7 +223,7 @@ impl ReportGenerator {
             report_type: ReportType::Summary,
             generated_at: timestamp,
             version: "1.0.0".to_string(),
-            author: "Beejs Performance Analyzer".to_string(),
+            author: "Amber Performance Analyzer".to_string(),
             environment: "Automated Testing".to_string(),
         };
         let report_data: _ = ReportData {
@@ -255,7 +255,7 @@ impl ReportGenerator {
             report_type: ReportType::Summary,
             generated_at: timestamp,
             version: "1.0.0".to_string(),
-            author: "Beejs Performance Analyzer".to_string(),
+            author: "Amber Performance Analyzer".to_string(),
             environment: "Automated Testing".to_string(),
         };
         let mut recommendations = Vec::new();

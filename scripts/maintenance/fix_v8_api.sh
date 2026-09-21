@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Beejs V8 API 兼容性问题批量修复脚本
+# Amber V8 API 兼容性问题批量修复脚本
 # 用于修复 rusty_v8 0.22 -> 0.32 的 API 变更
 
 echo "正在修复 V8 API 兼容性问题..."

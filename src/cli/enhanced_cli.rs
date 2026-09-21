@@ -11,7 +11,7 @@ use std::time::Instant;
 use std::path::PathBuf;
 /// Enhanced CLI arguments
 #[derive(Parser, Debug)]
-#[command(name = "bee")]
+#[command(name = "amber")]
 #[command(about = "High-performance JavaScript/TypeScript runtime - Stage 36.0")]
 pub struct EnhancedArgs {
     /// Script file to execute
@@ -322,14 +322,14 @@ impl EnhancedArgs {
         for (test_name, result) in results {
             let comparison: _ = crate::performance_comparison::BenchmarkComparison {
                 test_name,
-                beejs_result: result.beejs_result,
+                amberjs_result: result.amberjs_result,
                 nodejs_result: result.nodejs_result,
                 bun_result: result.bun_result,
                 speedup_vs_nodejs: result.speedup_vs_nodejs,
                 speedup_vs_bun: result.speedup_vs_bun,
                 memory_savings_vs_nodejs: result.memory_savings_vs_nodejs,
                 memory_savings_vs_bun: result.memory_savings_vs_bun,
-                winner: "beejs".to_string(), // Default for standalone benchmark
+                winner: "amberjs".to_string(), // Default for standalone benchmark
                 performance_score: 85.0, // Default score
             };
             collector.add_result(comparison);
@@ -388,7 +388,7 @@ impl EnhancedArgs {
         let mut collector = crate::performance_comparison::ResultCollector::new();
         for (test_name, result) in results {
             let winner: _ = if result.speedup_vs_nodejs > 1.0 && result.speedup_vs_nodejs >= result.speedup_vs_bun {
-                "beejs".to_string()
+                "amberjs".to_string()
             } else if result.speedup_vs_nodejs < 1.0 {
                 "nodejs".to_string()
             } else {
@@ -396,7 +396,7 @@ impl EnhancedArgs {
             };
             let comparison: _ = crate::performance_comparison::BenchmarkComparison {
                 test_name,
-                beejs_result: result.beejs_result,
+                amberjs_result: result.amberjs_result,
                 nodejs_result: result.nodejs_result,
                 bun_result: result.bun_result,
                 speedup_vs_nodejs: result.speedup_vs_nodejs,
@@ -420,7 +420,7 @@ impl EnhancedArgs {
         println!("🎯 Performance Comparison Summary");
         println!("{}", "=".repeat(60));
         println!("Total Tests: {}", comparison_result.summary.total_tests);
-        println!("Beejs Wins: {}", comparison_result.summary.beejs_wins);
+        println!("Amber Wins: {}", comparison_result.summary.amberjs_wins);
         println!("Node.js Wins: {}", comparison_result.summary.nodejs_wins);
         println!("Average Speedup vs Node.js: {:.2}x", comparison_result.summary.average_speedup_vs_nodejs);
         println!("Average Speedup vs Bun: {:.2}x", comparison_result.summary.average_speedup_vs_bun);
@@ -435,7 +435,7 @@ impl EnhancedArgs {
     /// Run zero-copy I/O demo
     async fn run_zero_copy_demo(&self) -> Result<()> {
         println!("\n{}", "=".repeat(60));
-        println!("🚀 Beejs Stage 39.0 - 零拷贝 I/O 优化演示");
+        println!("🚀 Amber Stage 39.0 - 零拷贝 I/O 优化演示");
         println!("{}", "=".repeat(60));
         // 演示零拷贝发送器
         println!("\n📦 1. 零拷贝发送器 (sendfile/splice)");
@@ -481,7 +481,7 @@ impl EnhancedArgs {
     /// Run cloud deployment demo
     async fn run_cloud_deploy(&self, cloud_provider: &str) -> Result<()> {
         println!("\n{}", "=".repeat(60));
-        println!("☁️ Beejs Stage 39.0 - 云平台部署演示");
+        println!("☁️ Amber Stage 39.0 - 云平台部署演示");
         println!("{}", "=".repeat(60));
         println!("云平台: {}", cloud_provider);
         println!("区域: {}", self.cloud_region);
@@ -492,8 +492,8 @@ impl EnhancedArgs {
                 let adapter: _ = crate::cloud::aws::AwsAdapter::new(self.cloud_region.clone());
                 // 部署 Lambda 函数
                 let config: _ = crate::cloud::FunctionConfig {
-                    name: "beejs-function".to_string(),
-                    code: "module.exports.handler = async (event) => ({ statusCode: 200, body: 'Hello from Beejs!' });".to_string(),
+                    name: "amberjs-function".to_string(),
+                    code: "module.exports.handler = async (event) => ({ statusCode: 200, body: 'Hello from Amber!' });".to_string(),
                     runtime: "nodejs18.x".to_string(),
                     handler: "index.handler".to_string(),
                     memory_size: Some(512),
@@ -508,7 +508,7 @@ impl EnhancedArgs {
                 println!("   端点: {}", result.endpoint);
                 println!("   耗时: {:?}", result.deployment_time);
                 // 获取指标
-                let metrics: _ = adapter.get_metrics("beejs-function").await
+                let metrics: _ = adapter.get_metrics("amberjs-function").await
                     .map_err(|e| anyhow::anyhow!("获取指标失败: {:?}", e))?;
                 println!("📊 性能指标:");
                 println!("   CPU 使用率: {:.1}%", metrics.cpu_usage);
@@ -521,8 +521,8 @@ impl EnhancedArgs {
                 let adapter: _ = crate::cloud::cloudflare::CloudflareAdapter::new("test-account".to_string());
                 // 部署 Workers 函数
                 let config: _ = crate::cloud::FunctionConfig {
-                    name: "beejs-worker".to_string(),
-                    code: "addEventListener('fetch', event => event.respondWith(new Response('Hello from Beejs Workers!'))".to_string(),
+                    name: "amberjs-worker".to_string(),
+                    code: "addEventListener('fetch', event => event.respondWith(new Response('Hello from Amber Workers!'))".to_string(),
                     runtime: "javascript".to_string(),
                     handler: "fetch".to_string(),
                     memory_size: Some(128),
@@ -610,7 +610,7 @@ pub async fn run_enhanced_cli() -> Result<()> {
     let args: _ = EnhancedArgs::parse();
     // Handle version flag
     if args.version {
-        println!("bee {}", env!("CARGO_PKG_VERSION"));
+        println!("amber {}", env!("CARGO_PKG_VERSION"));
         println!("Stage 36.0 - CLI Enhancements");
         return Ok(());
     }

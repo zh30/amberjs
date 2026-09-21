@@ -1,17 +1,17 @@
-# Beejs VS Code Extension
+# Amber VS Code Extension
 
-This extension provides comprehensive support for the Beejs runtime in Visual Studio Code, offering enhanced JavaScript/TypeScript development with Beejs-specific features.
+This extension provides comprehensive support for the Amber runtime in Visual Studio Code, offering enhanced JavaScript/TypeScript development with Amber-specific features.
 
 ## Features
 
 ### 🐝 Language Support
-- **Intelligent Code Completion**: Full autocomplete for Beejs APIs and runtime features
-- **Hover Documentation**: Detailed information for Beejs runtime methods and properties
-- **Syntax Highlighting**: Enhanced syntax highlighting for Beejs-specific features
-- **Type Checking**: Optional TypeScript type checking for Beejs scripts
+- **Intelligent Code Completion**: Full autocomplete for Amber APIs and runtime features
+- **Hover Documentation**: Detailed information for Amber runtime methods and properties
+- **Syntax Highlighting**: Enhanced syntax highlighting for Amber-specific features
+- **Type Checking**: Optional TypeScript type checking for Amber scripts
 
 ### 🔧 Debugging
-- **Native Debug Adapter**: Full debugging support for Beejs runtime
+- **Native Debug Adapter**: Full debugging support for Amber runtime
 - **Breakpoints**: Line, conditional, and function breakpoints
 - **Stepping**: Step over, step into, and step out controls
 - **Variable Inspection**: View and inspect variables during debugging
@@ -23,28 +23,28 @@ This extension provides comprehensive support for the Beejs runtime in Visual St
 - **Memory Analysis**: Monitor memory usage during execution
 
 ### 🎯 Integration
-- **CLI Integration**: Run Beejs commands directly from VS Code
+- **CLI Integration**: Run Amber commands directly from VS Code
 - **Workspace Support**: Multi-folder workspace support
-- **Configuration**: Customizable settings for Beejs runtime
+- **Configuration**: Customizable settings for Amber runtime
 
 ## Installation
 
 ### From VS Code
 1. Open VS Code
 2. Go to Extensions (`Ctrl+Shift+X`)
-3. Search for "Beejs Runtime Support"
+3. Search for "Amber Runtime Support"
 4. Click Install
 
 ### From Package
 ```bash
 npx @vscode/vsce package
-code --install-extension beejs-tools-1.9.1.vsix
+code --install-extension amberjs-tools-1.9.1.vsix
 ```
 
 ### From Source
 ```bash
-git clone https://github.com/zh30/beejs.git
-cd beejs/tools/vscode-extension
+git clone https://github.com/zh30/amberjs.git
+cd amberjs/tools/vscode-extension
 npm install
 npm run compile
 npx @vscode/vsce package
@@ -54,56 +54,56 @@ The extension is unlisted; install the `.vsix` locally. Marketplace publishing i
 
 ## Setup
 
-### 1. Install Beejs Runtime
-Ensure the `bee` binary is on your PATH. GitHub Release asset names match `.github/workflows/release-assets.yml`:
+### 1. Install Amber Runtime
+Ensure the `amber` binary is on your PATH. GitHub Release asset names match `.github/workflows/release-assets.yml`:
 
 ```bash
 # macOS Apple Silicon
-curl -fsSL https://github.com/zh30/beejs/releases/download/v1.9.1/bee-v1.9.1-aarch64-apple-darwin.tar.gz | tar -xz
+curl -fsSL https://github.com/zh30/amberjs/releases/download/v1.9.1/amber-v1.9.1-aarch64-apple-darwin.tar.gz | tar -xz
 # macOS Intel
-curl -fsSL https://github.com/zh30/beejs/releases/download/v1.9.1/bee-v1.9.1-x86_64-apple-darwin.tar.gz | tar -xz
+curl -fsSL https://github.com/zh30/amberjs/releases/download/v1.9.1/amber-v1.9.1-x86_64-apple-darwin.tar.gz | tar -xz
 # Linux x64
-curl -fsSL https://github.com/zh30/beejs/releases/download/v1.9.1/bee-v1.9.1-x86_64-unknown-linux-gnu.tar.gz | tar -xz
+curl -fsSL https://github.com/zh30/amberjs/releases/download/v1.9.1/amber-v1.9.1-x86_64-unknown-linux-gnu.tar.gz | tar -xz
 # Linux arm64
-curl -fsSL https://github.com/zh30/beejs/releases/download/v1.9.1/bee-v1.9.1-aarch64-unknown-linux-gnu.tar.gz | tar -xz
+curl -fsSL https://github.com/zh30/amberjs/releases/download/v1.9.1/amber-v1.9.1-aarch64-unknown-linux-gnu.tar.gz | tar -xz
 # Windows x64
-# bee-v1.9.1-x86_64-pc-windows-msvc.zip  (see install.ps1)
+# amber-v1.9.1-x86_64-pc-windows-msvc.zip  (see install.ps1)
 
-curl -fsSL https://bee.zhanghe.dev/install.sh | sh
-brew install zh30/tap/bee
+curl -fsSL https://amber.zhanghe.dev/install.sh | sh
+brew install zh30/tap/amber
 ```
 
 ### 2. Configure Extension
 1. Open Settings (`Ctrl+,`)
-2. Search for "Beejs Runtime"
+2. Search for "Amber Runtime"
 3. Configure settings:
-   - `beejs.runtimePath`: Path to Beejs executable (default: `bee`)
-   - `beejs.debugPort`: Debug port (default: `9229`)
-   - `beejs.enableTypeChecking`: Enable TypeScript type checking (default: `true`)
-   - `beejs.maxMemory`: Maximum memory allocation (default: `512m`)
+   - `amberjs.runtimePath`: Path to Amber executable (default: `amber`)
+   - `amberjs.debugPort`: Debug port (default: `9229`)
+   - `amberjs.enableTypeChecking`: Enable TypeScript type checking (default: `true`)
+   - `amberjs.maxMemory`: Maximum memory allocation (default: `512m`)
 
 ## Usage
 
 ### Running Scripts
 1. Open a JavaScript/TypeScript file
-2. Press `F5` or right-click and select "Run Beejs Script"
-3. Output appears in the "Beejs" output channel
+2. Press `F5` or right-click and select "Run Amber Script"
+3. Output appears in the "Amber" output channel
 
 ### Debugging
 1. Set breakpoints by clicking in the gutter
-2. Press `F6` or right-click and select "Debug Beejs Script"
+2. Press `F6` or right-click and select "Debug Amber Script"
 3. Use debugging controls to step through code
 
 ### Commands
-- `Beejs: Run Script` - Run the current script
-- `Beejs: Debug Script` - Debug the current script
-- `Beejs: Show Performance Report` - Generate performance report
-- `Beejs: Install Runtime` - Install Beejs runtime
+- `Amber: Run Script` - Run the current script
+- `Amber: Debug Script` - Debug the current script
+- `Amber: Show Performance Report` - Generate performance report
+- `Amber: Install Runtime` - Install Amber runtime
 
 ### Keyboard Shortcuts
 - `F5` - Run script
 - `F6` - Debug script
-- `Ctrl+Shift+P` then type "Beejs" - Show Beejs commands
+- `Ctrl+Shift+P` then type "Amber" - Show Amber commands
 
 ## Configuration
 
@@ -112,10 +112,10 @@ Create `.vscode/settings.json`:
 
 ```json
 {
-  "beejs.runtimePath": "/usr/local/bin/bee",
-  "beejs.debugPort": 9229,
-  "beejs.enableTypeChecking": true,
-  "beejs.maxMemory": "512m"
+  "amberjs.runtimePath": "/usr/local/bin/amber",
+  "amberjs.debugPort": 9229,
+  "amberjs.enableTypeChecking": true,
+  "amberjs.maxMemory": "512m"
 }
 ```
 
@@ -129,8 +129,8 @@ Create `.vscode/launch.json`:
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug Current File with bee",
-      "runtimeExecutable": "bee",
+      "name": "Debug Current File with amber",
+      "runtimeExecutable": "amber",
       "runtimeArgs": ["run", "--inspect-brk", "--inspect-port", "9229"],
       "args": ["${file}"],
       "port": 9229
@@ -138,38 +138,38 @@ Create `.vscode/launch.json`:
     {
       "type": "node",
       "request": "attach",
-      "name": "Attach to bee --inspect",
+      "name": "Attach to amber --inspect",
       "port": 9229
     }
   ]
 }
 ```
 
-Launch is equivalent to `bee run --inspect-brk --inspect-port 9229 ${file}`.
+Launch is equivalent to `amber run --inspect-brk --inspect-port 9229 ${file}`.
 
 ## API Reference
 
-### Beejs Global API
-The extension provides completion for the following Beejs APIs:
+### Amber Global API
+The extension provides completion for the following Amber APIs:
 
 #### Runtime Execution
-- `beejs.run(script)` - Execute a script
-- `beejs.bundle(entry, output)` - Bundle scripts
-- `beejs.test(pattern)` - Run tests
+- `amberjs.run(script)` - Execute a script
+- `amberjs.bundle(entry, output)` - Bundle scripts
+- `amberjs.test(pattern)` - Run tests
 
 #### Performance
-- `beejs.profile(fn)` - Profile function execution
-- `beejs.benchmark(fn, iterations)` - Benchmark performance
+- `amberjs.profile(fn)` - Profile function execution
+- `amberjs.benchmark(fn, iterations)` - Benchmark performance
 
 #### TypeScript
-- `beejs.compile(source, options)` - Compile TypeScript
+- `amberjs.compile(source, options)` - Compile TypeScript
 
 ## Development
 
 ### Building from Source
 ```bash
-git clone https://github.com/beejs-team/beejs-vscode.git
-cd beejs-vscode
+git clone https://github.com/amberjs-team/amberjs-vscode.git
+cd amberjs-vscode
 npm install
 npm run compile
 ```
@@ -223,8 +223,8 @@ VS Code commands for:
 
 ### Development Setup
 ```bash
-git clone https://github.com/beejs-team/beejs-vscode.git
-cd beejs-vscode
+git clone https://github.com/amberjs-team/amberjs-vscode.git
+cd amberjs-vscode
 npm install
 npm run compile
 ```
@@ -237,10 +237,10 @@ npm run compile
 
 ## Troubleshooting
 
-### Beejs Not Found
-- Verify Beejs is installed: `bee --version`
-- Check `beejs.runtimePath` setting
-- Try reinstalling Beejs
+### Amber Not Found
+- Verify Amber is installed: `amber --version`
+- Check `amberjs.runtimePath` setting
+- Try reinstalling Amber
 
 ### Debug Not Working
 - Verify debug port is not in use: `netstat -an | grep 9229`
@@ -248,7 +248,7 @@ npm run compile
 - Try a different debug port
 
 ### Performance Issues
-- Increase `beejs.maxMemory` setting
+- Increase `amberjs.maxMemory` setting
 - Check available system memory
 - Disable type checking if not needed
 
@@ -267,6 +267,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- GitHub Issues: [https://github.com/beejs-team/beejs-vscode/issues](https://github.com/beejs-team/beejs-vscode/issues)
-- Documentation: [https://beejs.dev/docs](https://beejs.dev/docs)
-- Discord: [https://discord.gg/beejs](https://discord.gg/beejs)
+- GitHub Issues: [https://github.com/amberjs-team/amberjs-vscode/issues](https://github.com/amberjs-team/amberjs-vscode/issues)
+- Documentation: [https://amberjs.dev/docs](https://amberjs.dev/docs)
+- Discord: [https://discord.gg/amberjs](https://discord.gg/amberjs)

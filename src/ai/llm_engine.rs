@@ -141,7 +141,7 @@ impl AiLlmEngine {
         kv_cache: Option<KvCache>,
     ) -> Result<Vec<u32>, String> {
         // EXPERIMENTAL / SIMULATED inference — not a real LLM backend.
-        // Prefer npm SDKs (openai/anthropic) on Beejs I/O for production AI apps.
+        // Prefer npm SDKs (openai/anthropic) on Amber I/O for production AI apps.
         let input_tokens: _ = string_to_tokens(prompt);
         let mut current_kv_cache = if let Some(cache) = kv_cache {
             cache

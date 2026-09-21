@@ -2,8 +2,8 @@
 // Tests that verify delay > 0 setTimeout/setInterval callbacks actually execute
 // through the V8 main thread event loop integration
 
-use beejs::nodejs_core::timers::{clear_all_async_timers, clear_all_timers};
-use beejs::MinimalRuntime;
+use amberjs::nodejs_core::timers::{clear_all_async_timers, clear_all_timers};
+use amberjs::MinimalRuntime;
 use serial_test::serial;
 use std::thread;
 use std::time::Duration;
@@ -273,7 +273,7 @@ fn test_setinterval_without_clear_stops_at_drain_limit() {
 #[test]
 #[serial]
 fn test_clear_all_timers_function() {
-    use beejs::nodejs_core::timers::{clear_all_async_timers, clear_all_timers};
+    use amberjs::nodejs_core::timers::{clear_all_async_timers, clear_all_timers};
 
     cleanup_global_state();
     let mut runtime = MinimalRuntime::new().unwrap();

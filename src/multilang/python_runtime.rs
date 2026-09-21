@@ -1,5 +1,5 @@
 // Python Runtime Integration
-// Provides seamless integration between Beejs and Python
+// Provides seamless integration between Amber and Python
 
 use anyhow::{anyhow, Result};
 use pyo3::types::{PyDict, PyModule};
@@ -16,7 +16,7 @@ pub struct PythonGIL {
 #[derive(Debug)]
 pub struct PythonRuntime {
     gil: Arc<PythonGIL>,
-    bee_api: Arc<BeeAPI>,
+    amber_api: Arc<AmberAPI>,
     context_pool: Arc<RwLock<Vec<PythonContext>>>,
 }
 /// Python context for execution
@@ -26,13 +26,13 @@ struct PythonContext {
     globals: PyObject,
     locals: PyObject,
 }
-/// Bee API exposed to Python
+/// Amber API exposed to Python
 #[derive(Debug)]
-pub struct BeeAPI {
-    runtime: Arc<dyn BeeRuntimeInterface>,
+pub struct AmberAPI {
+    runtime: Arc<dyn AmberRuntimeInterface>,
 }
-/// Interface for Bee runtime operations
-pub trait BeeRuntimeInterface: Send + Sync {
+/// Interface for Amber runtime operations
+pub trait AmberRuntimeInterface: Send + Sync {
     fn execute_script(&self, script: &str) -> Result<String>;
     fn get_variable(&self, name: &str) -> Result<String>;
     fn set_variable(&self, name: &str, value: &str) -> Result<()>;
@@ -45,12 +45,12 @@ impl PythonGIL {
 }
 impl PythonRuntime {
     /// Create a new Python runtime
-    pub fn new(bee_api: Arc<BeeAPI>) -> Result<Self> {
+    pub fn new(amber_api: Arc<AmberAPI>) -> Result<Self> {
         let gil: _ = Arc::new(PythonGIL::new()?);
         let context_pool: _ = Arc::new(RwLock::new(Vec::new()));
         Ok(PythonRuntime {
             gil,
-            bee_api,
+            amber_api,
             context_pool,
         })
     }
@@ -116,17 +116,17 @@ impl PythonRuntime {
         );
         self.execute_python(&code).await
     }
-    /// Execute Python script with Bee API access
-    pub async fn execute_with_bee_api(&self, code: &str) -> Result<String> {
+    /// Execute Python script with Amber API access
+    pub async fn execute_with_amber_api(&self, code: &str) -> Result<String> {
         let context: _ = self.get_context().await?;
         let result: _ = Python::with_gil(|py| {
-            // Inject Bee API into the global scope
-            let bee_module: _ = PyModule::create(py, "bee_runtime")?;
-            bee_module.add_function(wrap_pyfunction!(bee_get_variable, bee_module)?)?;
-            bee_module.add_function(wrap_pyfunction!(bee_set_variable, bee_module)?)?;
-            bee_module.add_function(wrap_pyfunction!(bee_execute, bee_module)?)?;
-            let bee_api_obj: _ = pyo3::types::PyModule::from_object(py, bee_module)?;
-            context.globals.set_item(py, "bee", bee_api_obj)?;
+            // Inject Amber API into the global scope
+            let amber_module: _ = PyModule::create(py, "amber_runtime")?;
+            amber_module.add_function(wrap_pyfunction!(amber_get_variable, amber_module)?)?;
+            amber_module.add_function(wrap_pyfunction!(amber_set_variable, amber_module)?)?;
+            amber_module.add_function(wrap_pyfunction!(amber_execute, amber_module)?)?;
+            let amber_api_obj: _ = pyo3::types::PyModule::from_object(py, amber_module)?;
+            context.globals.set_item(py, "amber", amber_api_obj)?;
             // Execute the user code
             let result: _ = py.run(
                 code,
@@ -149,38 +149,38 @@ impl PythonRuntime {
         result
     }
 }
-/// Python callable function to get variable from Bee runtime
+/// Python callable function to get variable from Amber runtime
 #[pyfunction]
-fn bee_get_variable(name: &str) -> PyResult<String> {
-    // This is a placeholder - in real implementation, this would call into Bee runtime
-    Ok(format!("Value of {} from Bee", name))
+fn amber_get_variable(name: &str) -> PyResult<String> {
+    // This is a placeholder - in real implementation, this would call into Amber runtime
+    Ok(format!("Value of {} from Amber", name))
 }
-/// Python callable function to set variable in Bee runtime
+/// Python callable function to set variable in Amber runtime
 #[pyfunction]
-fn bee_set_variable(name: &str, value: &str) -> PyResult<()> {
-    // This is a placeholder - in real implementation, this would call into Bee runtime
-    println!("Setting Bee variable {} = {}", name, value);
+fn amber_set_variable(name: &str, value: &str) -> PyResult<()> {
+    // This is a placeholder - in real implementation, this would call into Amber runtime
+    println!("Setting Amber variable {} = {}", name, value);
     Ok(())
 }
-/// Python callable function to execute script in Bee runtime
+/// Python callable function to execute script in Amber runtime
 #[pyfunction]
-fn bee_execute(script: &str) -> PyResult<String> {
-    // This is a placeholder - in real implementation, this would call into Bee runtime
-    Ok(format!("Executed in Bee: {}", script))
+fn amber_execute(script: &str) -> PyResult<String> {
+    // This is a placeholder - in real implementation, this would call into Amber runtime
+    Ok(format!("Executed in Amber: {}", script))
 }
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn bee_api() -> Arc<BeeAPI> {
-        Arc::new(BeeAPI {
-            runtime: Arc::new(MockBeeRuntime),
+    fn amber_api() -> Arc<AmberAPI> {
+        Arc::new(AmberAPI {
+            runtime: Arc::new(MockAmberRuntime),
         })
     }
 
     #[tokio::test]
     async fn test_python_basic_execution() {
-        let runtime: _ = PythonRuntime::new(bee_api()).unwrap();
+        let runtime: _ = PythonRuntime::new(amber_api()).unwrap();
         let result: _ = runtime.execute_python("print('Hello from Python!')").await;
         assert!(result.is_ok());
         let result: _ = runtime.execute_python("2 + 2").await;
@@ -189,7 +189,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_python_function_call() {
-        let runtime: _ = PythonRuntime::new(bee_api()).unwrap();
+        let runtime: _ = PythonRuntime::new(amber_api()).unwrap();
         // First define a function
         runtime
             .execute_python("def test_func(x, y): return x + y")
@@ -201,16 +201,16 @@ mod tests {
         assert!(result.is_ok());
     }
     #[tokio::test]
-    async fn test_python_bee_api() {
-        let runtime: _ = PythonRuntime::new(bee_api()).unwrap();
+    async fn test_python_amber_api() {
+        let runtime: _ = PythonRuntime::new(amber_api()).unwrap();
         let code: _ = r#"
-bee.get_variable("test_var")
+amber.get_variable("test_var")
 "#;
-        let result: _ = runtime.execute_with_bee_api(code).await;
+        let result: _ = runtime.execute_with_amber_api(code).await;
         assert!(result.is_ok());
     }
-    struct MockBeeRuntime;
-    impl BeeRuntimeInterface for MockBeeRuntime {
+    struct MockAmberRuntime;
+    impl AmberRuntimeInterface for MockAmberRuntime {
         fn execute_script(&self, script: &str) -> Result<String> {
             Ok(format!("Executed: {}", script))
         }

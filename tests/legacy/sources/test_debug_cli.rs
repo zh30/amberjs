@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 // Import the CLI commands
 #[derive(Parser, Debug)]
-#[command(name = "beejs")]
+#[command(name = "amberjs")]
 struct CliApp {
     /// Enable verbose output
     #[arg(short, long)]
@@ -67,22 +67,22 @@ pub enum DebugCommand {
 
 fn main() {
     // Test 1: Debug script command
-    let args = vec!["beejs", "debug", "test.js"];
+    let args = vec!["amberjs", "debug", "test.js"];
     let app = CliApp::parse_from(args);
     println!("✅ Test 1 passed: Debug script command parsed successfully");
 
     // Test 2: Debug script with options
-    let args = vec!["beejs", "debug", "app.js", "--break-at", "10", "--port", "9229", "--web"];
+    let args = vec!["amberjs", "debug", "app.js", "--break-at", "10", "--port", "9229", "--web"];
     let app = CliApp::parse_from(args);
     println!("✅ Test 2 passed: Debug script with options parsed successfully");
 
     // Test 3: Debug attach command
-    let args = vec!["beejs", "debug", "--attach", "1234"];
+    let args = vec!["amberjs", "debug", "--attach", "1234"];
     let app = CliApp::parse_from(args);
     println!("✅ Test 3 passed: Debug attach command parsed successfully");
 
     // Test 4: Debug inspect command
-    let args = vec!["beejs", "debug", "--inspect", "--port", "8080"];
+    let args = vec!["amberjs", "debug", "--inspect", "--port", "8080"];
     let app = CliApp::parse_from(args);
     println!("✅ Test 4 passed: Debug inspect command parsed successfully");
 

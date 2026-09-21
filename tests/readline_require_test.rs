@@ -7,7 +7,7 @@ use serial_test::serial;
 #[serial]
 fn test_readline_global_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"'readline' in global"#;
     let result = runtime.execute_code(code).expect("Execution failed");
     assert_eq!(result.trim(), "true", "readline should exist in global");
@@ -17,7 +17,7 @@ fn test_readline_global_exists() {
 #[serial]
 fn test_readline_has_create_interface() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"typeof global.readline.createInterface"#;
     let result = runtime.execute_code(code).expect("Execution failed");
     assert_eq!(
@@ -31,7 +31,7 @@ fn test_readline_has_create_interface() {
 #[serial]
 fn test_readline_require_returns_object() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const rl = require('readline');
         typeof rl
@@ -48,7 +48,7 @@ fn test_readline_require_returns_object() {
 #[serial]
 fn test_readline_require_has_interface() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const rl = require('readline');
         rl && typeof rl.Interface
@@ -65,7 +65,7 @@ fn test_readline_require_has_interface() {
 #[serial]
 fn test_readline_require_has_create_interface() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const rl = require('readline');
         rl && typeof rl.createInterface
@@ -82,7 +82,7 @@ fn test_readline_require_has_create_interface() {
 #[serial]
 fn test_readline_require_default() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const rl = require('readline');
         rl && typeof rl.default

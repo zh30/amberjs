@@ -1,8 +1,8 @@
-// AI Workload Demo for Beejs Runtime
+// AI Workload Demo for Amber Runtime
 // Demonstrates streaming LLM responses using Web Streams API
-// Run with: ./target/release/bee run examples/ai_workload_demo.js
+// Run with: ./target/release/amber run examples/ai_workload_demo.js
 
-console.log("Beejs AI Workload Demo");
+console.log("Amber AI Workload Demo");
 console.log("======================\n");
 
 // Performance measurement for AI workloads
@@ -72,7 +72,7 @@ function runDemo3() {
     console.log("Demo 3: TextEncoder/Decoder");
     console.log("----------------------------");
 
-    const text = "AI streaming with Beejs!";
+    const text = "AI streaming with Amber!";
     const encoded = new TextEncoder().encode(text);
     const decoded = new TextDecoder().decode(encoded);
 
@@ -89,5 +89,5 @@ function finishDemo() {
     console.log("======================");
     console.log("Demo completed in " + totalTime.toFixed(2) + "ms");
     console.log("======================");
-    console.log("\nBeejs - High-performance runtime for AI workloads!");
+    console.log("\nAmber - High-performance runtime for AI workloads!");
 }

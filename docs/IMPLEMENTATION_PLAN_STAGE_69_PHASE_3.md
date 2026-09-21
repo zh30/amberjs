@@ -1,7 +1,7 @@
 # Stage 69 Phase 3: JIT 优化增强实施计划
 
 ## 项目概述
-**项目**: Beejs 高性能 JavaScript/TypeScript 运行时
+**项目**: Amber 高性能 JavaScript/TypeScript 运行时
 **阶段**: Stage 69 Phase 3
 **目标**: JIT 优化增强，提升编译效率和执行性能
 **执行日期**: 2025-12-21

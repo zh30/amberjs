@@ -1,6 +1,6 @@
 // Stage 91 Phase 5: 集成测试套件
 //
-// 测试 Beejs 运行时与外部系统的集成
+// 测试 Amber 运行时与外部系统的集成
 
 #[cfg(test)]
 mod tests {

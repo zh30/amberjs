@@ -1,5 +1,5 @@
-// Test Beejs v0.1.7 Crypto API
-console.log("🧪 测试 Beejs v0.1.7 Crypto API");
+// Test Amber v0.1.7 Crypto API
+console.log("🧪 测试 Amber v0.1.7 Crypto API");
 
 // Test crypto object
 console.log("\n1. Crypto Object 测试:");

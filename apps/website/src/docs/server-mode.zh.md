@@ -1,20 +1,20 @@
 ---
 title: "现代 Web 服务与高并发架构"
-subtitle: "支持标准 Web Fetch API (bee serve)、node:http 以及无锁多 Isolate 线程池"
+subtitle: "支持标准 Web Fetch API (amber serve)、node:http 以及无锁多 Isolate 线程池"
 group: "核心系统"
 id: "server-mode"
 ---
 
-Beejs 提供了双重现代 Web 服务构建范式：
+Amber 提供了双重现代 Web 服务构建范式：
 
-1. **现代化 Web 标准服务 (`bee serve [file]`)**：基于符合 W3C / WinterCG 规范的 `Request` / `Response` 与 `fetch(req)` 导出模型；
-2. **Node.js 兼容服务 (`bee run server.ts`)**：基于 `node:http` 与底层 Rust Tokio 无锁多 Worker 线程池模型。
+1. **现代化 Web 标准服务 (`amber serve [file]`)**：基于符合 W3C / WinterCG 规范的 `Request` / `Response` 与 `fetch(req)` 导出模型；
+2. **Node.js 兼容服务 (`amber run server.ts`)**：基于 `node:http` 与底层 Rust Tokio 无锁多 Worker 线程池模型。
 
 ---
 
-## 1. 现代化 Web 应用服务 (`bee serve`)
+## 1. 现代化 Web 应用服务 (`amber serve`)
 
-`bee serve` 是 Beejs 官方推荐的现代轻量 Web 服务入口，体验对齐 Cloudflare Workers、Deno 与 Bun，原生支持 TypeScript 与 JSX。
+`amber serve` 是 Amber 官方推荐的现代轻量 Web 服务入口，体验对齐 Cloudflare Workers、Deno 与 Bun，原生支持 TypeScript 与 JSX。
 
 ### 1.1 编写首个 Web 服务脚本
 
@@ -28,7 +28,7 @@ export default {
 
     // 路由匹配
     if (url.pathname === "/") {
-      return new Response("🚀 Welcome to Beejs Web Server!");
+      return new Response("🚀 Welcome to Amber Web Server!");
     }
 
     if (url.pathname === "/api/echo" && req.method === "POST") {
@@ -41,12 +41,12 @@ export default {
 
     if (url.pathname === "/api/info") {
       return new Response(JSON.stringify({
-        runtime: "beejs",
+        runtime: "amberjs",
         version: "v1.16.0",
         arch: process.arch,
         platform: process.platform
       }), {
-        headers: { "Content-Type": "application/json", "X-Powered-By": "beejs" }
+        headers: { "Content-Type": "application/json", "X-Powered-By": "amberjs" }
       });
     }
 
@@ -59,16 +59,16 @@ export default {
 
 ```bash
 # 自动探测并运行 app.ts, app.js, server.ts, index.ts 等
-$ bee serve
+$ amber serve
 
 # 或显式指定文件与端口/主机
-$ bee serve app.ts --port 8080 --host 0.0.0.0
+$ amber serve app.ts --port 8080 --host 0.0.0.0
 ```
 
 终端输出：
 
 ```text
-🚀 Starting Beejs Web Server on http://0.0.0.0:8080
+🚀 Starting Amber Web Server on http://0.0.0.0:8080
 📄 Serving application: app.ts
 ✅ Listening on http://0.0.0.0:8080 (Ctrl+C to stop)
 ```
@@ -115,7 +115,7 @@ server.listen(3000, () => {
 启动命令：
 
 ```bash
-bee run server.ts
+amber run server.ts
 ```
 
 ---
@@ -126,9 +126,9 @@ bee run server.ts
 
 在传统单线程事件循环（如单进程 Node.js）中，一旦某个请求执行密集的 JSON 序列化、密码学哈希或张量推理，事件循环便会发生卡顿，导致正在排队的所有并发请求延迟剧增。
 
-### Beejs 的无锁多 Isolate 线程池
+### Amber 的无锁多 Isolate 线程池
 
-Beejs 在底层支持**多 Worker 线程池并发模型**：
+Amber 在底层支持**多 Worker 线程池并发模型**：
 
 ```text
                         客户端高并发请求 (TCP Traffic)
@@ -156,14 +156,14 @@ Beejs 在底层支持**多 Worker 线程池并发模型**：
 
 ```bash
 # 启用 8 个并行 Worker 线程
-$ bee run --workers 8 server.ts
+$ amber run --workers 8 server.ts
 ```
 
 或者在生产环境中设置环境变量：
 
 ```bash
-export BEE_WORKERS=8
-bee run server.ts
+export AMBER_WORKERS=8
+amber run server.ts
 ```
 
 **核心优势**：
@@ -179,7 +179,7 @@ bee run server.ts
 
 ```bash
 # 启动 8 核心工作线程
-bee run --workers 8 server.ts
+amber run --workers 8 server.ts
 
 # 发起压测 (100 并发连接，持续 10 秒)
 npx autocannon -c 100 -d 10 http://localhost:3000/api/users
@@ -187,6 +187,6 @@ npx autocannon -c 100 -d 10 http://localhost:3000/api/users
 
 ### 生产优化技巧
 
-1. **轻量服务优先选择 `bee serve`**：Fetch API 模型没有传统 Event Emitter 流包装开销，在微服务与边缘计算场景拥有更高的每秒请求处理量（RPS）；
+1. **轻量服务优先选择 `amber serve`**：Fetch API 模型没有传统 Event Emitter 流包装开销，在微服务与边缘计算场景拥有更高的每秒请求处理量（RPS）；
 2. **合理规划 Worker 数量**：在纯 I/O 服务中，Worker 数量建议设为 `CPU核心数` 至 `CPU核心数 * 2`；在重度密集计算时，建议严格等于物理核心数；
 3. **搭配安全沙箱**：生产对外暴露的不可信脚本建议添加 `--sandbox` 和 `--max-memory 512`，有效抵御内存泄漏与越权文件访问。

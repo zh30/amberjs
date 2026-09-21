@@ -252,14 +252,14 @@ tests/
 
 ## 📞 联系信息
 
-- **项目**: Beejs - 高性能 JavaScript/TypeScript 运行时
+- **项目**: Amber - 高性能 JavaScript/TypeScript 运行时
 - **阶段**: Stage 39.0 Complete
 - **状态**: 等待编译错误修复
 - **下个里程碑**: Stage 40.0 规划
 
 ---
 
-**🎉 Stage 39.0 核心功能实现完成！Beejs 向极致性能又迈进了一大步！**
+**🎉 Stage 39.0 核心功能实现完成！Amber 向极致性能又迈进了一大步！**
 
 *生成时间: 2025-12-19*
 *文档版本: v1.0*

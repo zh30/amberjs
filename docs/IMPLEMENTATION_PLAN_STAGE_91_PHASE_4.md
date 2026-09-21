@@ -1,7 +1,7 @@
 # Stage 91 Phase 4: 开发者体验提升
 
 ## 目标
-提升 Beejs 的开发者体验，使其成为开发者友好的高性能 JavaScript/TypeScript 运行时。
+提升 Amber 的开发者体验，使其成为开发者友好的高性能 JavaScript/TypeScript 运行时。
 
 ## 进度
 - 🔄 **Phase 4.1: CLI 增强** - 进行中
@@ -19,12 +19,12 @@
 ### 实现内容
 
 #### 4.1.1 新增 CLI 命令
-- `beejs init` - 初始化项目 (创建 package.json, tsconfig.json 等)
-- `beejs upgrade` - 升级 Beejs 到最新版本
-- `beejs add <package>` - 快速添加依赖包
-- `beejs info` - 显示系统和运行时信息
-- `beejs doctor` - 诊断环境问题
-- `beejs completion` - 生成 shell 自动补全脚本
+- `amberjs init` - 初始化项目 (创建 package.json, tsconfig.json 等)
+- `amberjs upgrade` - 升级 Amber 到最新版本
+- `amberjs add <package>` - 快速添加依赖包
+- `amberjs info` - 显示系统和运行时信息
+- `amberjs doctor` - 诊断环境问题
+- `amberjs completion` - 生成 shell 自动补全脚本
 
 #### 4.1.2 CLI 输出美化
 - 彩色终端输出

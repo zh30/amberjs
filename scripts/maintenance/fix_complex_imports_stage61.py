@@ -41,7 +41,7 @@ def fix_complex_imports():
 
     fixed_count = 0
     for file_path, item_to_remove in safe_removals:
-        full_path = Path("/Users/henry/code/beejs") / file_path
+        full_path = Path("/Users/henry/code/amberjs") / file_path
         if not full_path.exists():
             continue
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         ["cargo", "check"],
         capture_output=True,
         text=True,
-        cwd="/Users/henry/code/beejs"
+        cwd="/Users/henry/code/amberjs"
     )
     warning_count = result.stderr.count('warning:')
     print(f"Warnings after fix: {warning_count}")

@@ -1,7 +1,7 @@
 # Stage 71: V8 快照预热与启动优化实施计划
 
 ## 项目概述
-**项目**: Beejs 高性能 JavaScript/TypeScript 运行时
+**项目**: Amber 高性能 JavaScript/TypeScript 运行时
 **阶段**: Stage 71
 **目标**: 通过 V8 快照预热和启动优化，消除首次执行开销，达到与 Node.js 同等或更好的启动性能
 **执行日期**: 2025-12-21

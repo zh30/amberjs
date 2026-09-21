@@ -52,7 +52,7 @@ def main():
     ]
 
     for file in key_files:
-        path = f'/Users/henry/code/beejs/{file}'
+        path = f'/Users/henry/code/amberjs/{file}'
         if os.path.exists(path):
             print(f"📝 处理: {file}")
             changes = smart_fix_warnings(path)

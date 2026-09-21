@@ -26,12 +26,15 @@ ENV CARGO_PROFILE_RELEASE_LTO=false
 ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
 ENV CARGO_BUILD_JOBS=1
 
-# Manifest + benches must exist before `cargo fetch` (Cargo.toml lists [[bench]]).
+# Manifest + benches + workspace members must exist before `cargo fetch`.
+# Cargo.toml lists [[bench]] and workspace members crates/* + extensions/zed.
 COPY Cargo.toml Cargo.lock build.rs ./
 COPY benches ./benches
 COPY src ./src
 # types_export.rs embed: include_str!("../types/amberjs.d.ts")
 COPY types ./types
+COPY crates ./crates
+COPY extensions ./extensions
 
 RUN cargo fetch --locked
 RUN cargo build --release --bin amber
@@ -51,9 +54,8 @@ RUN groupadd -r amberjs && useradd -r -g amberjs amberjs
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件并建立兼容别名
+# 从构建阶段复制二进制文件
 COPY --from=builder /app/target/release/amber /usr/local/bin/amber
-RUN ln -s /usr/local/bin/amber /usr/local/bin/bee
 
 # 创建必要的目录
 RUN mkdir -p /app/cache /app/logs /app/tmp && \

@@ -1,7 +1,7 @@
-//! Dynamic on-demand package runner for Beejs (`bee x` / `bee dlx`).
+//! Dynamic on-demand package runner for Amber (`amber x` / `amber dlx`).
 //!
 //! Fetches and executes packages from npm registry on the fly without local installation,
-//! caching binaries globally in `~/.beejs/x_cache/` for instant subsequent execution.
+//! caching binaries globally in `~/.amberjs/x_cache/` for instant subsequent execution.
 
 use anyhow::{anyhow, Result};
 use flate2::read::GzDecoder;
@@ -11,10 +11,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tar::Archive;
 
-/// Get the global cache directory for `bee x`
+/// Get the global cache directory for `amber x`
 pub fn get_x_cache_dir() -> PathBuf {
     let base = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    base.join(".beejs").join("x_cache")
+    base.join(".amberjs").join("x_cache")
 }
 
 /// Parse a package specifier like "cowsay", "cowsay@1.5.0", "@biomejs/biome@1.8.0"
@@ -57,7 +57,7 @@ pub fn ensure_package_cached(pkg_spec: &str) -> Result<PathBuf> {
 
     // Download from npm registry
     let client = reqwest::blocking::Client::builder()
-        .user_agent("beejs-x/1.4.0")
+        .user_agent("amberjs-x/1.4.0")
         .build()?;
 
     // 1. Resolve package metadata
@@ -174,23 +174,23 @@ pub fn resolve_package_bin(package_dir: &Path, pkg_name: &str) -> Result<PathBuf
     Ok(bin_path)
 }
 
-/// Run a package directly with `bee x`
+/// Run a package directly with `amber x`
 pub fn run_dlx(package_spec: &str, args: &[String]) -> Result<i32> {
-    println!("⚡ bee x: Resolving package '{}'...", package_spec);
+    println!("⚡ amber x: Resolving package '{}'...", package_spec);
     let (name, _) = parse_pkg_spec(package_spec);
 
     let pkg_dir = ensure_package_cached(package_spec)?;
     let bin_path = resolve_package_bin(&pkg_dir, &name)?;
 
     // Check if the file is a JavaScript or TypeScript script
-    let current_exe = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("bee"));
+    let current_exe = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("amber"));
 
     let is_js = bin_path.extension().map_or(false, |ext| {
         ext == "js" || ext == "mjs" || ext == "cjs" || ext == "ts"
     });
 
     let has_node_shebang = fs::read_to_string(&bin_path)
-        .map(|s| s.starts_with("#!") && (s.contains("node") || s.contains("bee")))
+        .map(|s| s.starts_with("#!") && (s.contains("node") || s.contains("amber")))
         .unwrap_or(false);
 
     let mut cmd = if is_js || has_node_shebang {

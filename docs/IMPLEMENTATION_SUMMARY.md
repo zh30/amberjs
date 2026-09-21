@@ -1,4 +1,4 @@
-# Beejs 模块系统实现完成报告
+# Amber 模块系统实现完成报告
 
 ## 🎯 项目目标
 实现一个高性能的 JavaScript/TypeScript 运行时（比 Bun 更快），使用 Rust 和 V8 实现。
@@ -199,7 +199,7 @@ tests/legacy/sources/verify_implementation.sh   # ⭐ 新增: 验证脚本
 
 ### 9. 项目影响
 
-#### 9.1 对 Beejs 的意义
+#### 9.1 对 Amber 的意义
 - ✅ 核心功能里程碑
 - ✅ 基础架构完成
 - ✅ 向生产就绪迈进一大步
@@ -211,7 +211,7 @@ tests/legacy/sources/verify_implementation.sh   # ⭐ 新增: 验证脚本
 
 ### 10. 总结
 
-本次实现成功为 Beejs 运行时添加了完整的 CommonJS 模块系统，包括：
+本次实现成功为 Amber 运行时添加了完整的 CommonJS 模块系统，包括：
 
 🎯 **核心功能**
 - require() 函数
@@ -229,7 +229,7 @@ tests/legacy/sources/verify_implementation.sh   # ⭐ 新增: 验证脚本
 - 使用示例
 - 测试覆盖
 
-这标志着 Beejs 向成为高性能 JavaScript/TypeScript 运行体的目标迈出了重要一步！
+这标志着 Amber 向成为高性能 JavaScript/TypeScript 运行体的目标迈出了重要一步！
 
 ---
 

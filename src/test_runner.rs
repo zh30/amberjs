@@ -1,4 +1,4 @@
-// Beejs Test Runner
+// Amber Test Runner
 // 高性能测试运行器，支持 Jest 风格的测试
 #[allow(unused_imports)]
 
@@ -53,7 +53,7 @@ impl Default for TestRunnerConfig {
         }
     }
 }
-/// Test runner for Beejs runtime
+/// Test runner for Amber runtime
 pub struct TestRunner {
     config: TestRunnerConfig,
     runtime: crate::Runtime,

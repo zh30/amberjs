@@ -1,7 +1,7 @@
-// Beejs v0.2.0 完整 Web API 演示
+// Amber v0.2.0 完整 Web API 演示
 // 展示所有支持的 Web API 功能
 
-console.log('=== Beejs v0.2.0 Web API 完整演示 ===\n');
+console.log('=== Amber v0.2.0 Web API 完整演示 ===\n');
 
 // 1. Console API
 console.log('--- 1. Console API ---');
@@ -24,7 +24,7 @@ console.log('Math.random():', Math.random());
 // 3. JSON API
 console.log('\n--- 3. JSON API ---');
 let testObj = {
-    name: 'Beejs',
+    name: 'Amber',
     version: '0.2.0',
     features: ['高性能', '异步', 'HTTP'],
     nested: {
@@ -35,12 +35,22 @@ let testObj = {
 console.log('原始对象:', testObj);
 console.log('JSON.stringify:', JSON.stringify(testObj, null, 2));
 
-let parsedJson = JSON.parse('{"test": true, "value": 123}');
+let parsedJson;
+try {
+    parsedJson = JSON.parse('{"test": true, "value": 123}');
+} catch (error) {
+    throw new Error(`JSON.parse failed: ${error}`);
+}
 console.log('JSON.parse:', parsedJson);
 
 // 4. URL API
 console.log('\n--- 4. URL API ---');
-let url = new URL('https://api.example.com:8080/v1/users?sort=name&limit=10#profile');
+let url;
+try {
+    url = new URL('https://api.example.com:8080/v1/users?sort=name&limit=10#profile');
+} catch (error) {
+    throw new Error(`URL parse failed: ${error}`);
+}
 console.log('href:', url.href);
 console.log('protocol:', url.protocol);
 console.log('host:', url.host);
@@ -118,4 +128,4 @@ console.log('组合数据对象:');
 console.log(JSON.stringify(data, null, 2));
 
 console.log('\n=== Web API 演示完成 ===');
-console.log('所有核心 Web API 在 Beejs v0.2.0 中正常工作！');
+console.log('所有核心 Web API 在 Amber v0.2.0 中正常工作！');

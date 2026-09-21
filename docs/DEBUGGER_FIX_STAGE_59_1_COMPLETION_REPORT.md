@@ -1,7 +1,7 @@
 # Stage 59.1: 调试器编译错误修复 - 完成报告
 
 ## 任务概述
-**目标**: 修复 Beejs Stage 59 调试器模块的编译错误
+**目标**: 修复 Amber Stage 59 调试器模块的编译错误
 **日期**: 2025-12-20
 **状态**: ✅ 第一阶段完成
 
@@ -188,7 +188,7 @@ error[E0599]: no method named ... (10 个)
 ### 测试状态
 ```bash
 $ cargo test
-error: could not compile 'beejs' due to 41 previous errors
+error: could not compile 'amberjs' due to 41 previous errors
 ```
 
 **注意**: 测试模式下的错误数量略高，这是正常的，因为测试模式会进行额外的类型检查。

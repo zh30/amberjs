@@ -1,4 +1,4 @@
-// Simple TypeScript Example for Beejs
+// Simple TypeScript Example for Amber
 // Testing basic TypeScript compilation
 
 // Basic types
@@ -8,7 +8,7 @@ let isActive: boolean = true;
 
 // Array types
 let numbers: number[] = [1, 2, 3, 4, 5];
-let names: string[] = ["Beejs", "TypeScript", "Rust"];
+let names: string[] = ["Amber", "TypeScript", "Rust"];
 
 // Function with types
 function add(a: number, b: number): number {
@@ -26,12 +26,12 @@ interface User {
 }
 
 const user: User = {
-    name: "Beejs User",
+    name: "Amber User",
     age: 1
 };
 
 // Execute
-console.log("🐝 TypeScript Hello World for Beejs!");
+console.log("🐝 TypeScript Hello World for Amber!");
 console.log(message);
 console.log("Count: " + count);
 console.log("Active: " + isActive);

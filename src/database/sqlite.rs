@@ -1,4 +1,4 @@
-//! Embedded SQLite Database engine for Beejs (`bee:db` / `bee:sqlite`).
+//! Embedded SQLite Database engine for Amber (`amber:db` / `amber:sqlite`).
 //!
 //! Provides zero-dependency, in-process SQLite storage powered by native `rusqlite`.
 //! Supports both in-memory databases and file-based persistence, prepared statements,

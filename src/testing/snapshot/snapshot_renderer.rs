@@ -169,9 +169,9 @@ impl SnapshotRenderer {
         result.push_str("================\n\n");
         result.push_str("Snapshot tests compare serialized values to stored snapshots.\n\n");
         result.push_str("Usage:\n");
-        result.push_str("  - Run tests: bee test\n");
-        result.push_str("  - Update snapshots: bee test --update-snapshots\n");
-        result.push_str("  - Inline snapshots: bee test --inline-snapshots\n\n");
+        result.push_str("  - Run tests: amber test\n");
+        result.push_str("  - Update snapshots: amber test --update-snapshots\n");
+        result.push_str("  - Inline snapshots: amber test --inline-snapshots\n\n");
         result.push_str("Configuration:\n");
         result.push_str("  - Set SNAPSHOT_UPDATE=true to auto-update\n");
         result.push_str("  - Set SNAPSHOT_INLINE=true for inline snapshots\n");

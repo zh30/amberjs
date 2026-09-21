@@ -1,4 +1,4 @@
-// Beejs CLI Enhanced Module
+// Amber CLI Enhanced Module
 // Stage 56.0 - CLI 功能完善与 Bun 兼容性
 // Stage 91 Phase 4.1 - 开发者体验提升
 // Stage 91 Phase 4.3 - 快速启动模板系统

@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod onnx_tests {
-    use beejs::ai_inference::engine_interface{
+    use amberjs::ai_inference::engine_interface{
         InferenceEngine, EngineFactory, EngineManager, ModelFormat, EngineType,
         InferenceOptions, ModelHandle, Tensor, InferenceResult, EngineStats
     };
@@ -117,8 +117,8 @@ mod onnx_tests {
                 Ok(rx)
             }
 
-            async fn get_model_info(&self, model: &ModelHandle) -> Result<beejs::ai_inference::engine_interface::ModelInfo> {
-                Ok(beejs::ai_inference::engine_interface::ModelInfo {
+            async fn get_model_info(&self, model: &ModelHandle) -> Result<amberjs::ai_inference::engine_interface::ModelInfo> {
+                Ok(amberjs::ai_inference::engine_interface::ModelInfo {
                     id: model.id.clone(),
                     name: "Test ONNX Model".to_string(),
                     format: ModelFormat::ONNX,
@@ -367,10 +367,10 @@ mod onnx_tests {
         let cache_size = 10;
 
         // 创建模型缓存
-        let cache = beejs::ai_inference::model_cache::ModelCache::new(cache_size).await?;
+        let cache = amberjs::ai_inference::model_cache::ModelCache::new(cache_size).await?;
 
         // 加载并缓存模型
-        cache.put(model_id.to_string(), beejs::ai_inference::ai_inference_engine::AIModel {
+        cache.put(model_id.to_string(), amberjs::ai_inference::ai_inference_engine::AIModel {
             id: model_id.to_string(),
             input_shape: vec![1, 3, 224, 224],
             output_shape: vec![1, 1000],
@@ -389,7 +389,7 @@ mod onnx_tests {
     #[tokio::test]
     async fn test_onnx_engine_statistics() -> Result<()> {
         // 创建模拟引擎并获取统计信息
-        let stats = beejs::ai_inference::EngineStats {
+        let stats = amberjs::ai_inference::EngineStats {
             engine_name: "ONNXRuntime".to_string(),
             total_inferences: 1000,
             successful_inferences: 995,

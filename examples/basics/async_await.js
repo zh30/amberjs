@@ -1,11 +1,11 @@
 /**
- * Beejs 异步编程示例
+ * Amber 异步编程示例
  *
  * 演示 async/await、Promise、并发处理等异步功能
- * Beejs 针对异步操作进行了极致优化
+ * Amber 针对异步操作进行了极致优化
  */
 
-console.log("=== Beejs 异步编程示例 ===\n");
+console.log("=== Amber 异步编程示例 ===\n");
 
 // 1. 基础 Promise 使用
 console.log("--- 1. 基础 Promise ---");
@@ -164,11 +164,11 @@ console.log("第一次 next():", gen.next().value);
 console.log("第二次 next():", gen.next().value);
 console.log("第三次 next():", gen.next().value);
 
-// 8. Beejs 异步优化特性
-console.log("\n--- 8. Beejs 异步优化特性 ---");
+// 8. Amber 异步优化特性
+console.log("\n--- 8. Amber 异步优化特性 ---");
 
-async function beejsOptimizations() {
-    console.log("Beejs 异步优化:");
+async function amberjsOptimizations() {
+    console.log("Amber 异步优化:");
 
     // 零拷贝 I/O
     console.log("✅ 零拷贝 I/O 操作");
@@ -194,7 +194,7 @@ async function beejsOptimizations() {
     console.log(`平均每个 Promise: ${(duration / 10000).toFixed(4)}ms`);
 }
 
-beejsOptimizations();
+amberjsOptimizations();
 
 // 9. 实际应用场景
 console.log("\n--- 9. 实际应用场景 ---");

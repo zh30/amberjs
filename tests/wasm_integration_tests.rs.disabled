@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::*;
+    use amberjs::*;
     use std::time::{Duration, Instant};
 
     /// 测试1: WasmExecutor基本创建

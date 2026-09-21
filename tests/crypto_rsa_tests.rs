@@ -1,5 +1,5 @@
 // Tests for RSA key generation and sign/verify (v0.3.362)
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]
@@ -67,10 +67,10 @@ fn test_rsa_oaep_encrypt_decrypt_round_trip() {
                 true,
                 ['encrypt', 'decrypt']
             );
-            const plaintext = new TextEncoder().encode('bee rsa oaep');
+            const plaintext = new TextEncoder().encode('amber rsa oaep');
             const ciphertext = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, keyPair.publicKey, plaintext);
             const decrypted = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, keyPair.privateKey, ciphertext);
-            return new TextDecoder().decode(decrypted) === 'bee rsa oaep' &&
+            return new TextDecoder().decode(decrypted) === 'amber rsa oaep' &&
                 ciphertext instanceof ArrayBuffer &&
                 ciphertext.byteLength === 256;
         })();
@@ -91,7 +91,7 @@ fn test_rsa_oaep_decrypt_rejects_tampered_ciphertext() {
                 true,
                 ['encrypt', 'decrypt']
             );
-            const plaintext = new TextEncoder().encode('bee rsa oaep');
+            const plaintext = new TextEncoder().encode('amber rsa oaep');
             const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, keyPair.publicKey, plaintext));
             ciphertext[0] ^= 0xff;
             try {
@@ -118,7 +118,7 @@ fn test_rsa_oaep_decrypt_rejects_wrong_label() {
                 true,
                 ['encrypt', 'decrypt']
             );
-            const plaintext = new TextEncoder().encode('bee rsa oaep label');
+            const plaintext = new TextEncoder().encode('amber rsa oaep label');
             const ciphertext = await crypto.subtle.encrypt(
                 { name: 'RSA-OAEP', label: new Uint8Array([1, 2, 3]) },
                 keyPair.publicKey,
@@ -154,7 +154,7 @@ fn test_rsa_oaep_encrypt_decrypt_with_matching_label() {
                 ['encrypt', 'decrypt']
             );
             const label = new Uint8Array([1, 2, 3, 4]);
-            const plaintext = new TextEncoder().encode('bee rsa oaep label');
+            const plaintext = new TextEncoder().encode('amber rsa oaep label');
             const ciphertext = await crypto.subtle.encrypt(
                 { name: 'RSA-OAEP', label },
                 keyPair.publicKey,
@@ -165,7 +165,7 @@ fn test_rsa_oaep_encrypt_decrypt_with_matching_label() {
                 keyPair.privateKey,
                 ciphertext
             );
-            return new TextDecoder().decode(decrypted) === 'bee rsa oaep label';
+            return new TextDecoder().decode(decrypted) === 'amber rsa oaep label';
         })();
     "#;
     let result = runtime.execute_code(code);
@@ -188,7 +188,7 @@ fn test_rsa_oaep_encrypt_rejects_non_buffer_label() {
                 await crypto.subtle.encrypt(
                     { name: 'RSA-OAEP', label: 'not-bytes' },
                     keyPair.publicKey,
-                    new TextEncoder().encode('bee rsa oaep')
+                    new TextEncoder().encode('amber rsa oaep')
                 );
                 return false;
             } catch (error) {
@@ -212,7 +212,7 @@ fn test_rsa_oaep_rejects_wrong_key_type() {
                 true,
                 ['encrypt', 'decrypt']
             );
-            const plaintext = new TextEncoder().encode('bee rsa oaep');
+            const plaintext = new TextEncoder().encode('amber rsa oaep');
             let privateEncryptRejected = false;
             try {
                 await crypto.subtle.encrypt(

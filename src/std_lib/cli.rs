@@ -1,4 +1,4 @@
-//! Terminal utilities, ANSI styling, and interactive CLI prompts (`bee:std/cli`).
+//! Terminal utilities, ANSI styling, and interactive CLI prompts (`amber:std/cli`).
 
 /// Format tabular data into an ASCII table string
 pub fn format_table(headers: &[String], rows: &[Vec<String>]) -> String {

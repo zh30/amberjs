@@ -1,4 +1,4 @@
-// Structured logging for Beejs runtime
+// Structured logging for Amber runtime
 //
 // This module provides structured logging capabilities with JSON formatting,
 // correlation IDs, and context-aware logging for better observability.
@@ -32,7 +32,7 @@ impl StructuredLogger {
     /// Create a new structured logger
     pub fn new(level: Level, service_name: String) -> Self {
         let environment: _ =
-            std::env::var("BEEJS_ENV").unwrap_or_else(|_| "development".to_string());
+            std::env::var("AMBER_ENV").unwrap_or_else(|_| "development".to_string());
         Self {
             level,
             service_name,
@@ -177,7 +177,7 @@ where
         let mut message = String::new();
         // Use simplified approach for field extraction
         let level_str: _ = "info";
-        let target_str: _ = "beejs";
+        let target_str: _ = "amberjs";
         // Simplified field extraction
         message = "event".to_string();
         // Create JSON log entry
@@ -312,13 +312,13 @@ impl<'a> PerformanceLogger<'a> {
 mod tests {
     #[tokio::test]
     async fn test_structured_logger_creation() {
-        let logger: _ = StructuredLogger::new(Level::INFO, "beejs".to_string());
-        assert_eq!(logger.service_name(), "beejs");
+        let logger: _ = StructuredLogger::new(Level::INFO, "amberjs".to_string());
+        assert_eq!(logger.service_name(), "amberjs");
         assert_eq!(logger.level(), Level::INFO);
     }
     #[tokio::test]
     async fn test_log_with_context() {
-        let logger: _ = StructuredLogger::new(Level::INFO, "beejs".to_string());
+        let logger: _ = StructuredLogger::new(Level::INFO, "amberjs".to_string());
         let context: _ = HashMap::from([
             ("key1".to_string(), json!("value1")),
             ("key2".to_string(), json!(42)),
@@ -327,7 +327,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_correlation_id() {
-        let logger: _ = StructuredLogger::new(Level::INFO, "beejs".to_string());
+        let logger: _ = StructuredLogger::new(Level::INFO, "amberjs".to_string());
         logger
             .set_correlation_id("test-correlation-id".to_string())
             .await;
@@ -336,14 +336,14 @@ mod tests {
     }
     #[tokio::test]
     async fn test_script_logger() {
-        let logger: _ = StructuredLogger::new(Level::INFO, "beejs".to_string());
+        let logger: _ = StructuredLogger::new(Level::INFO, "amberjs".to_string());
         let script_logger: _ = ScriptLogger::new(&logger, "test.js");
         script_logger.log_start().await;
         script_logger.log_end(100, true).await;
     }
     #[tokio::test]
     async fn test_performance_logger() {
-        let logger: _ = StructuredLogger::new(Level::DEBUG, "beejs".to_string());
+        let logger: _ = StructuredLogger::new(Level::DEBUG, "amberjs".to_string());
         let perf_logger: _ = PerformanceLogger::new(&logger, "test_operation");
         perf_logger.log_start().await;
         perf_logger.log_completion(50, true).await;

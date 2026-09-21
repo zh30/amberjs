@@ -5,17 +5,17 @@ group: "Developer Tooling"
 id: "task-runner"
 ---
 
-Executing lifecycle scripts in `package.json` traditionally requires a heavyweight Node.js runtime and npm installation. Beejs provides a native, high-performance **Task Runner** built directly in Rust.
+Executing lifecycle scripts in `package.json` traditionally requires a heavyweight Node.js runtime and npm installation. Amber provides a native, high-performance **Task Runner** built directly in Rust.
 
 ---
 
 ## 1. Quick Usage
 
 ### 1.1 Listing Available Tasks
-Run `bee task` without arguments in any project directory containing a `package.json`:
+Run `amber task` without arguments in any project directory containing a `package.json`:
 
 ```bash
-$ bee task
+$ amber task
 ```
 
 Console output:
@@ -24,25 +24,25 @@ Console output:
 
   Task                 Command
   ────────────────────────────────────────────────────────
-  build                bee bundle src/index.ts -o dist/bundle.js
-  test                 bee test --coverage
-  lint                 bee lint src/
-  format               bee fmt src/
-  serve                bee serve app.ts --port 3000
+  build                amber bundle src/index.ts -o dist/bundle.js
+  test                 amber test --coverage
+  lint                 amber lint src/
+  format               amber fmt src/
+  serve                amber serve app.ts --port 3000
 ```
 
 ### 1.2 Running a Task
-Execute a task with `bee task <name>` or `bee run <script>`:
+Execute a task with `amber task <name>` or `amber run <script>`:
 
 ```bash
-$ bee task build
+$ amber task build
 # Or identically to npm / bun:
-$ bee run build
+$ amber run build
 ```
 
 Pass additional arguments to the underlying command after `--`:
 ```bash
-$ bee task test -- --bail
+$ amber task test -- --bail
 ```
 
 ---
@@ -53,35 +53,35 @@ $ bee task test -- --bail
 The task runner parses `package.json` directly using fast Rust deserialization and spawns lightweight OS processes without needing Node.js or npm installed on the machine.
 
 ### 2.2 Intelligent PATH Prioritization
-When invoking commands, Beejs automatically configures environment variables:
+When invoking commands, Amber automatically configures environment variables:
 1. **Local `.bin` Precedence**: Prepends `<project_root>/node_modules/.bin` to `PATH`;
-2. **Current `bee` Binary Forwarding**: Prepends the directory of the running `bee` binary to `PATH`, ensuring that `bee fmt` or `bee test` scripts invoke the current runtime version;
+2. **Current `amber` Binary Forwarding**: Prepends the directory of the running `amber` binary to `PATH`, ensuring that `amber fmt` or `amber test` scripts invoke the current runtime version;
 3. **Cross-Platform Shell Spawning**: Dispatches through `sh -c` on Unix (macOS / Linux) and `cmd.exe /C` on Windows to cleanly support compound shell operators and pipes.
 
 ---
 
 ## 3. Recommended Workflow
 
-Sample `package.json` for a modern Beejs project:
+Sample `package.json` for a modern Amber project:
 
 ```json
 {
-  "name": "my-beejs-service",
+  "name": "my-amberjs-service",
   "version": "1.0.0",
   "scripts": {
-    "dev": "bee serve app.ts --watch",
-    "build": "bee bundle app.ts -o dist/bundle.js --minify",
-    "compile": "bee compile app.ts -o my-service",
-    "check": "bee lint src/ && bee fmt src/ --check",
-    "test": "bee test --coverage",
-    "bench": "bee bench benches/"
+    "dev": "amber serve app.ts --watch",
+    "build": "amber bundle app.ts -o dist/bundle.js --minify",
+    "compile": "amber compile app.ts -o my-service",
+    "check": "amber lint src/ && amber fmt src/ --check",
+    "test": "amber test --coverage",
+    "bench": "amber bench benches/"
   }
 }
 ```
 
 Now you can drive your entire development lifecycle with clean commands:
 ```bash
-$ bee run check
-$ bee run test
-$ bee run build
+$ amber run check
+$ amber run test
+$ amber run build
 ```

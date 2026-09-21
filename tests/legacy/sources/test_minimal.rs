@@ -1,13 +1,13 @@
-//! Minimal test for Beejs Runtime
+//! Minimal test for Amber Runtime
 //! Simple test to verify core functionality
 
 fn main() {
-    println!("🚀 Beejs MinimalRuntime Test");
+    println!("🚀 Amber MinimalRuntime Test");
     println!("==============================\n");
 
     // Test 1: Create runtime
     println!("Test 1: Creating minimal runtime...");
-    match beejs::MinimalRuntime::new() {
+    match amberjs::MinimalRuntime::new() {
         Ok(runtime) => {
             println!("✅ Runtime created successfully\n");
 
@@ -19,7 +19,7 @@ fn main() {
 
                     // Test 3: Execute string concatenation
                     println!("Test 3: Executing string concatenation...");
-                    match runtime.execute("'Hello' + ' ' + 'Beejs'") {
+                    match runtime.execute("'Hello' + ' ' + 'Amber'") {
                         Ok(result) => {
                             println!("✅ Result: {}\n", result);
 
@@ -37,13 +37,17 @@ fn main() {
 
                                             // Test 6: Execute function
                                             println!("Test 6: Executing function...");
-                                            match runtime.execute("function add(a, b) { return a + b; } add(5, 10);") {
+                                            match runtime.execute(
+                                                "function add(a, b) { return a + b; } add(5, 10);",
+                                            ) {
                                                 Ok(result) => {
                                                     println!("✅ Result: {}\n", result);
 
                                                     // Test 7: Execute arrow function
                                                     println!("Test 7: Executing arrow function...");
-                                                    match runtime.execute("const double = x => x * 2; double(21);") {
+                                                    match runtime.execute(
+                                                        "const double = x => x * 2; double(21);",
+                                                    ) {
                                                         Ok(result) => {
                                                             println!("✅ Result: {}\n", result);
 
@@ -59,7 +63,9 @@ fn main() {
                                                                 Err(e) => println!("❌ Test 8 failed: {}", e),
                                                             }
                                                         }
-                                                        Err(e) => println!("❌ Test 7 failed: {}", e),
+                                                        Err(e) => {
+                                                            println!("❌ Test 7 failed: {}", e)
+                                                        }
                                                     }
                                                 }
                                                 Err(e) => println!("❌ Test 6 failed: {}", e),

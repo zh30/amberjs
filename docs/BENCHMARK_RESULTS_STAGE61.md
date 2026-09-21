@@ -1,4 +1,4 @@
-# Beejs vs Bun Performance Benchmark Results
+# Amber vs Bun Performance Benchmark Results
 **Stage 61 - Final Performance Analysis**
 *Date: 2025-12-20*
 
@@ -6,11 +6,11 @@
 
 ## Executive Summary
 
-Beejs has successfully demonstrated **superior performance** compared to Bun in multiple critical metrics, validating its design as a high-performance JavaScript/TypeScript runtime for the AI era.
+Amber has successfully demonstrated **superior performance** compared to Bun in multiple critical metrics, validating its design as a high-performance JavaScript/TypeScript runtime for the AI era.
 
 ### Key Performance Highlights
 
-| Metric | Beejs | Bun | Improvement |
+| Metric | Amber | Bun | Improvement |
 |--------|-------|-----|-------------|
 | **Startup Time** | < 10ms | ~15ms | **1.5x faster** |
 | **Execution Speed** | 1000K ops/10ms | ~850K ops/10ms | **1.18x faster** |
@@ -23,11 +23,11 @@ Beejs has successfully demonstrated **superior performance** compared to Bun in 
 
 ### 1. Startup Time Performance
 **Test**: Empty script execution
-- **Beejs**: < 10ms (including runtime initialization)
+- **Amber**: < 10ms (including runtime initialization)
 - **Bun**: ~15ms (typical)
-- **Winner**: 🏆 **Beejs (1.5x faster)**
+- **Winner**: 🏆 **Amber (1.5x faster)**
 
-**Analysis**: Beejs achieves faster startup through:
+**Analysis**: Amber achieves faster startup through:
 - Optimized V8 isolate creation
 - Minimal runtime overhead
 - Efficient memory allocation
@@ -38,9 +38,9 @@ Beejs has successfully demonstrated **superior performance** compared to Bun in 
 Completed 1000000 iterations in 10ms
 Sum: 666666166.4588418
 ```
-- **Beejs**: 100,000 ops/ms
+- **Amber**: 100,000 ops/ms
 - **Bun**: ~85,000 ops/ms
-- **Winner**: 🏆 **Beejs (1.18x faster)**
+- **Winner**: 🏆 **Amber (1.18x faster)**
 
 **Analysis**: Superior computational performance due to:
 - Direct V8 optimization
@@ -49,9 +49,9 @@ Sum: 666666166.4588418
 
 ### 3. Memory Efficiency
 **Test**: Runtime memory footprint
-- **Beejs**: ~45MB base memory
+- **Amber**: ~45MB base memory
 - **Bun**: ~85MB base memory
-- **Winner**: 🏆 **Beejs (47% less memory)**
+- **Winner**: 🏆 **Amber (47% less memory)**
 
 **Analysis**: Lower memory usage enables:
 - Higher concurrent script density
@@ -60,20 +60,20 @@ Sum: 666666166.4588418
 
 ### 4. TypeScript Support
 **Feature**: Native TypeScript compilation
-- **Beejs**: ✅ Integrated type checking & transpilation
+- **Amber**: ✅ Integrated type checking & transpilation
 - **Bun**: ❌ Transpile only, no type checking
-- **Winner**: 🏆 **Beejs (Complete TypeScript support)**
+- **Winner**: 🏆 **Amber (Complete TypeScript support)**
 
-**Analysis**: Beejs provides:
+**Analysis**: Amber provides:
 - Type safety at runtime
 - Faster development feedback
 - Seamless TypeScript integration
 
 ### 5. Script Execution Architecture
 **Test**: Complex async operations
-- **Beejs**: Process pool reuse pattern
+- **Amber**: Process pool reuse pattern
 - **Bun**: Single isolate per script
-- **Winner**: 🏆 **Beejs (10-50x faster for reuse)**
+- **Winner**: 🏆 **Amber (10-50x faster for reuse)**
 
 **Analysis**: Process pool reuse provides:
 - 10-50x performance improvement for repeated executions
@@ -86,7 +86,7 @@ Sum: 666666166.4588418
 
 ### 1. Process Pool Reuse
 ```rust
-// Beejs achieves 10-50x speedup through process reuse
+// Amber achieves 10-50x speedup through process reuse
 pub struct ProcessPool {
     available: Vec<ProcessHandle>,
     running: HashMap<ProcessId, ProcessHandle>,
@@ -107,16 +107,16 @@ pub struct ProcessPool {
 
 ## Comparison with Bun
 
-| Feature | Beejs | Bun | Advantage |
+| Feature | Amber | Bun | Advantage |
 |---------|-------|-----|-----------|
-| **Startup Time** | < 10ms | ~15ms | ✅ Beejs |
-| **Execution Speed** | 100K ops/ms | 85K ops/ms | ✅ Beejs |
-| **Memory Usage** | 45MB | 85MB | ✅ Beejs |
-| **TypeScript** | Native + Types | Transpile only | ✅ Beejs |
-| **Bundle Size** | ~18MB | ~25MB | ✅ Beejs |
-| **Debug Support** | Full debugger | Limited | ✅ Beejs |
-| **Web APIs** | Full support | Partial | ✅ Beejs |
-| **AI Integration** | Specialized | None | ✅ Beejs |
+| **Startup Time** | < 10ms | ~15ms | ✅ Amber |
+| **Execution Speed** | 100K ops/ms | 85K ops/ms | ✅ Amber |
+| **Memory Usage** | 45MB | 85MB | ✅ Amber |
+| **TypeScript** | Native + Types | Transpile only | ✅ Amber |
+| **Bundle Size** | ~18MB | ~25MB | ✅ Amber |
+| **Debug Support** | Full debugger | Limited | ✅ Amber |
+| **Web APIs** | Full support | Partial | ✅ Amber |
+| **AI Integration** | Specialized | None | ✅ Amber |
 
 ---
 
@@ -124,8 +124,8 @@ pub struct ProcessPool {
 
 ### Scenario 1: Development Workflow
 ```bash
-# Beejs: Instant feedback
-$ time beejs run dev-script.js
+# Amber: Instant feedback
+$ time amberjs run dev-script.js
 # Result: 10ms execution time
 
 # Bun: Slower feedback
@@ -136,15 +136,15 @@ $ time bun run dev-script.js
 
 ### Scenario 2: Production Deployment
 ```javascript
-// Beejs: Lower resource requirements
-const beejs_cost = 45MB * 1000_instances = 45GB
+// Amber: Lower resource requirements
+const amberjs_cost = 45MB * 1000_instances = 45GB
 const bun_cost = 85MB * 1000_instances = 85GB
 ```
 **Impact**: 47% cost reduction in cloud infrastructure
 
 ### Scenario 3: AI Script Processing
 ```javascript
-// Beejs: Process pool reuse
+// Amber: Process pool reuse
 for (let i = 0; i < 1000; i++) {
     // Uses cached process pool: 10-50x faster
     await process_ai_task(script);
@@ -179,7 +179,7 @@ for (let i = 0; i < 1000; i++) {
 ```
 System: macOS 14.2 (Darwin 23.2.0)
 Architecture: arm64
-Beejs Version: 0.1.0 (Stage 61)
+Amber Version: 0.1.0 (Stage 61)
 Rust Version: 1.70+
 V8 Version: 12.0
 ```
@@ -188,7 +188,7 @@ V8 Version: 12.0
 
 ## Conclusion
 
-**Beejs demonstrates superior performance across all tested metrics:**
+**Amber demonstrates superior performance across all tested metrics:**
 
 ✅ **1.5x faster startup** than Bun
 ✅ **1.18x faster execution** than Bun
@@ -209,7 +209,7 @@ V8 Version: 12.0
 3. **Type Safety**: Native TypeScript integration
 4. **Development Speed**: 1.5x faster iteration
 
-**Beejs is ready for production deployment and positioned as a true competitor to Bun in the high-performance JavaScript/TypeScript runtime space.**
+**Amber is ready for production deployment and positioned as a true competitor to Bun in the high-performance JavaScript/TypeScript runtime space.**
 
 ---
 
@@ -220,4 +220,4 @@ V8 Version: 12.0
 3. ✅ Benchmarks completed
 4. ✅ Production deployment ready
 
-**Stage 61 Complete: Beejs is production-ready with superior performance! 🎉**
+**Stage 61 Complete: Amber is production-ready with superior performance! 🎉**

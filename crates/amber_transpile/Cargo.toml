@@ -1,9 +1,16 @@
 [package]
 name = "amber_transpile"
-version = "1.16.0"
+version = "1.16.1"
 edition = "2021"
+authors = ["Henry Zhang"]
 description = "Fast TypeScript transpile and bundling engine for Amber runtime"
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/zh30/amberjs"
+homepage = "https://amberjs.com"
+documentation = "https://docs.rs/amber_transpile"
+keywords = ["javascript", "typescript", "transpile"]
+categories = ["development-tools"]
 
 [dependencies]
 oxc = { version = "0.147", default-features = false, features = [

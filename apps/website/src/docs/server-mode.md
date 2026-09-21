@@ -1,20 +1,20 @@
 ---
 title: "Modern Web Serving & Concurrency"
-subtitle: "Standard Web Fetch API (bee serve), node:http, and Lockless Multi-Isolate Thread Pools"
+subtitle: "Standard Web Fetch API (amber serve), node:http, and Lockless Multi-Isolate Thread Pools"
 group: "Core Systems"
 id: "server-mode"
 ---
 
-Beejs offers two high-performance paradigms for building web services:
+Amber offers two high-performance paradigms for building web services:
 
-1. **Modern Standard Web Serving (`bee serve [file]`)**: Built on W3C / WinterCG standard `Request` / `Response` and `export default { fetch(req) }` model;
-2. **Node.js Compatible Serving (`bee run server.ts`)**: Built on `node:http` backed by a lockless multi-Worker thread pool in Rust Tokio.
+1. **Modern Standard Web Serving (`amber serve [file]`)**: Built on W3C / WinterCG standard `Request` / `Response` and `export default { fetch(req) }` model;
+2. **Node.js Compatible Serving (`amber run server.ts`)**: Built on `node:http` backed by a lockless multi-Worker thread pool in Rust Tokio.
 
 ---
 
-## 1. Modern Web Application Serving (`bee serve`)
+## 1. Modern Web Application Serving (`amber serve`)
 
-`bee serve` is the recommended, zero-overhead entrypoint for modern web applications, aligned with Cloudflare Workers, Deno, and Bun, featuring native TypeScript and JSX execution.
+`amber serve` is the recommended, zero-overhead entrypoint for modern web applications, aligned with Cloudflare Workers, Deno, and Bun, featuring native TypeScript and JSX execution.
 
 ### 1.1 Writing Your First Web Service
 
@@ -28,7 +28,7 @@ export default {
 
     // Route matching
     if (url.pathname === "/") {
-      return new Response("🚀 Welcome to Beejs Web Server!");
+      return new Response("🚀 Welcome to Amber Web Server!");
     }
 
     if (url.pathname === "/api/echo" && req.method === "POST") {
@@ -41,12 +41,12 @@ export default {
 
     if (url.pathname === "/api/info") {
       return new Response(JSON.stringify({
-        runtime: "beejs",
+        runtime: "amberjs",
         version: "v1.16.0",
         arch: process.arch,
         platform: process.platform
       }), {
-        headers: { "Content-Type": "application/json", "X-Powered-By": "beejs" }
+        headers: { "Content-Type": "application/json", "X-Powered-By": "amberjs" }
       });
     }
 
@@ -59,16 +59,16 @@ export default {
 
 ```bash
 # Automatically detects and runs app.ts, app.js, server.ts, index.ts, etc.
-$ bee serve
+$ amber serve
 
 # Or specify a custom file, port, and host
-$ bee serve app.ts --port 8080 --host 0.0.0.0
+$ amber serve app.ts --port 8080 --host 0.0.0.0
 ```
 
 Console output:
 
 ```text
-🚀 Starting Beejs Web Server on http://0.0.0.0:8080
+🚀 Starting Amber Web Server on http://0.0.0.0:8080
 📄 Serving application: app.ts
 ✅ Listening on http://0.0.0.0:8080 (Ctrl+C to stop)
 ```
@@ -115,7 +115,7 @@ server.listen(3000, () => {
 Run command:
 
 ```bash
-bee run server.ts
+amber run server.ts
 ```
 
 ---
@@ -126,9 +126,9 @@ bee run server.ts
 
 In conventional single-threaded runtimes, when a request triggers heavy JSON serialization, cryptography, or tensor inference, the event loop stalls and stalls all incoming requests.
 
-### Beejs Lockless Multi-Isolate Model
+### Amber Lockless Multi-Isolate Model
 
-Beejs features a built-in **multi-Worker thread pool** in Rust:
+Amber features a built-in **multi-Worker thread pool** in Rust:
 
 ```text
                         Concurrent TCP Traffic
@@ -154,14 +154,14 @@ Beejs features a built-in **multi-Worker thread pool** in Rust:
 Specify the number of worker isolates with `-W` or `--workers`:
 
 ```bash
-bee run --workers 8 server.ts
+amber run --workers 8 server.ts
 ```
 
 Or via environment variable:
 
 ```bash
-export BEE_WORKERS=8
-bee run server.ts
+export AMBER_WORKERS=8
+amber run server.ts
 ```
 
 **Benefits**:
@@ -177,7 +177,7 @@ Benchmark with tools like `autocannon` or `wrk`:
 
 ```bash
 # Launch with 8 workers
-bee run --workers 8 server.ts
+amber run --workers 8 server.ts
 
 # Benchmark 100 concurrent connections for 10 seconds
 npx autocannon -c 100 -d 10 http://localhost:3000/api/users
@@ -185,6 +185,6 @@ npx autocannon -c 100 -d 10 http://localhost:3000/api/users
 
 ### Optimization Tips
 
-1. **Prefer `bee serve` for Microservices**: The Fetch API model avoids EventEmitter and streaming buffer wrapper overhead, yielding higher RPS;
+1. **Prefer `amber serve` for Microservices**: The Fetch API model avoids EventEmitter and streaming buffer wrapper overhead, yielding higher RPS;
 2. **Calibrate Workers**: For I/O services, set workers to `cores` ~ `2 * cores`; for CPU/tensor-heavy workloads, match the physical core count;
 3. **Enforce Resource Quotas**: For public-facing endpoints, combine with `--sandbox` and `--max-memory 512` to prevent memory leaks and unauthorized disk access.

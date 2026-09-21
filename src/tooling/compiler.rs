@@ -1,6 +1,6 @@
-//! Single Executable Application (SEA) compiler for Beejs.
+//! Single Executable Application (SEA) compiler for Amber.
 //!
-//! Merges JavaScript/TypeScript code with the Beejs runtime binary into a single,
+//! Merges JavaScript/TypeScript code with the Amber runtime binary into a single,
 //! zero-dependency executable without needing an external compiler or toolchain.
 
 use anyhow::{anyhow, Result};
@@ -9,7 +9,7 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 /// 16-byte magic identifier trailer appended at the very end of compiled binaries.
-pub const MAGIC_TRAILER: &[u8; 16] = b"BEE_STANDALONE\0\0";
+pub const MAGIC_TRAILER: &[u8; 16] = b"AMBER_STANDALONE";
 
 /// Trailer size: payload_len (8 bytes) + flags (8 bytes) + MAGIC_TRAILER (16 bytes) = 32 bytes
 pub const TRAILER_TOTAL_SIZE: u64 = 32;
@@ -60,7 +60,7 @@ pub fn detect_standalone_payload() -> Result<Option<String>> {
     Ok(Some(script))
 }
 
-/// Resolves the base Beejs runtime binary to clone.
+/// Resolves the base Amber runtime binary to clone.
 pub fn resolve_runtime_binary() -> Result<std::path::PathBuf> {
     let current_exe = std::env::current_exe()
         .map_err(|e| anyhow!("Failed to resolve current executable: {}", e))?;
@@ -70,18 +70,18 @@ pub fn resolve_runtime_binary() -> Result<std::path::PathBuf> {
         .and_then(|s| s.to_str())
         .unwrap_or("");
 
-    if file_name == "bee" || file_name == "bee.exe" {
+    if file_name == "amber" || file_name == "amber.exe" {
         return Ok(current_exe);
     }
 
-    // In tests (where current_exe is in deps/), find the sibling `bee` binary
+    // In tests (where current_exe is in deps/), find the sibling `amber` binary
     if let Some(parent) = current_exe.parent() {
-        let candidate = parent.join("bee");
+        let candidate = parent.join("amber");
         if candidate.is_file() {
             return Ok(candidate);
         }
         if let Some(grandparent) = parent.parent() {
-            let candidate2 = grandparent.join("bee");
+            let candidate2 = grandparent.join("amber");
             if candidate2.is_file() {
                 return Ok(candidate2);
             }

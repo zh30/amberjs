@@ -1,9 +1,9 @@
 // Production-grade Bundler 2.0 & SEA Compiler Integration Tests
-// Tests `bee bundle` (oxc-backed AST bundling) and `bee compile` (Single Executable Application)
+// Tests `amber bundle` (oxc-backed AST bundling) and `amber compile` (Single Executable Application)
 
-use beejs::runtime_minimal::MinimalRuntime;
-use beejs::tooling::bundler::{bundle_project, BundleOptions};
-use beejs::tooling::compiler::compile_binary;
+use amberjs::runtime_minimal::MinimalRuntime;
+use amberjs::tooling::bundler::{bundle_project, BundleOptions};
+use amberjs::tooling::compiler::compile_binary;
 use serial_test::serial;
 use std::fs;
 use std::process::Command;
@@ -55,7 +55,7 @@ import welcome, { Greeter } from "./greeter.ts";
 
 const sum = add(10, 20);
 const prod = multiply(5, 6);
-const msg = welcome("Beejs");
+const msg = welcome("Amber");
 const g = new Greeter("World");
 
 const outputStr = `SUM:${sum}|PROD:${prod}|PI:${PI}|MSG:${msg}|GREET:${g.greet()}`;
@@ -77,7 +77,7 @@ module.exports = outputStr;
 
     let result = bundle_project(&options).expect("bundle_project should succeed");
     assert_eq!(result.module_count, 3);
-    assert!(result.code.contains("__beejs_require__"));
+    assert!(result.code.contains("__amberjs_require__"));
     assert!(outfile.exists());
 
     let map_path = dir.path().join("bundle.map");
@@ -89,7 +89,7 @@ module.exports = outputStr;
         .execute_code(&result.code)
         .expect("Execution should succeed");
 
-    assert!(output.contains("SUM:30|PROD:30|PI:3.14159|MSG:Hello, Beejs!|GREET:Hello, World!"));
+    assert!(output.contains("SUM:30|PROD:30|PI:3.14159|MSG:Hello, Amber!|GREET:Hello, World!"));
 }
 
 #[test]
@@ -109,7 +109,7 @@ fn test_oxc_bundle_with_json_and_commonjs() {
         &legacy_js,
         r#"
 function getPlatform() {
-    return "Beejs-Runtime";
+    return "Amber-Runtime";
 }
 module.exports = { getPlatform };
 "#,
@@ -148,7 +148,7 @@ module.exports = outputStr;
         .execute_code(&result.code)
         .expect("Execution should succeed");
 
-    assert!(output.contains("APP:BeeBundleTest|VER:2.0.0|PORT:8080|PLATFORM:Beejs-Runtime"));
+    assert!(output.contains("APP:BeeBundleTest|VER:2.0.0|PORT:8080|PLATFORM:Amber-Runtime"));
 }
 
 #[test]

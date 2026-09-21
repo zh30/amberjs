@@ -91,7 +91,7 @@ def fix_use_syntax_errors(file_path):
     return False
 
 def main():
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
     fixed_count = 0
 
     for rs_file in src_dir.rglob('*.rs'):
@@ -101,7 +101,7 @@ def main():
 
     # Also check tests and tools directories
     for extra_dir in ['tests', 'tools', 'benches']:
-        extra_path = Path(f'/Users/henry/code/beejs/{extra_dir}')
+        extra_path = Path(f'/Users/henry/code/amberjs/{extra_dir}')
         if extra_path.exists():
             for rs_file in extra_path.rglob('*.rs'):
                 if fix_use_syntax_errors(rs_file):

@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod precompiled_modules_tests {
-    use beejs::*;
+    use amberjs::*;
     
     use tempfile::TempDir;
 

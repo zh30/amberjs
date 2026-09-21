@@ -1,7 +1,7 @@
 //! 框架支持测试
 //! Stage 91 Phase 3.3 - React/Vue/Angular 框架支持测试
 
-use beejs::ecosystem::framework::*;
+use amberjs::ecosystem::framework::*;
 use serde_json::json;
 
 #[cfg(test)]

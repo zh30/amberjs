@@ -1,4 +1,4 @@
-// CompressionStream Tests for Beejs
+// CompressionStream Tests for Amber
 // Tests for v0.3.295: CompressionStream API (gzip/deflate)
 // Enables streaming compression for AI workloads
 
@@ -7,16 +7,17 @@ mod compression_stream_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_bee").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     /// Test 1: CompressionStream constructor with 'gzip' format
     #[test]
     fn test_compression_stream_gzip_constructor() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -27,7 +28,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("gzip format: gzip"), "Expected gzip format");
@@ -44,7 +45,7 @@ mod compression_stream_tests {
     /// Test 2: CompressionStream constructor with 'deflate' format
     #[test]
     fn test_compression_stream_deflate_constructor() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -53,7 +54,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -65,7 +66,7 @@ mod compression_stream_tests {
     /// Test 3: Basic compression pipeline
     #[test]
     fn test_basic_compression_pipeline() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -99,7 +100,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -111,7 +112,7 @@ mod compression_stream_tests {
     /// Test 4: Pipe through compression stream
     #[test]
     fn test_pipe_through_compression() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -130,7 +131,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -142,7 +143,7 @@ mod compression_stream_tests {
     /// Test 5: Decompression with DecompressionStream
     #[test]
     fn test_decompression_stream() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -166,7 +167,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -179,7 +180,7 @@ mod compression_stream_tests {
     /// Test 6: Invalid format should throw error
     #[test]
     fn test_invalid_format_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -193,7 +194,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Should either throw an error or handle invalid format gracefully
@@ -206,7 +207,7 @@ mod compression_stream_tests {
     /// Test 7: Empty data compression
     #[test]
     fn test_empty_data_compression() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -229,7 +230,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -241,7 +242,7 @@ mod compression_stream_tests {
     /// Test 8: Large data compression
     #[test]
     fn test_large_data_compression() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 async function test() {
                     // Create 10KB of repeated data (compresses well)
@@ -272,7 +273,7 @@ mod compression_stream_tests {
                 test().catch(e => console.log('error:', e.message));
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -284,7 +285,7 @@ mod compression_stream_tests {
     /// Test 9: CompressionStream.close() method exists and is callable
     #[test]
     fn test_compression_stream_close_method() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -295,7 +296,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -315,7 +316,7 @@ mod compression_stream_tests {
     /// Test 10: DecompressionStream.close() method exists and is callable
     #[test]
     fn test_decompression_stream_close_method() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -326,7 +327,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -346,7 +347,7 @@ mod compression_stream_tests {
     /// Test 11: Close method actually closes the streams properly
     #[test]
     fn test_close_method_closes_streams() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -375,7 +376,7 @@ mod compression_stream_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -387,10 +388,10 @@ mod compression_stream_tests {
     /// Test 12: Compression round-trip with proper close
     #[test]
     fn test_compression_round_trip_with_close() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 async function test() {
-                    const original = 'Hello, Beejs! This is a test of the compression stream with proper close.';
+                    const original = 'Hello, Amber! This is a test of the compression stream with proper close.';
                     const encoder = new TextEncoder();
                     const decoder = new TextDecoder();
 
@@ -445,7 +446,7 @@ mod compression_stream_tests {
                 test().catch(e => console.log('error:', e.message));
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(

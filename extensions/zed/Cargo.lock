@@ -838,7 +838,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zed-beejs"
+name = "zed-amberjs"
 version = "1.9.1"
 dependencies = [
  "tempfile",

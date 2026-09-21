@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod typescript_enum_tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     /// Test enum declaration (v0.3.165)
     #[test]

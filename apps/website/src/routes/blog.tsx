@@ -75,7 +75,7 @@ function getPosts(lang: Lang): Post[] {
           excerpt:
             data.excerpt || content.slice(0, 160).replace(/[#*`]/g, "") + "...",
           date: data.date || "Unknown Date",
-          author: data.author || (lang === "zh" ? "Beejs 团队" : "Beejs Team"),
+          author: data.author || (lang === "zh" ? "Amber 团队" : "Amber Team"),
           readTime:
             data.readTime || (lang === "zh" ? "5 分钟阅读" : "5 min read"),
           tag: data.tag || (lang === "zh" ? "日志" : "Blog"),
@@ -104,7 +104,7 @@ function getPosts(lang: Lang): Post[] {
           excerpt:
             data.excerpt || content.slice(0, 160).replace(/[#*`]/g, "") + "...",
           date: data.date || "Unknown Date",
-          author: data.author || "Beejs Team",
+          author: data.author || "Amber Team",
           readTime: data.readTime || "5 min read",
           tag: data.tag || "Blog",
           content,
@@ -208,7 +208,7 @@ function BlogPostView({ post }: { post: Post }) {
             {copy.blog.by}
             {post.author}
           </p>
-          <div className="prose prose-bee dark:prose-invert mt-8 max-w-none prose-a:underline [&_:not(pre)>code]:bg-[var(--honey-soft)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none [&_pre]:border [&_pre]:border-[var(--line)] [&_pre]:bg-[var(--code-bg)] [&_pre]:p-5 [&_pre_code]:text-[var(--code-fg)]">
+          <div className="prose prose-amber dark:prose-invert mt-8 max-w-none prose-a:underline [&_:not(pre)>code]:bg-[var(--honey-soft)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none [&_pre]:border [&_pre]:border-[var(--line)] [&_pre]:bg-[var(--code-bg)] [&_pre]:p-5 [&_pre_code]:text-[var(--code-fg)]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {post.content}
             </ReactMarkdown>

@@ -1,4 +1,4 @@
-use beejs::flame_graph::{FlameGraph, FrameNode, StackFrame};
+use amberjs::flame_graph::{FlameGraph, FrameNode, StackFrame};
 use std::time::Duration;
 
 #[cfg(test)]

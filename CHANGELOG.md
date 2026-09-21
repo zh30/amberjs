@@ -9,17 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Release Assets**: macOS 任务安装 `openssl@3` 并导出 `OPENSSL_DIR` / `PKG_CONFIG_PATH`。`x86_64-apple-darwin` 仍在 `macos-latest`（ARM）上交叉编译，并从源码构建静态 x86_64 OpenSSL，避免 ARM Homebrew 库。发布步骤要求五套资产齐全（含 Intel mac 归档）后才写 GitHub Release / crates.io。
+- **Release Assets SBOM**: CycloneDX 改为 `anchore/sbom-action` 的 `file: Cargo.lock`（并钉住 action / syft）。`path: Cargo.lock` 会被当成目录扫描，syft 1.42 以 `dir:Cargo.lock` 失败，挡住 cosign、GitHub Release 和 crates.io。
+
+## [1.16.1] - 2026-09-20
+
 ### Changed
 
+- **crates.io publish**: workspace 成员 crate 使用 path+version 依赖，Release Assets 按 `amber_transpile` → `amber_sandbox` → `amberjs` 顺序发布。`v1.16.0` 标签仍指向 #95 之前的提交，本版本让 `v*` 发布带上该修复。
 - **Release Assets workflow**: CI uses thin LTO (Cargo.toml fat LTO unchanged), caches cargo registry only (no `target/` upload), installs Windows OpenSSL via vcpkg instead of Chocolatey, links Linux with lld, and cross-compiles `x86_64-apple-darwin` on `macos-latest`. Same five archives, checksums, SBOM, and cosign.
 
 ## [1.16.0] - 2026-09-16
 
 ### Added
 
-- **Wasm Engine 2.0 zero-copy memory**: `WebAssembly.Memory` / ArrayBuffer virtual-address sharing, mmap module load, `require('bee:wasm')`.
-- **Production bundler and SEA**: oxc-backed `bee bundle` and `bee compile` single-file executables.
-- **Full-spectrum benchmark suite 2.0**: 24 in-process workloads plus Fetch/SQLite and `bee:ai.Tensor` phases.
+- **Wasm Engine 2.0 zero-copy memory**: `WebAssembly.Memory` / ArrayBuffer virtual-address sharing, mmap module load, `require('amber:wasm')`.
+- **Production bundler and SEA**: oxc-backed `amber bundle` and `amber compile` single-file executables.
+- **Full-spectrum benchmark suite 2.0**: 24 in-process workloads plus Fetch/SQLite and `amber:ai.Tensor` phases.
 
 ### Performance
 
@@ -74,14 +80,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New `--warm` CLI flag for instant prewarmed isolate acquisition, reducing cold startup overhead to sub-millisecond (< 0.2ms).
   - Integration test suite `tests/v8_cow_snapshot_tests.rs` verifying CoW memory safety and prewarmer isolate recycling.
 - **Comprehensive Multi-Runtime Benchmark Suite**:
-  - Python-based comprehensive benchmark automation (`benchmarks/run_comprehensive_benchmark.py`) comparing Beejs against Node.js v22 and Bun 1.4 across Microbenchmarks, Web frameworks, I/O workloads, and AI inference.
+  - Python-based comprehensive benchmark automation (`benchmarks/run_comprehensive_benchmark.py`) comparing Amber against Node.js v22 and Bun 1.4 across Microbenchmarks, Web frameworks, I/O workloads, and AI inference.
   - Detailed performance scorecard published in `benchmarks/COMPREHENSIVE_BENCHMARK_REPORT.md`.
 
 ## [1.12.0] - 2026-09-15
 
 ### Added
 
-- **`bee:ai` Native Local AI Inference Engine (HuggingFace Candle & GGUF Integration)**:
+- **`amber:ai` Native Local AI Inference Engine (HuggingFace Candle & GGUF Integration)**:
   - Deep integration with HuggingFace Candle (`0.8.2`) and Tokenizers (`0.21`), providing embedded zero-dependency local model inference without requiring external Python or daemon processes.
   - Zero-copy tensor bridge: direct physical memory sharing between V8 `ArrayBuffer` (`BackingStore`) and Candle `Tensor`, eliminating serialization and IPC overhead.
   - Native quantized GGUF model loader with automatic architecture detection for Llama, Mistral, Qwen 2, Qwen 2.5, and more.
@@ -118,7 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Modern V8 Engine Upgrade**: Full migration from legacy rusty_v8 to modern official `v8 = "152.2.0"` (Chromium 134+).
 - **Stack-pinned Scope Architecture**: Standardized on `v8::PinScope` across all core runtime modules, Web APIs, and Node.js compat layers.
 - **Modern V8 Macro Suite**: Upgraded to official `v8::scope!`, `v8::callback_scope!`, and `v8::tc_scope!` macros.
-- **Snapshot Isolation & Self-Healing (`BEEJS_V3`)**: Startup snapshot versioning with dynamic V8 engine version binding to prevent binary mismatch crashes.
+- **Snapshot Isolation & Self-Healing (`AMBER_V3`)**: Startup snapshot versioning with dynamic V8 engine version binding to prevent binary mismatch crashes.
 - **Unlocked Modern Toolchain**: Removed legacy pinned `serde = "=1.0.197"` and historical swc locks, restoring ecosystem upgrade flexibility.
 
 ### Changed
@@ -132,44 +138,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- rustls HTTP/1.1 for `bee serve --https` (requires `--cert` / `--key` PEM).
+- rustls HTTP/1.1 for `amber serve --https` (requires `--cert` / `--key` PEM).
 - Inspector `Runtime.evaluate` on the isolate and `--inspect-brk` pause until resume.
 - Minimal N-API hello loader (`process.dlopen` → `napi_register_module_v1`).
 - Homebrew formula SHA updater (`scripts/update_homebrew_formula.py`) run from Release Assets.
-- In-repo winget manifest `manifests/winget/zh30.bee.yaml`.
+- In-repo winget manifest `manifests/winget/zh30.amber.yaml`.
 - `cargo deny` advisories/licenses job; rustc pinned to 1.97.1.
 
 ### Changed
 
-- Windows MSVC Release job is fail-closed and must attach `bee.exe` zip.
+- Windows MSVC Release job is fail-closed and must attach `amber.exe` zip.
 - `cargo-audit` no longer `continue-on-error`.
 - CI feature matrix is `benchmarks` and `observability` only.
 - GHCR documented as linux/amd64 only.
-- `bee test --parallel` exits 2 instead of warning-and-succeeding.
+- `amber test --parallel` exits 2 instead of warning-and-succeeding.
 - TypeScript throw stacks map to original `.ts` lines.
-- VS Code extension launch uses `bee run --inspect-brk` and current GitHub Release asset names.
+- VS Code extension launch uses `amber run --inspect-brk` and current GitHub Release asset names.
 
 ### Fixed
 
 - Unix-only `libc` (`isatty`, `posix_memalign`/`madvise`) cfg-gated for the Windows default path.
-- `bee serve` health JSON version uses `CARGO_PKG_VERSION`.
+- `amber serve` health JSON version uses `CARGO_PKG_VERSION`.
 
 ## [1.9.0] - 2026-09-09
 
 ### Added
 
-- WinterTC baseline on the default runtime: `DOMException`, `URLPattern`, `navigator`, queuing strategies, `ReadableStream.from`, `bee:sockets`, `wintercg`/`wintertc` export conditions, and `import.meta.main` / `env` / `resolve`.
+- WinterTC baseline on the default runtime: `DOMException`, `URLPattern`, `navigator`, queuing strategies, `ReadableStream.from`, `amber:sockets`, `wintercg`/`wintertc` export conditions, and `import.meta.main` / `env` / `resolve`.
 - Real rustls TLS for `secureTransport: "on"` and `startTls()`, including untrusted-certificate rejection.
 - `v*` GitHub Release archives for linux gnu x64/arm64, macOS arm64/x64, and Windows x64, with SHA-256 checksums, CycloneDX SBOM, and cosign signatures.
 - `install.sh` platform mapping for Darwin/Linux x64 and arm64, plus `install.ps1` for the Windows zip.
-- In-repo Homebrew formula `Formula/bee.rb` pointing at GitHub Release assets.
+- In-repo Homebrew formula `Formula/amber.rb` pointing at GitHub Release assets.
 - Website WinterTC docs (English and Chinese) in the docs nav.
 
 ### Changed
 
 - PR CI fails closed on `cargo check --features` for `ai`, `benchmarks`, and `observability`.
 - CI runs WinterTC as its own test step, smokes Windows, and runs library tests on macOS.
-- `docker.yml` publishes `ghcr.io/zh30/beejs` on `v*` tags and `main`.
+- `docker.yml` publishes `ghcr.io/zh30/amberjs` on `v*` tags and `main`.
 - `import.meta.resolve` uses the real ESM resolver so `"wintercg"` exports win over `"node"`.
 - Unhandled promise rejections dispatch `PromiseRejectionEvent` / `onunhandledrejection`.
 
@@ -177,19 +183,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Multi-Agent message bus (`bee:bus`) with topic wildcards, request-reply RPC, middleware, and DLQ.
-- Streaming structured JSON / token grammar engine (`bee:grammar`) including `parsePartialJSON` and SSE chunk parsing.
-- Agent state checkpoint / time-travel snapshots (`bee:checkpoint`).
+- Multi-Agent message bus (`amber:bus`) with topic wildcards, request-reply RPC, middleware, and DLQ.
+- Streaming structured JSON / token grammar engine (`amber:grammar`) including `parsePartialJSON` and SSE chunk parsing.
+- Agent state checkpoint / time-travel snapshots (`amber:checkpoint`).
 
 ## [0.4.0] - 2026-09-04
 
 ### Added
 
 - **Native Test Runner 2.0 (Zero-Argument Discovery & Watch Mode)**:
-  - Added recursive test file discovery when `bee test` is invoked with zero arguments, scanning for `*.test.js`, `*.test.ts`, `*_test.js`, and `*_test.ts`.
+  - Added recursive test file discovery when `amber test` is invoked with zero arguments, scanning for `*.test.js`, `*.test.ts`, `*_test.js`, and `*_test.ts`.
   - Added intelligent noise-filtering to exclude non-test directories (`manual/`, `node_modules/`, `__snapshots__/`, `.git/`, `target/`, `dist/`).
-  - Added `--watch` mode to `bee test` and `bee test <file>` using `notify` filesystem event watching with debounced test re-execution.
-  - Promoted `bee test` from *Experimental* to **Stable** in `docs/CURRENT_SCOPE.md`.
+  - Added `--watch` mode to `amber test` and `amber test <file>` using `notify` filesystem event watching with debounced test re-execution.
+  - Promoted `amber test` from *Experimental* to **Stable** in `docs/CURRENT_SCOPE.md`.
 - **Agent Deterministic Sandbox & Virtual Time (Deterministic Replay 1.0)**:
   - Added `--seed <u64>` CLI option backed by ChaCha8 PRNG, intercepting `Math.random()`, Web Crypto `crypto.getRandomValues()`, and Node.js `crypto.randomBytes()`.
   - Added `--freeze-time <TIMESTAMP | ISO>` CLI option for virtual deterministic clock, intercepting `Date.now()`, `new Date()`, `toISOString()`, and `performance.now()`.
@@ -263,4 +269,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial public release of Beejs runtime with basic CLI, V8 execution engine, TypeScript support, and core Web APIs (`fetch`, `console`, `URL`).
+- Initial public release of Amber runtime with basic CLI, V8 execution engine, TypeScript support, and core Web APIs (`fetch`, `console`, `URL`).

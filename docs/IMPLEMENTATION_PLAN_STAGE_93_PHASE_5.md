@@ -1,10 +1,10 @@
 # Stage 93 Phase 5: 性能基准测试套件实施计划
 
 ## 项目概述
-在 Stage 93 Phase 4 文档与示例完成的基础上，构建全面的性能基准测试系统，验证 Beejs 相对于 Bun、Node.js 等主流运行时的性能优势，建立性能回归检测机制。
+在 Stage 93 Phase 4 文档与示例完成的基础上，构建全面的性能基准测试系统，验证 Amber 相对于 Bun、Node.js 等主流运行时的性能优势，建立性能回归检测机制。
 
 ## 核心目标
-- 🚀 **性能验证**: 全面验证 Beejs 相比 Bun/Node.js 的性能优势
+- 🚀 **性能验证**: 全面验证 Amber 相比 Bun/Node.js 的性能优势
 - 📊 **基准测试**: 建立标准化性能基准测试套件
 - 🔍 **工作负载分析**: 支持多种工作负载的性能分析
 - 🛡️ **回归检测**: 建立性能回归自动检测系统
@@ -53,8 +53,8 @@
 - [ ] I/O 性能测试: 文件/网络 I/O 性能
 
 #### 5.2.3 自动化对比脚本
-- [ ] beejs_vs_bun.sh: Beejs vs Bun 自动对比
-- [ ] beejs_vs_node.sh: Beejs vs Node.js 自动对比
+- [ ] amberjs_vs_bun.sh: Amber vs Bun 自动对比
+- [ ] amberjs_vs_node.sh: Amber vs Node.js 自动对比
 - [ ] 自动生成对比报告
 - [ ] 性能差异可视化
 
@@ -171,8 +171,8 @@ src/benchmark/
 
 tests/stage93_phase5_benchmark_tests.rs  # Phase 5 测试套件
 scripts/
-├── beejs_vs_bun.sh           # Beejs vs Bun 对比
-├── beejs_vs_node.sh          # Beejs vs Node.js 对比
+├── amberjs_vs_bun.sh           # Amber vs Bun 对比
+├── amberjs_vs_node.sh          # Amber vs Node.js 对比
 └── run_benchmarks.sh         # 运行所有基准测试
 
 benchmarks/
@@ -317,7 +317,7 @@ pub struct PerformanceHistory {
 
 ## 预期成果
 
-完成 Stage 93 Phase 5 后，Beejs 将拥有：
+完成 Stage 93 Phase 5 后，Amber 将拥有：
 
 - 📊 **完整基准体系**: 标准化的性能基准测试
 - 🏆 **性能优势证明**: 相对于 Bun/Node.js 的性能数据

@@ -1,7 +1,7 @@
 //! Enterprise tests
 //! Tests for security and compliance features
 
-use beejs::enterprise::{EnterpriseManager, SecurityManager, ComplianceManager, SecurityPolicy, SecurityRule, SecuritySeverity, ComplianceFramework};
+use amberjs::enterprise::{EnterpriseManager, SecurityManager, ComplianceManager, SecurityPolicy, SecurityRule, SecuritySeverity, ComplianceFramework};
 use std::sync::Arc;
 
 #[tokio::test]

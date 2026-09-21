@@ -75,7 +75,7 @@ def process_file(filepath):
 
 def main():
     """Main function"""
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
     rust_files = list(src_dir.rglob('*.rs'))
 
     fixed_count = 0

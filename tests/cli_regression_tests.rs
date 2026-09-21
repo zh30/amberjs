@@ -2,8 +2,8 @@ use std::path::Path;
 use std::process::Command;
 use tempfile::tempdir;
 
-fn bee_path() -> &'static str {
-    env!("CARGO_BIN_EXE_bee")
+fn amber_path() -> &'static str {
+    env!("CARGO_BIN_EXE_amber")
 }
 
 fn js_string(value: &Path) -> String {
@@ -17,19 +17,19 @@ fn read_json(path: &Path) -> serde_json::Value {
 
 #[test]
 fn create_help_does_not_panic() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["create", "--help"])
         .output()
-        .expect("failed to execute bee create --help");
+        .expect("failed to execute amber create --help");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         output.status.success(),
-        "bee create --help should exit successfully. stderr: {stderr}"
+        "amber create --help should exit successfully. stderr: {stderr}"
     );
     assert!(
         !stderr.to_lowercase().contains("panic"),
-        "bee create --help should not panic. stderr: {stderr}"
+        "amber create --help should not panic. stderr: {stderr}"
     );
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -43,11 +43,11 @@ fn create_help_does_not_panic() {
 fn create_accepts_legacy_template_first_order() {
     let dir = tempdir().expect("failed to create tempdir");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["create", "ts", "my-ts-app"])
         .output()
-        .expect("failed to execute bee create");
+        .expect("failed to execute amber create");
 
     let combined = format!(
         "{}{}",
@@ -56,7 +56,7 @@ fn create_accepts_legacy_template_first_order() {
     );
     assert!(
         output.status.success(),
-        "bee create should accept the legacy template-first order. output: {combined}"
+        "amber create should accept the legacy template-first order. output: {combined}"
     );
     assert!(
         dir.path().join("my-ts-app/index.ts").is_file(),
@@ -72,11 +72,11 @@ fn create_accepts_legacy_template_first_order() {
 fn init_deny_fs_blocks_project_creation() {
     let dir = tempdir().expect("failed to create tempdir");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["init", "--deny-fs", "blocked-app"])
         .output()
-        .expect("failed to execute bee init");
+        .expect("failed to execute amber init");
 
     let combined = format!(
         "{}{}",
@@ -85,17 +85,17 @@ fn init_deny_fs_blocks_project_creation() {
     );
     assert!(
         !output.status.success(),
-        "denied project directory write should fail bee init. output: {combined}"
+        "denied project directory write should fail amber init. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Write"),
-        "bee init should report broker file write denial. output: {combined}"
+        "amber init should report broker file write denial. output: {combined}"
     );
     assert!(
         !dir.path().join("blocked-app").exists(),
-        "denied bee init must not create project directory. output: {combined}"
+        "denied amber init must not create project directory. output: {combined}"
     );
 }
 
@@ -103,11 +103,11 @@ fn init_deny_fs_blocks_project_creation() {
 fn create_deny_fs_blocks_project_creation() {
     let dir = tempdir().expect("failed to create tempdir");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["create", "--deny-fs", "blocked-app", "js"])
         .output()
-        .expect("failed to execute bee create");
+        .expect("failed to execute amber create");
 
     let combined = format!(
         "{}{}",
@@ -116,17 +116,17 @@ fn create_deny_fs_blocks_project_creation() {
     );
     assert!(
         !output.status.success(),
-        "denied project directory write should fail bee create. output: {combined}"
+        "denied project directory write should fail amber create. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Write"),
-        "bee create should report broker file write denial. output: {combined}"
+        "amber create should report broker file write denial. output: {combined}"
     );
     assert!(
         !dir.path().join("blocked-app").exists(),
-        "denied bee create must not create project directory. output: {combined}"
+        "denied amber create must not create project directory. output: {combined}"
     );
 }
 
@@ -144,11 +144,11 @@ fn add_deny_net_fails_before_package_json_update() {
     )
     .expect("failed to write package.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["add", "--deny-net", "left-pad@1.3.0"])
         .output()
-        .expect("failed to execute bee add");
+        .expect("failed to execute amber add");
 
     let combined = format!(
         "{}{}",
@@ -157,19 +157,19 @@ fn add_deny_net_fails_before_package_json_update() {
     );
     assert!(
         !output.status.success(),
-        "denied registry network access should fail bee add. output: {combined}"
+        "denied registry network access should fail amber add. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("Network")
             && combined.contains("Connect"),
-        "bee add should report broker network denial. output: {combined}"
+        "amber add should report broker network denial. output: {combined}"
     );
     assert!(
         read_json(&package_json_path)["dependencies"]
             .get("left-pad")
             .is_none(),
-        "denied bee add must not update package.json. output: {combined}"
+        "denied amber add must not update package.json. output: {combined}"
     );
 }
 
@@ -177,7 +177,7 @@ fn add_deny_net_fails_before_package_json_update() {
 fn add_denied_lockfile_write_fails_before_network_access() {
     let dir = tempdir().expect("failed to create tempdir");
     let package_json_path = dir.path().join("package.json");
-    let cache_path = dir.path().join(".beejs_cache");
+    let cache_path = dir.path().join(".amberjs_cache");
     let node_modules_path = dir.path().join("node_modules");
     std::fs::create_dir_all(&cache_path).expect("failed to create cache dir");
     std::fs::create_dir_all(&node_modules_path).expect("failed to create node_modules dir");
@@ -198,7 +198,7 @@ fn add_denied_lockfile_write_fails_before_network_access() {
     )
     .expect("failed to write package.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .arg("add")
         .arg("--deny-net")
@@ -215,7 +215,7 @@ fn add_denied_lockfile_write_fails_before_network_access() {
         .arg(&package_target_path)
         .arg("left-pad@1.3.0")
         .output()
-        .expect("failed to execute bee add");
+        .expect("failed to execute amber add");
 
     let combined = format!(
         "{}{}",
@@ -224,24 +224,24 @@ fn add_denied_lockfile_write_fails_before_network_access() {
     );
     assert!(
         !output.status.success(),
-        "denied package-lock write should fail bee add. output: {combined}"
+        "denied package-lock write should fail amber add. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Write")
             && combined.contains("package-lock.json"),
-        "bee add should report denied package-lock write before network denial. output: {combined}"
+        "amber add should report denied package-lock write before network denial. output: {combined}"
     );
     assert!(
         read_json(&package_json_path)["dependencies"]
             .get("left-pad")
             .is_none(),
-        "denied bee add must not update package.json. output: {combined}"
+        "denied amber add must not update package.json. output: {combined}"
     );
     assert!(
         !package_target_path.exists(),
-        "denied bee add must not create package target. output: {combined}"
+        "denied amber add must not create package target. output: {combined}"
     );
 }
 
@@ -260,11 +260,11 @@ fn install_deny_net_fails_before_lockfile_generation() {
     )
     .expect("failed to write package.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["install", "--deny-net"])
         .output()
-        .expect("failed to execute bee install");
+        .expect("failed to execute amber install");
 
     let combined = format!(
         "{}{}",
@@ -273,17 +273,17 @@ fn install_deny_net_fails_before_lockfile_generation() {
     );
     assert!(
         !output.status.success(),
-        "denied registry network access should fail bee install. output: {combined}"
+        "denied registry network access should fail amber install. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("Network")
             && combined.contains("Connect"),
-        "bee install should report broker network denial. output: {combined}"
+        "amber install should report broker network denial. output: {combined}"
     );
     assert!(
         !dir.path().join("package-lock.json").exists(),
-        "denied bee install must not generate package-lock.json. output: {combined}"
+        "denied amber install must not generate package-lock.json. output: {combined}"
     );
 }
 
@@ -301,18 +301,18 @@ fn install_denied_lockfile_write_fails_before_creating_node_modules() {
     )
     .expect("failed to write package.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .arg("install")
         .arg("--deny-fs")
         .arg("--allow-read")
         .arg("package.json")
         .arg("--allow-write")
-        .arg(".beejs_cache")
+        .arg(".amberjs_cache")
         .arg("--allow-write")
         .arg("node_modules")
         .output()
-        .expect("failed to execute bee install");
+        .expect("failed to execute amber install");
 
     let combined = format!(
         "{}{}",
@@ -321,14 +321,14 @@ fn install_denied_lockfile_write_fails_before_creating_node_modules() {
     );
     assert!(
         !output.status.success(),
-        "denied package-lock write should fail bee install. output: {combined}"
+        "denied package-lock write should fail amber install. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Write")
             && combined.contains("package-lock.json"),
-        "bee install should report denied package-lock write. output: {combined}"
+        "amber install should report denied package-lock write. output: {combined}"
     );
     assert!(
         !dir.path().join("node_modules").exists(),
@@ -369,11 +369,11 @@ fn install_frozen_lockfile_mismatch_fails_before_creating_node_modules() {
     )
     .expect("failed to write package-lock.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["install", "--frozen-lockfile"])
         .output()
-        .expect("failed to execute bee install --frozen-lockfile");
+        .expect("failed to execute amber install --frozen-lockfile");
 
     let combined = format!(
         "{}{}",
@@ -382,7 +382,7 @@ fn install_frozen_lockfile_mismatch_fails_before_creating_node_modules() {
     );
     assert!(
         !output.status.success(),
-        "frozen lockfile mismatch should fail bee install. output: {combined}"
+        "frozen lockfile mismatch should fail amber install. output: {combined}"
     );
     assert!(
         combined.contains("frozen lockfile") && combined.contains("left-pad"),
@@ -393,7 +393,7 @@ fn install_frozen_lockfile_mismatch_fails_before_creating_node_modules() {
         "frozen lockfile mismatch must fail before creating node_modules. output: {combined}"
     );
     assert!(
-        !dir.path().join(".beejs_cache").exists(),
+        !dir.path().join(".amberjs_cache").exists(),
         "frozen lockfile mismatch must fail before creating package cache. output: {combined}"
     );
 }
@@ -424,7 +424,7 @@ fn install_frozen_lockfile_does_not_rewrite_package_lock() {
     .expect("failed to write package-lock.json");
     let original_lock = std::fs::read_to_string(&lock_path).expect("failed to read lockfile");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .arg("install")
         .arg("--frozen-lockfile")
@@ -434,11 +434,11 @@ fn install_frozen_lockfile_does_not_rewrite_package_lock() {
         .arg("--allow-read")
         .arg("package-lock.json")
         .arg("--allow-write")
-        .arg(".beejs_cache")
+        .arg(".amberjs_cache")
         .arg("--allow-write")
         .arg("node_modules")
         .output()
-        .expect("failed to execute bee install --frozen-lockfile");
+        .expect("failed to execute amber install --frozen-lockfile");
 
     let combined = format!(
         "{}{}",
@@ -475,7 +475,7 @@ fn prune_deny_fs_fails_before_scanning_node_modules() {
     )
     .expect("failed to write package.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args([
             "prune",
@@ -483,12 +483,12 @@ fn prune_deny_fs_fails_before_scanning_node_modules() {
             "--allow-read",
             "package.json",
             "--allow-write",
-            ".beejs_cache",
+            ".amberjs_cache",
             "--allow-write",
             "node_modules",
         ])
         .output()
-        .expect("failed to execute bee prune");
+        .expect("failed to execute amber prune");
 
     let combined = format!(
         "{}{}",
@@ -497,17 +497,17 @@ fn prune_deny_fs_fails_before_scanning_node_modules() {
     );
     assert!(
         !output.status.success(),
-        "denied node_modules read should fail bee prune. output: {combined}"
+        "denied node_modules read should fail amber prune. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Read"),
-        "bee prune should report broker file read denial. output: {combined}"
+        "amber prune should report broker file read denial. output: {combined}"
     );
     assert!(
         node_modules.join("unused").is_dir(),
-        "denied bee prune must not remove packages. output: {combined}"
+        "denied amber prune must not remove packages. output: {combined}"
     );
 }
 
@@ -524,11 +524,11 @@ fn prune_deny_fs_fails_before_absent_node_modules_noop() {
     )
     .expect("failed to write package.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["prune", "--deny-fs"])
         .output()
-        .expect("failed to execute bee prune");
+        .expect("failed to execute amber prune");
 
     let combined = format!(
         "{}{}",
@@ -537,17 +537,17 @@ fn prune_deny_fs_fails_before_absent_node_modules_noop() {
     );
     assert!(
         !output.status.success(),
-        "denied node_modules read should fail bee prune before noop. output: {combined}"
+        "denied node_modules read should fail amber prune before noop. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Read"),
-        "bee prune should report broker file read denial. output: {combined}"
+        "amber prune should report broker file read denial. output: {combined}"
     );
     assert!(
         !combined.contains("No node_modules directory found - nothing to prune"),
-        "denied bee prune must not report a successful noop. output: {combined}"
+        "denied amber prune must not report a successful noop. output: {combined}"
     );
 }
 
@@ -555,11 +555,11 @@ fn prune_deny_fs_fails_before_absent_node_modules_noop() {
 fn bunx_deny_net_fails_before_package_execution() {
     let dir = tempdir().expect("failed to create tempdir");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["bunx", "--deny-net", "left-pad@1.3.0"])
         .output()
-        .expect("failed to execute bee bunx");
+        .expect("failed to execute amber bunx");
 
     let combined = format!(
         "{}{}",
@@ -568,13 +568,13 @@ fn bunx_deny_net_fails_before_package_execution() {
     );
     assert!(
         !output.status.success(),
-        "denied registry network access should fail bee bunx. output: {combined}"
+        "denied registry network access should fail amber bunx. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("Network")
             && combined.contains("Connect"),
-        "bee bunx should report broker network denial. output: {combined}"
+        "amber bunx should report broker network denial. output: {combined}"
     );
 }
 
@@ -582,11 +582,11 @@ fn bunx_deny_net_fails_before_package_execution() {
 fn bunx_deny_run_fails_before_package_installation() {
     let dir = tempdir().expect("failed to create tempdir");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["bunx", "--deny-run", "left-pad@1.3.0"])
         .output()
-        .expect("failed to execute bee bunx");
+        .expect("failed to execute amber bunx");
 
     let combined = format!(
         "{}{}",
@@ -595,17 +595,17 @@ fn bunx_deny_run_fails_before_package_installation() {
     );
     assert!(
         !output.status.success(),
-        "denied process execution should fail bee bunx. output: {combined}"
+        "denied process execution should fail amber bunx. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("Process")
             && combined.contains("Execute"),
-        "bee bunx should report broker process execution denial. output: {combined}"
+        "amber bunx should report broker process execution denial. output: {combined}"
     );
     assert!(
         !dir.path().join("node_modules").exists(),
-        "denied bee bunx must not create installation directories. output: {combined}"
+        "denied amber bunx must not create installation directories. output: {combined}"
     );
 }
 
@@ -613,11 +613,11 @@ fn bunx_deny_run_fails_before_package_installation() {
 fn serve_deny_net_blocks_server_configuration() {
     let dir = tempdir().expect("failed to create tempdir");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["serve", "--deny-net", "--host", "127.0.0.1", "--port", "0"])
         .output()
-        .expect("failed to execute bee serve");
+        .expect("failed to execute amber serve");
 
     let combined = format!(
         "{}{}",
@@ -626,17 +626,17 @@ fn serve_deny_net_blocks_server_configuration() {
     );
     assert!(
         !output.status.success(),
-        "denied server network access should fail bee serve. output: {combined}"
+        "denied server network access should fail amber serve. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("Network")
             && combined.contains("Listen"),
-        "bee serve should report broker network denial. output: {combined}"
+        "amber serve should report broker network denial. output: {combined}"
     );
     assert!(
         !combined.contains("server configured"),
-        "denied bee serve must not report successful server configuration. output: {combined}"
+        "denied amber serve must not report successful server configuration. output: {combined}"
     );
 }
 
@@ -654,11 +654,11 @@ fn upgrade_deny_net_fails_without_rewriting_package_json() {
     std::fs::write(&package_json_path, original_package_json)
         .expect("failed to write package.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["upgrade", "--deny-net", "left-pad"])
         .output()
-        .expect("failed to execute bee upgrade");
+        .expect("failed to execute amber upgrade");
 
     let combined = format!(
         "{}{}",
@@ -667,18 +667,18 @@ fn upgrade_deny_net_fails_without_rewriting_package_json() {
     );
     assert!(
         !output.status.success(),
-        "denied registry network access should fail bee upgrade. output: {combined}"
+        "denied registry network access should fail amber upgrade. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("Network")
             && combined.contains("Connect"),
-        "bee upgrade should report broker network denial. output: {combined}"
+        "amber upgrade should report broker network denial. output: {combined}"
     );
     assert_eq!(
         std::fs::read_to_string(&package_json_path).expect("failed to read package.json"),
         original_package_json,
-        "denied bee upgrade must not rewrite package.json. output: {combined}"
+        "denied amber upgrade must not rewrite package.json. output: {combined}"
     );
 }
 
@@ -694,20 +694,20 @@ fn upgrade_denied_package_json_write_fails_before_creating_node_modules() {
     std::fs::write(&package_json_path, original_package_json)
         .expect("failed to write package.json");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .arg("upgrade")
         .arg("--deny-fs")
         .arg("--allow-read")
         .arg("package.json")
         .arg("--allow-write")
-        .arg(".beejs_cache")
+        .arg(".amberjs_cache")
         .arg("--allow-write")
         .arg("node_modules")
         .arg("--allow-write")
         .arg("package-lock.json")
         .output()
-        .expect("failed to execute bee upgrade");
+        .expect("failed to execute amber upgrade");
 
     let combined = format!(
         "{}{}",
@@ -716,19 +716,19 @@ fn upgrade_denied_package_json_write_fails_before_creating_node_modules() {
     );
     assert!(
         !output.status.success(),
-        "denied package.json write should fail bee upgrade. output: {combined}"
+        "denied package.json write should fail amber upgrade. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Write")
             && combined.contains("package.json"),
-        "bee upgrade should report denied package.json write. output: {combined}"
+        "amber upgrade should report denied package.json write. output: {combined}"
     );
     assert_eq!(
         std::fs::read_to_string(&package_json_path).expect("failed to read package.json"),
         original_package_json,
-        "denied bee upgrade must not rewrite package.json. output: {combined}"
+        "denied amber upgrade must not rewrite package.json. output: {combined}"
     );
     assert!(
         !dir.path().join("node_modules").exists(),
@@ -743,14 +743,14 @@ fn bundle_deny_fs_blocks_entry_read() {
     let outfile = dir.path().join("bundle.js");
     std::fs::write(&entry, "console.log('bundle-input');").expect("failed to write entry");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("bundle")
         .arg("--deny-fs")
         .arg(&entry)
         .arg("--outfile")
         .arg(&outfile)
         .output()
-        .expect("failed to execute bee bundle");
+        .expect("failed to execute amber bundle");
 
     let combined = format!(
         "{}{}",
@@ -759,17 +759,17 @@ fn bundle_deny_fs_blocks_entry_read() {
     );
     assert!(
         !output.status.success(),
-        "denied entry read should fail bee bundle. output: {combined}"
+        "denied entry read should fail amber bundle. output: {combined}"
     );
     assert!(
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Read"),
-        "bee bundle should report broker file read denial. output: {combined}"
+        "amber bundle should report broker file read denial. output: {combined}"
     );
     assert!(
         !outfile.exists(),
-        "denied bee bundle must not create output. output: {combined}"
+        "denied amber bundle must not create output. output: {combined}"
     );
 }
 
@@ -780,7 +780,7 @@ fn bundle_deny_fs_blocks_output_write() {
     let outfile = dir.path().join("bundle.js");
     std::fs::write(&entry, "console.log('bundle-input');").expect("failed to write entry");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("bundle")
         .arg("--deny-fs")
         .arg("--allow-read")
@@ -789,7 +789,7 @@ fn bundle_deny_fs_blocks_output_write() {
         .arg("--outfile")
         .arg(&outfile)
         .output()
-        .expect("failed to execute bee bundle");
+        .expect("failed to execute amber bundle");
 
     let combined = format!(
         "{}{}",
@@ -804,11 +804,11 @@ fn bundle_deny_fs_blocks_output_write() {
         combined.contains("permission denied")
             && combined.contains("FileSystem")
             && combined.contains("Write"),
-        "bee bundle should report broker file write denial. output: {combined}"
+        "amber bundle should report broker file write denial. output: {combined}"
     );
     assert!(
         !outfile.exists(),
-        "denied bee bundle must not create output. output: {combined}"
+        "denied amber bundle must not create output. output: {combined}"
     );
 }
 
@@ -816,7 +816,7 @@ fn bundle_deny_fs_blocks_output_write() {
 fn remove_permission_policy_denies_package_json_write() {
     let dir = tempdir().expect("failed to create tempdir");
     let package_json_path = dir.path().join("package.json");
-    let policy_path = dir.path().join("bee.policy.json");
+    let policy_path = dir.path().join("amber.policy.json");
     std::fs::write(
         &package_json_path,
         r#"{
@@ -839,14 +839,14 @@ fn remove_permission_policy_denies_package_json_write() {
     )
     .expect("failed to write permission policy");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .arg("remove")
         .arg("--permission-policy")
         .arg(&policy_path)
         .arg("left-pad")
         .output()
-        .expect("failed to execute bee remove");
+        .expect("failed to execute amber remove");
 
     let combined = format!(
         "{}{}",
@@ -888,15 +888,15 @@ test("fails inside the test callback", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     assert!(
         !output.status.success(),
-        "bee test should return non-zero for a failing assertion"
+        "amber test should return non-zero for a failing assertion"
     );
 
     let combined = format!(
@@ -906,11 +906,11 @@ test("fails inside the test callback", () => {
     );
     assert!(
         combined.contains("Expected 1 to be 2"),
-        "bee test should report the assertion failure, not a missing test global. output: {combined}"
+        "amber test should report the assertion failure, not a missing test global. output: {combined}"
     );
     assert!(
         !combined.contains("Tests passed"),
-        "bee test must not report success for a failing test. output: {combined}"
+        "amber test must not report success for a failing test. output: {combined}"
     );
 }
 
@@ -927,11 +927,11 @@ collected.push("loaded but no tests");
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -940,7 +940,7 @@ collected.push("loaded but no tests");
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when an explicit test file registers no tests. output: {combined}"
+        "amber test should fail when an explicit test file registers no tests. output: {combined}"
     );
     assert!(
         combined.contains("No tests found in test file"),
@@ -965,11 +965,11 @@ it.todo("planned alias behavior");
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -978,7 +978,7 @@ it.todo("planned alias behavior");
     );
     assert!(
         output.status.success(),
-        "bee test should treat todo tests as skipped. output: {combined}"
+        "amber test should treat todo tests as skipped. output: {combined}"
     );
     assert!(
         combined.contains("0 passed, 0 failed, 2 skipped"),
@@ -1004,11 +1004,11 @@ it.failing("expected async rejection passes", async () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1017,7 +1017,7 @@ it.failing("expected async rejection passes", async () => {
     );
     assert!(
         output.status.success(),
-        "bee test should treat expected failures as passed. output: {combined}"
+        "amber test should treat expected failures as passed. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -1039,11 +1039,11 @@ test.failing("unexpected pass should fail", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1052,7 +1052,7 @@ test.failing("unexpected pass should fail", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when a failing test unexpectedly passes. output: {combined}"
+        "amber test should fail when a failing test unexpectedly passes. output: {combined}"
     );
     assert!(
         combined.contains("Expected failing test to fail"),
@@ -1079,14 +1079,14 @@ test.failing.each([
 });
 
 it.failing.each([
-  { value: "bee" },
+  { value: "amber" },
 ])("planned throw $value", ({ value }) => {
   throw new Error(value);
 });
 
 it.concurrent.failing.each`
   value
-  ${"async bee"}
+  ${"async amber"}
 `("planned async throw $value", async ({ value }) => {
   throw new Error(value);
 });
@@ -1094,11 +1094,11 @@ it.concurrent.failing.each`
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1107,7 +1107,7 @@ it.concurrent.failing.each`
     );
     assert!(
         output.status.success(),
-        "bee test should accept failing.each APIs and treat expected failures as passed. output: {combined}"
+        "amber test should accept failing.each APIs and treat expected failures as passed. output: {combined}"
     );
     assert!(
         combined.contains("4 passed, 0 failed, 0 skipped"),
@@ -1131,11 +1131,11 @@ test.failing.each([
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1144,7 +1144,7 @@ test.failing.each([
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when a failing.each row unexpectedly passes. output: {combined}"
+        "amber test should fail when a failing.each row unexpectedly passes. output: {combined}"
     );
     assert!(
         combined.contains("Expected failing test to fail"),
@@ -1191,11 +1191,11 @@ test("observes all expanded rows", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1204,7 +1204,7 @@ test("observes all expanded rows", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support test.each and describe.each table expansion. output: {combined}"
+        "amber test should support test.each and describe.each table expansion. output: {combined}"
     );
     assert!(
         combined.contains("5 passed, 0 failed, 0 skipped"),
@@ -1228,11 +1228,11 @@ test.each([
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1241,7 +1241,7 @@ test.each([
     );
     assert!(
         !output.status.success(),
-        "bee test should fail the expanded table row. output: {combined}"
+        "amber test should fail the expanded table row. output: {combined}"
     );
     assert!(
         combined.contains("adds 1 + 2 = 4"),
@@ -1273,7 +1273,7 @@ test.each`
 
 describe.each`
   name       | count
-  ${"bee"}   | ${3}
+  ${"amber"}   | ${3}
   ${"tests"} | ${5}
 `("$name suite", ({ name, count }) => {
   test("receives tagged row object", () => {
@@ -1284,17 +1284,17 @@ describe.each`
 });
 
 test("observes all tagged rows", () => {
-  expect(seen).toEqual(["1+2", "2+3", "bee:3", "tests:5"]);
+  expect(seen).toEqual(["1+2", "2+3", "amber:3", "tests:5"]);
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1303,7 +1303,7 @@ test("observes all tagged rows", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support tagged-template each tables. output: {combined}"
+        "amber test should support tagged-template each tables. output: {combined}"
     );
     assert!(
         combined.contains("5 passed, 0 failed, 0 skipped"),
@@ -1328,11 +1328,11 @@ test.each`
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1341,7 +1341,7 @@ test.each`
     );
     assert!(
         !output.status.success(),
-        "bee test should fail the expanded tagged table row. output: {combined}"
+        "amber test should fail the expanded tagged table row. output: {combined}"
     );
     assert!(
         combined.contains("adds 1 + 2 = 4"),
@@ -1361,7 +1361,7 @@ fn test_command_supports_existing_file_snapshots() {
         &test_file,
         r#"
 test("matches stored object snapshot", () => {
-  expect({ name: "beejs", features: ["runtime", "tests"] }).toMatchSnapshot();
+  expect({ name: "amberjs", features: ["runtime", "tests"] }).toMatchSnapshot();
 });
 "#,
     )
@@ -1372,7 +1372,7 @@ test("matches stored object snapshot", () => {
         snapshots_dir.join("snapshot.test.js.snap"),
         r#"exports[`matches stored object snapshot 1`] = `
 {
-  "name": "beejs",
+  "name": "amberjs",
   "features": [
     "runtime",
     "tests"
@@ -1383,11 +1383,11 @@ test("matches stored object snapshot", () => {
     )
     .expect("failed to write snapshot file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1396,7 +1396,7 @@ test("matches stored object snapshot", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should pass when toMatchSnapshot matches an existing snapshot. output: {combined}"
+        "amber test should pass when toMatchSnapshot matches an existing snapshot. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -1412,17 +1412,17 @@ fn test_command_fails_missing_file_snapshot() {
         &test_file,
         r#"
 test("needs snapshot", () => {
-  expect("beejs").toMatchSnapshot();
+  expect("amberjs").toMatchSnapshot();
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1431,7 +1431,7 @@ test("needs snapshot", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when a required snapshot is missing. output: {combined}"
+        "amber test should fail when a required snapshot is missing. output: {combined}"
     );
     assert!(
         combined.contains("Snapshot not found for needs snapshot 1"),
@@ -1451,18 +1451,18 @@ fn test_command_update_snapshots_creates_missing_file_snapshot() {
         &test_file,
         r#"
 test("writes snapshot", () => {
-  expect({ name: "beejs", mode: "update" }).toMatchSnapshot();
+  expect({ name: "amberjs", mode: "update" }).toMatchSnapshot();
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg("--update-snapshots")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1471,7 +1471,7 @@ test("writes snapshot", () => {
     );
     assert!(
         output.status.success(),
-        "bee test --update-snapshots should create a missing snapshot and pass. output: {combined}"
+        "amber test --update-snapshots should create a missing snapshot and pass. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -1501,13 +1501,13 @@ fn test_command_update_snapshots_respects_write_permission() {
         &test_file,
         r#"
 test("blocked snapshot", () => {
-  expect("beejs").toMatchSnapshot();
+  expect("amberjs").toMatchSnapshot();
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg("--deny-fs")
         .arg("--allow-read")
@@ -1515,7 +1515,7 @@ test("blocked snapshot", () => {
         .arg("--update-snapshots")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1544,9 +1544,9 @@ fn test_command_supports_inline_snapshots() {
         &test_file,
         r#"
 test("matches inline snapshot", () => {
-  expect({ name: "beejs", mode: "inline" }).toMatchInlineSnapshot(`
+  expect({ name: "amberjs", mode: "inline" }).toMatchInlineSnapshot(`
 {
-  "name": "beejs",
+  "name": "amberjs",
   "mode": "inline"
 }
 `);
@@ -1555,11 +1555,11 @@ test("matches inline snapshot", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1568,7 +1568,7 @@ test("matches inline snapshot", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should pass matching inline snapshots. output: {combined}"
+        "amber test should pass matching inline snapshots. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -1584,17 +1584,17 @@ fn test_command_reports_inline_snapshot_mismatch() {
         &test_file,
         r#"
 test("reports inline mismatch", () => {
-  expect({ name: "beejs" }).toMatchInlineSnapshot(`"wrong"`);
+  expect({ name: "amberjs" }).toMatchInlineSnapshot(`"wrong"`);
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1603,7 +1603,7 @@ test("reports inline mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail mismatched inline snapshots. output: {combined}"
+        "amber test should fail mismatched inline snapshots. output: {combined}"
     );
     assert!(
         combined.contains("Inline snapshot mismatch"),
@@ -1627,18 +1627,18 @@ fn test_command_update_snapshots_creates_inline_snapshot() {
         &test_file,
         r#"
 test("writes inline snapshot", () => {
-  expect({ name: "beejs", mode: "inline-update" }).toMatchInlineSnapshot();
+  expect({ name: "amberjs", mode: "inline-update" }).toMatchInlineSnapshot();
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg("--update-snapshots")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1647,7 +1647,7 @@ test("writes inline snapshot", () => {
     );
     assert!(
         output.status.success(),
-        "bee test --update-snapshots should write a missing inline snapshot and pass. output: {combined}"
+        "amber test --update-snapshots should write a missing inline snapshot and pass. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -1677,18 +1677,18 @@ fn test_command_update_snapshots_rewrites_inline_snapshot_mismatch() {
         &test_file,
         r#"
 test("rewrites inline snapshot", () => {
-  expect({ name: "beejs", mode: "rewritten" }).toMatchInlineSnapshot(`"old"`);
+  expect({ name: "amberjs", mode: "rewritten" }).toMatchInlineSnapshot(`"old"`);
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg("--update-snapshots")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1697,7 +1697,7 @@ test("rewrites inline snapshot", () => {
     );
     assert!(
         output.status.success(),
-        "bee test --update-snapshots should rewrite mismatched inline snapshots and pass. output: {combined}"
+        "amber test --update-snapshots should rewrite mismatched inline snapshots and pass. output: {combined}"
     );
 
     let source = std::fs::read_to_string(&test_file).expect("test file should remain readable");
@@ -1717,12 +1717,12 @@ fn test_command_update_inline_snapshot_respects_source_write_permission() {
     let test_file = dir.path().join("inline_snapshot_denied.test.js");
     let original_source = r#"
 test("blocked inline snapshot", () => {
-  expect("beejs").toMatchInlineSnapshot();
+  expect("amberjs").toMatchInlineSnapshot();
 });
 "#;
     std::fs::write(&test_file, original_source).expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg("--deny-fs")
         .arg("--allow-read")
@@ -1730,7 +1730,7 @@ test("blocked inline snapshot", () => {
         .arg("--update-snapshots")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1764,15 +1764,15 @@ fn run_file_resolves_commonjs_relative_to_script_directory() {
     let main_file = app_dir.join("main.js");
     std::fs::write(&main_file, "require('./lib').value;").expect("failed to write main file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("run")
         .arg(&main_file)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     assert!(
         output.status.success(),
-        "bee run should resolve relative require from script dir. stdout: {} stderr: {}",
+        "amber run should resolve relative require from script dir. stdout: {} stderr: {}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
@@ -1794,18 +1794,18 @@ console.log("TYPE_DIAGNOSTIC_SCRIPT_RAN", answer());
     )
     .expect("failed to write TypeScript script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("run")
         .arg(&script)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{stdout}{stderr}");
     assert!(
         output.status.success(),
-        "oxc is transpile-only: type mismatches must not fail bee run. output: {combined}"
+        "oxc is transpile-only: type mismatches must not fail amber run. output: {combined}"
     );
     assert!(
         stdout.contains("TYPE_DIAGNOSTIC_SCRIPT_RAN"),
@@ -1829,18 +1829,18 @@ explode();
     )
     .expect("failed to write TypeScript script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("run")
         .arg(&script)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let combined = format!("{stdout}{stderr}");
     assert!(
         !output.status.success(),
-        "bee run should fail for the thrown TypeScript runtime error. output: {combined}"
+        "amber run should fail for the thrown TypeScript runtime error. output: {combined}"
     );
     assert!(
         combined.contains("TS_SOURCE_MAP_RUNTIME_ERROR:before"),
@@ -1869,11 +1869,11 @@ console.log("TSX_TYPED_TLA_OK", answer);
     )
     .expect("failed to write TSX script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("run")
         .arg(&script)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let combined = format!(
         "{}{}",
@@ -1905,15 +1905,15 @@ test("fails after an awaited microtask", async () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     assert!(
         !output.status.success(),
-        "bee test should return non-zero for an async assertion failure"
+        "amber test should return non-zero for an async assertion failure"
     );
 
     let combined = format!(
@@ -1923,11 +1923,11 @@ test("fails after an awaited microtask", async () => {
     );
     assert!(
         combined.contains("Expected 1 to be 2"),
-        "bee test should report async assertion failures. output: {combined}"
+        "amber test should report async assertion failures. output: {combined}"
     );
     assert!(
         !combined.contains("Tests passed"),
-        "bee test must not report success for a failing async test. output: {combined}"
+        "amber test must not report success for a failing async test. output: {combined}"
     );
 }
 
@@ -1943,7 +1943,7 @@ let completed = false;
 test("passes through done callback", (done) => {
   setTimeout(() => {
     try {
-      expect("beejs").toContain("bee");
+      expect("amberjs").toContain("amber");
       completed = true;
       done();
     } catch (error) {
@@ -1959,11 +1959,11 @@ test("runs after done completed", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--timeout", "1"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -1972,7 +1972,7 @@ test("runs after done completed", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should wait for done callback completion. output: {combined}"
+        "amber test should wait for done callback completion. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -1996,11 +1996,11 @@ test("fails through done callback", (done) => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--timeout", "1"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2009,7 +2009,7 @@ test("fails through done callback", (done) => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when done receives an error. output: {combined}"
+        "amber test should fail when done receives an error. output: {combined}"
     );
     assert!(
         combined.contains("done callback failed"),
@@ -2035,11 +2035,11 @@ test("does not mix done and promise", (done) => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--timeout", "1"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2048,7 +2048,7 @@ test("does not mix done and promise", (done) => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when a done callback test returns a Promise. output: {combined}"
+        "amber test should fail when a done callback test returns a Promise. output: {combined}"
     );
     assert!(
         combined.contains("cannot both use done callback and return a Promise"),
@@ -2075,11 +2075,11 @@ test("fails after an awaited microtask in mjs", async () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2088,15 +2088,15 @@ test("fails after an awaited microtask in mjs", async () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should return non-zero for a failing async mjs test. output: {combined}"
+        "amber test should return non-zero for a failing async mjs test. output: {combined}"
     );
     assert!(
         combined.contains("Expected 1 to be 2"),
-        "bee test should report async mjs assertion failures. output: {combined}"
+        "amber test should report async mjs assertion failures. output: {combined}"
     );
     assert!(
         !combined.contains("Tests passed"),
-        "bee test must not report success for a failing async mjs test. output: {combined}"
+        "amber test must not report success for a failing async mjs test. output: {combined}"
     );
 }
 
@@ -2109,26 +2109,26 @@ fn test_command_supports_expect_assertion_guards() {
         r#"
 test("counts explicit assertions", async () => {
   expect.assertions(3);
-  expect("beejs runtime").toContain("runtime");
-  await Promise.resolve("bee").then((value) => {
-    expect(value).toBe("bee");
+  expect("amberjs runtime").toContain("runtime");
+  await Promise.resolve("amber").then((value) => {
+    expect(value).toBe("amber");
   });
   expect({ ok: true }).toEqual({ ok: true });
 });
 
 test("requires at least one assertion", () => {
   expect.hasAssertions();
-  expect("bee").toBeDefined();
+  expect("amber").toBeDefined();
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2137,7 +2137,7 @@ test("requires at least one assertion", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support expect assertion guards. output: {combined}"
+        "amber test should support expect assertion guards. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -2154,17 +2154,17 @@ fn test_command_reports_expect_assertions_mismatch() {
         r#"
 test("reports assertion count mismatch", () => {
   expect.assertions(2);
-  expect("bee").toBe("bee");
+  expect("amber").toBe("amber");
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2173,7 +2173,7 @@ test("reports assertion count mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail an expect.assertions mismatch. output: {combined}"
+        "amber test should fail an expect.assertions mismatch. output: {combined}"
     );
     assert!(
         combined.contains("Expected 2 assertions") && combined.contains("but 1"),
@@ -2199,11 +2199,11 @@ test("reports missing assertions", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2212,7 +2212,7 @@ test("reports missing assertions", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when expect.hasAssertions sees no assertions. output: {combined}"
+        "amber test should fail when expect.hasAssertions sees no assertions. output: {combined}"
     );
     assert!(
         combined.contains("Expected at least one assertion"),
@@ -2234,16 +2234,16 @@ fn test_command_supports_core_file_matchers() {
 test("supports core matchers", () => {
   expect(null).toBeNull();
   expect(undefined).toBeUndefined();
-  expect("bee").toBeDefined();
+  expect("amber").toBeDefined();
   expect([1, 2, 3]).toContain(2);
-  expect("beejs runtime").toContain("runtime");
+  expect("amberjs runtime").toContain("runtime");
   expect([1, 2, 3]).toHaveLength(3);
-  expect("bee").toHaveLength(3);
-  expect("bee-123").toMatch(/bee-\d+/);
-  expect("bee-123").toMatch("123");
+  expect("amber").toHaveLength(5);
+  expect("amber-123").toMatch(/amber-\d+/);
+  expect("amber-123").toMatch("123");
   expect(1).not.toBe(2);
   expect({ value: 1 }).not.toEqual({ value: 2 });
-  expect("bee").not.toContain("ant");
+  expect("amber").not.toContain("ant");
   expect(false).not.toBeTruthy();
   expect(true).not.toBeFalsy();
 });
@@ -2251,11 +2251,11 @@ test("supports core matchers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2264,7 +2264,7 @@ test("supports core matchers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support core expect matchers. output: {combined}"
+        "amber test should support core expect matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -2281,18 +2281,18 @@ fn test_command_supports_map_and_set_equality_matchers() {
         r#"
 test("compares Map and Set contents", () => {
   expect(new Map([
-    ["mode", "bee"],
+    ["mode", "amber"],
     ["meta", { runtime: true }]
   ])).toEqual(new Map([
-    ["mode", "bee"],
+    ["mode", "amber"],
     ["meta", { runtime: true }]
   ]));
-  expect(new Map([["mode", "bee"]])).not.toEqual(new Map([["mode", "ant"]]));
+  expect(new Map([["mode", "amber"]])).not.toEqual(new Map([["mode", "ant"]]));
   expect(new Set(["runtime", "v8"])).toEqual(new Set(["runtime", "v8"]));
   expect(new Set(["runtime"])).not.toEqual(new Set(["docs"]));
 
-  expect(new Map([["mode", "bee"]])).toStrictEqual(new Map([["mode", "bee"]]));
-  expect(new Map([["mode", "bee"]])).not.toStrictEqual(new Map([["mode", "ant"]]));
+  expect(new Map([["mode", "amber"]])).toStrictEqual(new Map([["mode", "amber"]]));
+  expect(new Map([["mode", "amber"]])).not.toStrictEqual(new Map([["mode", "ant"]]));
   expect(new Set(["runtime", "v8"])).toStrictEqual(new Set(["runtime", "v8"]));
   expect(new Set(["runtime"])).not.toStrictEqual(new Set(["docs"]));
 });
@@ -2300,11 +2300,11 @@ test("compares Map and Set contents", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2313,7 +2313,7 @@ test("compares Map and Set contents", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support Map and Set equality matchers. output: {combined}"
+        "amber test should support Map and Set equality matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -2330,11 +2330,11 @@ fn test_command_supports_to_contain_equal_file_matcher() {
         r#"
 test("supports toContainEqual matcher", () => {
   const items = [
-    { id: "bee", meta: { tags: ["runtime", "v8"] } },
+    { id: "amber", meta: { tags: ["runtime", "v8"] } },
     { id: "ant", meta: { tags: ["legacy"] } }
   ];
 
-  expect(items).toContainEqual({ id: "bee", meta: { tags: ["runtime", "v8"] } });
+  expect(items).toContainEqual({ id: "amber", meta: { tags: ["runtime", "v8"] } });
   expect(items).toContainEqual(expect.objectContaining({
     id: "ant",
     meta: expect.objectContaining({ tags: expect.arrayContaining(["legacy"]) })
@@ -2346,11 +2346,11 @@ test("supports toContainEqual matcher", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2359,7 +2359,7 @@ test("supports toContainEqual matcher", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support toContainEqual matcher. output: {combined}"
+        "amber test should support toContainEqual matcher. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -2375,17 +2375,17 @@ fn test_command_reports_to_contain_equal_matcher_failure() {
         &test_file,
         r#"
 test("reports toContainEqual mismatch", () => {
-  expect([{ id: "bee" }]).toContainEqual({ id: "ant" });
+  expect([{ id: "amber" }]).toContainEqual({ id: "ant" });
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2394,7 +2394,7 @@ test("reports toContainEqual mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a toContainEqual mismatch. output: {combined}"
+        "amber test should fail a toContainEqual mismatch. output: {combined}"
     );
     assert!(
         combined.contains("to contain equal"),
@@ -2436,11 +2436,11 @@ test("supports custom matcher from expect.extend", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2449,7 +2449,7 @@ test("supports custom matcher from expect.extend", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support expect.extend custom matchers. output: {combined}"
+        "amber test should support expect.extend custom matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -2485,11 +2485,11 @@ test("reports custom matcher failure", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2498,7 +2498,7 @@ test("reports custom matcher failure", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a custom matcher mismatch. output: {combined}"
+        "amber test should fail a custom matcher mismatch. output: {combined}"
     );
     assert!(
         combined.contains("expected 3 to be even"),
@@ -2538,11 +2538,11 @@ test("reports custom negated matcher failure", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2551,7 +2551,7 @@ test("reports custom negated matcher failure", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a negated custom matcher mismatch. output: {combined}"
+        "amber test should fail a negated custom matcher mismatch. output: {combined}"
     );
     assert!(
         combined.contains("expected 4 not to be even"),
@@ -2579,18 +2579,18 @@ test("supports strict equality matcher", () => {
 
   expect(new Payload(7)).toStrictEqual(new Payload(7));
   expect(new Payload(7)).not.toStrictEqual({ value: 7 });
-  expect([, "bee"]).not.toStrictEqual([undefined, "bee"]);
+  expect([, "amber"]).not.toStrictEqual([undefined, "amber"]);
   expect({ nested: [{ value: 1 }] }).toStrictEqual({ nested: [{ value: 1 }] });
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2599,7 +2599,7 @@ test("supports strict equality matcher", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support strict equality matcher. output: {combined}"
+        "amber test should support strict equality matcher. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -2616,7 +2616,7 @@ fn test_command_supports_asymmetric_file_matchers() {
         r#"
 test("supports asymmetric matchers", () => {
   const payload = {
-    id: "bee-123",
+    id: "amber-123",
     profile: {
       name: "Ada",
       tags: ["runtime", "tests", "v8"]
@@ -2626,7 +2626,7 @@ test("supports asymmetric matchers", () => {
   mock({ type: "event", payload });
 
   expect(payload).toEqual(expect.objectContaining({
-    id: expect.stringContaining("bee"),
+    id: expect.stringContaining("amber"),
     profile: expect.objectContaining({
       name: expect.any(String),
       tags: expect.arrayContaining(["runtime", expect.stringContaining("v")])
@@ -2643,11 +2643,11 @@ test("supports asymmetric matchers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2656,7 +2656,7 @@ test("supports asymmetric matchers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support asymmetric expect matchers. output: {combined}"
+        "amber test should support asymmetric expect matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -2672,7 +2672,7 @@ fn test_command_reports_asymmetric_matcher_failure() {
         &test_file,
         r#"
 test("reports asymmetric matcher mismatch", () => {
-  expect({ id: "bee-123" }).toEqual(expect.objectContaining({
+  expect({ id: "amber-123" }).toEqual(expect.objectContaining({
     id: expect.stringContaining("ant")
   }));
 });
@@ -2680,11 +2680,11 @@ test("reports asymmetric matcher mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2693,7 +2693,7 @@ test("reports asymmetric matcher mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail an asymmetric matcher mismatch. output: {combined}"
+        "amber test should fail an asymmetric matcher mismatch. output: {combined}"
     );
     assert!(
         combined.contains("to equal"),
@@ -2714,21 +2714,21 @@ fn test_command_supports_string_matching_and_inverted_asymmetric_matchers() {
         r#"
 test("supports stringMatching and inverted asymmetric matchers", () => {
   const payload = {
-    id: "bee-123",
+    id: "amber-123",
     tags: ["runtime", "tests"],
     meta: { owner: "Ada" }
   };
   const mock = jest.fn();
-  mock("bee-123", payload);
+  mock("amber-123", payload);
 
   expect(payload).toEqual(expect.objectContaining({
-    id: expect.stringMatching(/^bee-\d+$/),
+    id: expect.stringMatching(/^amber-\d+$/),
     tags: expect.not.arrayContaining(["legacy"]),
     meta: expect.not.objectContaining({ owner: expect.stringMatching(/Grace/) })
   }));
-  expect(payload.id).toEqual(expect.stringMatching("bee-"));
+  expect(payload.id).toEqual(expect.stringMatching("amber-"));
   expect(payload.id).toEqual(expect.not.stringContaining("ant"));
-  expect(mock).toHaveBeenCalledWith(expect.stringMatching(/bee/), expect.not.objectContaining({
+  expect(mock).toHaveBeenCalledWith(expect.stringMatching(/amber/), expect.not.objectContaining({
     id: expect.stringMatching(/^ant/)
   }));
 });
@@ -2736,11 +2736,11 @@ test("supports stringMatching and inverted asymmetric matchers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2749,7 +2749,7 @@ test("supports stringMatching and inverted asymmetric matchers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support stringMatching and expect.not asymmetric matchers. output: {combined}"
+        "amber test should support stringMatching and expect.not asymmetric matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -2773,11 +2773,11 @@ test("reports inverted asymmetric mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2786,7 +2786,7 @@ test("reports inverted asymmetric mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail an inverted asymmetric matcher mismatch. output: {combined}"
+        "amber test should fail an inverted asymmetric matcher mismatch. output: {combined}"
     );
     assert!(
         combined.contains("to equal"),
@@ -2806,17 +2806,17 @@ fn test_command_reports_strict_equal_matcher_failure() {
         &test_file,
         r#"
 test("reports strict equality mismatch", () => {
-  expect([, "bee"]).toStrictEqual([undefined, "bee"]);
+  expect([, "amber"]).toStrictEqual([undefined, "amber"]);
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2825,7 +2825,7 @@ test("reports strict equality mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a strict equality mismatch. output: {combined}"
+        "amber test should fail a strict equality mismatch. output: {combined}"
     );
     assert!(
         combined.contains("to strictly equal"),
@@ -2860,11 +2860,11 @@ test("supports numeric matchers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2873,7 +2873,7 @@ test("supports numeric matchers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support numeric expect matchers. output: {combined}"
+        "amber test should support numeric expect matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -2895,11 +2895,11 @@ test("reports toBeNaN matcher failure", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2908,7 +2908,7 @@ test("reports toBeNaN matcher failure", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a toBeNaN matcher assertion. output: {combined}"
+        "amber test should fail a toBeNaN matcher assertion. output: {combined}"
     );
     assert!(
         combined.contains("Expected 42 to be NaN"),
@@ -2934,11 +2934,11 @@ test("reports numeric matcher failure", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2947,7 +2947,7 @@ test("reports numeric matcher failure", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a numeric matcher assertion. output: {combined}"
+        "amber test should fail a numeric matcher assertion. output: {combined}"
     );
     assert!(
         combined.contains("Expected 3 to be greater than 5"),
@@ -2977,11 +2977,11 @@ test("supports close numeric matchers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -2990,7 +2990,7 @@ test("supports close numeric matchers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support close-to expect matchers. output: {combined}"
+        "amber test should support close-to expect matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3012,11 +3012,11 @@ test("reports close numeric mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3025,7 +3025,7 @@ test("reports close numeric mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a close-to matcher assertion. output: {combined}"
+        "amber test should fail a close-to matcher assertion. output: {combined}"
     );
     assert!(
         combined.contains("to be close to"),
@@ -3045,8 +3045,8 @@ fn test_command_supports_to_throw_expected_file_matchers() {
         &test_file,
         r#"
 test("supports toThrow expected variants", () => {
-  expect(() => { throw new Error("boom goes bee"); }).toThrow("goes");
-  expect(() => { throw new Error("boom goes bee"); }).toThrow(/boom .* bee/);
+  expect(() => { throw new Error("boom goes amber"); }).toThrow("goes");
+  expect(() => { throw new Error("boom goes amber"); }).toThrow(/boom .* amber/);
   expect(() => { throw new TypeError("typed boom"); }).toThrow(TypeError);
   expect(() => { throw new Error("plain boom"); }).not.toThrow(TypeError);
   expect(() => {}).not.toThrow("boom");
@@ -3055,11 +3055,11 @@ test("supports toThrow expected variants", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3068,7 +3068,7 @@ test("supports toThrow expected variants", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support toThrow expected variants. output: {combined}"
+        "amber test should support toThrow expected variants. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3090,11 +3090,11 @@ test("reports toThrow expected mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3103,7 +3103,7 @@ test("reports toThrow expected mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a toThrow expected mismatch. output: {combined}"
+        "amber test should fail a toThrow expected mismatch. output: {combined}"
     );
     assert!(
         combined.contains("Expected function to throw an error matching \"expected message\""),
@@ -3124,9 +3124,9 @@ fn test_command_supports_resolves_and_rejects_file_matchers() {
         r#"
 test("supports resolves and rejects", async () => {
   await expect(Promise.resolve(42)).resolves.toBe(42);
-  await expect(Promise.resolve("beejs runtime")).resolves.toContain("runtime");
+  await expect(Promise.resolve("amberjs runtime")).resolves.toContain("runtime");
   await expect(Promise.resolve(5)).resolves.not.toBeGreaterThan(10);
-  await expect(Promise.reject(new Error("boom goes bee"))).rejects.toThrow("goes bee");
+  await expect(Promise.reject(new Error("boom goes amber"))).rejects.toThrow("goes amber");
   await expect(Promise.reject(new TypeError("typed boom"))).rejects.toThrow(TypeError);
   await expect(Promise.reject("plain reason")).rejects.toMatch("plain");
 });
@@ -3134,11 +3134,11 @@ test("supports resolves and rejects", async () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3147,7 +3147,7 @@ test("supports resolves and rejects", async () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support resolves/rejects matcher chains. output: {combined}"
+        "amber test should support resolves/rejects matcher chains. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3169,11 +3169,11 @@ test("reports resolves mismatch", async () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3182,7 +3182,7 @@ test("reports resolves mismatch", async () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when a resolves chain receives a rejection. output: {combined}"
+        "amber test should fail when a resolves chain receives a rejection. output: {combined}"
     );
     assert!(
         combined.contains("Expected promise to resolve, but it rejected with Error: boom"),
@@ -3215,7 +3215,7 @@ test("supports object matchers", () => {
 
   expect(payload).toHaveProperty("profile.stats.score", 7);
   expect(payload).toHaveProperty("profile.nickname");
-  expect({ items: [{ id: "bee" }] }).toHaveProperty(["items", 0, "id"], "bee");
+  expect({ items: [{ id: "amber" }] }).toHaveProperty(["items", 0, "id"], "amber");
   expect(error).toBeInstanceOf(CustomError);
   expect([1, 2]).toBeInstanceOf(Array);
   expect(payload).toMatchObject({ profile: { stats: { score: 7 } }, tags: ["runtime"] });
@@ -3226,11 +3226,11 @@ test("supports object matchers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3239,7 +3239,7 @@ test("supports object matchers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support object matcher chains. output: {combined}"
+        "amber test should support object matcher chains. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3257,7 +3257,7 @@ fn test_command_supports_to_have_property_bracket_string_paths() {
 test("supports bracket string property paths", () => {
   const payload = {
     items: [
-      { id: "bee", meta: { tags: ["runtime"] } }
+      { id: "amber", meta: { tags: ["runtime"] } }
     ],
     matrix: [[1, 2], [3, 4]],
     records: {
@@ -3265,7 +3265,7 @@ test("supports bracket string property paths", () => {
     }
   };
 
-  expect(payload).toHaveProperty("items[0].id", "bee");
+  expect(payload).toHaveProperty("items[0].id", "amber");
   expect(payload).toHaveProperty("items[0].meta.tags[0]", "runtime");
   expect(payload).toHaveProperty("matrix[1][0]", 3);
   expect(payload).toHaveProperty('records["a.b"].value', 5);
@@ -3275,11 +3275,11 @@ test("supports bracket string property paths", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3288,7 +3288,7 @@ test("supports bracket string property paths", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support bracket notation in toHaveProperty string paths. output: {combined}"
+        "amber test should support bracket notation in toHaveProperty string paths. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3310,11 +3310,11 @@ test("reports object matcher mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3323,7 +3323,7 @@ test("reports object matcher mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail an object matcher assertion. output: {combined}"
+        "amber test should fail an object matcher assertion. output: {combined}"
     );
     assert!(
         combined.contains(
@@ -3345,17 +3345,17 @@ fn test_command_reports_negated_matcher_failure() {
         &test_file,
         r#"
 test("reports negated matcher failure", () => {
-  expect(["bee"]).not.toContain("bee");
+  expect(["amber"]).not.toContain("amber");
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3364,10 +3364,10 @@ test("reports negated matcher failure", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a negated matcher assertion. output: {combined}"
+        "amber test should fail a negated matcher assertion. output: {combined}"
     );
     assert!(
-        combined.contains("Expected [\"bee\"] not to contain \"bee\""),
+        combined.contains("Expected [\"amber\"] not to contain \"amber\""),
         "negated matcher failure should explain the mismatch. output: {combined}"
     );
     assert!(
@@ -3388,15 +3388,15 @@ test("supports jest.fn tracking and implementations", () => {
     .mockReturnValueOnce("first")
     .mockImplementationOnce((name) => `second ${name}`);
 
-  expect(mock("bee")).toBe("first");
+  expect(mock("amber")).toBe("first");
   expect(mock("js")).toBe("second js");
   expect(mock("runtime")).toBe("hello runtime");
 
   expect(mock).toHaveBeenCalled();
   expect(mock).toHaveBeenCalledTimes(3);
-  expect(mock).toHaveBeenCalledWith("bee");
+  expect(mock).toHaveBeenCalledWith("amber");
   expect(mock).toHaveBeenCalledWith("js");
-  expect(mock.mock.calls).toEqual([["bee"], ["js"], ["runtime"]]);
+  expect(mock.mock.calls).toEqual([["amber"], ["js"], ["runtime"]]);
   expect(mock.mock.results.map((result) => result.value)).toEqual(["first", "second js", "hello runtime"]);
 
   mock.mockClear();
@@ -3407,11 +3407,11 @@ test("supports jest.fn tracking and implementations", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3420,7 +3420,7 @@ test("supports jest.fn tracking and implementations", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.fn mock tracking. output: {combined}"
+        "amber test should support jest.fn mock tracking. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3454,11 +3454,11 @@ test("supports nth and last call matchers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3467,7 +3467,7 @@ test("supports nth and last call matchers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support nth and last mock call matchers. output: {combined}"
+        "amber test should support nth and last mock call matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3492,11 +3492,11 @@ test("reports nth call mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3505,7 +3505,7 @@ test("reports nth call mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a nth mock call mismatch. output: {combined}"
+        "amber test should fail a nth mock call mismatch. output: {combined}"
     );
     assert!(
         combined.contains("Expected mock nth call 2"),
@@ -3534,11 +3534,11 @@ test("reports last call mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3547,7 +3547,7 @@ test("reports last call mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a last mock call mismatch. output: {combined}"
+        "amber test should fail a last mock call mismatch. output: {combined}"
     );
     assert!(
         combined.contains("Expected mock last call"),
@@ -3599,11 +3599,11 @@ test("supports mock return matchers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3612,7 +3612,7 @@ test("supports mock return matchers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support mock return matchers. output: {combined}"
+        "amber test should support mock return matchers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3645,11 +3645,11 @@ test("supports mockReturnThis for chainable methods", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3658,7 +3658,7 @@ test("supports mockReturnThis for chainable methods", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.fn().mockReturnThis(). output: {combined}"
+        "amber test should support jest.fn().mockReturnThis(). output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3709,11 +3709,11 @@ test("temporarily overrides mock implementation", async () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3722,7 +3722,7 @@ test("temporarily overrides mock implementation", async () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.fn().withImplementation(). output: {combined}"
+        "amber test should support jest.fn().withImplementation(). output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3754,11 +3754,11 @@ test("reads the current mock implementation", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3767,7 +3767,7 @@ test("reads the current mock implementation", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.fn().getMockImplementation(). output: {combined}"
+        "amber test should support jest.fn().getMockImplementation(). output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3798,11 +3798,11 @@ test("reports return count mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3811,7 +3811,7 @@ test("reports return count mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a mock return count mismatch. output: {combined}"
+        "amber test should fail a mock return count mismatch. output: {combined}"
     );
     assert!(
         combined.contains("Expected mock to have returned 2 times"),
@@ -3846,11 +3846,11 @@ test("reports nth return mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3859,7 +3859,7 @@ test("reports nth return mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a nth mock return mismatch. output: {combined}"
+        "amber test should fail a nth mock return mismatch. output: {combined}"
     );
     assert!(
         combined.contains("Expected mock nth return 2"),
@@ -3905,11 +3905,11 @@ test("supports Jest mock matcher aliases", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3918,7 +3918,7 @@ test("supports Jest mock matcher aliases", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support Jest mock matcher aliases. output: {combined}"
+        "amber test should support Jest mock matcher aliases. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -3942,11 +3942,11 @@ test("reports Jest alias matcher mismatch", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -3955,7 +3955,7 @@ test("reports Jest alias matcher mismatch", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a Jest mock alias mismatch. output: {combined}"
+        "amber test should fail a Jest mock alias mismatch. output: {combined}"
     );
     assert!(
         combined.contains("Expected mock last call"),
@@ -3997,11 +3997,11 @@ test("supports Jest mock names and lastCall metadata", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4010,7 +4010,7 @@ test("supports Jest mock names and lastCall metadata", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support Jest mock names and lastCall metadata. output: {combined}"
+        "amber test should support Jest mock names and lastCall metadata. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4056,11 +4056,11 @@ test("supports Jest mock function detection and contexts", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4069,7 +4069,7 @@ test("supports Jest mock function detection and contexts", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support Jest mock function detection and contexts. output: {combined}"
+        "amber test should support Jest mock function detection and contexts. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4102,7 +4102,7 @@ test("supports Jest spyOn and restore helpers", () => {
   greetSpy.mockImplementation(function (name) {
     return `mock ${this.calls.length}:${name}`;
   });
-  expect(service.greet("Bee")).toBe("mock 1:Bee");
+  expect(service.greet("Amber")).toBe("mock 1:Amber");
   expect(service.calls).toEqual(["Ada"]);
 
   greetSpy.mockRestore();
@@ -4127,11 +4127,11 @@ test("supports Jest spyOn and restore helpers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4140,7 +4140,7 @@ test("supports Jest spyOn and restore helpers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support Jest spyOn and restore helpers. output: {combined}"
+        "amber test should support Jest spyOn and restore helpers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4197,11 +4197,11 @@ test("restoreAllMocks restores getter spies", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4210,7 +4210,7 @@ test("restoreAllMocks restores getter spies", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support Jest spyOn getter accessors. output: {combined}"
+        "amber test should support Jest spyOn getter accessors. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -4285,11 +4285,11 @@ test("restoreAllMocks restores setter spies", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4298,7 +4298,7 @@ test("restoreAllMocks restores setter spies", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support Jest spyOn setter accessors. output: {combined}"
+        "amber test should support Jest spyOn setter accessors. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -4332,11 +4332,11 @@ test("supports replaceProperty and restore helpers", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4345,7 +4345,7 @@ test("supports replaceProperty and restore helpers", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.replaceProperty and restoreAllMocks. output: {combined}"
+        "amber test should support jest.replaceProperty and restoreAllMocks. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4367,11 +4367,11 @@ test("reports missing property replacement", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4380,7 +4380,7 @@ test("reports missing property replacement", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should report replaceProperty missing property through toThrow. output: {combined}"
+        "amber test should report replaceProperty missing property through toThrow. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4417,11 +4417,11 @@ test("supports async jest.fn helpers", async () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4430,7 +4430,7 @@ test("supports async jest.fn helpers", async () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support async jest.fn mock helpers. output: {combined}"
+        "amber test should support async jest.fn mock helpers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4466,11 +4466,11 @@ test("required helper can create jest mocks", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4479,7 +4479,7 @@ test("required helper can create jest mocks", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should expose jest.fn to required helper modules. output: {combined}"
+        "amber test should expose jest.fn to required helper modules. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4517,11 +4517,11 @@ test("resetModules clears required helper cache", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4530,7 +4530,7 @@ test("resetModules clears required helper cache", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.resetModules for required helpers. output: {combined}"
+        "amber test should support jest.resetModules for required helpers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4611,11 +4611,11 @@ test("isolateModules also sandboxes the ESM namespace bridge cache", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4624,7 +4624,7 @@ test("isolateModules also sandboxes the ESM namespace bridge cache", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.isolateModules for required helpers. output: {combined}"
+        "amber test should support jest.isolateModules for required helpers. output: {combined}"
     );
     assert!(
         combined.contains("3 passed, 0 failed, 0 skipped"),
@@ -4687,11 +4687,11 @@ test("isolateModulesAsync restores the outer cache after callback rejection", as
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4700,7 +4700,7 @@ test("isolateModulesAsync restores the outer cache after callback rejection", as
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.isolateModulesAsync for required helpers. output: {combined}"
+        "amber test should support jest.isolateModulesAsync for required helpers. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -4763,11 +4763,11 @@ test("doMock is visible to helper modules with relative require", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4776,7 +4776,7 @@ test("doMock is visible to helper modules with relative require", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.doMock and jest.requireActual for required helpers. output: {combined}"
+        "amber test should support jest.doMock and jest.requireActual for required helpers. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -4837,11 +4837,11 @@ test("unmock and dontMock remove explicit module mocks", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4850,7 +4850,7 @@ test("unmock and dontMock remove explicit module mocks", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.requireMock and jest.unmock for required helpers. output: {combined}"
+        "amber test should support jest.requireMock and jest.unmock for required helpers. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -4891,11 +4891,11 @@ test("mock registers an explicit factory before require", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4904,7 +4904,7 @@ test("mock registers an explicit factory before require", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.mock explicit factories for required helpers. output: {combined}"
+        "amber test should support jest.mock explicit factories for required helpers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4942,11 +4942,11 @@ test("setMock registers explicit module exports", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4955,7 +4955,7 @@ test("setMock registers explicit module exports", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should support jest.setMock for required helpers. output: {combined}"
+        "amber test should support jest.setMock for required helpers. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -4972,18 +4972,18 @@ fn test_command_reports_mock_matcher_failure() {
         r#"
 test("reports mock matcher failure", () => {
   const mock = jest.fn();
-  mock("bee");
-  expect(mock).not.toHaveBeenCalledWith("bee");
+  mock("amber");
+  expect(mock).not.toHaveBeenCalledWith("amber");
 });
 "#,
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -4992,10 +4992,10 @@ test("reports mock matcher failure", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail a mock matcher assertion. output: {combined}"
+        "amber test should fail a mock matcher assertion. output: {combined}"
     );
     assert!(
-        combined.contains("Expected mock not to have been called with [\"bee\"]"),
+        combined.contains("Expected mock not to have been called with [\"amber\"]"),
         "mock matcher failure should explain the mismatch. output: {combined}"
     );
     assert!(
@@ -5034,11 +5034,11 @@ test("second", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5047,7 +5047,7 @@ test("second", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should run beforeEach/afterEach around each file test. output: {combined}"
+        "amber test should run beforeEach/afterEach around each file test. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -5105,11 +5105,11 @@ test("waits for hook done callbacks", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--timeout", "1"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5118,7 +5118,7 @@ test("waits for hook done callbacks", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should wait for lifecycle hook done callbacks. output: {combined}"
+        "amber test should wait for lifecycle hook done callbacks. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -5144,11 +5144,11 @@ test("does not run after failing hook", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--timeout", "1"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5157,7 +5157,7 @@ test("does not run after failing hook", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when a lifecycle hook done callback receives an error. output: {combined}"
+        "amber test should fail when a lifecycle hook done callback receives an error. output: {combined}"
     );
     assert!(
         combined.contains("hook done failed"),
@@ -5193,11 +5193,11 @@ test("does not mix hook done and promise", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--timeout", "1"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5206,7 +5206,7 @@ test("does not mix hook done and promise", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when a hook mixes done callback and Promise. output: {combined}"
+        "amber test should fail when a hook mixes done callback and Promise. output: {combined}"
     );
     assert!(
         combined.contains("cannot both use done callback and return a Promise"),
@@ -5247,11 +5247,11 @@ test("observes previous hook order", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5260,7 +5260,7 @@ test("observes previous hook order", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should run outer/inner hooks in Jest order. output: {combined}"
+        "amber test should run outer/inner hooks in Jest order. output: {combined}"
     );
 }
 
@@ -5292,11 +5292,11 @@ test("outside test still runs", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5343,11 +5343,11 @@ test("outside test", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5392,11 +5392,11 @@ test("outside normal test", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5447,11 +5447,11 @@ test("sees cleanup from failed test", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5460,7 +5460,7 @@ test("sees cleanup from failed test", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should still fail because the first test fails. output: {combined}"
+        "amber test should still fail because the first test fails. output: {combined}"
     );
     assert!(
         combined.contains("intentional failure"),
@@ -5503,11 +5503,11 @@ test("second", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5516,7 +5516,7 @@ test("second", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should run beforeAll/afterAll once around file tests. output: {combined}"
+        "amber test should run beforeAll/afterAll once around file tests. output: {combined}"
     );
     assert!(
         combined.contains("2 passed, 0 failed, 0 skipped"),
@@ -5557,11 +5557,11 @@ test("outer continues", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5570,7 +5570,7 @@ test("outer continues", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail because beforeAll failed. output: {combined}"
+        "amber test should fail because beforeAll failed. output: {combined}"
     );
     assert!(
         combined.contains("suite beforeAll: setup failed"),
@@ -5628,11 +5628,11 @@ test("outer test after suite", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5641,7 +5641,7 @@ test("outer test after suite", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should run describe-scoped beforeAll/afterAll in suite order. output: {combined}"
+        "amber test should run describe-scoped beforeAll/afterAll in suite order. output: {combined}"
     );
 }
 
@@ -5675,11 +5675,11 @@ afterAll(() => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -5688,7 +5688,7 @@ afterAll(() => {
     );
     assert!(
         !output.status.success(),
-        "bee test should still fail because the first test fails. output: {combined}"
+        "amber test should still fail because the first test fails. output: {combined}"
     );
     assert!(
         combined.contains("intentional failure"),
@@ -5712,16 +5712,16 @@ console.log(JSON.stringify(process.argv.slice(2)));
     )
     .expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("run")
         .arg(&script)
         .args(["alpha", "beta"])
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     assert!(
         output.status.success(),
-        "bee run should exit successfully. stderr: {}",
+        "amber run should exit successfully. stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(
@@ -5742,16 +5742,16 @@ console.log(JSON.stringify(process.argv.slice(2)));
     )
     .expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("run")
         .arg(&script)
         .args(["--", "alpha", "--flag", "value"])
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     assert!(
         output.status.success(),
-        "bee run should accept -- before script args. stdout: {} stderr: {}",
+        "amber run should accept -- before script args. stdout: {} stderr: {}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
@@ -5787,13 +5787,13 @@ fn run_preload_file_resolves_relative_require_from_preload_dir() {
     )
     .expect("failed to write main script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("run")
         .arg("--preload")
         .arg(&preload)
         .arg(&main)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let combined = format!(
         "{}{}",
@@ -5802,7 +5802,7 @@ fn run_preload_file_resolves_relative_require_from_preload_dir() {
     );
     assert!(
         output.status.success(),
-        "bee run with preload should exit successfully. output: {combined}"
+        "amber run with preload should exit successfully. output: {combined}"
     );
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
@@ -5825,14 +5825,14 @@ fn run_deny_fs_fails_closed_when_preload_read_is_denied() {
     let main = app_dir.join("main.js");
     std::fs::write(&main, "console.log('MAIN_RAN');").expect("failed to write main script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["run", "--deny-fs", "--allow-read"])
         .arg(&main)
         .arg("--preload")
         .arg(&preload)
         .arg(&main)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let combined = format!(
         "{}{}",
@@ -5841,7 +5841,7 @@ fn run_deny_fs_fails_closed_when_preload_read_is_denied() {
     );
     assert!(
         !output.status.success(),
-        "denied preload read should fail bee run. output: {combined}"
+        "denied preload read should fail amber run. output: {combined}"
     );
     assert!(
         combined.contains("permission denied"),
@@ -5892,13 +5892,13 @@ console.log(JSON.stringify({
     )
     .expect("failed to write main script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("run")
         .arg("--preload")
         .arg(&preload)
         .arg(&main)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let combined = format!(
         "{}{}",
@@ -5907,7 +5907,7 @@ console.log(JSON.stringify({
     );
     assert!(
         output.status.success(),
-        "bee run with preload should expose require.main. output: {combined}"
+        "amber run with preload should expose require.main. output: {combined}"
     );
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
@@ -5932,15 +5932,15 @@ test("has test file in process argv", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     assert!(
         output.status.success(),
-        "bee test should set process.argv for test files. stdout: {} stderr: {}",
+        "amber test should set process.argv for test files. stdout: {} stderr: {}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
@@ -5964,11 +5964,11 @@ test("unmatched case", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--test-name-pattern", "selected"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6011,11 +6011,11 @@ test("selected suffix", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--test-name-pattern", "^selected \\d+$"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6058,11 +6058,11 @@ test("critical gamma", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--test-only", "critical (alpha|beta)$"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6105,11 +6105,11 @@ test("slow case", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--test-skip", "slow"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6152,11 +6152,11 @@ test("slow 42", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--test-skip", "^slow \\d+$"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6199,11 +6199,11 @@ test("second should not run", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--bail"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6238,11 +6238,11 @@ test("slow promise", () => new Promise((resolve) => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--timeout", "0"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6273,11 +6273,11 @@ test("pending promise must not be treated as passed", () => new Promise((resolve
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6286,7 +6286,7 @@ test("pending promise must not be treated as passed", () => new Promise((resolve
     );
     assert!(
         !output.status.success(),
-        "bee test must fail unresolved timer promises instead of printing success. output: {combined}"
+        "amber test must fail unresolved timer promises instead of printing success. output: {combined}"
     );
     assert!(
         combined.contains("timed out"),
@@ -6308,11 +6308,11 @@ test("settles before one second", () => new Promise((resolve) => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--timeout", "1"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6345,11 +6345,11 @@ test("settles within Jest timeout", () => new Promise((resolve) => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6358,7 +6358,7 @@ test("settles within Jest timeout", () => new Promise((resolve) => {
     );
     assert!(
         output.status.success(),
-        "bee test should honor jest.setTimeout for file tests. output: {combined}"
+        "amber test should honor jest.setTimeout for file tests. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 0 skipped"),
@@ -6382,11 +6382,11 @@ test("exceeds Jest timeout", () => new Promise((resolve) => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6395,7 +6395,7 @@ test("exceeds Jest timeout", () => new Promise((resolve) => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when jest.setTimeout expires. output: {combined}"
+        "amber test should fail when jest.setTimeout expires. output: {combined}"
     );
     assert!(
         combined.contains("timed out after"),
@@ -6429,11 +6429,11 @@ it.concurrent.each([
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6442,7 +6442,7 @@ it.concurrent.each([
     );
     assert!(
         output.status.success(),
-        "bee test should accept Jest concurrent test APIs in serial file-mode. output: {combined}"
+        "amber test should accept Jest concurrent test APIs in serial file-mode. output: {combined}"
     );
     assert!(
         combined.contains("3 passed, 0 failed, 0 skipped"),
@@ -6472,11 +6472,11 @@ test("ordinary test hidden by only", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("test")
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6485,7 +6485,7 @@ test("ordinary test hidden by only", () => {
     );
     assert!(
         output.status.success(),
-        "bee test should apply only/skip semantics to concurrent tests. output: {combined}"
+        "amber test should apply only/skip semantics to concurrent tests. output: {combined}"
     );
     assert!(
         combined.contains("1 passed, 0 failed, 2 skipped"),
@@ -6506,11 +6506,11 @@ test("real project test fails", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .arg("test")
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -6519,7 +6519,7 @@ test("real project test fails", () => {
     );
     assert!(
         !output.status.success(),
-        "bee test should fail discovered project tests. output: {combined}"
+        "amber test should fail discovered project tests. output: {combined}"
     );
     assert!(
         combined.contains("Expected 1 to be 2"),
@@ -6545,11 +6545,11 @@ try {{
         js_string(&secret)
     );
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "--deny-fs"])
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6581,14 +6581,14 @@ fn eval_deny_fs_allows_explicit_read_exception() {
         js_string(&secret)
     );
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--deny-fs")
         .arg("--allow-read")
         .arg(&secret)
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6622,11 +6622,11 @@ try {{
         js_string(&output_file)
     );
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "--deny-fs"])
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6657,14 +6657,14 @@ fn eval_deny_fs_allows_explicit_write_exception() {
         js_string(&output_file)
     );
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--deny-fs")
         .arg("--allow-write")
         .arg(&output_file)
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6693,11 +6693,11 @@ try {
 "done";
 "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", "--deny-net"])
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6737,14 +6737,14 @@ try {
 results.join("|");
 "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--deny-net")
         .arg("--allow-net")
         .arg("allowed.example")
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6775,14 +6775,14 @@ try {
 "done";
 "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--deny-net")
         .arg("--allow-net")
         .arg("127.0.0.1")
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6823,14 +6823,14 @@ try {
 "done";
 "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--deny-net")
         .arg("--allow-listen")
         .arg("127.0.0.1")
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6870,14 +6870,14 @@ try {
 results.join("|");
 "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--deny-net")
         .arg("--allow-net")
         .arg("wss://allowed.example/socket")
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6899,7 +6899,7 @@ fn eval_permission_policy_denies_fs_and_allows_relative_read_path() {
     let dir = tempdir().expect("failed to create tempdir");
     let allowed_file = dir.path().join("allowed.txt");
     let blocked_file = dir.path().join("blocked.txt");
-    let policy_file = dir.path().join("bee.policy.json");
+    let policy_file = dir.path().join("amber.policy.json");
     std::fs::write(&allowed_file, "allowed").expect("failed to write allowed file");
     std::fs::write(&blocked_file, "blocked").expect("failed to write blocked file");
     std::fs::write(
@@ -6934,13 +6934,13 @@ results.join("|");
         js_string(&blocked_file)
     );
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--policy")
         .arg(&policy_file)
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -6960,33 +6960,33 @@ results.join("|");
 #[test]
 fn eval_permission_policy_denies_environment_except_allow_list() {
     let dir = tempdir().expect("failed to create tempdir");
-    let policy_file = dir.path().join("bee.policy.json");
+    let policy_file = dir.path().join("amber.policy.json");
     std::fs::write(
         &policy_file,
         r#"{
   "permissions": {
     "deny_env": true,
-    "allow_env": ["BEEJS_POLICY_PUBLIC"]
+    "allow_env": ["AMBER_POLICY_PUBLIC"]
   }
 }"#,
     )
     .expect("failed to write permission policy");
 
     let code = r#"
-const secret = process.env.BEEJS_POLICY_SECRET === undefined ? "secret-denied" : "secret-visible";
-const publicValue = process.env.BEEJS_POLICY_PUBLIC === "visible" ? "public-visible" : String(process.env.BEEJS_POLICY_PUBLIC);
+const secret = process.env.AMBER_POLICY_SECRET === undefined ? "secret-denied" : "secret-visible";
+const publicValue = process.env.AMBER_POLICY_PUBLIC === "visible" ? "public-visible" : String(process.env.AMBER_POLICY_PUBLIC);
 secret + "|" + publicValue;
 "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--policy")
         .arg(&policy_file)
         .arg(code)
-        .env("BEEJS_POLICY_SECRET", "hidden")
-        .env("BEEJS_POLICY_PUBLIC", "visible")
+        .env("AMBER_POLICY_SECRET", "hidden")
+        .env("AMBER_POLICY_PUBLIC", "visible")
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -7006,21 +7006,21 @@ secret + "|" + publicValue;
 #[test]
 fn eval_deny_env_allows_explicit_environment_exception() {
     let code = r#"
-const secret = process.env.BEEJS_CLI_SECRET === undefined ? "secret-denied" : "secret-visible";
-const publicValue = process.env.BEEJS_CLI_PUBLIC === "visible" ? "public-visible" : String(process.env.BEEJS_CLI_PUBLIC);
+const secret = process.env.AMBER_CLI_SECRET === undefined ? "secret-denied" : "secret-visible";
+const publicValue = process.env.AMBER_CLI_PUBLIC === "visible" ? "public-visible" : String(process.env.AMBER_CLI_PUBLIC);
 secret + "|" + publicValue;
 "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--deny-env")
         .arg("--allow-env")
-        .arg("BEEJS_CLI_PUBLIC")
+        .arg("AMBER_CLI_PUBLIC")
         .arg(code)
-        .env("BEEJS_CLI_SECRET", "hidden")
-        .env("BEEJS_CLI_PUBLIC", "visible")
+        .env("AMBER_CLI_SECRET", "hidden")
+        .env("AMBER_CLI_PUBLIC", "visible")
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -7057,14 +7057,14 @@ try {
 results.join("|");
 "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .arg("eval")
         .arg("--deny-run")
         .arg("--allow-run")
         .arg("allowed-command")
         .arg(code)
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     let combined = format!(
         "{}{}",
@@ -7102,12 +7102,12 @@ try {{
     )
     .expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["run", "--deny-fs", "--allow-read"])
         .arg(&script)
         .arg(&script)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let combined = format!(
         "{}{}",
@@ -7134,11 +7134,11 @@ fn run_deny_fs_blocks_target_file_read() {
     let script = dir.path().join("target-secret.js");
     std::fs::write(&script, "console.log('TARGET_FILE_RAN');").expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["run", "--deny-fs"])
         .arg(&script)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let combined = format!(
         "{}{}",
@@ -7167,11 +7167,11 @@ fn run_watch_deny_fs_fails_before_starting_watcher() {
     let script = dir.path().join("watch-target.js");
     std::fs::write(&script, "console.log('WATCH_TARGET_RAN');").expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["run", "--deny-fs", "--watch"])
         .arg(&script)
         .output()
-        .expect("failed to execute bee run --watch");
+        .expect("failed to execute amber run --watch");
 
     let combined = format!(
         "{}{}",
@@ -7214,11 +7214,11 @@ fn run_deny_fs_blocks_relative_require_module_file() {
     std::fs::write(&lib, "module.exports = { value: 7 };").expect("failed to write module");
     std::fs::write(&script, "require('./lib').value;").expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["run", "--deny-fs"])
         .arg(&script)
         .output()
-        .expect("failed to execute bee run");
+        .expect("failed to execute amber run");
 
     let combined = format!(
         "{}{}",
@@ -7227,7 +7227,7 @@ fn run_deny_fs_blocks_relative_require_module_file() {
     );
     assert!(
         !output.status.success(),
-        "uncaught denied module load should fail bee run. output: {combined}"
+        "uncaught denied module load should fail amber run. output: {combined}"
     );
     assert!(
         combined.contains("permission denied"),
@@ -7241,11 +7241,11 @@ fn debug_deny_fs_blocks_debug_target_file_read() {
     let script = dir.path().join("debug-secret.js");
     std::fs::write(&script, "console.log('debug-secret-value');").expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["debug", "--deny-fs"])
         .arg(&script)
         .output()
-        .expect("failed to execute bee debug");
+        .expect("failed to execute amber debug");
 
     let combined = format!(
         "{}{}",
@@ -7254,7 +7254,7 @@ fn debug_deny_fs_blocks_debug_target_file_read() {
     );
     assert!(
         !output.status.success(),
-        "bee debug should fail when target file read is denied. output: {combined}"
+        "amber debug should fail when target file read is denied. output: {combined}"
     );
     assert!(
         combined.contains("permission denied"),
@@ -7280,11 +7280,11 @@ test("target file should not run", () => {
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--deny-fs"])
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -7311,11 +7311,11 @@ test("target file should not run", () => {
 fn test_command_deny_fs_blocks_discovery_root_read() {
     let dir = tempdir().expect("failed to create tempdir");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args(["test", "--deny-fs"])
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -7357,12 +7357,12 @@ test("fs read is denied", () => {{
     )
     .expect("failed to write test file");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["test", "--deny-fs", "--allow-read"])
         .arg(&test_file)
         .arg(&test_file)
         .output()
-        .expect("failed to execute bee test");
+        .expect("failed to execute amber test");
 
     let combined = format!(
         "{}{}",
@@ -7371,11 +7371,11 @@ test("fs read is denied", () => {{
     );
     assert!(
         !output.status.success(),
-        "bee test should fail when a test body hits denied fs. output: {combined}"
+        "amber test should fail when a test body hits denied fs. output: {combined}"
     );
     assert!(
         combined.contains("permission denied"),
-        "--deny-fs should deny fs reads inside bee test callbacks. output: {combined}"
+        "--deny-fs should deny fs reads inside amber test callbacks. output: {combined}"
     );
 }
 
@@ -7391,14 +7391,14 @@ fn run_hello_server_answers_http_without_manual_pump() {
         listener.local_addr().expect("local addr").port()
     };
 
-    let mut child = Command::new(bee_path())
+    let mut child = Command::new(amber_path())
         .args(["run", "examples/http/hello_server.js"])
         .env("PORT", port.to_string())
         .env("HOST", "127.0.0.1")
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .expect("failed to spawn bee run hello_server");
+        .expect("failed to spawn amber run hello_server");
 
     let started = Instant::now();
     let mut response = None;
@@ -7431,7 +7431,7 @@ fn run_hello_server_answers_http_without_manual_pump() {
     let _ = child.wait();
 
     let body =
-        response.expect("bee run hello_server.js should answer HTTP without a test-side pump");
+        response.expect("amber run hello_server.js should answer HTTP without a test-side pump");
     assert!(
         body.contains("200") && body.contains("hello"),
         "hello_server should return 200 hello. response: {body}"
@@ -7468,7 +7468,7 @@ console.log(results.join("|"));
     )
     .expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args([
             "run",
@@ -7478,7 +7478,7 @@ console.log(results.join("|"));
             script.to_str().unwrap(),
         ])
         .output()
-        .expect("failed to execute bee run --sandbox");
+        .expect("failed to execute amber run --sandbox");
 
     let combined = format!(
         "{}{}",
@@ -7511,7 +7511,7 @@ catch (error) { console.log("denied"); }
     )
     .expect("failed to write script");
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .current_dir(dir.path())
         .args([
             "run",
@@ -7521,7 +7521,7 @@ catch (error) { console.log("denied"); }
             script.to_str().unwrap(),
         ])
         .output()
-        .expect("failed to execute bee run --audit-log");
+        .expect("failed to execute amber run --audit-log");
 
     let combined = format!(
         "{}{}",
@@ -7545,7 +7545,7 @@ catch (error) { console.log("denied"); }
 
 #[test]
 fn run_export_tools_prints_echo_schema() {
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args([
             "run",
             "--sandbox",
@@ -7553,7 +7553,7 @@ fn run_export_tools_prints_echo_schema() {
             "examples/agent/echo_tool.ts",
         ])
         .output()
-        .expect("failed to execute bee run --export-tools");
+        .expect("failed to execute amber run --export-tools");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -7569,13 +7569,13 @@ fn run_export_tools_prints_echo_schema() {
 
 #[test]
 fn session_jsonrpc_calls_echo_tool() {
-    let mut child = Command::new(bee_path())
+    let mut child = Command::new(amber_path())
         .args(["session", "--sandbox", "examples/agent/echo_tool.ts"])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .expect("failed to spawn bee session");
+        .expect("failed to spawn amber session");
 
     {
         let stdin = child.stdin.as_mut().expect("stdin");
@@ -7594,7 +7594,7 @@ fn session_jsonrpc_calls_echo_tool() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         output.status.success(),
-        "bee session should exit successfully. stderr: {stderr} stdout: {stdout}"
+        "amber session should exit successfully. stderr: {stderr} stdout: {stdout}"
     );
     assert!(
         stdout.contains("echo"),
@@ -7608,7 +7608,7 @@ fn session_jsonrpc_calls_echo_tool() {
 
 #[test]
 fn session_isolate_per_call_echoes_twice() {
-    let mut child = Command::new(bee_path())
+    let mut child = Command::new(amber_path())
         .args([
             "session",
             "--sandbox",
@@ -7619,7 +7619,7 @@ fn session_isolate_per_call_echoes_twice() {
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .expect("failed to spawn bee session --isolate-per-call");
+        .expect("failed to spawn amber session --isolate-per-call");
 
     {
         let stdin = child.stdin.as_mut().expect("stdin");
@@ -7661,13 +7661,13 @@ fn mcp_initialize_lists_echo_tool() {
     .to_string();
     let framed = format!("Content-Length: {}\r\n\r\n{}", request.len(), request);
 
-    let mut child = Command::new(bee_path())
+    let mut child = Command::new(amber_path())
         .args(["mcp", "--sandbox", "examples/agent/echo_tool.ts"])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
-        .expect("failed to spawn bee mcp");
+        .expect("failed to spawn amber mcp");
 
     {
         let stdin = child.stdin.as_mut().expect("stdin");
@@ -7681,10 +7681,10 @@ fn mcp_initialize_lists_echo_tool() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         output.status.success(),
-        "bee mcp initialize should succeed. stderr: {stderr} stdout: {stdout}"
+        "amber mcp initialize should succeed. stderr: {stderr} stdout: {stdout}"
     );
     assert!(
-        stdout.contains("beejs") && stdout.contains("protocolVersion"),
+        stdout.contains("amberjs") && stdout.contains("protocolVersion"),
         "MCP initialize should return server info. stdout: {stdout}"
     );
 }

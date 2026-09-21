@@ -282,7 +282,7 @@ impl HydrationManager {
             body.push_str(&hydration_script);
         }
         // 添加水合库
-        body.push_str("<script src=\"/beejs-hydration.js\"></script>");
+        body.push_str("<script src=\"/amberjs-hydration.js\"></script>");
         body.push_str("</body></html>");
         Ok(SsrResponse {
             status: 200,

@@ -11,7 +11,7 @@ In modern cloud-native and serverless edge computing, resource footprint and sta
 
 Traditional isolation units like operating system processes or Docker containers carry substantial overhead. **V8 Isolates** provide an ultra-lightweight alternative:
 
-| Isolation Metric | Docker Container | OS Process (fork) | V8 Isolate (Beejs) |
+| Isolation Metric | Docker Container | OS Process (fork) | V8 Isolate (Amber) |
 | :--- | :---: | :---: | :---: |
 | **Baseline Memory** | ~50 MB – 200 MB | ~20 MB – 50 MB | **~2 MB – 5 MB** |
 | **Cold Start Latency** | 500 ms – 2000 ms | 50 ms – 150 ms | **< 18 ms** |
@@ -27,8 +27,8 @@ An **Isolate** represents an independent instance of the V8 JavaScript engine. E
 ### The Cold-Start Bottleneck
 Traditional JavaScript runtimes spend 35ms to 60ms during boot executing internal bootstrap scripts, constructing prototypes, and populating dozens of standard global constructors (`Object`, `Array`, `Promise`, `Map`, etc.).
 
-### Zero-Copy Memory Mapping in Beejs
-Beejs serializes the fully initialized global context into a compact binary snapshot at build time.
+### Zero-Copy Memory Mapping in Amber
+Amber serializes the fully initialized global context into a compact binary snapshot at build time.
 
 When launching a script or creating a new worker:
 - **`memmap2::Mmap::map`**: The runtime maps the binary snapshot directly into virtual memory via kernel page tables, completely bypassing disk reads and intermediate heap allocations.
@@ -39,7 +39,7 @@ When launching a script or creating a new worker:
 
 ## 3. Rust-to-V8 Zero-Cost Bindings
 
-Beejs utilizes `rusty_v8` to interface directly with Google V8 C++ internals, wrapped with safe Rust abstractions:
+Amber utilizes `rusty_v8` to interface directly with Google V8 C++ internals, wrapped with safe Rust abstractions:
 
 ```text
 +-----------------------------------------------------------+
@@ -50,7 +50,7 @@ Beejs utilizes `rusty_v8` to interface directly with Google V8 C++ internals, wr
                [Fast API Calls / Externals]
                               |
 +-----------------------------------------------------------+
-|                 Rust Host Layer (Beejs Core)              |
+|                 Rust Host Layer (Amber Core)              |
 |  - Automatic HandleScope lifecycle management             |
 |  - Safe raw-pointer dereferencing & type conversions      |
 |  - Elegant error handling via anyhow::Result              |
@@ -67,7 +67,7 @@ Beejs utilizes `rusty_v8` to interface directly with Google V8 C++ internals, wr
 
 When handling tens of thousands of concurrent timers (`setTimeout` / `setInterval`), traditional double-linked timer lists experience performance degradation due to $O(N)$ insertion and cancellation costs.
 
-Beejs replaces naive timer structures with a **Hierarchical Timing Wheel**:
+Amber replaces naive timer structures with a **Hierarchical Timing Wheel**:
 - **$O(1)$ Operations**: Insertion, cancellation, and expiration checks run in constant time.
-- **Batch Expiration**: In benchmarks with 1,000 concurrent high-frequency timers, Beejs triggers callbacks in just **2.51ms** (a **14.2x speedup** over older versions).
+- **Batch Expiration**: In benchmarks with 1,000 concurrent high-frequency timers, Amber triggers callbacks in just **2.51ms** (a **14.2x speedup** over older versions).
 - **Strict Microtask Ordering**: Conforms strictly to ECMAScript and HTML standards by draining Promise microtasks immediately after each macrotask turn.

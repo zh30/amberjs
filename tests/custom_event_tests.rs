@@ -1,11 +1,11 @@
 // CustomEvent API 测试套件 - v0.3.337
 //
-// 目标：验证 Beejs 对 CustomEvent 接口的完整支持
+// 目标：验证 Amber 对 CustomEvent 接口的完整支持
 // CustomEvent 用于创建自定义事件，适用于 AI 代理系统和 UI 框架
 
 #[cfg(test)]
 mod tests {
-    use beejs::MinimalRuntime;
+    use amberjs::MinimalRuntime;
     use serial_test::serial;
 
     /// 测试 CustomEvent 构造函数可用性

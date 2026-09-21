@@ -1,11 +1,11 @@
 //! 端到端测试运行器
 //!
-//! 这个工具用于自动化运行 Beejs 的端到端测试流程、
+//! 这个工具用于自动化运行 Amber 的端到端测试流程、
 //! AI 管道、企业部署和性能监控等套件，包括调试完整用户场景。支持场景管理、
 //! 环境设置、测试编排和报告聚合。
 
-use beejs::runtime_lite::Runtime;
-use beejs::performance_analyzer::PerformanceAnalyzer;
+use amberjs::runtime_lite::Runtime;
+use amberjs::performance_analyzer::PerformanceAnalyzer;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -880,7 +880,7 @@ impl ScenarioManager {
             // 模拟 K8s 部署
             function k8sDeployment() {{
                 let deployment = {{
-                    name: 'beejs-cluster',
+                    name: 'amberjs-cluster',
                     replicas: {},
                     status: 'deploying',
                     pods: []
@@ -1775,7 +1775,7 @@ impl ReportAggregator {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Beejs E2E Test Report</title>
+    <title>Amber E2E Test Report</title>
     <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; }}
         .header {{ background: #f0f0f0; padding: 20px; border-radius: 5px; }}
@@ -1791,7 +1791,7 @@ impl ReportAggregator {
 </head>
 <body>
     <div class="header">
-        <h1>Beejs E2E Test Report</h1>
+        <h1>Amber E2E Test Report</h1>
         <p>Generated at: {}</p>
     </div>
 

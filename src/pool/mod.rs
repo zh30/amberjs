@@ -1,4 +1,4 @@
-// Beejs Multi-Tenant Isolate Pool (bee:pool)
+// Amber Multi-Tenant Isolate Pool (amber:pool)
 // High-density isolated V8 execution pool for Multi-Agent and Serverless tasks
 
 use anyhow::{anyhow, Result};
@@ -202,7 +202,7 @@ fn get_pool_registry() -> PoolRegistry {
 
 static NEXT_POOL_ID: AtomicUsize = AtomicUsize::new(1);
 
-/// Initialize the `bee:pool` subsystem in V8 context
+/// Initialize the `amber:pool` subsystem in V8 context
 pub fn setup_pool_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
     context: &v8::Local<v8::Context>,
@@ -380,13 +380,13 @@ pub fn setup_pool_api(
     native_obj.set(scope, k_stats.into(), stats_pool_fn.into());
     native_obj.set(scope, k_destroy.into(), destroy_pool_fn.into());
 
-    let k_native = v8::String::new(scope, "__bee_pool_native").unwrap();
+    let k_native = v8::String::new(scope, "__amber_pool_native").unwrap();
     global.set(scope, k_native.into(), native_obj.into());
 
     // Inject high-level user-friendly JavaScript wrapper
     let js_code = r#"
     (function() {
-        const native = globalThis.__bee_pool_native;
+        const native = globalThis.__amber_pool_native;
 
         class IsolatePool {
             constructor(options = {}) {
@@ -437,7 +437,7 @@ pub fn setup_pool_api(
             version: '1.4.0'
         };
 
-        globalThis.__bee_pool = pool;
+        globalThis.__amber_pool = pool;
         globalThis.pool = pool;
     })();
     "#;

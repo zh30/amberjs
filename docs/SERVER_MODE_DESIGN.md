@@ -1,10 +1,10 @@
-# Beejs Server 模式设计方案
+# Amber Server 模式设计方案
 
-> 发布校验说明（2026-05-26）：本文件是历史设计稿。当前 public CLI 为 `bee serve [--host HOST] [--port PORT]`，不是 `beejs server`。
+> 发布校验说明（2026-05-26）：本文件是历史设计稿。当前 public CLI 为 `amber serve [--host HOST] [--port PORT]`，不是 `amberjs server`。
 
 ## 概述
 
-Beejs Server 模式将运行时从单次执行模式扩展为长期运行的服务器，支持多个客户端并发执行 JavaScript 代码，彻底避免重复初始化开销。
+Amber Server 模式将运行时从单次执行模式扩展为长期运行的服务器，支持多个客户端并发执行 JavaScript 代码，彻底避免重复初始化开销。
 
 ## 核心优势
 
@@ -29,7 +29,7 @@ Beejs Server 模式将运行时从单次执行模式扩展为长期运行的服�
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Beejs Server                             │
+│                    Amber Server                             │
 ├─────────────────────────────────────────────────────────────┤
 │  HTTP Server  │  WebSocket Server  │  CLI Interface         │
 │  (/eval)      │  (实时执行)          │  (交互模式)            │
@@ -170,15 +170,15 @@ ws.send(JSON.stringify({
 ### 1. 独立服务器
 ```bash
 # 启动服务器
-bee serve --port 3000 --host 0.0.0.0
+amber serve --port 3000 --host 0.0.0.0
 
 # 后台运行
-bee serve --host 0.0.0.0 --port 3000
+amber serve --host 0.0.0.0 --port 3000
 ```
 
 ### 2. 集成模式
 ```rust
-use beejs::Server;
+use amberjs::Server;
 
 let server = Server::new()
     .port(3000)
@@ -190,9 +190,9 @@ server.run()?;
 
 ### 3. Docker 部署
 ```dockerfile
-FROM beejs:latest
+FROM amberjs:latest
 EXPOSE 3000
-CMD ["beejs", "server", "--host", "0.0.0.0"]
+CMD ["amberjs", "server", "--host", "0.0.0.0"]
 ```
 
 ## 安全考虑
@@ -257,5 +257,5 @@ CMD ["beejs", "server", "--host", "0.0.0.0"]
 ---
 
 **创建时间**: 2025-12-18
-**负责人**: Beejs Server 团队
+**负责人**: Amber Server 团队
 **状态**: 设计完成，准备实施

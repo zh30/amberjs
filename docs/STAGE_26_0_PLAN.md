@@ -3,7 +3,7 @@
 ## 📋 执行概述
 
 **执行时间**: 2025-12-18 开始
-**当前状态**: Stage 25.2 完成，Beejs 已比 Bun 快 6.5x
+**当前状态**: Stage 25.2 完成，Amber 已比 Bun 快 6.5x
 **Stage 26.0 目标**: 进一步优化性能至企业级标准，强化 AI 工作负载专项优化
 
 ---
@@ -94,17 +94,17 @@
 
 **具体实现**:
 1. **包管理器增强** (src/package_manager.rs)
-   - 实现 `beejs install` 命令的完整功能
+   - 实现 `amberjs install` 命令的完整功能
    - 支持 npm、yarn、pnpm 锁文件解析
    - 实现依赖树分析和冲突检测
 
 2. **测试运行器优化** (src/test_runner.rs)
-   - 实现 `beejs test` 的完整测试框架
+   - 实现 `amberjs test` 的完整测试框架
    - 支持 Jest 风格的测试用例
    - 添加覆盖率报告和测试过滤
 
 3. **开发服务器** (src/dev_server.rs)
-   - 实现 `beejs dev` 的开发服务器
+   - 实现 `amberjs dev` 的开发服务器
    - 支持热重载和文件监听
    - 添加代理和中间件支持
 

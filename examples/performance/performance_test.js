@@ -1,7 +1,7 @@
-// Performance test for Beejs runtime
+// Performance test for Amber runtime
 // This script tests various JavaScript operations
 
-console.log("Starting Beejs Performance Test...");
+console.log("Starting Amber Performance Test...");
 
 // Test 1: Simple arithmetic
 console.time("Arithmetic Test");

@@ -1,6 +1,6 @@
 // Stage 84: 企业级安全与合规测试套件
 //
-// 这些测试验证 Beejs 的零信任架构、数据加密、合规自动化和审计追踪功能。
+// 这些测试验证 Amber 的零信任架构、数据加密、合规自动化和审计追踪功能。
 
 #[cfg(all(test, feature = "enterprise"))]
 mod stage84_security_tests {
@@ -12,7 +12,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_mfa_authentication() {
-        use beejs::security::authentication::{AuthenticationService, Credentials};
+        use amberjs::security::authentication::{AuthenticationService, Credentials};
 
         let auth_service = AuthenticationService::new();
 
@@ -46,7 +46,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_jwt_token_generation() {
-        use beejs::security::authentication::{AuthenticationService, Credentials, User};
+        use amberjs::security::authentication::{AuthenticationService, Credentials, User};
 
         let auth_service = AuthenticationService::new();
         let token_manager = auth_service.token_manager.clone();
@@ -72,7 +72,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_token_expiration() {
-        use beejs::security::authentication::{AuthenticationService, Credentials};
+        use amberjs::security::authentication::{AuthenticationService, Credentials};
 
         let auth_service = AuthenticationService::new();
         let token_manager = auth_service.token_manager.clone();
@@ -104,7 +104,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_role_assignment() {
-        use beejs::security::authorization::{AuthorizationService, Role, UserId};
+        use amberjs::security::authorization::{AuthorizationService, Role, UserId};
 
         let auth_service = AuthorizationService::new();
 
@@ -122,7 +122,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_permission_check() {
-        use beejs::security::authorization::{Action, AuthorizationService, Role, UserId};
+        use amberjs::security::authorization::{Action, AuthorizationService, Role, UserId};
 
         let auth_service = AuthorizationService::new();
 
@@ -145,12 +145,12 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_data_encryption() {
-        use beejs::security::encryption::{CryptoKey, EncryptionEngine};
+        use amberjs::security::encryption::{CryptoKey, EncryptionEngine};
 
         let encryption_engine = EncryptionEngine::new();
 
         // 测试数据加密
-        let plaintext = b"Hello, Beejs Security!";
+        let plaintext = b"Hello, Amber Security!";
         let encrypted = encryption_engine.encrypt(plaintext).await.unwrap();
         assert!(!encrypted.is_empty());
 
@@ -161,7 +161,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_key_rotation() {
-        use beejs::security::encryption::{EncryptionEngine, KeyManager};
+        use amberjs::security::encryption::{EncryptionEngine, KeyManager};
 
         let key_manager = KeyManager::new();
 
@@ -182,7 +182,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_encryption_performance() {
-        use beejs::security::encryption::EncryptionEngine;
+        use amberjs::security::encryption::EncryptionEngine;
 
         let encryption_engine = EncryptionEngine::new();
 
@@ -202,7 +202,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_tls_handshake() {
-        use beejs::security::tls::{CipherSuite, TlsConfig, TlsVersion};
+        use amberjs::security::tls::{CipherSuite, TlsConfig, TlsVersion};
 
         let tls_config = TlsConfig::new();
 
@@ -213,7 +213,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_certificate_validation() {
-        use beejs::security::tls::{CertificateManager, TlsConfig};
+        use amberjs::security::tls::{CertificateManager, TlsConfig};
 
         let cert_manager = CertificateManager::new();
 
@@ -223,7 +223,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_gdpr_compliance() {
-        use beejs::security::compliance::{GdprComplianceChecker, GdprComplianceResult};
+        use amberjs::security::compliance::{GdprComplianceChecker, GdprComplianceResult};
 
         let checker = GdprComplianceChecker::new();
         let result = checker.check();
@@ -240,7 +240,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_soc2_compliance() {
-        use beejs::security::compliance::{Soc2ComplianceChecker, Soc2ComplianceResult};
+        use amberjs::security::compliance::{Soc2ComplianceChecker, Soc2ComplianceResult};
 
         let checker = Soc2ComplianceChecker::new();
         let result = checker.check();
@@ -257,7 +257,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_custom_policy() {
-        use beejs::security::compliance::CustomPolicyChecker;
+        use amberjs::security::compliance::CustomPolicyChecker;
 
         let checker = CustomPolicyChecker::new();
         let result = checker.check_policy("data_retention").unwrap();
@@ -268,7 +268,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_risk_scoring() {
-        use beejs::security::risk_assessment::{RiskAssessor, RiskLevel};
+        use amberjs::security::risk_assessment::{RiskAssessor, RiskLevel};
 
         let assessor = RiskAssessor::new();
         let score = assessor.assess();
@@ -289,7 +289,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_threat_detection() {
-        use beejs::security::incident_response::ThreatDetector;
+        use amberjs::security::incident_response::ThreatDetector;
 
         let detector = ThreatDetector::new();
         let result = detector.detect("malware detected");
@@ -301,7 +301,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_vulnerability_scan() {
-        use beejs::security::incident_response::VulnerabilityScanner;
+        use amberjs::security::incident_response::VulnerabilityScanner;
 
         let scanner = VulnerabilityScanner::new();
         let result = scanner.scan("target:vulnerable_system");
@@ -313,7 +313,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_audit_logging() {
-        use beejs::security::audit::{AuditLogEntry, AuditLogger};
+        use amberjs::security::audit::{AuditLogEntry, AuditLogger};
         use std::collections::HashMap;
 
         let mut logger = AuditLogger::new();
@@ -335,7 +335,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_log_integrity() {
-        use beejs::security::audit::{AuditLogEntry, AuditLogger};
+        use amberjs::security::audit::{AuditLogEntry, AuditLogger};
         use std::collections::HashMap;
 
         let logger = AuditLogger::new();
@@ -347,7 +347,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_log_search() {
-        use beejs::security::audit::{AuditLogEntry, AuditLogger};
+        use amberjs::security::audit::{AuditLogEntry, AuditLogger};
         use std::collections::HashMap;
 
         let mut logger = AuditLogger::new();
@@ -371,7 +371,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_incident_detection() {
-        use beejs::security::incident_response::IncidentDetector;
+        use amberjs::security::incident_response::IncidentDetector;
 
         let detector = IncidentDetector::new();
         let incident = detector.detect_incident("detected breach attack");
@@ -382,7 +382,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_auto_remediation() {
-        use beejs::security::incident_response::{
+        use amberjs::security::incident_response::{
             AutoRemediator, Incident, IncidentSeverity, IncidentType,
         };
 
@@ -403,7 +403,7 @@ mod stage84_security_tests {
 
     #[tokio::test]
     async fn test_escalation() {
-        use beejs::security::incident_response::{
+        use amberjs::security::incident_response::{
             EscalationManager, Incident, IncidentSeverity, IncidentType,
         };
         use std::collections::{BTreeMap, HashMap};

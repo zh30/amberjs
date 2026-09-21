@@ -1,13 +1,13 @@
-# Beejs Node conformance scorecard
+# Amber Node conformance scorecard
 
-Generated: 2026-09-16T08:12Z
+Generated: 2026-09-18T02:47Z
 
 | Fixture | Result | Notes |
-| --------- | -------- | ------- |
+|---------|--------|-------|
+| amber_ai_basics.js | PASS |
 | assert_basics.js | PASS |
 | async_hooks.js | PASS |
 | async_local_storage_snapshot.js | PASS |
-| bee_ai_basics.js | PASS |
 | buffer_basics.js | PASS |
 | child_process_exec_denied.js | PASS |
 | child_process_exec_sync.js | PASS |

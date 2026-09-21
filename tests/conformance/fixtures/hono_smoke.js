@@ -45,11 +45,11 @@ async function main() {
   assert.strictEqual(json1.status, 'ok');
   assert.strictEqual(json1.framework, 'hono');
 
-  // 2. Test param route /greet/Beejs
+  // 2. Test param route /greet/Amber
   const res2 = await new Promise((resolve) => {
     const req = new http.IncomingMessage();
     req.method = 'GET';
-    req.url = '/greet/Beejs';
+    req.url = '/greet/Amber';
     req.headers = { host: 'localhost:3000' };
     req.socket = { encrypted: false, remoteAddress: '127.0.0.1', remotePort: 12345 };
 
@@ -65,7 +65,7 @@ async function main() {
     listener(req, res);
   });
   assert.strictEqual(res2.status, 200);
-  assert.strictEqual(res2.body, 'Hello, Beejs!');
+  assert.strictEqual(res2.body, 'Hello, Amber!');
 
   console.log('CONFORMANCE_PASS');
 }

@@ -1,7 +1,7 @@
 /**
- * Beejs 测试框架 - 性能测试示例
+ * Amber 测试框架 - 性能测试示例
  *
- * 使用 Beejs 内置的性能测试框架进行基准测试
+ * 使用 Amber 内置的性能测试框架进行基准测试
  * 自动检测性能回归
  */
 
@@ -28,7 +28,7 @@ describe("性能测试 - 数学运算", () => {
     });
 
     benchmark("字符串操作", () => {
-        let str = "Beejs";
+        let str = "Amber";
         for (let i = 0; i < 100; i++) {
             str = str.toUpperCase().toLowerCase().replace(/j/g, 'J');
         }
@@ -189,7 +189,7 @@ describe("性能测试 - 并发操作", () => {
  * 性能测试运行
  *
  * 命令:
- * bee test examples/testing/perf_test.test.js
+ * amber test examples/testing/perf_test.test.js
  *
  * 输出示例:
  * Performance Test Results:
@@ -203,5 +203,5 @@ describe("性能测试 - 并发操作", () => {
  * - 性能变化 < 10%: ✅ 通过
  *
  * 基准存储:
- * 性能基准保存在 .beejs/benchmarks/ 目录中
+ * 性能基准保存在 .amberjs/benchmarks/ 目录中
  */

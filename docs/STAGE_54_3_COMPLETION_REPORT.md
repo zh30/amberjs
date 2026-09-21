@@ -243,7 +243,7 @@ pub fn to_tch_tensor(&self, _device: &tch::Device) -> Result<tch::Tensor> {
 
 ## 🎯 项目影响
 
-Stage 54.3 的完成使 Beejs 具备了：
+Stage 54.3 的完成使 Amber 具备了：
 
 1. ✅ **双引擎支持** - ONNX + PyTorch 并存
 2. ✅ **AI 工作负载优化** - 专为 AI 推理设计
@@ -251,7 +251,7 @@ Stage 54.3 的完成使 Beejs 具备了：
 4. ✅ **生产就绪** - 完整测试和文档
 5. ✅ **可扩展架构** - 易于添加新引擎
 
-这些功能使 Beejs 能够高效运行 PyTorch 格式的 AI 模型，为 AI 时代的高性能脚本执行提供了强大支持。
+这些功能使 Amber 能够高效运行 PyTorch 格式的 AI 模型，为 AI 时代的高性能脚本执行提供了强大支持。
 
 ---
 
@@ -268,7 +268,7 @@ Stage 54.3 的完成使 Beejs 具备了：
 
 **🎉 Stage 54.3 PyTorch TorchScript 集成完成！**
 
-*Beejs 向 AI 时代的高性能运行时又迈进了一大步！*
+*Amber 向 AI 时代的高性能运行时又迈进了一大步！*
 
 ---
 *生成时间: 2025-12-19*

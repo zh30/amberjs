@@ -1,12 +1,12 @@
-id = "beejs"
-name = "Beejs"
-description = "Launches Beejs `bee lsp` for JavaScript, TypeScript, and .beejs files."
-version = "1.16.0"
+id = "amberjs"
+name = "Amber"
+description = "Launches Amber `amber lsp` for JavaScript, TypeScript, and .amberjs files."
+version = "1.16.1"
 schema_version = 1
 authors = ["Henry Zhang <hello@zhanghe.dev>"]
-repository = "https://github.com/zh30/beejs"
+repository = "https://github.com/zh30/amberjs"
 
-[language_servers.bee-lsp]
-name = "Beejs LSP"
-languages = ["JavaScript", "TypeScript", "TSX", "JSX", "Beejs"]
-language_ids = { JavaScript = "javascript", TypeScript = "typescript", TSX = "typescriptreact", JSX = "javascriptreact", Beejs = "beejs" }
+[language_servers.amber-lsp]
+name = "Amber LSP"
+languages = ["JavaScript", "TypeScript", "TSX", "JSX", "Amber"]
+language_ids = { JavaScript = "javascript", TypeScript = "typescript", TSX = "typescriptreact", JSX = "javascriptreact", Amber = "amberjs" }

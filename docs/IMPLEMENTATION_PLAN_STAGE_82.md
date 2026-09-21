@@ -1,4 +1,4 @@
-# Beejs Stage 82 实施计划 - 企业级 AI 集成
+# Amber Stage 82 实施计划 - 企业级 AI 集成
 
 ## 项目概述
 
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Beejs 企业级 AI 集成平台                      │
+│                    Amber 企业级 AI 集成平台                      │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ 企业代码库   │  │ 团队协作     │  │ 安全合规检查     │  │
@@ -392,13 +392,13 @@
 ### 1. 企业代码库分析器实现示例
 
 ```rust
-pub struct BeejsEnterpriseCodeAnalyzer {
+pub struct AmberEnterpriseCodeAnalyzer {
     repo_scanner: Arc<MultiRepoScanner>,
     metrics_collector: Arc<MetricsCollector>,
     pattern_detector: Arc<PatternDetector>,
 }
 
-impl BeejsEnterpriseCodeAnalyzer {
+impl AmberEnterpriseCodeAnalyzer {
     pub async fn comprehensive_analysis(
         &self,
         enterprise_config: &EnterpriseConfig,
@@ -461,14 +461,14 @@ impl BeejsEnterpriseCodeAnalyzer {
 ### 2. 智能代码审查器实现示例
 
 ```rust
-pub struct BeejsIntelligentCodeReviewer {
+pub struct AmberIntelligentCodeReviewer {
     ast_analyzer: Arc<AstAnalyzer>,
     security_analyzer: Arc<SecurityAnalyzer>,
     quality_analyzer: Arc<QualityAnalyzer>,
     best_practices_db: Arc<BestPracticesDatabase>,
 }
 
-impl BeejsIntelligentCodeReviewer {
+impl AmberIntelligentCodeReviewer {
     pub async fn intelligent_review(
         &self,
         pull_request: &PullRequest,
@@ -631,4 +631,4 @@ impl BeejsIntelligentCodeReviewer {
 
 ---
 
-**结论**: Stage 82 将把 Beejs 提升为企业级的 AI 开发平台，通过智能化的代码库分析、团队协作、安全合规和代码审查，为大型开发团队提供全面的 AI 驱动解决方案，使 Beejs 成为企业级 JavaScript/TypeScript 开发的首选平台。
+**结论**: Stage 82 将把 Amber 提升为企业级的 AI 开发平台，通过智能化的代码库分析、团队协作、安全合规和代码审查，为大型开发团队提供全面的 AI 驱动解决方案，使 Amber 成为企业级 JavaScript/TypeScript 开发的首选平台。

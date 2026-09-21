@@ -25,10 +25,10 @@ impl RuntimeDetector {
     }
     /// 检测所有运行时
     pub fn detect_all_runtimes(&mut self) {
-        // 检测 Beejs
+        // 检测 Amber
         self.detected_runtimes.insert(
-            Runtime::Beejs,
-            check_command_available("bee")
+            Runtime::Amber,
+            check_command_available("amber")
         );
         // 检测 Node.js
         self.detected_runtimes.insert(
@@ -69,7 +69,7 @@ impl RuntimeDetector {
     /// 获取运行时版本
     pub fn get_version(&self, runtime: Runtime) -> Option<String> {
         match runtime {
-            Runtime::Beejs => get_command_version("bee"),
+            Runtime::Amber => get_command_version("amber"),
             Runtime::NodeJs => get_command_version("node"),
             Runtime::Bun => get_command_version("bun"),
             Runtime::Deno => get_command_version("deno"),
@@ -92,8 +92,8 @@ impl ProcessLauncher {
     pub async fn launch(&self, code: &str, runtime: Runtime) -> Result<ProcessOutput> {
         let start_time: _ = tokio::time::Instant::now();
         match runtime {
-            Runtime::Beejs => {
-                self.launch_beejs(code).await
+            Runtime::Amber => {
+                self.launch_amberjs(code).await
             }
             Runtime::NodeJs => {
                 self.launch_nodejs(code).await
@@ -113,14 +113,14 @@ impl ProcessLauncher {
             output
         })
     }
-    /// 启动 Beejs 进程
-    async fn launch_beejs(&self, code: &str) -> Result<ProcessOutput> {
-        let temp_file: _ = super::super::utils::create_temp_dir("beejs_bench")?;
+    /// 启动 Amber 进程
+    async fn launch_amberjs(&self, code: &str) -> Result<ProcessOutput> {
+        let temp_file: _ = super::super::utils::create_temp_dir("amberjs_bench")?;
         let file_path: _ = temp_file.path().join("test.js");
         // 写入临时文件
         tokio::fs::write(&file_path, code).await?;
         // 启动进程
-        let output: _ = tokio::process::Command::new("bee")
+        let output: _ = tokio::process::Command::new("amber")
             .arg(&file_path)
             .output()
             .await?;
@@ -128,7 +128,7 @@ impl ProcessLauncher {
         let stdout: _ = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr: _ = String::from_utf8_lossy(&output.stderr).to_string();
         Ok(ProcessOutput {
-            runtime: Runtime::Beejs,
+            runtime: Runtime::Amber,
             exit_code,
             stdout,
             stderr,

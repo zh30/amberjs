@@ -131,7 +131,7 @@ def process_file(filepath):
         return 0
 
 def main():
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
     total_fixed = 0
     files_modified = 0
 

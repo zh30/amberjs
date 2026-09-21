@@ -1,4 +1,4 @@
-// Log Aggregation System for Beejs
+// Log Aggregation System for Amber
 // 实现结构化日志记录和聚合功能
 
 use anyhow::{Context, Result};
@@ -376,7 +376,7 @@ mod tests {
     fn test_log_aggregator_creation() {
         let config: _ = LogAggregatorConfig {
             service_name: "test-service".to_string(),
-            log_dir: "/tmp/beejs-logs".to_string(),
+            log_dir: "/tmp/amberjs-logs".to_string(),
             max_file_size: 10 * 1024 * 1024, // 10MB
             max_files: 5,
             rotation_interval: chrono::Duration::hours(1),

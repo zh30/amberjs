@@ -1,10 +1,10 @@
 //! 性能回归检测器
 //!
-//! 这个工具用于自动化检测 Beejs 的性能回归，通过与历史基线对比、
+//! 这个工具用于自动化检测 Amber 的性能回归，通过与历史基线对比、
 //! 统计检验和阈值检查，识别性能退化问题。支持基线管理、回归分析、
 //! 报告生成和 CI/CD 集成。
 
-use beejs::performance_analyzer::PerformanceAnalyzer;
+use amberjs::performance_analyzer::PerformanceAnalyzer;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;

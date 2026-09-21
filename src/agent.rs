@@ -1,6 +1,6 @@
 //! Agent host surface: tool export, stdin JSON-RPC session, MCP stdio.
 //!
-//! Models stay outside Beejs. This module only loads a JS/TS tool file and
+//! Models stay outside Amber. This module only loads a JS/TS tool file and
 //! calls named exports under the existing MinimalRuntime + ResourceBroker.
 
 use anyhow::{anyhow, Result};
@@ -352,7 +352,7 @@ fn mcp_initialize_result() -> Value {
             "resources": {}
         },
         "serverInfo": {
-            "name": "beejs",
+            "name": "amberjs",
             "version": env!("CARGO_PKG_VERSION")
         }
     })

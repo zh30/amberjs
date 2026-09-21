@@ -5,9 +5,9 @@ group: "参考"
 id: "cli-usage"
 ---
 
-以 `bee --help` 为准。本页按成熟度分组。仓库里的 [Current Scope](https://github.com/zh30/beejs/blob/main/docs/CURRENT_SCOPE.md) 是能力边界。
+以 `amber --help` 为准。本页按成熟度分组。仓库里的 [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) 是能力边界。
 
-`--verbose` 是全局参数，必须放在子命令前面：`bee --verbose run app.js`。
+`--verbose` 是全局参数，必须放在子命令前面：`amber --verbose run app.js`。
 
 ---
 
@@ -15,24 +15,24 @@ id: "cli-usage"
 
 | 命令 | 作用 |
 | :--- | :--- |
-| `bee run <file> [args...]` | 跑 JS。`.ts` / `.tsx` 先走 oxc（TS 契约仍是 Preview）。 |
-| `bee eval <code>` | 求值表达式 |
-| `bee repl` | 交互 REPL |
-| `bee test [files...] [--watch]` | Jest 风格测试 |
-| `bee snapshot [build\|status\|clean]` | V8 启动快照 |
-| `bee session <tool>` | Agent 宿主的 stdin JSON-RPC |
-| `bee mcp [tool]` | MCP stdio 服务 |
-| `bee --version` / `bee version` | 版本 |
+| `amber run <file> [args...]` | 跑 JS。`.ts` / `.tsx` 先走 oxc（TS 契约仍是 Preview）。 |
+| `amber eval <code>` | 求值表达式 |
+| `amber repl` | 交互 REPL |
+| `amber test [files...] [--watch]` | Jest 风格测试 |
+| `amber snapshot [build\|status\|clean]` | V8 启动快照 |
+| `amber session <tool>` | Agent 宿主的 stdin JSON-RPC |
+| `amber mcp [tool]` | MCP stdio 服务 |
+| `amber --version` / `amber version` | 版本 |
 
-### `bee run`
+### `amber run`
 
 ```bash
-bee run app.ts
-bee run app.js -- arg1 arg2
-bee run --watch --debounce 200 app.ts
-bee run --preload ./setup.js app.js
-bee run --sandbox --permission-policy policy.json app.ts
-bee run --inspect-brk app.ts
+amber run app.ts
+amber run app.js -- arg1 arg2
+amber run --watch --debounce 200 app.ts
+amber run --preload ./setup.js app.js
+amber run --sandbox --permission-policy policy.json app.ts
+amber run --inspect-brk app.ts
 ```
 
 常用参数：
@@ -50,7 +50,7 @@ bee run --inspect-brk app.ts
 | `--permission-policy <file>` | JSON 策略（别名 `--policy`） |
 | `--inspect` / `--inspect-brk` | CDP `127.0.0.1:9229`（Preview） |
 
-`bee test --parallel` 会被拒绝（退出码 2）。
+`amber test --parallel` 会被拒绝（退出码 2）。
 
 ---
 
@@ -60,16 +60,16 @@ bee run --inspect-brk app.ts
 
 | 命令 | 作用 |
 | :--- | :--- |
-| `bee serve [file]` | WinterCG `fetch` 处理器。`--https --cert --key` 是 rustls HTTP/1.1。 |
-| `bee bundle <entry>` | oxc 模块图 → 单个 JS |
-| `bee compile <file>` | 复制 `bee` 并追加 payload + `BEE_STANDALONE` trailer |
+| `amber serve [file]` | WinterCG `fetch` 处理器。`--https --cert --key` 是 rustls HTTP/1.1。 |
+| `amber bundle <entry>` | oxc 模块图 → 单个 JS |
+| `amber compile <file>` | 复制 `amber` 并追加 payload + `AMBER_STANDALONE` trailer |
 | TypeScript / TSX | oxc 类型擦除，不是 `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
 ```bash
-bee serve app.js --host 127.0.0.1 --port 3000
-bee bundle src/index.ts -o dist/bundle.js --minify
-bee compile app.ts -o myapp
+amber serve app.js --host 127.0.0.1 --port 3000
+amber bundle src/index.ts -o dist/bundle.js --minify
+amber compile app.ts -o myapp
 ```
 
 细节：[打包与编译](/docs/bundling-compilation)。
@@ -82,7 +82,7 @@ bee compile app.ts -o myapp
 
 `debug`、`record`、`replay`、`init`、`create`、`add`、`remove`、`install`、`prune`、`x`、`upgrade`、`fmt`、`lint`、`bench`、`types`、`task`、`profile`、`lsp`、`deploy`。
 
-Chrome DevTools 附加请用 `bee run --inspect`，不要用 `bee debug`。
+Chrome DevTools 附加请用 `amber run --inspect`，不要用 `amber debug`。
 
 ---
 
@@ -91,9 +91,9 @@ Chrome DevTools 附加请用 `bee run --inspect`，不要用 `bee debug`。
 未加 `--sandbox` 或 `--deny-*` 时，当前默认仍是全部允许。
 
 ```bash
-bee eval --deny-fs "require('fs').readFileSync('secret.txt', 'utf8')"
-bee run --deny-fs --allow-read config.json app.js
-bee eval --deny-net --allow-net example.com "fetch('https://example.com')"
+amber eval --deny-fs "require('fs').readFileSync('secret.txt', 'utf8')"
+amber run --deny-fs --allow-read config.json app.js
+amber eval --deny-net --allow-net example.com "fetch('https://example.com')"
 ```
 
 策略文件（相对路径相对策略文件所在目录解析）：

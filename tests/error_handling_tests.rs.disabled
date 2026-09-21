@@ -1,5 +1,5 @@
-use beejs::Runtime;
-use beejs::error_handler::ErrorHandler;
+use amberjs::Runtime;
+use amberjs::error_handler::ErrorHandler;
 
 #[test]
 fn test_error_handler_basic_functionality() {

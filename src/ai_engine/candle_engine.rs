@@ -1,4 +1,4 @@
-//! Beejs Native AI Inference Engine powered by HuggingFace Candle
+//! Amber Native AI Inference Engine powered by HuggingFace Candle
 //!
 //! Provides local GGUF / SafeTensors loading, Apple Silicon Metal GPU acceleration,
 //! autoregressive KV-cache decode, zero-copy Tensor math, and stream decoding.

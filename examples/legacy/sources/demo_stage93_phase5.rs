@@ -2,7 +2,7 @@
 //!
 //! 展示基准测试系统的完整功能
 
-use beejs::benchmark::{
+use amberjs::benchmark::{
     BenchmarkEngine, BenchmarkConfig, TestSuite, BenchmarkTest, WorkloadProfile,
     RuntimeComparison, WorkloadExecutor, WorkloadType,
     RuntimeDetector, ProcessLauncher, ProcessConfig,
@@ -14,7 +14,7 @@ use std::time::Duration;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🎉 Beejs Stage 93 Phase 5: 性能基准测试套件演示\n");
+    println!("🎉 Amber Stage 93 Phase 5: 性能基准测试套件演示\n");
 
     // 1. 演示基准测试配置
     println!("1️⃣ 基准测试配置演示");
@@ -106,24 +106,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 5. 演示回归检测
     println!("\n5️⃣ 性能回归检测演示");
-    let regression_detector = RegressionDetector::new(std::path::PathBuf::from("/tmp/beejs_benchmark_history"));
+    let regression_detector = RegressionDetector::new(std::path::PathBuf::from("/tmp/amberjs_benchmark_history"));
 
     // 创建模拟的历史数据
-    let mut current_results = beejs::benchmark::result::BenchmarkResultSet::new("current");
-    let mut baseline_results = beejs::benchmark::result::BenchmarkResultSet::new("baseline");
+    let mut current_results = amberjs::benchmark::result::BenchmarkResultSet::new("current");
+    let mut baseline_results = amberjs::benchmark::result::BenchmarkResultSet::new("baseline");
 
     // 模拟基线结果 (性能更好)
-    let mut baseline_result = beejs::benchmark::result::BenchmarkResult::new(
+    let mut baseline_result = amberjs::benchmark::result::BenchmarkResult::new(
         "demo_test",
-        Runtime::Beejs,
+        Runtime::Amber,
     );
     baseline_result.add_iteration(Duration::from_millis(100));
     baseline_result.finish();
 
     // 模拟当前结果 (性能稍差)
-    let mut current_result = beejs::benchmark::result::BenchmarkResult::new(
+    let mut current_result = amberjs::benchmark::result::BenchmarkResult::new(
         "demo_test",
-        Runtime::Beejs,
+        Runtime::Amber,
     );
     current_result.add_iteration(Duration::from_millis(120));
     current_result.finish();

@@ -1,7 +1,7 @@
 //! 类型生成器测试
 //! Stage 91 Phase 3.2 - 类型定义生成测试
 
-use beejs::ecosystem::*;
+use amberjs::ecosystem::*;
 use std::collections::HashMap;
 
 #[cfg(test)]
@@ -170,7 +170,7 @@ function createPerson(name: string, age: number) {
         let generator = TypeDefinitionGenerator::new(config);
 
         // 创建测试项目结构
-        let temp_dir = std::env::temp_dir().join("beejs_typegen_test");
+        let temp_dir = std::env::temp_dir().join("amberjs_typegen_test");
         std::fs::create_dir_all(&temp_dir)?;
 
         // 创建测试文件

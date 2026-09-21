@@ -358,7 +358,7 @@ mod tests {
             KeyType::Symmetric,
             EncryptionAlgorithm::AES256GCM,
         ).await.unwrap();
-        let plaintext: _ = b"Hello, Beejs!";
+        let plaintext: _ = b"Hello, Amber!";
         let encrypted: _ = kms.encrypt(&key.id, plaintext).await.unwrap();
         assert!(encrypted.success);
         let decrypted: _ = kms.decrypt(

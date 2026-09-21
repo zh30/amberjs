@@ -1,4 +1,4 @@
-# Beejs Test Quarantine Inventory
+# Amber Test Quarantine Inventory
 
 日期：2026-06-12  
 范围：`tests/` 下的 `.disabled`、`.bak` 与 `legacy` 测试资产。  
@@ -6,7 +6,7 @@
 
 ## 扫描命令与当前计数
 
-以下计数来自 `codex/beejs-design-repair-sprint` 分支上的只读扫描：
+以下计数来自 `codex/amberjs-design-repair-sprint` 分支上的只读扫描：
 
 ```bash
 find tests -type f -name '*.disabled' -print | wc -l
@@ -48,14 +48,14 @@ find tests/legacy tests/fixtures/legacy -type f -print | sort
 3. 将测试改造成当前约定的位置和命名，例如 `tests/<feature>_<scenario>_tests.rs`，或作为明确 fixture 放入非执行目录并由活跃测试引用。
 4. 删除或替换历史假设、旧 CLI 入口、旧二进制名、阶段性性能数字和已经被禁用的 API 预期。
 5. 运行对应的最小验证命令，例如 `cargo test --test <stem>`；涉及 feature-gated 模块时还要运行对应 `cargo check --features <feature>`。
-6. 如果恢复的是 JS/TS CLI 行为测试，需要用当前入口验证，例如 `cargo run -- run <file>` 或由 Rust 集成测试启动当前 `beejs` 二进制。
+6. 如果恢复的是 JS/TS CLI 行为测试，需要用当前入口验证，例如 `cargo run -- run <file>` 或由 Rust 集成测试启动当前 `amberjs` 二进制。
 
 ## 删除条件
 
 隔离资产可以删除，但应在专门 PR 中处理，并满足至少一个条件：
 
 1. 已被当前活跃测试覆盖，且新测试能失败地捕获同一行为回归。
-2. 依赖的阶段模块、API、CLI 入口或 feature 已明确不再是 Beejs 当前路线。
+2. 依赖的阶段模块、API、CLI 入口或 feature 已明确不再是 Amber 当前路线。
 3. 内容只是历史备份、生成产物或无法复现的临时实验文件。
 4. 与 `docs/CURRENT_SCOPE.md` 或当前 README/Quick Start 的能力边界冲突，且没有恢复计划。
 

@@ -1,10 +1,10 @@
-# Beejs Server Mode 实施总结
+# Amber Server Mode 实施总结
 
-> 发布校验说明（2026-05-26）：本文是历史实现总结。当前 public CLI 的服务器命令是 `bee serve [--host HOST] [--port PORT]`；`beejs server` 以及 `--max-connections`、`--timeout` 不是当前公开命令契约。
+> 发布校验说明（2026-05-26）：本文是历史实现总结。当前 public CLI 的服务器命令是 `amber serve [--host HOST] [--port PORT]`；`amberjs server` 以及 `--max-connections`、`--timeout` 不是当前公开命令契约。
 
 ## 🎯 概述
 
-成功实现了 Beejs Server 模式，这是一个高性能的 HTTP 服务器，用于执行 JavaScript/TypeScript 代码。该服务器通过单次初始化、多次复用的架构，彻底避免了重复的 V8 引擎初始化开销。
+成功实现了 Amber Server 模式，这是一个高性能的 HTTP 服务器，用于执行 JavaScript/TypeScript 代码。该服务器通过单次初始化、多次复用的架构，彻底避免了重复的 V8 引擎初始化开销。
 
 ## ✅ 已完成功能
 
@@ -12,7 +12,7 @@
 - ✅ 创建了完整的 server 模块 (`src/server/mod.rs`)
 - ✅ 集成了 tiny_http HTTP 服务器框架
 - ✅ 实现了 Server 结构体和配置管理
-- ✅ 添加了 CLI 命令支持（历史名称为 `beejs server`，当前 public CLI 为 `bee serve`）
+- ✅ 添加了 CLI 命令支持（历史名称为 `amberjs server`，当前 public CLI 为 `amber serve`）
 
 ### 阶段 2: HTTP /eval API 端点 ✅
 - ✅ 实现了 `/api/v1/eval` POST 端点
@@ -61,7 +61,7 @@ pub struct Server {
 所有测试均通过 ✅：
 
 1. **简单算术**: `5 * 10 + 3` → `53` (2ms)
-2. **字符串操作**: `"Hello " + "Beejs"` → `"Hello Beejs"` (2ms)
+2. **字符串操作**: `"Hello " + "Amber"` → `"Hello Amber"` (2ms)
 3. **数组操作**: `[1,2,3].map(x => x * 2)` → `"2,4,6"` (2ms)
 4. **复杂计算**: `[1,2,3,4,5].reduce((a,b) => a + b)` → `"15"` (2ms)
 5. **对象操作**: `({x:10,y:20}).x + ({x:10,y:20}).y` → `"30"` (2ms)
@@ -78,10 +78,10 @@ pub struct Server {
 ### 启动服务器
 ```bash
 # 基本启动（默认端口 3000）
-bee serve
+amber serve
 
 # 自定义配置
-bee serve --host 127.0.0.1 --port 3000
+amber serve --host 127.0.0.1 --port 3000
 ```
 
 ### API 使用示例
@@ -179,7 +179,7 @@ curl http://127.0.0.1:3000/api/v1/stats
 
 ## 🎉 结论
 
-成功实现了 Beejs Server 模式的核心功能，建立了高性能 JavaScript 运行时服务器的基础架构。虽然当前采用单线程模型，但这为后续的多线程优化提供了solid foundation。
+成功实现了 Amber Server 模式的核心功能，建立了高性能 JavaScript 运行时服务器的基础架构。虽然当前采用单线程模型，但这为后续的多线程优化提供了solid foundation。
 
 ### 核心成就
 - 🎯 100% 功能完整的 HTTP API 服务器
@@ -193,4 +193,4 @@ curl http://127.0.0.1:3000/api/v1/stats
 
 **实施日期**: 2025-12-18
 **状态**: ✅ 阶段 1-4 完成
-**负责人**: Beejs Server 团队
+**负责人**: Amber Server 团队

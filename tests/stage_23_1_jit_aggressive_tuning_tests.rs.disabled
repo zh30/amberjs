@@ -17,8 +17,8 @@
 mod tests {
     use std::time::{Duration, Instant};
     use std::hint::black_box;
-    use beejs::RuntimeLite;
-    use beejs::{JITOptimizer, JITThresholds, JITStrategy, OptimizationLevel, CodeComplexity};
+    use amberjs::RuntimeLite;
+    use amberjs::{JITOptimizer, JITThresholds, JITStrategy, OptimizationLevel, CodeComplexity};
 
     /// Stage 23.1.1: 分层 JIT 编译测试
     /// 验证 JIT 编译器能够根据代码复杂度选择不同的优化级别

@@ -1,4 +1,4 @@
-//! Official Model Context Protocol (MCP) implementation for Beejs (`bee:mcp`).
+//! Official Model Context Protocol (MCP) implementation for Amber (`amber:mcp`).
 //!
 //! Provides first-class support for Anthropic Model Context Protocol (MCP) 2.0 servers
 //! and clients in TypeScript and JavaScript.
@@ -62,7 +62,7 @@ pub fn setup_mcp_api(
     .get_function(scope)
     .unwrap();
 
-    let native_key = v8::String::new(scope, "__bee_mcp_native").unwrap();
+    let native_key = v8::String::new(scope, "__amber_mcp_native").unwrap();
     global.set(scope, native_key.into(), mcp_native_fn.into());
 
     let js_code = r#"
@@ -74,7 +74,7 @@ pub fn setup_mcp_api(
          */
         class McpServer {
             constructor(info = {}) {
-                this.name = info.name || 'beejs-mcp-server';
+                this.name = info.name || 'amberjs-mcp-server';
                 this.version = info.version || '1.0.0';
                 this.tools = new Map();
                 this.resources = new Map();
@@ -418,7 +418,7 @@ pub fn setup_mcp_api(
              */
             startStdio() {
                 this._isRunning = true;
-                const native = globalThis.__bee_mcp_native;
+                const native = globalThis.__amber_mcp_native;
                 if (!native) {
                     throw new Error('Native MCP stdio driver not found in runtime');
                 }
@@ -479,7 +479,7 @@ pub fn setup_mcp_api(
                 return res.result;
             }
 
-            async initialize(clientInfo = { name: 'beejs-mcp-client', version: '1.0.0' }) {
+            async initialize(clientInfo = { name: 'amberjs-mcp-client', version: '1.0.0' }) {
                 const res = await this._request('initialize', {
                     protocolVersion: MCP_PROTOCOL_VERSION,
                     capabilities: {},
@@ -546,7 +546,7 @@ pub fn setup_mcp_api(
             version: '1.4.0'
         };
 
-        globalThis.__bee_mcp = beeMcp;
+        globalThis.__amber_mcp = beeMcp;
         globalThis.mcp = beeMcp;
         globalThis.McpServer = McpServer;
         globalThis.McpClient = McpClient;

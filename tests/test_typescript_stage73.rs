@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     #[test]
     fn test_simple_arrow_function() {
@@ -75,7 +75,7 @@ console.log(getAnswer());
 function greet(name: string): string {
     return `Hello, ${name}!`;
 }
-console.log(greet("Beejs"));
+console.log(greet("Amber"));
 "#;
 
         match compile_typescript(code, "test.ts") {

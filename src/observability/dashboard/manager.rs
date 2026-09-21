@@ -191,19 +191,19 @@ impl DashboardManager {
     ) -> Result<()> {
         // Create overview dashboard
         let overview_dashboard: _ = Dashboard::new(
-            "beejs-overview",
-            "Beejs Runtime Overview",
-            "Real-time overview of Beejs runtime performance and metrics",
-            vec!["beejs".to_string(), "overview".to_string()],
+            "amberjs-overview",
+            "Amber Runtime Overview",
+            "Real-time overview of Amber runtime performance and metrics",
+            vec!["amberjs".to_string(), "overview".to_string()],
         );
         let mut dashboards_write = dashboards.write().await;
-        dashboards_write.insert("beejs-overview".to_string(), overview_dashboard);
+        dashboards_write.insert("amberjs-overview".to_string(), overview_dashboard);
         Ok(())
     }
     /// Create a new dashboard
     pub async fn create_dashboard(&self, title: &str) -> Result<String> {
         debug!("Creating dashboard: {}", title);
-        let dashboard: _ = Dashboard::new(title, title, None, vec!["beejs".to_string()]);
+        let dashboard: _ = Dashboard::new(title, title, None, vec!["amberjs".to_string()]);
         let uid: _ = dashboard.uid.clone();
         let mut dashboards = self.dashboards.write().await;
         dashboards.insert(uid.clone(), dashboard);

@@ -8,7 +8,7 @@ use rquickjs::{Value, function::{Function, Rest}, Ctx, Runtime as QjsRuntime, Co
 mod typescript;
 mod nodejs;
 
-/// Beejs Runtime - High-performance JavaScript/TypeScript execution engine
+/// Amber Runtime - High-performance JavaScript/TypeScript execution engine
 pub struct Runtime {
     stack_size: usize,
     max_heap: usize,
@@ -21,7 +21,7 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    /// Create a new Beejs runtime instance
+    /// Create a new Amber runtime instance
     pub fn new(
         stack_size: usize,
         max_heap: usize,

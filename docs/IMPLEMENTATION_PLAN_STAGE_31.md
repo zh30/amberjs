@@ -1,4 +1,4 @@
-# Beejs Stage 31: WebAssembly 集成优化与云原生增强
+# Amber Stage 31: WebAssembly 集成优化与云原生增强
 
 ## 📋 任务概览
 

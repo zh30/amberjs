@@ -2,7 +2,7 @@
 
 ## 📋 阶段概述
 
-基于 Stage 60 的测试驱动开发和性能监控系统，Stage 61 专注于将 Beejs 打造成真正可与 Bun 竞争的生产级 JavaScript/TypeScript 运行时。
+基于 Stage 60 的测试驱动开发和性能监控系统，Stage 61 专注于将 Amber 打造成真正可与 Bun 竞争的生产级 JavaScript/TypeScript 运行时。
 
 **核心目标**: 建立完整的生态系统，确保生产环境部署的稳定性和性能。
 
@@ -387,7 +387,7 @@ pub fn is_v8_initialized(&self) -> bool {
 
 ## 📝 总结
 
-Stage 61 将把 Beejs 从一个实验性项目转变为生产就绪的 JavaScript/TypeScript 运行时。通过：
+Stage 61 将把 Amber 从一个实验性项目转变为生产就绪的 JavaScript/TypeScript 运行时。通过：
 
 1. **修复所有测试失败** - 确保代码质量
 2. **完善 V8 API 兼容性** - 解决核心技术问题
@@ -395,7 +395,7 @@ Stage 61 将把 Beejs 从一个实验性项目转变为生产就绪的 JavaScrip
 4. **建立 CI/CD 流水线** - 自动化质量保证
 5. **性能监控和基准测试** - 数据驱动的优化
 
-这将为 Beejs 成为真正的 Bun 竞争对手奠定坚实基础。
+这将为 Amber 成为真正的 Bun 竞争对手奠定坚实基础。
 
 ---
 

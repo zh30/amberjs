@@ -1,5 +1,5 @@
 ---
-title: "Model Context Protocol 2.0 (bee:mcp)"
+title: "Model Context Protocol 2.0 (amber:mcp)"
 subtitle: "Production-ready native MCP standard implementation: build servers, declare tools, expose resources, and inspect with visual CLI"
 group: "Agent & Advanced"
 id: "mcp-protocol"
@@ -12,16 +12,16 @@ id: "mcp-protocol"
 2. **Access Resources**: Expose contextual documents, file content, or system telemetry;
 3. **Template Prompts**: Provide standardized prompts and workflows to models.
 
-Beejs v1.3.0 embeds **`bee:mcp` natively in the runtime core**. Without installing external node modules or build systems, developers can build MCP servers, run standard Stdio transports for Claude Desktop / Cursor, or connect locally in-memory via `connectLocal()`.
+Amber v1.3.0 embeds **`amber:mcp` natively in the runtime core**. Without installing external node modules or build systems, developers can build MCP servers, run standard Stdio transports for Claude Desktop / Cursor, or connect locally in-memory via `connectLocal()`.
 
 ---
 
 ## 2. Server & Client API
 
-Import from `bee:mcp`:
+Import from `amber:mcp`:
 
 ```typescript
-import { McpServer, McpClient } from 'bee:mcp';
+import { McpServer, McpClient } from 'amber:mcp';
 ```
 
 ### `McpServer`
@@ -47,7 +47,7 @@ server.tool(
     required: ["data"]
   },
   async ({ data, algorithm = "sha256" }) => {
-    const { crypto } = require('bee:std');
+    const { crypto } = require('amber:std');
     return { hash: crypto.hash(algorithm, data) };
   }
 );
@@ -88,7 +88,7 @@ console.log("Ping:", await client.ping()); // true
 
 // List & invoke tools
 const tools = await client.listTools();
-const toolRes = await client.callTool("calculate_hash", { data: "Beejs", algorithm: "sha256" });
+const toolRes = await client.callTool("calculate_hash", { data: "Amber", algorithm: "sha256" });
 console.log("Tool result:", toolRes);
 
 // Read resource
@@ -109,14 +109,14 @@ server.startStdio();
 
 ---
 
-## 3. CLI Inspection (`bee mcp --inspect`)
+## 3. CLI Inspection (`amber mcp --inspect`)
 
 Inspect MCP tool schemas with formatted tables directly from the command line:
 
 ```bash
 # Inspect built-in runtime tools
-bee mcp --inspect
+amber mcp --inspect
 
 # Inspect a user module's exposed tools
-bee mcp --inspect ./my_tools.ts
+amber mcp --inspect ./my_tools.ts
 ```

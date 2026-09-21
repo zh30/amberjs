@@ -1,41 +1,41 @@
 ---
 title: "Bundle & compile"
-subtitle: "Preview in v1.16.0: oxc bee bundle, SEA bee compile"
+subtitle: "Preview in v1.16.0: oxc amber bundle, SEA amber compile"
 group: "Developer Tooling"
 id: "bundling-compilation"
 ---
 
 Two packaging tools, both **Preview**:
 
-1. **`bee bundle`** — resolve a local module graph into one JS file
-2. **`bee compile`** — copy the `bee` binary and append a script payload (SEA)
+1. **`amber bundle`** — resolve a local module graph into one JS file
+2. **`amber compile`** — copy the `amber` binary and append a script payload (SEA)
 
 The contract is still tightening. Do not treat this as webpack / esbuild / pkg parity.
 
 ---
 
-## `bee bundle`
+## `amber bundle`
 
 ```bash
-bee bundle src/index.ts -o dist/bundle.js
-bee bundle src/index.ts -o dist/bundle.min.js --minify
+amber bundle src/index.ts -o dist/bundle.js
+amber bundle src/index.ts -o dist/bundle.min.js --minify
 ```
 
 What it does today:
 
 - Recursively follows static local imports
 - Type-strips `.ts` / `.tsx` with oxc
-- Wraps each module in an isolated registry (`__beejs_require__`)
+- Wraps each module in an isolated registry (`__amberjs_require__`)
 - Optional minify
 
 What it does **not** claim: full `node_modules` ecosystem bundling, code splitting, or browser-app tooling.
 
 ---
 
-## `bee compile`
+## `amber compile`
 
 ```bash
-bee compile app.ts -o myapp
+amber compile app.ts -o myapp
 ./myapp
 ```
 
@@ -43,17 +43,17 @@ Layout of the output binary:
 
 ```text
 +----------------------------------------------------------+
-|  Beejs runtime (copy of the host `bee` executable)       |
+|  Amber runtime (copy of the host `amber` executable)       |
 +----------------------------------------------------------+
 |  Bundled user script payload                             |
 +----------------------------------------------------------+
-|  payload size (u64)  |  magic BEE_STANDALONE (16 bytes)  |
+|  payload size (u64)  |  magic AMBER_STANDALONE (16 bytes)  |
 +----------------------------------------------------------+
 ```
 
-On boot, `bee` inspects its own trailer. If `BEE_STANDALONE` is present, it runs the embedded payload and skips the normal CLI parser.
+On boot, `amber` inspects its own trailer. If `AMBER_STANDALONE` is present, it runs the embedded payload and skips the normal CLI parser.
 
-Limitations: the result is roughly the size of `bee` plus your script; native addons and a full Node module graph are out of scope.
+Limitations: the result is roughly the size of `amber` plus your script; native addons and a full Node module graph are out of scope.
 
 ---
 
@@ -61,6 +61,6 @@ Limitations: the result is roughly the size of `bee` plus your script; native ad
 
 | | Status |
 | :--- | :--- |
-| `bee bundle` | Preview |
-| `bee compile` | Preview |
+| `amber bundle` | Preview |
+| `amber compile` | Preview |
 | Tests | `tests/bundle_compile_tests.rs` |

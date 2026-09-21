@@ -1,4 +1,4 @@
-//! Beejs - High-performance JavaScript/TypeScript runtime
+//! Amber - High-performance JavaScript/TypeScript runtime
 //! Built with Rust and V8
 //! Simplified version for testing core functionality
 
@@ -6,7 +6,7 @@ use anyhow::Result;
 use std::path::PathBuf;
 
 fn main() -> Result<()> {
-    println!("🐝 Beejs v0.1.3 - High-performance JavaScript/TypeScript runtime");
+    println!("🐝 Amber v0.1.3 - High-performance JavaScript/TypeScript runtime");
     println!("Built with Rust + V8");
     println!("超越 Bun! 🚀");
     println!();
@@ -16,14 +16,14 @@ fn main() -> Result<()> {
 
     if args.len() < 2 {
         println!("Usage:");
-        println!("  bee run <file>    Run a JavaScript/TypeScript file");
-        println!("  bee eval <code>   Evaluate JavaScript code");
-        println!("  bee repl          Start interactive REPL");
-        println!("  bee version       Display version information");
+        println!("  amber run <file>    Run a JavaScript/TypeScript file");
+        println!("  amber eval <code>   Evaluate JavaScript code");
+        println!("  amber repl          Start interactive REPL");
+        println!("  amber version       Display version information");
         println!();
         println!("Examples:");
-        println!("  bee run script.js");
-        println!("  bee eval 'console.log(\"Hello\")'");
+        println!("  amber run script.js");
+        println!("  amber eval 'console.log(\"Hello\")'");
         return Ok(());
     }
 
@@ -50,14 +50,14 @@ fn main() -> Result<()> {
             run_repl()?;
         }
         "version" => {
-            println!("Beejs v0.1.3");
+            println!("Amber v0.1.3");
             println!("High-performance JavaScript/TypeScript runtime");
             println!("Built with Rust + V8");
             println!("Faster than Bun! 🚀");
         }
         _ => {
             eprintln!("Unknown command: {}", command);
-            eprintln!("Use 'bee' without arguments to see usage");
+            eprintln!("Use 'amber' without arguments to see usage");
             std::process::exit(1);
         }
     }
@@ -66,10 +66,10 @@ fn main() -> Result<()> {
 }
 
 fn run_file(file_path: &PathBuf) -> Result<()> {
-    println!("🐝 Running Beejs on: {}", file_path.display());
+    println!("🐝 Running Amber on: {}", file_path.display());
 
     // Create a minimal runtime
-    let mut runtime = beejs::runtime_minimal::MinimalRuntime::new()
+    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new()
         .expect("Failed to create runtime");
 
     // Read and execute the file
@@ -95,7 +95,7 @@ fn eval_code(code: &str) -> Result<()> {
     println!("🐝 Evaluating JavaScript code");
 
     // Create a minimal runtime
-    let mut runtime = beejs::runtime_minimal::MinimalRuntime::new()
+    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new()
         .expect("Failed to create runtime");
 
     match runtime.execute_code(code) {
@@ -114,19 +114,19 @@ fn eval_code(code: &str) -> Result<()> {
 }
 
 fn run_repl() -> Result<()> {
-    println!("🐝 Starting Beejs REPL...");
+    println!("🐝 Starting Amber REPL...");
     println!("Type JavaScript code and press Enter to execute");
     println!("Type .exit or Ctrl+C to quit");
     println!();
 
     // Create a minimal runtime
-    let mut runtime = beejs::runtime_minimal::MinimalRuntime::new()
+    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new()
         .expect("Failed to create runtime");
 
     let mut buffer = String::new();
 
     loop {
-        print!("bee> ");
+        print!("amber> ");
         std::io::stdout().flush()?;
 
         buffer.clear();

@@ -1,0 +1,21 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "amberjs.fullname" . }}
+  labels:
+    {{- include "amberjs.labels" . | nindent 4 }}
+    {{- include "amberjs.component" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "amberjs.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: {{ .Values.monitoring.serviceMonitor.path }}
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+      scheme: http
+      {{- if .Values.monitoring.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
+      {{- end }}
+{{- end }}

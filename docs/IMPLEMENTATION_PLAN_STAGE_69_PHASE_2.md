@@ -1,7 +1,7 @@
 # Stage 69 Phase 2: V8 引擎深度优化实施计划
 
 ## 项目概述
-**项目**: Beejs 高性能 JavaScript/TypeScript 运行时  
+**项目**: Amber 高性能 JavaScript/TypeScript 运行时  
 **阶段**: Stage 69 Phase 2  
 **目标**: V8 引擎深度优化，性能提升 20-30%  
 **当前性能**: ~23M ops/sec  
@@ -400,7 +400,7 @@ pub struct OptimizedIsolatePool {
 
 ## 结论
 
-Stage 69 Phase 2 是 Beejs 项目性能优化的关键阶段。通过 V8 引擎深度优化、JIT 增强、缓存改进、并发优化等技术手段，我们有信心实现 30%+ 的性能提升，达到 >30M ops/sec 的目标。
+Stage 69 Phase 2 是 Amber 项目性能优化的关键阶段。通过 V8 引擎深度优化、JIT 增强、缓存改进、并发优化等技术手段，我们有信心实现 30%+ 的性能提升，达到 >30M ops/sec 的目标。
 
 这个阶段不仅提升性能，还为后续 Stage 70 (Web API 完善) 和 Stage 71 (生态系统) 奠定了坚实基础。
 

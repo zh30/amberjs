@@ -21,7 +21,7 @@ fn hash_source(source: &str, file_name: &str) -> u64 {
 }
 
 fn cache_dir() -> PathBuf {
-    std::env::temp_dir().join("beejs-ts-cache")
+    std::env::temp_dir().join("amberjs-ts-cache")
 }
 
 pub fn get_cached(source: &str, file_name: &str) -> Option<CompilationOutput> {

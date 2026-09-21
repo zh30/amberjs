@@ -1,4 +1,4 @@
-// Basic TypeScript for Beejs
+// Basic TypeScript for Amber
 let x = 1
 let y = 2
 let result = x + y

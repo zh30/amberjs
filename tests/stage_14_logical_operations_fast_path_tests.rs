@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod logical_operations_fast_path_tests {
-    use beejs::Runtime;
+    use amberjs::Runtime;
 
     #[test]
     fn test_logical_not_true() {

@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod typescript_complex_types_tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     /// Test nested object type in satisfies (v0.3.169)
     /// 嵌套对象类型应该正确处理

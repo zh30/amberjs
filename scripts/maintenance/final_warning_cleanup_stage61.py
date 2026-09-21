@@ -120,7 +120,7 @@ def fix_remaining_warnings():
     fixed_count = 0
 
     for fix in fixes:
-        file_path = Path("/Users/henry/code/beejs") / fix["file"]
+        file_path = Path("/Users/henry/code/amberjs") / fix["file"]
         if not file_path.exists():
             continue
 
@@ -168,7 +168,7 @@ def fix_remaining_warnings():
 
     # 修复歧义重导出
     print("\n🔧 Fixing ambiguous re-exports...")
-    ai_inference_mod = Path("/Users/henry/code/beejs/src/ai_inference/mod.rs")
+    ai_inference_mod = Path("/Users/henry/code/amberjs/src/ai_inference/mod.rs")
     if ai_inference_mod.exists():
         try:
             with open(ai_inference_mod, 'r') as f:
@@ -203,7 +203,7 @@ if __name__ == "__main__":
         ["cargo", "check"],
         capture_output=True,
         text=True,
-        cwd="/Users/henry/code/beejs"
+        cwd="/Users/henry/code/amberjs"
     )
     warning_count = result.stderr.count('warning:')
     print(f"Warnings after final fix: {warning_count}")

@@ -1,7 +1,7 @@
 //! Task Runner for executing package.json scripts
 //!
 //! Provides lightweight, npm-free task execution for projects with package.json scripts.
-//! Automatically prioritizes local `node_modules/.bin` and the active `bee` executable in PATH.
+//! Automatically prioritizes local `node_modules/.bin` and the active `amber` executable in PATH.
 
 use anyhow::{anyhow, Result};
 use serde_json::Value;
@@ -63,7 +63,7 @@ pub fn build_enriched_path(project_dir: &Path) -> String {
         paths.push(local_bin.to_string_lossy().to_string());
     }
 
-    // 2. Directory containing the current `bee` executable
+    // 2. Directory containing the current `amber` executable
     if let Ok(current_exe) = env::current_exe() {
         if let Some(exe_dir) = current_exe.parent() {
             paths.push(exe_dir.to_string_lossy().to_string());

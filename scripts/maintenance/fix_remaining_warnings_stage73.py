@@ -80,13 +80,13 @@ def main():
 
     # 只处理有问题的文件
     problem_files = [
-        '/Users/henry/code/beejs/src/testing/v8_bindings.rs',
-        '/Users/henry/code/beejs/src/runtime_lite.rs',
-        '/Users/henry/code/beejs/src/v8_context_pool.rs',
-        '/Users/henry/code/beejs/src/cli/file_watcher.rs',
-        '/Users/henry/code/beejs/src/cli/repl.rs',
-        '/Users/henry/code/beejs/src/observability/prometheus_exporter.rs',
-        '/Users/henry/code/beejs/src/network/zero_copy/sender.rs',
+        '/Users/henry/code/amberjs/src/testing/v8_bindings.rs',
+        '/Users/henry/code/amberjs/src/runtime_lite.rs',
+        '/Users/henry/code/amberjs/src/v8_context_pool.rs',
+        '/Users/henry/code/amberjs/src/cli/file_watcher.rs',
+        '/Users/henry/code/amberjs/src/cli/repl.rs',
+        '/Users/henry/code/amberjs/src/observability/prometheus_exporter.rs',
+        '/Users/henry/code/amberjs/src/network/zero_copy/sender.rs',
     ]
 
     total_changes = 0

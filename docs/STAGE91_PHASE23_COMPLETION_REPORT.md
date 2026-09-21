@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-Stage 91 Phase 2.3 专注于实现完整的运行时配置管理系统，为 Beejs 运行时提供动态配置管理、配置验证和自动调优功能。
+Stage 91 Phase 2.3 专注于实现完整的运行时配置管理系统，为 Amber 运行时提供动态配置管理、配置验证和自动调优功能。
 
 ## 完成时间
 **2025-12-23 03:45 UTC**
@@ -133,10 +133,10 @@ pub struct ConfigSuggestion {
 - **production**: 安全沙箱、完整监控
 
 #### 环境变量支持
-- `BEEJS_ENVIRONMENT`: 设置运行环境
-- `BEEJS_V8_MAX_HEAP_SIZE`: V8 堆大小
-- `BEEJS_MEMORY_POOL_SIZE`: 内存池大小
-- `BEEJS_LOG_LEVEL`: 日志级别
+- `AMBER_ENVIRONMENT`: 设置运行环境
+- `AMBER_V8_MAX_HEAP_SIZE`: V8 堆大小
+- `AMBER_MEMORY_POOL_SIZE`: 内存池大小
+- `AMBER_LOG_LEVEL`: 日志级别
 
 #### 使用示例
 ```rust
@@ -246,7 +246,7 @@ manager.enable_hot_reload().await?;
 
 ### 基本用法
 ```rust
-use beejs::runtime_config::RuntimeConfigManager;
+use amberjs::runtime_config::RuntimeConfigManager;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -254,7 +254,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut manager = RuntimeConfigManager::new();
 
     // 从文件加载配置
-    manager.load_from_file("beejs.config.json").await?;
+    manager.load_from_file("amberjs.config.json").await?;
 
     // 更新配置
     manager.update_config_value("v8.max_heap_size_mb", 512).await?;
@@ -273,7 +273,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### 高级用法
 ```rust
-use beejs::runtime_config::{RuntimeConfigManager, AutoTuner};
+use amberjs::runtime_config::{RuntimeConfigManager, AutoTuner};
 use std::sync::Arc;
 
 #[tokio::main]
@@ -331,7 +331,7 @@ Stage 91 Phase 2.3 配置管理系统已圆满完成！
 - ✅ 100% 测试覆盖率
 
 ### 技术价值
-- 为 Beejs 运行时提供灵活的配置管理能力
+- 为 Amber 运行时提供灵活的配置管理能力
 - 支持生产环境的动态调优需求
 - 提升运行时的可运维性
 

@@ -7,7 +7,7 @@
 //! The matchers are implemented as V8 FunctionTemplates that are only available
 //! when running tests through V8TestExecutor.
 
-use beejs::Runtime;
+use amberjs::Runtime;
 
 /// Test toBe matcher - strict equality
 #[test]

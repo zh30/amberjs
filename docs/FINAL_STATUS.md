@@ -1,6 +1,6 @@
-# Beejs 模块系统实现 - 最终状态报告
+# Amber 模块系统实现 - 最终状态报告
 
-> 发布校验说明（2026-05-26）：本文件是历史状态报告。当前 public CLI 使用 `bee run <file>` 和 `bee eval <code>`，本文历史性能/状态描述不代表当前发布事实。
+> 发布校验说明（2026-05-26）：本文件是历史状态报告。当前 public CLI 使用 `amber run <file>` 和 `amber eval <code>`，本文历史性能/状态描述不代表当前发布事实。
 
 ## 📊 项目状态: 核心功能已完成 ✅
 
@@ -134,7 +134,7 @@ fn get_builtin_module()       // 获取内置模块
 ```
 ✅ 编译成功
 ✅ 所有测试通过
-✅ beejs 可执行文件生成
+✅ amberjs 可执行文件生成
 ```
 
 ### 📝 使用示例
@@ -142,13 +142,13 @@ fn get_builtin_module()       // 获取内置模块
 #### 基本用法
 ```bash
 # 运行模块测试
-./target/release/bee run test_module_system.js
+./target/release/amber run test_module_system.js
 
 # 内置模块测试
-./target/release/bee eval 'const path = require("path"); console.log(path.join("/a", "b"));'
+./target/release/amber eval 'const path = require("path"); console.log(path.join("/a", "b"));'
 
 # 相对路径模块
-./target/release/bee eval 'const math = require("./tests/fixtures/legacy/test_modules/math.js"); console.log(math.add(5, 3));'
+./target/release/amber eval 'const math = require("./tests/fixtures/legacy/test_modules/math.js"); console.log(math.add(5, 3));'
 ```
 
 ### 🔮 下一步计划
@@ -196,7 +196,7 @@ fn get_builtin_module()       // 获取内置模块
 
 ### 🏆 项目影响
 
-这是 Beejs 运行时的一个**重大里程碑**：
+这是 Amber 运行时的一个**重大里程碑**：
 - ✅ 核心架构完成
 - ✅ 向生产就绪迈进
 - ✅ 为 AI 工作负载做好准备
@@ -211,7 +211,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ## 结论
 
-Beejs 模块系统的实现已经完成，提供了完整的 CommonJS 支持，包括 require()、module.exports、exports、内置模块和模块缓存。这个实现为 Beejs 运行时奠定了坚实的基础，使其能够高效运行复杂的 JavaScript/TypeScript 代码，为 AI 时代的高性能脚本执行做好了准备。
+Amber 模块系统的实现已经完成，提供了完整的 CommonJS 支持，包括 require()、module.exports、exports、内置模块和模块缓存。这个实现为 Amber 运行时奠定了坚实的基础，使其能够高效运行复杂的 JavaScript/TypeScript 代码，为 AI 时代的高性能脚本执行做好了准备。
 
 **项目状态**: ✅ 核心功能已完成，构建和测试正在进行中
 **预期完成**: 5-10 分钟内完成构建和测试

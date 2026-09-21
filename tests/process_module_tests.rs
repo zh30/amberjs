@@ -8,7 +8,7 @@ use serial_test::serial;
 #[serial]
 fn test_process_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process")
         .expect("Execution failed");
@@ -20,7 +20,7 @@ fn test_process_exists() {
 #[serial]
 fn test_process_argv_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("Array.isArray(process.argv)")
         .expect("Execution failed");
@@ -32,15 +32,15 @@ fn test_process_argv_exists() {
 #[serial]
 fn test_process_argv_content() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
-        process.argv.length >= 2 && process.argv[0].includes('bee');
+        process.argv.length >= 2 && process.argv[0].includes('amber');
     "#;
     let result = runtime.execute_code(code).expect("Execution failed");
     assert_eq!(
         result.trim(),
         "true",
-        "process.argv should contain 'bee' as first element"
+        "process.argv should contain 'amber' as first element"
     );
 }
 
@@ -49,7 +49,7 @@ fn test_process_argv_content() {
 #[serial]
 fn test_process_version_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.version")
         .expect("Execution failed");
@@ -65,7 +65,7 @@ fn test_process_version_exists() {
 #[serial]
 fn test_process_version_format() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         process.version.startsWith('v');
     "#;
@@ -82,7 +82,7 @@ fn test_process_version_format() {
 #[serial]
 fn test_process_cwd_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.cwd")
         .expect("Execution failed");
@@ -98,7 +98,7 @@ fn test_process_cwd_exists() {
 #[serial]
 fn test_process_cwd_returns_string() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.cwd() === 'string';
     "#;
@@ -115,7 +115,7 @@ fn test_process_cwd_returns_string() {
 #[serial]
 fn test_process_cwd_non_empty() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         process.cwd().length > 0;
     "#;
@@ -132,7 +132,7 @@ fn test_process_cwd_non_empty() {
 #[serial]
 fn test_process_env_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.env")
         .expect("Execution failed");
@@ -144,7 +144,7 @@ fn test_process_env_exists() {
 #[serial]
 fn test_process_env_not_null() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         process.env !== null;
     "#;
@@ -157,7 +157,7 @@ fn test_process_env_not_null() {
 #[serial]
 fn test_process_env_accessible() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     // Just test that we can access process.env without error
     let code = r#"
         const keys = Object.keys(process.env);
@@ -176,7 +176,7 @@ fn test_process_env_accessible() {
 #[serial]
 fn test_process_next_tick_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.nextTick")
         .expect("Execution failed");
@@ -192,7 +192,7 @@ fn test_process_next_tick_exists() {
 #[serial]
 fn test_process_next_tick_basic() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         globalThis.__processNextTickExecuted = false;
         process.nextTick(function() { globalThis.__processNextTickExecuted = true; });
@@ -220,7 +220,7 @@ fn test_process_next_tick_basic() {
 #[serial]
 fn test_process_next_tick_with_args() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         globalThis.__processNextTickResult = null;
         process.nextTick(function(a, b) { globalThis.__processNextTickResult = a + b; }, 10, 20);
@@ -248,7 +248,7 @@ fn test_process_next_tick_with_args() {
 #[serial]
 fn test_process_next_tick_no_callback_error() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"process.nextTick()"#;
     let result = runtime.execute_code(code);
     assert!(
@@ -262,7 +262,7 @@ fn test_process_next_tick_no_callback_error() {
 #[serial]
 fn test_process_next_tick_non_function_error() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"process.nextTick("not a function")"#;
     let result = runtime.execute_code(code);
     assert!(
@@ -276,7 +276,7 @@ fn test_process_next_tick_non_function_error() {
 #[serial]
 fn test_process_hrtime_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.hrtime")
         .expect("Execution failed");
@@ -294,7 +294,7 @@ fn test_process_hrtime_exists() {
 #[serial]
 fn test_process_platform_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.platform")
         .expect("Execution failed");
@@ -310,7 +310,7 @@ fn test_process_platform_exists() {
 #[serial]
 fn test_process_arch_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.arch")
         .expect("Execution failed");
@@ -326,7 +326,7 @@ fn test_process_arch_exists() {
 #[serial]
 fn test_process_pid_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.pid")
         .expect("Execution failed");
@@ -342,7 +342,7 @@ fn test_process_pid_exists() {
 #[serial]
 fn test_process_uptime_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.uptime")
         .expect("Execution failed");
@@ -358,11 +358,11 @@ fn test_process_uptime_exists() {
 #[serial]
 fn test_process_memory_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.memory")
         .expect("Execution failed");
-    // process.memory() is Beejs' extended memory statistics API.
+    // process.memory() is Amber' extended memory statistics API.
     assert!(
         result.trim() == "function" || result.trim() == "undefined",
         "process.memory should be a function or undefined"
@@ -374,7 +374,7 @@ fn test_process_memory_exists() {
 #[serial]
 fn test_process_exit_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.exit")
         .expect("Execution failed");
@@ -390,7 +390,7 @@ fn test_process_exit_exists() {
 #[serial]
 fn test_process_multiple_properties() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.argv === 'object' &&
         typeof process.version === 'string' &&
@@ -411,7 +411,7 @@ fn test_process_multiple_properties() {
 #[serial]
 fn test_process_is_extensible() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         process.customProperty = 'test';
         process.customProperty === 'test';
@@ -429,7 +429,7 @@ fn test_process_is_extensible() {
 #[serial]
 fn test_process_umask_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.umask")
         .expect("Execution failed");
@@ -445,7 +445,7 @@ fn test_process_umask_exists() {
 #[serial]
 fn test_process_umask_returns_mask() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const mask = process.umask();
         typeof mask === 'string' && mask.length === 4;
@@ -463,7 +463,7 @@ fn test_process_umask_returns_mask() {
 #[serial]
 fn test_process_umask_sets_mask() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const oldMask = process.umask(0o077);
         const newMask = process.umask();
@@ -482,7 +482,7 @@ fn test_process_umask_sets_mask() {
 #[serial]
 fn test_process_abort_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.abort")
         .expect("Execution failed");
@@ -498,7 +498,7 @@ fn test_process_abort_exists() {
 #[serial]
 fn test_process_config_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.config")
         .expect("Execution failed");
@@ -514,7 +514,7 @@ fn test_process_config_exists() {
 #[serial]
 fn test_process_config_variables_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.config.variables === 'object';
     "#;
@@ -531,7 +531,7 @@ fn test_process_config_variables_exists() {
 #[serial]
 fn test_process_config_host_arch() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.config.variables.host_arch === 'string';
     "#;
@@ -548,7 +548,7 @@ fn test_process_config_host_arch() {
 #[serial]
 fn test_process_config_platform() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.config.variables.platform === 'string';
     "#;
@@ -565,7 +565,7 @@ fn test_process_config_platform() {
 #[serial]
 fn test_process_chdir_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.chdir")
         .expect("Execution failed");
@@ -581,7 +581,7 @@ fn test_process_chdir_exists() {
 #[serial]
 fn test_process_chdir_changes_directory() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const original = process.cwd();
         const result = process.chdir(original);
@@ -600,7 +600,7 @@ fn test_process_chdir_changes_directory() {
 #[serial]
 fn test_process_title_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.title")
         .expect("Execution failed");
@@ -612,7 +612,7 @@ fn test_process_title_exists() {
 #[serial]
 fn test_process_title_default_value() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         process.title.length > 0;
     "#;
@@ -629,7 +629,7 @@ fn test_process_title_default_value() {
 #[serial]
 fn test_process_release_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.release")
         .expect("Execution failed");
@@ -645,15 +645,15 @@ fn test_process_release_exists() {
 #[serial]
 fn test_process_release_name() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
-        process.release.name === 'bee';
+        process.release.name === 'amber';
     "#;
     let result = runtime.execute_code(code).expect("Execution failed");
     assert_eq!(
         result.trim(),
         "true",
-        "process.release.name should be 'bee'"
+        "process.release.name should be 'amber'"
     );
 }
 
@@ -662,7 +662,7 @@ fn test_process_release_name() {
 #[serial]
 fn test_process_memory_usage_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.memoryUsage")
         .expect("Execution failed");
@@ -678,7 +678,7 @@ fn test_process_memory_usage_exists() {
 #[serial]
 fn test_process_memory_usage_returns_object() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const mem = process.memoryUsage();
         typeof mem.heapTotal === 'number' &&
@@ -695,7 +695,7 @@ fn test_process_memory_usage_returns_object() {
 #[serial]
 fn test_process_memory_usage_realistic_values() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const mem = process.memoryUsage();
         // heapUsed should be between 1MB and 1GB for a simple runtime
@@ -718,7 +718,7 @@ fn test_process_memory_usage_realistic_values() {
 #[serial]
 fn test_process_memory_usage_multiple_calls() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const mem1 = process.memoryUsage();
         const mem2 = process.memoryUsage();
@@ -738,7 +738,7 @@ fn test_process_memory_usage_multiple_calls() {
 #[serial]
 fn test_process_memory_usage_increases_with_allocation() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const memBefore = process.memoryUsage();
         // Allocate some memory
@@ -760,7 +760,7 @@ fn test_process_memory_usage_increases_with_allocation() {
 #[serial]
 fn test_process_ppid_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.ppid")
         .expect("Execution failed");
@@ -772,7 +772,7 @@ fn test_process_ppid_exists() {
 #[serial]
 fn test_process_ppid_is_positive() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         process.ppid > 0;
     "#;
@@ -789,7 +789,7 @@ fn test_process_ppid_is_positive() {
 #[serial]
 fn test_process_ppid_different_from_pid() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         process.ppid !== process.pid;
     "#;
@@ -806,7 +806,7 @@ fn test_process_ppid_different_from_pid() {
 #[serial]
 fn test_process_features_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.features")
         .expect("Execution failed");
@@ -822,7 +822,7 @@ fn test_process_features_exists() {
 #[serial]
 fn test_process_features_debug() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.features.debug === 'boolean';
     "#;
@@ -839,7 +839,7 @@ fn test_process_features_debug() {
 #[serial]
 fn test_process_features_ipc() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.features.ipc === 'boolean';
     "#;
@@ -856,7 +856,7 @@ fn test_process_features_ipc() {
 #[serial]
 fn test_process_features_uv() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.features.uv === 'boolean';
     "#;
@@ -873,7 +873,7 @@ fn test_process_features_uv() {
 #[serial]
 fn test_process_features_v8() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.features.v8 === 'boolean';
     "#;
@@ -890,7 +890,7 @@ fn test_process_features_v8() {
 #[serial]
 fn test_process_features_modules() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.features.modules === 'boolean';
     "#;
@@ -911,7 +911,7 @@ fn test_process_features_modules() {
 #[serial]
 fn test_process_hrtime_returns_object() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const time = process.hrtime();
         typeof time === 'object' && typeof time[0] === 'number' && typeof time[1] === 'number';
@@ -929,7 +929,7 @@ fn test_process_hrtime_returns_object() {
 #[serial]
 fn test_process_hrtime_realistic_values() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const time = process.hrtime();
         const sec = time[0];
@@ -949,7 +949,7 @@ fn test_process_hrtime_realistic_values() {
 #[serial]
 fn test_process_hrtime_bigint_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let result = runtime
         .execute_code("typeof process.hrtime.bigint")
         .expect("Execution failed");
@@ -965,7 +965,7 @@ fn test_process_hrtime_bigint_exists() {
 #[serial]
 fn test_process_hrtime_bigint_returns_bigint() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.hrtime.bigint() === 'bigint';
     "#;
@@ -982,7 +982,7 @@ fn test_process_hrtime_bigint_returns_bigint() {
 #[serial]
 fn test_process_hrtime_bigint_positive() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const time = process.hrtime.bigint();
         time > 1700000000000000000n;
@@ -1000,7 +1000,7 @@ fn test_process_hrtime_bigint_positive() {
 #[serial]
 fn test_process_hrtime_bigint_is_nanoseconds() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // bigint should be a positive value representing nanoseconds
         const bigint = process.hrtime.bigint();

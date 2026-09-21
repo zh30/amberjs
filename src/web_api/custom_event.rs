@@ -144,7 +144,7 @@ fn custom_event_constructor(
                 }
             }
 
-            // Older Beejs examples passed the payload object directly, or under
+            // Older Amber examples passed the payload object directly, or under
             // a "data" key, instead of the standard { detail } eventInitDict.
             if !has_explicit_detail {
                 let data_key = v8::String::new(scope, "data").unwrap();

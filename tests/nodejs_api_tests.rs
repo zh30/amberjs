@@ -1,4 +1,4 @@
-use beejs::Runtime;
+use amberjs::Runtime;
 use serial_test::serial;
 use std::io::Write;
 use tempfile::{NamedTempFile, TempDir};
@@ -109,14 +109,14 @@ fn test_child_process_exec_returns_real_stdout() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        const child = childProcess.exec("printf beejs-child-process");
+        const child = childProcess.exec("printf amberjs-child-process");
         `${child.stdout}|${child.stderr}|${child.exitCode}`;
     "#,
     );
     assert!(result.is_ok(), "child_process.exec failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        "beejs-child-process||0",
+        "amberjs-child-process||0",
         "exec should expose real stdout/stderr/exitCode"
     );
 }
@@ -129,7 +129,7 @@ fn test_child_process_exec_invokes_callback_with_output() {
         r#"
         const childProcess = require("child_process");
         let observed = "pending";
-        childProcess.exec("printf beejs-callback", (error, stdout, stderr) => {
+        childProcess.exec("printf amberjs-callback", (error, stdout, stderr) => {
             observed = `${error === null}:${stdout}:${stderr}`;
         });
         observed;
@@ -138,7 +138,7 @@ fn test_child_process_exec_invokes_callback_with_output() {
     assert!(result.is_ok(), "child_process.exec failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        "true:beejs-callback:",
+        "true:amberjs-callback:",
         "exec callback should receive null error plus real stdout/stderr"
     );
 }
@@ -150,7 +150,7 @@ fn test_child_process_exec_file_returns_real_stdout() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        const child = childProcess.execFile("/bin/echo", ["beejs-exec-file"]);
+        const child = childProcess.execFile("/bin/echo", ["amberjs-exec-file"]);
         `${child.stdout}|${child.stderr}|${child.exitCode}`;
     "#,
     );
@@ -161,7 +161,7 @@ fn test_child_process_exec_file_returns_real_stdout() {
     );
     assert_eq!(
         result.unwrap().trim(),
-        "beejs-exec-file\n||0",
+        "amberjs-exec-file\n||0",
         "execFile should expose real stdout/stderr/exitCode"
     );
 }
@@ -174,7 +174,7 @@ fn test_child_process_exec_file_invokes_callback_with_output() {
         r#"
         const childProcess = require("child_process");
         let observed = "pending";
-        childProcess.execFile("/bin/echo", ["beejs-file-callback"], (error, stdout, stderr) => {
+        childProcess.execFile("/bin/echo", ["amberjs-file-callback"], (error, stdout, stderr) => {
             observed = `${error === null}:${stdout}:${stderr}`;
         });
         observed;
@@ -187,7 +187,7 @@ fn test_child_process_exec_file_invokes_callback_with_output() {
     );
     assert_eq!(
         result.unwrap().trim(),
-        "true:beejs-file-callback\n:",
+        "true:amberjs-file-callback\n:",
         "execFile callback should receive null error plus real stdout/stderr"
     );
 }
@@ -200,7 +200,7 @@ fn test_child_process_exec_callback_receives_error_on_nonzero_exit() {
         r#"
         const childProcess = require("child_process");
         let observed = "pending";
-        childProcess.exec("echo beejs-error >&2; exit 7", (error, stdout, stderr) => {
+        childProcess.exec("echo amberjs-error >&2; exit 7", (error, stdout, stderr) => {
             observed = `${!!error}:${error && error.code}:${stdout}:${stderr}:done`;
         });
         observed;
@@ -209,7 +209,7 @@ fn test_child_process_exec_callback_receives_error_on_nonzero_exit() {
     assert!(result.is_ok(), "child_process.exec failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        "true:7::beejs-error\n:done",
+        "true:7::amberjs-error\n:done",
         "exec callback should receive an Error with code and real stderr on non-zero exit"
     );
 }
@@ -221,14 +221,14 @@ fn test_child_process_spawn_returns_real_stdout() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        const child = childProcess.spawn("/bin/echo", ["beejs-spawn"]);
+        const child = childProcess.spawn("/bin/echo", ["amberjs-spawn"]);
         `${child.stdout}|${child.stderr}|${child.exitCode}`;
     "#,
     );
     assert!(result.is_ok(), "child_process.spawn failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        "beejs-spawn\n||0",
+        "amberjs-spawn\n||0",
         "spawn should expose real stdout/stderr/exitCode"
     );
 }
@@ -240,14 +240,14 @@ fn test_child_process_spawn_reports_nonzero_exit() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        const child = childProcess.spawn("sh", ["-c", "echo beejs-spawn-error >&2; exit 9"]);
+        const child = childProcess.spawn("sh", ["-c", "echo amberjs-spawn-error >&2; exit 9"]);
         `${child.stdout}:${child.stderr}:done:${child.exitCode}`;
     "#,
     );
     assert!(result.is_ok(), "child_process.spawn failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        ":beejs-spawn-error\n:done:9",
+        ":amberjs-spawn-error\n:done:9",
         "spawn should expose real stderr and non-zero exitCode"
     );
 }
@@ -333,14 +333,14 @@ fn test_fs_read_file_sync() {
 
     // Create a temporary file with content
     let mut file = NamedTempFile::new().unwrap();
-    writeln!(file, "Hello from Beejs!").unwrap();
+    writeln!(file, "Hello from Amber!").unwrap();
     let path = file.path().to_str().unwrap().to_string();
 
     let code = format!(r#"fs.readFileSync("{}", "utf8")"#, path);
     let result = runtime.execute_code(&code);
     assert!(result.is_ok());
     let result_str = result.unwrap();
-    assert!(result_str.contains("Hello from Beejs"));
+    assert!(result_str.contains("Hello from Amber"));
 }
 
 #[test]
@@ -530,11 +530,11 @@ fn test_module_exports() {
             add: (a, b) => a + b
         };
         module.exports = utils;
-        module.exports.greet("Beejs");
+        module.exports.greet("Amber");
     "#;
 
     let result = runtime.execute_code(code);
     assert!(result.is_ok());
     let result_str = result.unwrap();
-    assert!(result_str.contains("Hello, Beejs"));
+    assert!(result_str.contains("Hello, Amber"));
 }

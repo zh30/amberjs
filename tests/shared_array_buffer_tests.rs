@@ -1,28 +1,28 @@
-// SharedArrayBuffer tests for Beejs runtime
+// SharedArrayBuffer tests for Amber runtime
 // v0.3.322: Tests for cross-Worker shared memory support
 
 use std::fs;
 use std::process::{Command, Stdio};
 
-/// Helper function to run a JavaScript script with beejs
+/// Helper function to run a JavaScript script with amberjs
 fn run_script(script: &str) -> std::process::Output {
     // Create a temporary file with the script
     let temp_dir = tempfile::Builder::new()
-        .prefix("beejs-shared-buffer-test-")
+        .prefix("amberjs-shared-buffer-test-")
         .tempdir()
         .unwrap();
     let temp_file = temp_dir.path().join("test.js");
     fs::write(&temp_file, script).unwrap();
 
-    // Run beejs with the script
-    let output = Command::new("./target/debug/bee")
+    // Run amberjs with the script
+    let output = Command::new("./target/debug/amber")
         .arg("run")
         .arg(&temp_file)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .expect("Failed to run bee");
+        .expect("Failed to run amber");
 
     // Clean up
     drop(temp_dir);

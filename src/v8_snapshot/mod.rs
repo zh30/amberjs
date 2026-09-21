@@ -10,10 +10,10 @@ pub use snapshot::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 
-pub const SNAPSHOT_MAGIC: &[u8; 8] = b"BEEJS_V3";
+pub const SNAPSHOT_MAGIC: &[u8; 8] = b"AMBER_V3";
 static CLI_STARTUP_SNAPSHOT: AtomicBool = AtomicBool::new(true);
 
-/// Enable startup snapshot for `bee run` (no-op when disabled via env).
+/// Enable startup snapshot for `amber run` (no-op when disabled via env).
 pub fn enable_startup_snapshot_for_cli() {
     CLI_STARTUP_SNAPSHOT.store(true, Ordering::SeqCst);
 }
@@ -27,7 +27,7 @@ pub fn startup_snapshot_name() -> String {
     };
     let v8_version = rusty_v8::V8::get_version();
     format!(
-        "beejs-startup-v{}-{}-v8-{}-warmup-v3.bin",
+        "amberjs-startup-v{}-{}-v8-{}-warmup-v3.bin",
         env!("CARGO_PKG_VERSION"),
         mode,
         v8_version
@@ -36,11 +36,14 @@ pub fn startup_snapshot_name() -> String {
 
 /// Directory used for snapshot cache storage.
 pub fn startup_cache_dir() -> std::path::PathBuf {
-    std::env::var_os("BEEJS_SNAPSHOT_DIR")
+    std::env::var_os("AMBER_SNAPSHOT_DIR")
         .map(std::path::PathBuf::from)
         .or_else(|| {
-            std::env::var_os("HOME")
-                .map(|home| std::path::PathBuf::from(home).join(".cache").join("beejs"))
+            std::env::var_os("HOME").map(|home| {
+                std::path::PathBuf::from(home)
+                    .join(".cache")
+                    .join("amberjs")
+            })
         })
         .unwrap_or_else(std::env::temp_dir)
 }
@@ -67,9 +70,9 @@ pub fn startup_blob_status() -> SnapshotStatusInfo {
         Ok(m) => (true, m.len()),
         Err(_) => (false, 0),
     };
-    let enabled = !std::env::var_os("BEEJS_DISABLE_STARTUP_SNAPSHOT").is_some()
+    let enabled = !std::env::var_os("AMBER_DISABLE_STARTUP_SNAPSHOT").is_some()
         && (CLI_STARTUP_SNAPSHOT.load(Ordering::SeqCst)
-            || std::env::var_os("BEEJS_STARTUP_SNAPSHOT").is_some());
+            || std::env::var_os("AMBER_STARTUP_SNAPSHOT").is_some());
     SnapshotStatusInfo {
         enabled,
         path,
@@ -147,14 +150,14 @@ pub fn unwrap_snapshot_payload(bytes: &[u8]) -> Option<Vec<u8>> {
 }
 
 /// Process-wide warmup blob for `CreateParams::snapshot_blob`.
-/// Opt in with `enable_startup_snapshot_for_cli()` or `BEEJS_STARTUP_SNAPSHOT=1`.
-/// Disable with `BEEJS_DISABLE_STARTUP_SNAPSHOT=1`.
+/// Opt in with `enable_startup_snapshot_for_cli()` or `AMBER_STARTUP_SNAPSHOT=1`.
+/// Disable with `AMBER_DISABLE_STARTUP_SNAPSHOT=1`.
 pub fn cached_startup_blob() -> Option<&'static [u8]> {
-    if std::env::var_os("BEEJS_DISABLE_STARTUP_SNAPSHOT").is_some() {
+    if std::env::var_os("AMBER_DISABLE_STARTUP_SNAPSHOT").is_some() {
         return None;
     }
     let enabled = CLI_STARTUP_SNAPSHOT.load(Ordering::SeqCst)
-        || std::env::var_os("BEEJS_STARTUP_SNAPSHOT").is_some();
+        || std::env::var_os("AMBER_STARTUP_SNAPSHOT").is_some();
     if !enabled {
         return None;
     }

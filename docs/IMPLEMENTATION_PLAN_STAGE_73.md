@@ -1,4 +1,4 @@
-# Beejs Stage 73 实施计划
+# Amber Stage 73 实施计划
 
 ## 概述
 Stage 73 将在 Stage 72 (TypeScript 箭头函数支持) 的基础上，进一步完善 TypeScript 生态系统，提升代码质量，并为下一阶段的高级功能做好准备。

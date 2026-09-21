@@ -1,7 +1,7 @@
 // Stage 89 Phase 2: 优雅降级管理器
 // 提供功能降级策略和自动恢复机制
 
-use crate::error::BeejsError;
+use crate::error::AmberError;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
@@ -74,7 +74,7 @@ pub struct FallbackEvent {
     pub feature: Feature,
     pub strategy: FallbackStrategy,
     pub timestamp: Instant,
-    pub error: Option<BeejsError>,
+    pub error: Option<AmberError>,
     pub recovery_time: Option<Duration>,
 }
 /// 降级统计
@@ -139,7 +139,7 @@ impl FallbackManager {
         }
     }
     /// 处理功能失败
-    pub async fn handle_feature_failure(&self, feature: Feature) -> Result<String, BeejsError> {
+    pub async fn handle_feature_failure(&self, feature: Feature) -> Result<String, AmberError> {
         let start_time: _ = Instant::now();
         // 更新统计
         {
@@ -185,7 +185,7 @@ impl FallbackManager {
         // 所有策略都失败
         let duration: _ = start_time.elapsed();
         self.record_failure(feature.clone(), duration).await;
-        Err(BeejsError::RuntimeError(format!(
+        Err(AmberError::RuntimeError(format!(
             "All fallback strategies failed for feature: {}",
             feature
         )))
@@ -195,7 +195,7 @@ impl FallbackManager {
         &self,
         feature: Feature,
         strategy: FallbackStrategy,
-    ) -> Result<String, BeejsError> {
+    ) -> Result<String, AmberError> {
         match strategy {
             FallbackStrategy::DisableFeature => {
                 // 禁用功能
