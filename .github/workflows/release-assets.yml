@@ -12,6 +12,9 @@ name: Release Assets
 #   - vcpkg OpenSSL on Windows instead of chocolatey
 #   - lld on Linux
 #   - x86_64 macOS is cross-compiled on macos-latest (ARM), avoiding macos-15-intel
+#   - macOS installs openssl@3 via brew; the Intel target also builds a static
+#     x86_64 OpenSSL (ARM Homebrew libs cannot be used while cross-compiling).
+#     Steps are inline so workflow_dispatch on an older tag still works.
 
 on:
   push:
@@ -108,6 +111,106 @@ jobs:
         shell: pwsh
         run: ./scripts/windows_openssl_env.ps1
 
+      # Checkout is the release tag, so this must stay inline (not a new repo script).
+      - name: Install OpenSSL (macOS)
+        if: runner.os == 'macOS'
+        run: brew install openssl@3 pkg-config
+
+      - name: Cache x86_64 OpenSSL (cross)
+        if: matrix.target == 'x86_64-apple-darwin'
+        uses: actions/cache@v4
+        with:
+          path: ~/openssl-x86_64-3.5.8
+          key: openssl-3.5.8-darwin64-x86_64-static
+
+      - name: Configure OpenSSL env (macOS)
+        if: runner.os == 'macOS'
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MACOSX_DEPLOYMENT_TARGET:-}" ]; then
+            echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> "$GITHUB_ENV"
+            export MACOSX_DEPLOYMENT_TARGET=11.0
+          fi
+
+          write_openssl_env() {
+            local prefix="$1"
+            local cross_x86="$2"
+            if [ ! -f "${prefix}/include/openssl/ssl.h" ]; then
+              echo "::error::OpenSSL headers missing under ${prefix}"
+              exit 1
+            fi
+            local libdir=""
+            if [ -f "${prefix}/lib/libssl.a" ] || [ -f "${prefix}/lib/libssl.dylib" ]; then
+              libdir="${prefix}/lib"
+            elif [ -f "${prefix}/lib64/libssl.a" ]; then
+              libdir="${prefix}/lib64"
+            else
+              echo "::error::OpenSSL libraries missing under ${prefix}"
+              exit 1
+            fi
+            {
+              echo "OPENSSL_DIR=${prefix}"
+              echo "OPENSSL_LIB_DIR=${libdir}"
+              echo "OPENSSL_INCLUDE_DIR=${prefix}/include"
+              echo "PKG_CONFIG_PATH=${libdir}/pkgconfig"
+            } >> "$GITHUB_ENV"
+            if [ "${cross_x86}" = "1" ]; then
+              {
+                echo "OPENSSL_STATIC=1"
+                echo "PKG_CONFIG_ALLOW_CROSS=1"
+                echo "X86_64_APPLE_DARWIN_OPENSSL_DIR=${prefix}"
+                echo "X86_64_APPLE_DARWIN_OPENSSL_LIB_DIR=${libdir}"
+                echo "X86_64_APPLE_DARWIN_OPENSSL_INCLUDE_DIR=${prefix}/include"
+              } >> "$GITHUB_ENV"
+            fi
+            echo "Using OpenSSL at ${prefix} (lib=${libdir})"
+          }
+
+          if [ "${TARGET}" = "x86_64-apple-darwin" ]; then
+            OPENSSL_VERSION="3.5.8"
+            OPENSSL_SHA256="a8f84a39918ec6415ce765d9b429d313ba97b8143169c172e734b9514464f5b2"
+            PREFIX="${HOME}/openssl-x86_64-${OPENSSL_VERSION}"
+            if [ ! -f "${PREFIX}/lib/libssl.a" ]; then
+              work="$(mktemp -d)"
+              tarball="${work}/openssl-${OPENSSL_VERSION}.tar.gz"
+              url="https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"
+              echo "Downloading ${url}"
+              curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 "${url}" -o "${tarball}"
+              actual="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
+              if [ "${actual}" != "${OPENSSL_SHA256}" ]; then
+                echo "::error::OpenSSL tarball SHA-256 mismatch (got ${actual})"
+                exit 1
+              fi
+              tar -xzf "${tarball}" -C "${work}"
+              (
+                cd "${work}/openssl-${OPENSSL_VERSION}"
+                ./Configure darwin64-x86_64-cc \
+                  --prefix="${PREFIX}" \
+                  --openssldir="${PREFIX}/ssl" \
+                  no-shared \
+                  no-tests
+                make -j"$(sysctl -n hw.ncpu)"
+                make install_sw
+              )
+            fi
+            arch_ok=0
+            if lipo -info "${PREFIX}/lib/libssl.a" 2>/dev/null | tee /dev/stderr | grep -q x86_64; then
+              arch_ok=1
+            elif otool -hv "${PREFIX}/lib/libssl.a" | tee /dev/stderr | grep -q X86_64; then
+              arch_ok=1
+            fi
+            if [ "${arch_ok}" -ne 1 ]; then
+              echo "::error::expected x86_64 libssl.a, refusing ARM Homebrew OpenSSL"
+              exit 1
+            fi
+            write_openssl_env "${PREFIX}" 1
+          else
+            PREFIX="$(brew --prefix openssl@3)"
+            write_openssl_env "${PREFIX}" 0
+          fi
+
       - name: Build release binary
         env:
           RUSTFLAGS: ${{ runner.os == 'Linux' && '-C link-arg=-fuse-ld=lld' || '' }}
@@ -164,18 +267,22 @@ jobs:
       - name: Require Unix archives and Windows zip
         run: |
           set -euo pipefail
-          count=$(find release -type f -name 'amber-*.tar.gz' | wc -l | tr -d ' ')
-          echo "unix_archives=${count}"
-          if [ "${count}" -lt 1 ]; then
-            echo "::error::No Unix archives were produced; refusing empty GitHub Release"
-            exit 1
-          fi
-          zipcount=$(find release -type f -name 'amber-*-x86_64-pc-windows-msvc.zip' | wc -l | tr -d ' ')
-          echo "windows_zips=${zipcount}"
-          if [ "${zipcount}" -lt 1 ]; then
-            echo "::error::Windows zip amber-*-x86_64-pc-windows-msvc.zip was not produced"
-            exit 1
-          fi
+          require_one() {
+            local pattern="$1"
+            local label="$2"
+            local count
+            count=$(find release -type f -name "${pattern}" | wc -l | tr -d ' ')
+            echo "${label}=${count}"
+            if [ "${count}" -lt 1 ]; then
+              echo "::error::${label} ${pattern} was not produced; Homebrew and install.sh need the five-asset set"
+              exit 1
+            fi
+          }
+          require_one 'amber-*-x86_64-unknown-linux-gnu.tar.gz' linux_x64_archive
+          require_one 'amber-*-aarch64-unknown-linux-gnu.tar.gz' linux_arm64_archive
+          require_one 'amber-*-aarch64-apple-darwin.tar.gz' macos_arm64_archive
+          require_one 'amber-*-x86_64-apple-darwin.tar.gz' macos_x64_archive
+          require_one 'amber-*-x86_64-pc-windows-msvc.zip' windows_zip
           if ! find release -type f -name 'amber-*-x86_64-pc-windows-msvc.zip' -print0 | xargs -0 unzip -l | grep -q 'amber.exe'; then
             echo "::error::Windows zip does not contain amber.exe"
             exit 1
