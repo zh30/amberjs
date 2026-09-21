@@ -699,5 +699,5 @@ pub fn generate_boundary() -> String {
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let random: u128 = rng.gen();
-    format!("----BeejsFormBoundary{}", random)
+    format!("----AmberFormBoundary{}", random)
 }

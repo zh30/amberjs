@@ -1,7 +1,7 @@
 //! 性能优化验证测试
 //! 验证实施优化后的性能提升
 
-use beejs::Runtime;
+use amberjs::Runtime;
 use std::time::Instant;
 
 /// 性能优化验证结果
@@ -257,9 +257,9 @@ impl OptimizationVerifier {
         println!("📊 总计: {}", verifications.len());
 
         if success_count == verifications.len() {
-            println!("\n🎉 所有优化验证成功！Beejs 性能大幅提升！");
+            println!("\n🎉 所有优化验证成功！Amber 性能大幅提升！");
         } else if success_count + partial_count == verifications.len() {
-            println!("\n✨ 大部分优化验证成功，Beejs 性能显著提升！");
+            println!("\n✨ 大部分优化验证成功，Amber 性能显著提升！");
         } else {
             println!("\n🔧 需要进一步优化，部分目标未达成。");
         }

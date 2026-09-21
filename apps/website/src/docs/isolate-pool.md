@@ -1,5 +1,5 @@
 ---
-title: "Multi-Tenant IsolatePool (bee:pool)"
+title: "Multi-Tenant IsolatePool (amber:pool)"
 subtitle: "High-density, multi-tenant V8 execution pool designed for Multi-Agent sandboxing and Serverless micro-tasks"
 group: "Core Systems"
 id: "isolate-pool"
@@ -9,7 +9,7 @@ id: "isolate-pool"
 
 Modern AI agent workflows, microservices, and serverless edge functions require executing untrusted or multi-tenant JavaScript/TypeScript code concurrently with absolute isolation, minimal memory overhead, and millisecond dispatch latency.
 
-While standard child processes or containers require tens of megabytes of memory and hundreds of milliseconds to boot, **Beejs v1.4.0 introduces `bee:pool`**—a thread-isolated, high-density V8 `IsolatePool`.
+While standard child processes or containers require tens of megabytes of memory and hundreds of milliseconds to boot, **Amber v1.4.0 introduces `amber:pool`**—a thread-isolated, high-density V8 `IsolatePool`.
 
 ### Key Advantages
 - **True Multi-Tenant Isolation**: Each worker thread encapsulates an independent V8 heap and garbage collector. Global variables or prototypes modified in one task cannot leak to another.
@@ -21,10 +21,10 @@ While standard child processes or containers require tens of megabytes of memory
 
 ## 2. Using IsolatePool in JavaScript & TypeScript
 
-Import `IsolatePool` from `bee:pool`:
+Import `IsolatePool` from `amber:pool`:
 
 ```typescript
-import { IsolatePool } from 'bee:pool';
+import { IsolatePool } from 'amber:pool';
 
 // Initialize a pool with minimum 2 and maximum 8 warm isolates
 const pool = new IsolatePool({
@@ -36,12 +36,12 @@ const pool = new IsolatePool({
 
 // Run tasks concurrently in isolated V8 heaps
 const task1 = pool.run("30 * 40");
-const task2 = pool.run("JSON.stringify({ agent: 'bee', isolated: true })");
+const task2 = pool.run("JSON.stringify({ agent: 'amber', isolated: true })");
 
 const [res1, res2] = await Promise.all([task1, task2]);
 
 console.log('Result 1:', res1); // 1200
-console.log('Result 2:', res2); // { agent: 'bee', isolated: true }
+console.log('Result 2:', res2); // { agent: 'amber', isolated: true }
 
 // Check pool performance metrics
 const stats = pool.stats();
@@ -70,7 +70,7 @@ pool.destroy();
 When orchestrating autonomous agents that execute dynamic JavaScript logic:
 
 ```typescript
-import { IsolatePool } from 'bee:pool';
+import { IsolatePool } from 'amber:pool';
 
 const agentPool = new IsolatePool({ minIsolates: 4, timeoutMs: 3000 });
 

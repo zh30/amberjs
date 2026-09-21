@@ -1,7 +1,7 @@
 //! TypeScript 6.0 language-surface transpile tests (oxc backend, transpile-only).
 
-use beejs::runtime::MinimalRuntime;
-use beejs::typescript::compile_typescript;
+use amberjs::runtime::MinimalRuntime;
+use amberjs::typescript::compile_typescript;
 use serial_test::serial;
 
 fn assert_strips(js: &str, forbidden: &[&str]) {

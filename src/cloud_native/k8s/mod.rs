@@ -3,7 +3,7 @@
 pub mod crd;
 /// Re-export CRD types for convenient access
 pub use crd::{
-    Affinity, BeejsCluster, BeejsClusterSpec, BeejsWorkload, BeejsWorkloadSpec, ClusterPhase,
+    Affinity, AmberCluster, AmberClusterSpec, AmberWorkload, AmberWorkloadSpec, ClusterPhase,
     Condition, ConditionStatus, ConditionType, DistributedConfig, HPAConfig, MonitoringConfig,
     NetworkPolicyConfig, PodAffinity, PodAntiAffinity, PreferredSchedulingTerm,
     ResourceRequirements, RetryConfig, SecurityConfig, SecurityContext, ServiceDiscoveryConfig,
@@ -32,8 +32,8 @@ mod tests {
     #[test]
     fn test_crd_exports() {
         // Verify that CRD types are properly exported
-        let _cluster: Option<BeejsCluster> = None;
-        let _workload: Option<BeejsWorkload> = None;
+        let _cluster: Option<AmberCluster> = None;
+        let _workload: Option<AmberWorkload> = None;
         let _resources: Option<ResourceRequirements> = None;
         let _security: Option<SecurityConfig> = None;
         let _distributed: Option<DistributedConfig> = None;

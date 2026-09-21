@@ -1,0 +1,139 @@
+# Alert rules for Amber runtime monitoring
+# These rules define when to trigger alerts based on performance metrics
+
+groups:
+  - name: amberjs.runtime.alerts
+    rules:
+      # High CPU usage alert
+      - alert: AmberHighCPU
+        expr: rate(amberjs_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          service: amberjs
+        annotations:
+          summary: "Amber runtime high CPU usage"
+          description: "Amber instance {{ $labels.instance }} has CPU usage above 80% for more than 2 minutes. Current value: {{ $value }}%"
+
+      # Critical CPU usage alert
+      - alert: AmberCriticalCPU
+        expr: rate(amberjs_cpu_usage_seconds_total[5m]) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+          service: amberjs
+        annotations:
+          summary: "Amber runtime critical CPU usage"
+          description: "Amber instance {{ $labels.instance }} has critical CPU usage above 95%. Current value: {{ $value }}%"
+
+      # High memory usage alert
+      - alert: AmberHighMemory
+        expr: amberjs_memory_usage_bytes / amberjs_memory_limit_bytes * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          service: amberjs
+        annotations:
+          summary: "Amber runtime high memory usage"
+          description: "Amber instance {{ $labels.instance }} has memory usage above 80%. Current value: {{ $value }}%"
+
+      # Critical memory usage alert
+      - alert: AmberCriticalMemory
+        expr: amberjs_memory_usage_bytes / amberjs_memory_limit_bytes * 100 > 90
+        for: 1m
+        labels:
+          severity: critical
+          service: amberjs
+        annotations:
+          summary: "Amber runtime critical memory usage"
+          description: "Amber instance {{ $labels.instance }} has critical memory usage above 90%. Current value: {{ $value }}%"
+
+      # High error rate alert
+      - alert: AmberHighErrorRate
+        expr: rate(amberjs_errors_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: amberjs
+        annotations:
+          summary: "Amber runtime high error rate"
+          description: "Amber instance {{ $labels.instance }} has error rate above 10 errors/second. Current rate: {{ $value }} errors/sec"
+
+      # Script execution failures
+      - alert: AmberScriptFailures
+        expr: rate(amberjs_script_failures_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: amberjs
+        annotations:
+          summary: "Amber script execution failures"
+          description: "Amber instance {{ $labels.instance }} has high script failure rate. Current rate: {{ $value }} failures/sec"
+
+      # V8 GC pressure alert
+      - alert: AmberV8GCPressure
+        expr: rate(amberjs_v8_gc_duration_seconds_sum[5m]) / rate(amberjs_v8_gc_duration_seconds_count[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          service: amberjs
+        annotations:
+          summary: "Amber V8 GC pressure"
+          description: "Amber instance {{ $labels.instance }} has high GC pressure. Average GC time: {{ $value }}s"
+
+      # Worker pool saturation
+      - alert: AmberWorkerPoolSaturation
+        expr: amberjs_active_workers / amberjs_max_workers * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+          service: amberjs
+        annotations:
+          summary: "Amber worker pool saturation"
+          description: "Amber instance {{ $labels.instance }} has worker pool utilization above 90%. Current utilization: {{ $value }}%"
+
+      # Instance down alert
+      - alert: AmberInstanceDown
+        expr: up{job="amberjs-runtime"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: amberjs
+        annotations:
+          summary: "Amber instance down"
+          description: "Amber instance {{ $labels.instance }} is down"
+
+  - name: amberjs.performance.alerts
+    rules:
+      # High response time alert
+      - alert: AmberHighResponseTime
+        expr: amberjs_avg_response_time_ms > 1000
+        for: 3m
+        labels:
+          severity: warning
+          service: amberjs
+        annotations:
+          summary: "Amber high response time"
+          description: "Amber instance {{ $labels.instance }} has average response time above 1000ms. Current value: {{ $value }}ms"
+
+      # Low throughput alert
+      - alert: AmberLowThroughput
+        expr: amberjs_requests_per_second < 10
+        for: 5m
+        labels:
+          severity: warning
+          service: amberjs
+        annotations:
+          summary: "Amber low throughput"
+          description: "Amber instance {{ $labels.instance }} has low throughput. Current value: {{ $value }} requests/sec"
+
+      # Startup time too long
+      - alert: AmberSlowStartup
+        expr: amberjs_startup_time_ms > 5000
+        for: 0m
+        labels:
+          severity: info
+          service: amberjs
+        annotations:
+          summary: "Amber slow startup"
+          description: "Amber instance {{ $labels.instance }} startup time is above 5000ms. Current value: {{ $value }}ms"

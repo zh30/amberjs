@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Honest Beejs micro-benchmarks. Prints commit, build profile, and hardware.
+# Honest Amber micro-benchmarks. Prints commit, build profile, and hardware.
 # Do not publish "faster than X" claims from this script unless every compared
 # runtime is present and the same harness ran successfully.
 set -euo pipefail
@@ -10,31 +10,31 @@ cd "$ROOT"
 PROFILE="${HONEST_PROFILE:-release}"
 if [[ "$PROFILE" == "release" ]]; then
   cargo build -q --release
-  BEE="${BEE_BIN:-$ROOT/target/release/bee}"
+  AMBER="${AMBER_BIN:-$ROOT/target/release/amber}"
 else
   cargo build -q
-  BEE="${BEE_BIN:-$ROOT/target/debug/bee}"
+  AMBER="${AMBER_BIN:-$ROOT/target/debug/amber}"
 fi
-"$BEE" --version >/dev/null 2>&1 || true
+"$AMBER" --version >/dev/null 2>&1 || true
 
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 UNAME="$(uname -srm)"
 CPU="$(sysctl -n machdep.cpu.brand_string 2>/dev/null || lscpu 2>/dev/null | awk -F: '/Model name/{print $2; exit}' | xargs || echo unknown)"
 
-echo "Beejs honest benchmark"
+echo "Amber honest benchmark"
 echo "commit: $COMMIT"
 echo "profile: $PROFILE"
-echo "binary: $BEE"
+echo "binary: $AMBER"
 echo "hardware: $UNAME / $CPU"
 echo
 
 time_ms() {
-  python3 - "$BEE" "$@" <<'PY'
+  python3 - "$AMBER" "$@" <<'PY'
 import subprocess, sys, time
-bee = sys.argv[1]
+amber = sys.argv[1]
 args = sys.argv[2:]
 start = time.perf_counter()
-proc = subprocess.run([bee, *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+proc = subprocess.run([amber, *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 elapsed = (time.perf_counter() - start) * 1000
 print(f"{elapsed:.1f}")
 sys.exit(proc.returncode)
@@ -74,9 +74,9 @@ const port = Number(process.env.PORT || 0);
 const server = http.createServer((_req, res) => { res.end('hello'); });
 server.listen(18765, '127.0.0.1');
 EOF
-echo "HTTP hello: start bee run in background, curl once, then stop"
+echo "HTTP hello: start amber run in background, curl once, then stop"
 PORT=18765
-"$BEE" run "$PORT_JS" >/dev/null 2>&1 &
+"$AMBER" run "$PORT_JS" >/dev/null 2>&1 &
 HTTP_PID=$!
 python3 - <<'PY'
 import socket, time, sys
@@ -101,15 +101,15 @@ wait "$HTTP_PID" 2>/dev/null || true
 rm -f "$PORT_JS"
 
 IDLE_SECS="${HONEST_IDLE_SECS:-5}"
-echo -n "idle ${IDLE_SECS}s bee session --sandbox (user+sys if available): "
-python3 - "$BEE" "$IDLE_SECS" <<'PY'
+echo -n "idle ${IDLE_SECS}s amber session --sandbox (user+sys if available): "
+python3 - "$AMBER" "$IDLE_SECS" <<'PY'
 import subprocess, sys, time, os, shutil
-bee, idle_secs = sys.argv[1], float(sys.argv[2])
+amber, idle_secs = sys.argv[1], float(sys.argv[2])
 tool = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "examples", "agent", "echo_tool.ts")
 # Fallback: repo-root relative from benches/honest
 root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 tool = os.path.join(root, "examples", "agent", "echo_tool.ts")
-cmd = [bee, "session", "--sandbox", tool]
+cmd = [amber, "session", "--sandbox", tool]
 start = time.perf_counter()
 proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(idle_secs)

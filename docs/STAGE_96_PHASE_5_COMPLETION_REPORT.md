@@ -6,7 +6,7 @@
 
 ## 🎯 阶段目标
 
-完成 Beejs 项目的文档与生态建设，为开发者和用户提供完整的使用指南和参考资料。
+完成 Amber 项目的文档与生态建设，为开发者和用户提供完整的使用指南和参考资料。
 
 ## ✅ 完成的任务
 
@@ -295,9 +295,9 @@ ls docs/api/ docs/guides/ docs/performance/ CONTRIBUTING.md
 
 ## 📞 联系方式
 
-- **项目仓库**: https://github.com/zh30/beejs
-- **问题反馈**: https://github.com/zh30/beejs/issues
-- **文档反馈**: docs@beejs.dev
+- **项目仓库**: https://github.com/zh30/amberjs
+- **问题反馈**: https://github.com/zh30/amberjs/issues
+- **文档反馈**: docs@amberjs.dev
 - **维护者**: Henry Zhang
 
 ## 📄 许可证

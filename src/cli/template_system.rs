@@ -22,7 +22,7 @@ pub enum PackageManager {
     Yarn,
     Pnpm,
     Bun,
-    Beejs,
+    Amber,
 }
 impl PackageManager {
     /// 从 lockfile 名称检测包管理器
@@ -32,7 +32,7 @@ impl PackageManager {
             "yarn.lock" => Some(Self::Yarn),
             "pnpm-lock.yaml" => Some(Self::Pnpm),
             "bun.lockb" => Some(Self::Bun),
-            "beejs.lock" => Some(Self::Beejs),
+            "amberjs.lock" => Some(Self::Amber),
             _ => None,
         }
     }
@@ -46,8 +46,8 @@ impl PackageManager {
                 }
             }
         }
-        // 默认使用 Beejs
-        Self::Beejs
+        // 默认使用 Amber
+        Self::Amber
     }
     /// 获取安装命令
     pub fn install_command(&self) -> &'static str {
@@ -56,7 +56,7 @@ impl PackageManager {
             Self::Yarn => "yarn install",
             Self::Pnpm => "pnpm install",
             Self::Bun => "bun install",
-            Self::Beejs => "bee install",
+            Self::Amber => "amber install",
         }
     }
     /// 生成添加依赖命令
@@ -91,11 +91,11 @@ impl PackageManager {
                     format!("bun add {}", deps_str)
                 }
             }
-            Self::Beejs => {
+            Self::Amber => {
                 if dev {
-                    format!("bee add -D {}", deps_str)
+                    format!("amber add -D {}", deps_str)
                 } else {
-                    format!("bee add {}", deps_str)
+                    format!("amber add {}", deps_str)
                 }
             }
         }
@@ -301,12 +301,12 @@ impl TemplateRegistry {
     }
     fn create_basic_template() -> ProjectTemplate {
         let mut scripts = HashMap::new();
-        scripts.insert("start".to_string(), "bee run src/index.js".to_string());
+        scripts.insert("start".to_string(), "amber run src/index.js".to_string());
         scripts.insert(
             "dev".to_string(),
-            "bee run --watch src/index.js".to_string(),
+            "amber run --watch src/index.js".to_string(),
         );
-        scripts.insert("test".to_string(), "bee test".to_string());
+        scripts.insert("test".to_string(), "amber test".to_string());
         ProjectTemplate {
             name: "basic".to_string(),
             description: "Basic JavaScript project with minimal setup".to_string(),
@@ -315,7 +315,7 @@ impl TemplateRegistry {
                 (
                     "src/index.js".to_string(),
                     r#"// {{project_name}}
-// Created with `bee init`
+// Created with `amber init`
 console.log("🚀 Welcome to {{project_name}}!");
 async function main() {
     console.log("Edit src/index.js to get started.");
@@ -326,7 +326,7 @@ main();
                 ),
                 (
                     "src/index.test.js".to_string(),
-                    r#"import { describe, it, expect } from 'bee:test';
+                    r#"import { describe, it, expect } from 'amber:test';
 describe('{{project_name}}', () => {
     it('should pass basic test', () => {
         expect(1 + 1).toBe(2);
@@ -344,16 +344,16 @@ describe('{{project_name}}', () => {
     }
     fn create_typescript_template() -> ProjectTemplate {
         let mut scripts = HashMap::new();
-        scripts.insert("start".to_string(), "bee run src/index.ts".to_string());
+        scripts.insert("start".to_string(), "amber run src/index.ts".to_string());
         scripts.insert(
             "dev".to_string(),
-            "bee run --watch src/index.ts".to_string(),
+            "amber run --watch src/index.ts".to_string(),
         );
         scripts.insert(
             "build".to_string(),
-            "bee bundle src/index.ts --outfile dist/index.js".to_string(),
+            "amber bundle src/index.ts --outfile dist/index.js".to_string(),
         );
-        scripts.insert("test".to_string(), "bee test".to_string());
+        scripts.insert("test".to_string(), "amber test".to_string());
         ProjectTemplate {
             name: "typescript".to_string(),
             description: "TypeScript project with type checking".to_string(),
@@ -362,7 +362,7 @@ describe('{{project_name}}', () => {
                 (
                     "src/index.ts".to_string(),
                     r#"// {{project_name}}
-// TypeScript project created with `bee init --template typescript`
+// TypeScript project created with `amber init --template typescript`
 interface Config {
     name: string;
     version: string;
@@ -408,12 +408,12 @@ main().catch(console.error);
     }
     fn create_webapi_template() -> ProjectTemplate {
         let mut scripts = HashMap::new();
-        scripts.insert("start".to_string(), "bee run src/server.ts".to_string());
+        scripts.insert("start".to_string(), "amber run src/server.ts".to_string());
         scripts.insert(
             "dev".to_string(),
-            "bee run --watch src/server.ts".to_string(),
+            "amber run --watch src/server.ts".to_string(),
         );
-        scripts.insert("test".to_string(), "bee test".to_string());
+        scripts.insert("test".to_string(), "amber test".to_string());
         ProjectTemplate {
             name: "web-api".to_string(),
             description: "Web API server with HTTP routing".to_string(),
@@ -468,19 +468,19 @@ export const apiRoutes = {
     }
     fn create_cli_template() -> ProjectTemplate {
         let mut scripts = HashMap::new();
-        scripts.insert("start".to_string(), "bee run src/cli.ts".to_string());
+        scripts.insert("start".to_string(), "amber run src/cli.ts".to_string());
         scripts.insert(
             "build".to_string(),
-            "bee bundle src/cli.ts --outfile dist/cli.js".to_string(),
+            "amber bundle src/cli.ts --outfile dist/cli.js".to_string(),
         );
-        scripts.insert("test".to_string(), "bee test".to_string());
+        scripts.insert("test".to_string(), "amber test".to_string());
         ProjectTemplate {
             name: "cli-tool".to_string(),
             description: "CLI tool with argument parsing".to_string(),
             directories: vec!["src".to_string(), "dist".to_string()],
             files: vec![(
                 "src/cli.ts".to_string(),
-                r#"#!/usr/bin/env bee
+                r#"#!/usr/bin/env amber
 // {{project_name}} - CLI Tool
 const args = process.argv.slice(2);
 const command = args[0];
@@ -510,11 +510,11 @@ handler();
         let mut scripts = HashMap::new();
         scripts.insert(
             "dev".to_string(),
-            "bee run --watch src/server/index.ts".to_string(),
+            "amber run --watch src/server/index.ts".to_string(),
         );
         scripts.insert(
             "build".to_string(),
-            "bee bundle src/client/index.ts --outfile dist/client.js".to_string(),
+            "amber bundle src/client/index.ts --outfile dist/client.js".to_string(),
         );
         ProjectTemplate {
             name: "fullstack".to_string(),
@@ -581,9 +581,9 @@ handler();
         let mut scripts = HashMap::new();
         scripts.insert(
             "build".to_string(),
-            "bee bundle src/index.ts --outfile dist/index.js".to_string(),
+            "amber bundle src/index.ts --outfile dist/index.js".to_string(),
         );
-        scripts.insert("test".to_string(), "bee test".to_string());
+        scripts.insert("test".to_string(), "amber test".to_string());
         ProjectTemplate {
             name: "library".to_string(),
             description: "Reusable library package".to_string(),
@@ -944,7 +944,7 @@ build/
 *.log
 # Cache
 .cache/
-.beejs-cache/
+.amberjs-cache/
 "#;
         fs::write(path.join(".gitignore"), content)?;
         Ok(())

@@ -4,7 +4,7 @@ import { AmberLogo } from "../components/Logo";
 import "../global.css";
 import { LangProvider, useLang } from "../lib/i18n";
 import { RouteScroll } from "../lib/route-scroll";
-import { BEEJS_VERSION } from "../lib/version";
+import { AMBER_VERSION } from "../lib/version";
 import { ThemeProvider, useTheme } from "../lib/theme";
 import {
   Check,
@@ -134,10 +134,10 @@ function RootLayoutInner() {
             <Link to="/" className="flex items-center gap-2.5">
               <AmberLogo className="h-6 w-6" />
               <span className="text-[15px] font-semibold tracking-tight">
-                Beejs
+                Amber
               </span>
               <span className="hidden font-mono text-xs text-[var(--honey-text)] sm:inline">
-                {BEEJS_VERSION}
+                {AMBER_VERSION}
               </span>
             </Link>
 

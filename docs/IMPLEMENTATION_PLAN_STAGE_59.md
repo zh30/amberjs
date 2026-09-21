@@ -2,7 +2,7 @@
 
 ## 📋 阶段概述
 
-Stage 59 专注于为 Beejs 实现完整的可视化调试能力，包括 CLI 调试命令集成、Chrome DevTools 协议支持、Web UI 调试界面和 VS Code 扩展支持。这将把 Beejs 打造成专业级的 JavaScript/TypeScript 调试平台。
+Stage 59 专注于为 Amber 实现完整的可视化调试能力，包括 CLI 调试命令集成、Chrome DevTools 协议支持、Web UI 调试界面和 VS Code 扩展支持。这将把 Amber 打造成专业级的 JavaScript/TypeScript 调试平台。
 
 **目标**: 构建完整的调试生态系统，支持命令行调试、可视化调试和远程调试，为开发者提供世界级的调试体验。
 
@@ -11,7 +11,7 @@ Stage 59 专注于为 Beejs 实现完整的可视化调试能力，包括 CLI �
 ## 🎯 成功标准
 
 ### CLI 调试集成
-- [ ] **Debug 命令**: `beejs debug <file>` 完整实现
+- [ ] **Debug 命令**: `amberjs debug <file>` 完整实现
 - [ ] **调试操作**: break, continue, next, step, finish, print, backtrace
 - [ ] **REPL 调试**: `.debug` 命令集成
 - [ ] **远程调试**: `--inspect-brk` 和 `--inspect` 支持
@@ -86,7 +86,7 @@ Stage 59 专注于为 Beejs 实现完整的可视化调试能力，包括 CLI �
 
 #### 2.1 协议基础
 - [ ] **WebSocket 服务器**
-  - 实现 `beejs --inspect` 端口监听
+  - 实现 `amberjs --inspect` 端口监听
   - WebSocket 连接管理
   - 多客户端支持
   - 连接生命周期管理
@@ -160,7 +160,7 @@ Stage 59 专注于为 Beejs 实现完整的可视化调试能力，包括 CLI �
 
 #### 3.1 Web 服务器
 - [ ] **内置 Web 服务器**
-  - `beejs debug --web` 启动 Web UI
+  - `amberjs debug --web` 启动 Web UI
   - 静态文件服务
   - WebSocket 代理
 
@@ -469,7 +469,7 @@ impl DebugSession {
 
 ## 📝 总结
 
-Stage 59 将为 Beejs 构建完整的可视化调试生态系统，使其成为专业级的 JavaScript/TypeScript 调试平台。通过 CLI 调试、Chrome DevTools 协议、Web UI 和 VS Code 扩展，Beejs 将为开发者提供世界级的调试体验。
+Stage 59 将为 Amber 构建完整的可视化调试生态系统，使其成为专业级的 JavaScript/TypeScript 调试平台。通过 CLI 调试、Chrome DevTools 协议、Web UI 和 VS Code 扩展，Amber 将为开发者提供世界级的调试体验。
 
 **预计完成时间**: 32-40 小时
 **主要文件数量**: 25-35 个新文件

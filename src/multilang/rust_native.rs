@@ -1,5 +1,5 @@
 // Rust Native Optimizations
-// Provides zero-copy optimizations and performance enhancements for Rust-Beejs integration
+// Provides zero-copy optimizations and performance enhancements for Rust-Amber integration
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};

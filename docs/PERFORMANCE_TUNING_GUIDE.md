@@ -1,6 +1,6 @@
-# Beejs 性能调优指南
+# Amber 性能调优指南
 
-本指南只覆盖 Beejs v0.1 当前公开 CLI 已支持的调优和验证方式。历史阶段文档中出现的
+本指南只覆盖 Amber v0.1 当前公开 CLI 已支持的调优和验证方式。历史阶段文档中出现的
 `--optimize`、`--bytecode-cache`、`--minimal-core`、`--benchmark`、
 `--performance-metrics`、`--profile` 等选项不属于当前 v0.1 CLI 合同。
 
@@ -15,9 +15,9 @@
 
 ```bash
 cargo build --release
-./target/release/bee eval "1 + 1"
-./target/release/bee run examples/basics/hello_world.js
-./target/release/bee test examples/testing/math.test.js
+./target/release/amber eval "1 + 1"
+./target/release/amber run examples/basics/hello_world.js
+./target/release/amber test examples/testing/math.test.js
 ```
 
 ## 脚本级测量
@@ -26,7 +26,7 @@ cargo build --release
 `console.time()` / `console.timeEnd()` 或在外层使用系统工具：
 
 ```bash
-time ./target/release/bee run examples/basics/hello_world.js
+time ./target/release/amber run examples/basics/hello_world.js
 ```
 
 示例：

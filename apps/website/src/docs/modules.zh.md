@@ -16,8 +16,8 @@ id: "modules"
 3. 检查 `.js`、`.json`、`.node` 等多种扩展名；
 4. 每次判断都会发起数十次底层的 `stat` 或 `access` 系统调用，成为启动速度的“头号杀手”。
 
-### Beejs 的 Stat Bypass 双缓存架构
-Beejs 设计了**双层全内存规范化模块缓存系统**：
+### Amber 的 Stat Bypass 双缓存架构
+Amber 设计了**双层全内存规范化模块缓存系统**：
 
 ```text
        require('lodash') 或 import ... from './utils'
@@ -36,18 +36,18 @@ Beejs 设计了**双层全内存规范化模块缓存系统**：
       +─────────────────────────────────────────────+
 ```
 
-在官方模块解析基准测试中，Beejs 的解析吞吐达到了 **4,601,226 ops/s**，比 Node.js (1.12M ops/s) **快 4.1 倍**，比 Bun (3.88M ops/s) 更进一步！
+在官方模块解析基准测试中，Amber 的解析吞吐达到了 **4,601,226 ops/s**，比 Node.js (1.12M ops/s) **快 4.1 倍**，比 Bun (3.88M ops/s) 更进一步！
 
 ---
 
 ## 2. ESM 与 CommonJS 深度混用
 
-Beejs 原生支持 ECMAScript 模块（ESM）与 CommonJS（CJS）规范的自由互操作：
+Amber 原生支持 ECMAScript 模块（ESM）与 CommonJS（CJS）规范的自由互操作：
 
 ```typescript
 // 1. 标准 ESM 导入
 import { readFileSync } from 'node:fs';
-import { Tensor } from 'bee:ai';
+import { Tensor } from 'amber:ai';
 
 // 2. 传统 CommonJS require 混用
 const path = require('node:path');
@@ -66,50 +66,50 @@ console.log('当前模块绝对文件名:', __filename);
 
 ### 模块协议前缀支持
 - **`node:*`**：显式引用 Node.js 兼容核心模块（推荐做法）；
-- **`bee:*`**：引用 Beejs 原生独有模块（如 `bee:ai` 原生张量与模型引擎）；
+- **`amber:*`**：引用 Amber 原生独有模块（如 `amber:ai` 原生张量与模型引擎）；
 - **相对/绝对路径**：`./`、`../`、`/` 加载本地磁盘模块，支持省略 `.ts`、`.tsx`、`.js` 扩展名。
 
 ---
 
 ## 3. 内置轻量包管理器
 
-Beejs 内置了与 npm 生态兼容的依赖管理工具链，无需额外安装 npm 或 pnpm 即可管理依赖：
+Amber 内置了与 npm 生态兼容的依赖管理工具链，无需额外安装 npm 或 pnpm 即可管理依赖：
 
 ```bash
 # 1. 初始化项目 package.json
-bee init my-app
+amber init my-app
 
 # 2. 安装并添加生产依赖
-bee add lodash@4.17.21
+amber add lodash@4.17.21
 
 # 3. 安装并添加开发依赖
-bee add --dev @types/node
+amber add --dev @types/node
 
 # 4. 在新机器或 CI 流水线中一键复原依赖
-bee install --frozen-lockfile
+amber install --frozen-lockfile
 
 # 5. 移除未使用的冗余依赖
-bee prune
+amber prune
 ```
 
 ---
 
-## 4. 免配置内置测试框架 (`bee test`)
+## 4. 免配置内置测试框架 (`amber test`)
 
-Beejs 提供了对齐 **Jest / Vitest** 现代测试生态的内置测试套件，零依赖开箱即用：
+Amber 提供了对齐 **Jest / Vitest** 现代测试生态的内置测试套件，零依赖开箱即用：
 
 ### 编写测试用例
 创建一个名为 `math.test.ts` 的文件：
 
 ```typescript
 // math.test.ts
-import { describe, it, test, expect } from 'bee:test'; // 或直接使用全局注入的 describe/test
+import { describe, it, test, expect } from 'amber:test'; // 或直接使用全局注入的 describe/test
 
 describe('核心算术与张量逻辑', () => {
   it('基础数值相加应当正确', () => {
     expect(1 + 1).toBe(2);
     expect([1, 2, 3]).toHaveLength(3);
-    expect({ name: 'beejs' }).toEqual({ name: 'beejs' });
+    expect({ name: 'amberjs' }).toEqual({ name: 'amberjs' });
   });
 
   test('异步操作应正确完成', async () => {
@@ -128,19 +128,19 @@ describe('核心算术与张量逻辑', () => {
 ### 运行测试
 ```bash
 # 运行当前目录下所有测试文件 (*.test.js, *.test.ts, *.spec.ts)
-$ bee test
+$ amber test
 
 # 仅运行匹配名称的测试用例
-$ bee test -t "异步操作"
+$ amber test -t "异步操作"
 
 # 并行执行测试套件以提速
-$ bee test --parallel
+$ amber test --parallel
 
 # 遇到首个失败立即终止 (Bail)
-$ bee test --bail
+$ amber test --bail
 
 # 监听模式 (保存文件时自动重跑测试)
-$ bee test -w
+$ amber test -w
 ```
 
 测试执行结果输出精炼清晰：

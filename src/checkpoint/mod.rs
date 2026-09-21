@@ -1,5 +1,5 @@
-// Beejs Agent State Checkpoint & Time-Travel Snapshot Engine (bee:checkpoint)
-// Lightweight state snapshotting, structural delta diffing, Tree-of-Thought branching, and bee:kv persistence.
+// Amber Agent State Checkpoint & Time-Travel Snapshot Engine (amber:checkpoint)
+// Lightweight state snapshotting, structural delta diffing, Tree-of-Thought branching, and amber:kv persistence.
 
 use once_cell::sync::Lazy;
 use rusty_v8 as v8;
@@ -364,7 +364,7 @@ fn checkpoint_native_dispatch(
     }
 }
 
-/// Sets up the `bee:checkpoint` API in V8 context
+/// Sets up the `amber:checkpoint` API in V8 context
 pub fn setup_checkpoint_api(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
@@ -373,12 +373,12 @@ pub fn setup_checkpoint_api(
 
     // Register native dispatcher callback
     let native_fn = v8::Function::new(scope, checkpoint_native_dispatch).unwrap();
-    let k_native = v8::String::new(scope, "__bee_checkpoint_native").unwrap();
+    let k_native = v8::String::new(scope, "__amber_checkpoint_native").unwrap();
     global.set(scope, k_native.into(), native_fn.into());
 
     let checkpoint_js_bootstrap = r#"
     (function() {
-        const native = globalThis.__bee_checkpoint_native;
+        const native = globalThis.__amber_checkpoint_native;
 
         class CheckpointManager {
             #id;
@@ -488,10 +488,10 @@ pub fn setup_checkpoint_api(
                 return native('clear', this.#id);
             }
 
-            // Persist all checkpoints to a bee:kv store instance
+            // Persist all checkpoints to a amber:kv store instance
             persist(kvStore, prefix = 'cp:') {
                 if (!kvStore || typeof kvStore.set !== 'function') {
-                    throw new TypeError('persist requires a valid bee:kv store instance');
+                    throw new TypeError('persist requires a valid amber:kv store instance');
                 }
                 const list = this.list();
                 for (const cp of list) {
@@ -501,10 +501,10 @@ pub fn setup_checkpoint_api(
                 return list.length;
             }
 
-            // Restore checkpoints from a bee:kv store instance
+            // Restore checkpoints from a amber:kv store instance
             restoreFromKV(kvStore, prefix = 'cp:') {
                 if (!kvStore || typeof kvStore.get !== 'function') {
-                    throw new TypeError('restoreFromKV requires a valid bee:kv store instance');
+                    throw new TypeError('restoreFromKV requires a valid amber:kv store instance');
                 }
                 const order = kvStore.get(`${prefix}__order__`);
                 if (!Array.isArray(order)) return 0;
@@ -541,7 +541,7 @@ pub fn setup_checkpoint_api(
             default: defaultManager
         };
 
-        globalThis.__bee_checkpoint = checkpointModule;
+        globalThis.__amber_checkpoint = checkpointModule;
         globalThis.checkpoint = checkpointModule;
     })();
     "#;

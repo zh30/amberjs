@@ -6,7 +6,7 @@
 
 ## 🎯 阶段目标
 
-打造极致的开发者体验和企业级可观测性能力，使 Beejs 成为开发者首选的高性能 JavaScript/TypeScript 运行时。
+打造极致的开发者体验和企业级可观测性能力，使 Amber 成为开发者首选的高性能 JavaScript/TypeScript 运行时。
 
 ## 📋 完成任务概览
 

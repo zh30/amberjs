@@ -1,4 +1,4 @@
-# Docker Compose configuration for Beejs monitoring stack
+# Docker Compose configuration for Amber monitoring stack
 # This enables easy deployment of Prometheus, Grafana, and AlertManager
 
 version: '3.8'
@@ -7,13 +7,13 @@ services:
   # Prometheus for metrics collection
   prometheus:
     image: prom/prometheus:v2.45.0
-    container_name: beejs-prometheus
+    container_name: amberjs-prometheus
     restart: unless-stopped
     ports:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./beejs_alerts.yml:/etc/prometheus/beejs_alerts.yml:ro
+      - ./amberjs_alerts.yml:/etc/prometheus/amberjs_alerts.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -24,12 +24,12 @@ services:
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
     networks:
-      - beejs-monitor
+      - amberjs-monitor
 
   # Grafana for visualization
   grafana:
     image: grafana/grafana:10.0.0
-    container_name: beejs-grafana
+    container_name: amberjs-grafana
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -40,18 +40,18 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana-dashboard.json:/var/lib/grafana/dashboards/beejs-dashboard.json:ro
+      - ./grafana-dashboard.json:/var/lib/grafana/dashboards/amberjs-dashboard.json:ro
       - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
       - ./grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboard.yml:ro
     networks:
-      - beejs-monitor
+      - amberjs-monitor
     depends_on:
       - prometheus
 
   # AlertManager for alert management
   alertmanager:
     image: prom/alertmanager:v0.25.0
-    container_name: beejs-alertmanager
+    container_name: amberjs-alertmanager
     restart: unless-stopped
     ports:
       - "9093:9093"
@@ -63,12 +63,12 @@ services:
       - '--storage.path=/alertmanager'
       - '--web.external-url=http://localhost:9093'
     networks:
-      - beejs-monitor
+      - amberjs-monitor
 
   # Node Exporter for system metrics
   node-exporter:
     image: prom/node-exporter:v1.6.0
-    container_name: beejs-node-exporter
+    container_name: amberjs-node-exporter
     restart: unless-stopped
     ports:
       - "9100:9100"
@@ -82,12 +82,12 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
-      - beejs-monitor
+      - amberjs-monitor
 
   # cAdvisor for container metrics
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.0
-    container_name: beejs-cadvisor
+    container_name: amberjs-cadvisor
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -97,10 +97,10 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     networks:
-      - beejs-monitor
+      - amberjs-monitor
 
 networks:
-  beejs-monitor:
+  amberjs-monitor:
     driver: bridge
 
 volumes:

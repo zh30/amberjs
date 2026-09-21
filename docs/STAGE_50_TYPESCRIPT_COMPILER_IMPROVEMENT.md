@@ -47,7 +47,7 @@
        name: string;
        age: number;
    }
-   const myName: string = "Beejs User";
+   const myName: string = "Amber User";
    ```
    ✅ 接口被正确移除，变量声明正确转译
 
@@ -179,7 +179,7 @@ ASTExpression::ObjectLiteral { properties } => {
 
 ## 🎉 结论
 
-Stage 50 成功完善了 TypeScript 编译器的核心功能，特别是对象字面量和接口支持。这些改进使得 Beejs 能够处理更复杂的 TypeScript 代码，为后续的类系统、泛型和高级类型功能奠定了坚实基础。
+Stage 50 成功完善了 TypeScript 编译器的核心功能，特别是对象字面量和接口支持。这些改进使得 Amber 能够处理更复杂的 TypeScript 代码，为后续的类系统、泛型和高级类型功能奠定了坚实基础。
 
 编译器现在能够：
 - ✅ 正确解析和转译基本 TypeScript 语法

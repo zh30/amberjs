@@ -65,10 +65,10 @@ def fix_file(filepath):
 def main():
     """主函数"""
     files_to_fix = [
-        '/Users/henry/code/beejs/src/cli/module_resolver.rs',
-        '/Users/henry/code/beejs/src/cli/repl_enhanced.rs',
-        '/Users/henry/code/beejs/src/ai/llm_engine.rs',
-        '/Users/henry/code/beejs/src/jit/inline_strategy.rs',
+        '/Users/henry/code/amberjs/src/cli/module_resolver.rs',
+        '/Users/henry/code/amberjs/src/cli/repl_enhanced.rs',
+        '/Users/henry/code/amberjs/src/ai/llm_engine.rs',
+        '/Users/henry/code/amberjs/src/jit/inline_strategy.rs',
     ]
 
     print("🔧 开始修复所有编译错误...\n")

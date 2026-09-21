@@ -1,5 +1,5 @@
 // Tests for crypto.subtle.exportKey implementation (v0.3.360)
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

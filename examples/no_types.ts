@@ -3,7 +3,7 @@ function greet(name) {
     return "Hello, " + name;
 }
 
-console.log(greet("Beejs"));
+console.log(greet("Amber"));
 
 async function fetchData() {
     return "Data loaded!";

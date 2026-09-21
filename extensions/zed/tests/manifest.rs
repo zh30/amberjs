@@ -6,17 +6,17 @@ fn root() -> PathBuf {
 }
 
 #[test]
-fn extension_toml_registers_js_ts_and_beejs() {
+fn extension_toml_registers_js_ts_and_amberjs() {
     let toml = fs::read_to_string(root().join("extension.toml")).unwrap();
     assert!(
-        toml.contains("[language_servers.bee-lsp]"),
-        "must declare [language_servers.bee-lsp]: {toml}"
+        toml.contains("[language_servers.amber-lsp]"),
+        "must declare [language_servers.amber-lsp]: {toml}"
     );
     assert!(
-        toml.contains("name = \"Beejs LSP\""),
+        toml.contains("name = \"Amber LSP\""),
         "language server needs a name: {toml}"
     );
-    for lang in ["JavaScript", "TypeScript", "Beejs"] {
+    for lang in ["JavaScript", "TypeScript", "Amber"] {
         assert!(
             toml.contains(&format!("\"{lang}\"")),
             "languages must include {lang}: {toml}"

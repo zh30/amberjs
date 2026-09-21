@@ -159,7 +159,7 @@ impl WebDashboard {
     ) -> Self {
         let layout: _ = DashboardLayout {
             name: "Default Dashboard".to_string(),
-            description: "Default Beejs monitoring dashboard".to_string(),
+            description: "Default Amber monitoring dashboard".to_string(),
             charts: Self::create_default_charts(),
             config: Self::create_default_layout_config(),
         };
@@ -271,7 +271,7 @@ impl WebDashboard {
         // 简化实现，实际应该启动 HTTP 服务器
         // 这里仅模拟服务器启动
         println!(
-            "Starting Beejs Web Dashboard on {}:{}",
+            "Starting Amber Web Dashboard on {}:{}",
             self.config.host, self.config.port
         );
         Ok(())
@@ -279,7 +279,7 @@ impl WebDashboard {
     /// 停止 Web 服务器
     pub fn stop_server(&self) -> Result<(), String> {
         // 简化实现
-        println!("Stopping Beejs Web Dashboard");
+        println!("Stopping Amber Web Dashboard");
         Ok(())
     }
     /// 获取仪表板数据
@@ -399,7 +399,7 @@ impl WebDashboard {
         html.push_str(
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
         );
-        html.push_str("<title>Beejs Monitoring Dashboard</title>\n");
+        html.push_str("<title>Amber Monitoring Dashboard</title>\n");
         html.push_str("<script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n");
         html.push_str("<style>\n");
         html.push_str(&Self::generate_css());
@@ -701,7 +701,7 @@ mod tests {
         let dashboard: _ = WebDashboard::with_default_config(data_store, alert_system);
         let html: _ = dashboard.generate_html().unwrap();
         assert!(html.contains("<html"));
-        assert!(html.contains("Beejs Monitoring Dashboard"));
+        assert!(html.contains("Amber Monitoring Dashboard"));
         assert!(html.contains("</html>"));
     }
     #[test]

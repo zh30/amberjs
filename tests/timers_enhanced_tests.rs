@@ -3,7 +3,7 @@
 // v0.3.271: Default runtime returns Node-compatible Timer handle objects.
 // v0.3.256: Added cleanup calls to prevent V8 handle errors
 
-use beejs::nodejs_core::timers::{
+use amberjs::nodejs_core::timers::{
     clear_all_async_timers, clear_all_timer_callbacks, clear_all_timers,
 };
 use serial_test::serial;
@@ -20,7 +20,7 @@ fn cleanup_timers() {
 #[serial]
 fn test_set_timeout_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof setTimeout;
     "#;
@@ -33,7 +33,7 @@ fn test_set_timeout_exists() {
 #[serial]
 fn test_set_timeout_returns_timer_id() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 100);
         typeof timerId === 'object' &&
@@ -56,7 +56,7 @@ fn test_set_timeout_returns_timer_id() {
 #[serial]
 fn test_set_timeout_basic_execution() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     // setTimeout(0) executes in the timer phase after synchronous code.
     let code = r#"
         new Promise((resolve) => {
@@ -80,7 +80,7 @@ fn test_set_timeout_basic_execution() {
 #[serial]
 fn test_set_timeout_with_delay() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 100);
         timerId > 0;
@@ -98,7 +98,7 @@ fn test_set_timeout_with_delay() {
 #[serial]
 fn test_set_timeout_with_arguments() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         new Promise((resolve) => {
             setTimeout(function(a, b, c) {
@@ -119,7 +119,7 @@ fn test_set_timeout_with_arguments() {
 #[serial]
 fn test_clear_timeout_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof clearTimeout;
     "#;
@@ -136,7 +136,7 @@ fn test_clear_timeout_exists() {
 #[serial]
 fn test_clear_timeout_basic() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 1000);
         clearTimeout(timerId);
@@ -156,7 +156,7 @@ fn test_clear_timeout_basic() {
 #[serial]
 fn test_set_interval_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof setInterval;
     "#;
@@ -173,7 +173,7 @@ fn test_set_interval_exists() {
 #[serial]
 fn test_set_interval_returns_timer_id() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setInterval(function() {}, 100);
         const ok = typeof timerId === 'object' &&
@@ -198,7 +198,7 @@ fn test_set_interval_returns_timer_id() {
 #[serial]
 fn test_set_interval_basic_execution() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     // Note: setInterval is async - callback won't execute in same tick
     // We test that it returns a valid timer ID
     let code = r#"
@@ -219,7 +219,7 @@ fn test_set_interval_basic_execution() {
 #[serial]
 fn test_clear_interval_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof clearInterval;
     "#;
@@ -236,7 +236,7 @@ fn test_clear_interval_exists() {
 #[serial]
 fn test_clear_interval_basic() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setInterval(function() {}, 100);
         clearInterval(timerId);
@@ -256,7 +256,7 @@ fn test_clear_interval_basic() {
 #[serial]
 fn test_timer_ids_are_numbers() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timeoutId = setTimeout(function() {}, 100);
         const intervalId = setInterval(function() {}, 100);
@@ -277,7 +277,7 @@ fn test_timer_ids_are_numbers() {
 #[serial]
 fn test_multiple_timers() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const ids = [];
         ids.push(setTimeout(function() {}, 100));
@@ -298,7 +298,7 @@ fn test_multiple_timers() {
 #[serial]
 fn test_timer_zero_delay() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         new Promise((resolve) => {
             let executed = false;
@@ -322,7 +322,7 @@ fn test_timer_zero_delay() {
 #[serial]
 fn test_settimeout_returns_timer_handle() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 1000);
         typeof timerId === 'object' && Number(timerId) > 0;
@@ -340,7 +340,7 @@ fn test_settimeout_returns_timer_handle() {
 #[serial]
 fn test_setinterval_returns_timer_handle() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setInterval(function() {}, 1000);
         const ok = typeof timerId === 'object' && Number(timerId) > 0;
@@ -360,7 +360,7 @@ fn test_setinterval_returns_timer_handle() {
 #[serial]
 fn test_setimmediate_returns_timer_handle() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setImmediate(function() {});
         typeof timerId === 'object' && Number(timerId) > 0;
@@ -378,7 +378,7 @@ fn test_setimmediate_returns_timer_handle() {
 #[serial]
 fn test_timer_ids_are_unique() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const id1 = setTimeout(function() {}, 100);
         const id2 = setTimeout(function() {}, 100);
@@ -395,7 +395,7 @@ fn test_timer_ids_are_unique() {
 #[serial]
 fn test_timer_has_unref_method() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 1000);
         typeof timerId.unref === 'function';
@@ -409,7 +409,7 @@ fn test_timer_has_unref_method() {
 #[serial]
 fn test_timer_has_ref_method() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 1000);
         typeof timerId.ref === 'function';
@@ -424,7 +424,7 @@ fn test_timer_has_ref_method() {
 fn test_timer_unref_is_callable() {
     // v0.3.271: clearTimeout works with Timer handles.
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 1000);
         clearTimeout(timerId);
@@ -443,7 +443,7 @@ fn test_timer_unref_is_callable() {
 #[serial]
 fn test_timer_ref_is_callable() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 1000);
         clearTimeout(timerId);
@@ -462,7 +462,7 @@ fn test_timer_ref_is_callable() {
 #[serial]
 fn test_timer_unref_ref_chain() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId1 = setTimeout(function() {}, 1000);
         const timerId2 = setTimeout(function() {}, 1000);
@@ -483,7 +483,7 @@ fn test_timer_unref_ref_chain() {
 #[serial]
 fn test_interval_timer_has_unref_ref() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     // A ref'd interval keeps the event loop alive by design (Node semantics),
     // so unref it after checking the handle to let execute_code return.
     let code = r#"
@@ -506,7 +506,7 @@ fn test_interval_timer_has_unref_ref() {
 #[serial]
 fn test_immediate_timer_has_unref_ref() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setImmediate(function() {});
         typeof timerId === 'object' && Number(timerId) > 0;
@@ -524,7 +524,7 @@ fn test_immediate_timer_has_unref_ref() {
 #[serial]
 fn test_timer_has_refresh_method_alias() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const timerId = setTimeout(function() {}, 1000);
         typeof timerId.refresh === 'function';

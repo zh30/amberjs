@@ -3,7 +3,7 @@
 
 use std::path::Path;
 use std::sync::Arc;
-use beejs::enterprise::code_analyzer::{
+use amberjs::enterprise::code_analyzer::{
     EnterpriseCodeAnalyzer, RepositoryInfo, CodebaseMetrics,
     TechnicalDebtReport, DependencyGraph,
     RefactoringSuggestion
@@ -126,14 +126,14 @@ mod tests {
     #[test]
     async fn test_refactoring_suggestions_generation() {
         let debt_items = vec![
-            beejs::enterprise::code_analyzer::DebtItem {
+            amberjs::enterprise::code_analyzer::DebtItem {
                 category: "Code Quality".to_string(),
                 description: "High code duplication in utils module".to_string(),
                 severity: "High".to_string(),
                 estimated_effort: "3 days".to_string(),
                 impact: "Maintainability".to_string(),
             },
-            beejs::enterprise::code_analyzer::DebtItem {
+            amberjs::enterprise::code_analyzer::DebtItem {
                 category: "Dependencies".to_string(),
                 description: "15 outdated dependencies".to_string(),
                 severity: "Medium".to_string(),

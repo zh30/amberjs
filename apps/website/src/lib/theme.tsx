@@ -10,7 +10,7 @@ interface ThemeContextValue {
   toggleNext: () => void;
 }
 
-const STORAGE_KEY = "beejs-theme";
+const STORAGE_KEY = "amber-theme";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 

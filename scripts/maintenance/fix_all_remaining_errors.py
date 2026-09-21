@@ -73,7 +73,7 @@ def fix_all_errors(file_path):
 
 def main():
     """主函数"""
-    project_root = Path("/Users/henry/code/beejs")
+    project_root = Path("/Users/henry/code/amberjs")
 
     # 修复所有 Rust 文件
     rust_files = list(project_root.rglob("*.rs"))

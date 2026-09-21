@@ -1,4 +1,4 @@
-// # Hot Reload Module for Beejs
+// # Hot Reload Module for Amber
 //
 // This module provides file watching and hot reload capabilities for development.
 // It monitors JavaScript/TypeScript files for changes and automatically re-executes them.
@@ -61,7 +61,7 @@ impl Default for WatcherConfig {
                 ".git".to_string(),
                 "dist".to_string(),
                 "build".to_string(),
-                ".beejs-cache".to_string(),
+                ".amberjs-cache".to_string(),
             ],
             recursive: true,
             clear_console: true,
@@ -121,7 +121,7 @@ fn check_fs_read_permission(path: &Path) -> anyhow::Result<()> {
     .map_err(|e| anyhow::anyhow!(e.to_string()))
 }
 
-/// Hot reload watcher for Beejs runtime
+/// Hot reload watcher for Amber runtime
 pub struct HotReloader {
     config: WatcherConfig,
     stats: Arc<WatcherStats>,
@@ -193,7 +193,7 @@ impl HotReloader {
             let mut debouncer = match new_debouncer(debounce_duration, notify_tx) {
                 Ok(d) => d,
                 Err(e) => {
-                    eprintln!("[beejs] Failed to create file watcher: {}", e);
+                    eprintln!("[amberjs] Failed to create file watcher: {}", e);
                     running.store(false, Ordering::SeqCst);
                     return;
                 }
@@ -204,16 +204,16 @@ impl HotReloader {
                 RecursiveMode::NonRecursive
             };
             if let Err(e) = debouncer.watcher().watch(&path, mode) {
-                eprintln!("[beejs] Failed to watch path {:?}: {}", path, e);
+                eprintln!("[amberjs] Failed to watch path {:?}: {}", path, e);
                 running.store(false, Ordering::SeqCst);
                 return;
             }
             if config.show_notifications {
                 println!(
-                    "\n\x1b[36m[beejs]\x1b[0m 👀 Watching for changes in {:?}",
+                    "\n\x1b[36m[amberjs]\x1b[0m 👀 Watching for changes in {:?}",
                     path
                 );
-                println!("\x1b[36m[beejs]\x1b[0m 📁 Watching {} files", file_count);
+                println!("\x1b[36m[amberjs]\x1b[0m 📁 Watching {} files", file_count);
             }
             while running.load(Ordering::SeqCst) {
                 match notify_rx.recv_timeout(Duration::from_millis(100)) {
@@ -263,7 +263,7 @@ impl HotReloader {
                         }
                     }
                     Ok(Err(e)) => {
-                        eprintln!("[beejs] Watcher error: {:?}", e);
+                        eprintln!("[amberjs] Watcher error: {:?}", e);
                     }
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         continue;
@@ -313,7 +313,7 @@ impl HotReloader {
             .map(|n| n.to_string_lossy())
             .unwrap_or_default();
         println!(
-            "\x1b[36m[beejs]\x1b[0m {} Reloaded {} in {}ms",
+            "\x1b[36m[amberjs]\x1b[0m {} Reloaded {} in {}ms",
             status, filename, duration_ms
         );
     }

@@ -278,7 +278,7 @@ impl ModelConverter {
         let onnx_model: _ = format!(
             r#"{{
                 "opset_version": 11,
-                "producer_name": "Beejs",
+                "producer_name": "Amber",
                 "model_id": "{}",
                 "input_shape": {:?},
                 "output_shape": {:?},
@@ -311,7 +311,7 @@ impl ModelConverter {
         // 生成 SavedModel 协议缓冲区（简化实现）
         let saved_model_proto: _ = format!(
             "saved_model_schema_version: 3\n\
-             producer_name: \"Beejs\"\n\
+             producer_name: \"Amber\"\n\
              model_id: \"{}\"\n",
             model.id
         );

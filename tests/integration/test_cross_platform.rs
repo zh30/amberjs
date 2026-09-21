@@ -41,7 +41,7 @@ mod tests {
         use std::path::PathBuf;
 
         let temp_dir = env::temp_dir();
-        let test_file_path = temp_dir.join("beejs_cross_platform_test.txt");
+        let test_file_path = temp_dir.join("amberjs_cross_platform_test.txt");
 
         // 写入测试数据
         let test_content = "Cross-platform test data";
@@ -188,14 +188,14 @@ mod tests {
         println!("🧪 Testing environment variables...");
 
         // 设置测试环境变量
-        env::set_var("BEEJS_TEST_VAR", "test_value");
+        env::set_var("AMBER_TEST_VAR", "test_value");
 
         // 读取环境变量
-        let test_var = env::var("BEEJS_TEST_VAR").expect("Failed to read test var");
+        let test_var = env::var("AMBER_TEST_VAR").expect("Failed to read test var");
         assert_eq!(test_var, "test_value");
 
         // 清理
-        env::remove_var("BEEJS_TEST_VAR");
+        env::remove_var("AMBER_TEST_VAR");
 
         println!("✅ Environment variables test passed");
     }

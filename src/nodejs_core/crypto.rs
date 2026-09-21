@@ -2377,7 +2377,7 @@ fn cipher_update_callback(
                 Vec::new()
             }
         } else if arg0.is_object() {
-            // Handle beejs Buffer object (has 'buffer' property)
+            // Handle amberjs Buffer object (has 'buffer' property)
             let buffer_key = v8::String::new(scope, "buffer").unwrap();
             let obj = arg0.to_object(scope);
             if let Some(obj) = obj {
@@ -2510,7 +2510,7 @@ fn cipher_update_callback(
     // 追加新数据到累积缓冲区
     pending_data.extend_from_slice(&input_data);
 
-    // Beejs 当前把 Cipher/Decipher 的真实 OpenSSL 流处理集中在 final()。
+    // Amber 当前把 Cipher/Decipher 的真实 OpenSSL 流处理集中在 final()。
     // 这样 split update 拼接时不会在每次 update 重置 CBC/CTR 状态。
     let new_pending_buffer = v8::ArrayBuffer::new(scope, pending_data.len());
     if !pending_data.is_empty() {

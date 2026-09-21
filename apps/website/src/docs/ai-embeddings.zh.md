@@ -1,5 +1,5 @@
 ---
-title: "原生 Embedding 与语义向量 (bee:ai 2.0)"
+title: "原生 Embedding 与语义向量 (amber:ai 2.0)"
 subtitle: "无需外部依赖与 Python 胶水层，在 V8 内部实现亚毫秒级文本向量化与高维余弦相似度计算"
 group: "核心系统"
 id: "ai-embeddings"
@@ -13,20 +13,20 @@ id: "ai-embeddings"
 - **启动 Python/Torch 子进程**：进程初始化耗时数百毫秒，IPC 跨进程序列化消耗巨大，内存翻倍；
 - **加载庞大 ONNX 模型**：下载动辄数百 MB 模型权重，冷启动缓慢，难以胜任轻量级 Agent 边缘计算。
 
-Beejs v1.3.0 推出了全新的 **原生零依赖文本向量化引擎**：
+Amber v1.3.0 推出了全新的 **原生零依赖文本向量化引擎**：
 - **纯 Rust 宿主层实现**：结合 Subword / N-gram 哈希投影、位置加权与 GELU 非线性激活函数，直接生成确定性高维稠密特征向量；
 - **硬件级 L2 归一化**：自动完成单位向量投影，向量内积即余弦相似度；
 - **亚毫秒级极速响应**：单条句子向量化仅需数十微秒，比外部 HTTP 请求快 **1000 倍**；
-- **无缝对接 `bee:vector`**：直接产出 `Float32Array`，与内置向量数据库 `VectorDB` 零拷贝互通。
+- **无缝对接 `amber:vector`**：直接产出 `Float32Array`，与内置向量数据库 `VectorDB` 零拷贝互通。
 
 ---
 
 ## 2. API 详解与用法
 
-通过 `bee:ai` 模块引入文本向量化算子：
+通过 `amber:ai` 模块引入文本向量化算子：
 
 ```typescript
-import { embed, embedBatch, cosineSimilarity, Tensor } from 'bee:ai';
+import { embed, embedBatch, cosineSimilarity, Tensor } from 'amber:ai';
 ```
 
 ### `embed(text, options?)`
@@ -54,7 +54,7 @@ console.log(tensor instanceof Tensor); // true
 | :--- | :--- | :--- | :--- |
 | `dimensions` | `number` | `64` | 输出向量维度，推荐 `64`、`128` 或 `384` |
 | `normalize` | `boolean` | `true` | 是否执行 L2 单位归一化（使得内积等于余弦相似度） |
-| `asTensor` | `boolean` | `false` | 是否直接返回 `bee:ai` 的 `Tensor` 张量实例 |
+| `asTensor` | `boolean` | `false` | 是否直接返回 `amber:ai` 的 `Tensor` 张量实例 |
 
 ---
 
@@ -64,7 +64,7 @@ console.log(tensor instanceof Tensor); // true
 
 ```typescript
 const texts = [
-  "Beejs 运行时全新架构",
+  "Amber 运行时全新架构",
   "微内核与零拷贝内存映射",
   "意式番茄肉酱面烹饪配方"
 ];
@@ -94,20 +94,20 @@ console.log("不相关文本相似度:", simAC.toFixed(4));   // ~ 0.15-
 
 ---
 
-## 3. 结合 `bee:vector` 构建极速本地 RAG 系统
+## 3. 结合 `amber:vector` 构建极速本地 RAG 系统
 
-将 `embed` 与 Beejs 原生向量数据库 `VectorDB` 结合，无需任何外部向量中间件即可构建完全内嵌的语义知识库检索：
+将 `embed` 与 Amber 原生向量数据库 `VectorDB` 结合，无需任何外部向量中间件即可构建完全内嵌的语义知识库检索：
 
 ```typescript
-import { embed } from 'bee:ai';
-import { VectorDB } from 'bee:vector';
+import { embed } from 'amber:ai';
+import { VectorDB } from 'amber:vector';
 
 // 初始化 64 维度的余弦相似度向量库
 const db = new VectorDB({ dimensions: 64, metric: 'cosine' });
 
 // 存入知识库文档
 const documents = [
-  { id: 'kb_1', text: 'Beejs v1.3.0 带来全新的原生 MCP 2.0 协议支持。', cat: 'release' },
+  { id: 'kb_1', text: 'Amber v1.3.0 带来全新的原生 MCP 2.0 协议支持。', cat: 'release' },
   { id: 'kb_2', text: 'Virtual Filesystem 提供纯内存 COW 沙箱隔离。', cat: 'security' },
   { id: 'kb_3', text: 'SQLite 嵌入式存储引擎支持零配置持久化与事务。', cat: 'storage' },
 ];

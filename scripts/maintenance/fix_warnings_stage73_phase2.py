@@ -149,7 +149,7 @@ def main():
     print("=" * 60)
 
     # 获取所有 Rust 文件
-    rust_files = find_rust_files('/Users/henry/code/beejs/src')
+    rust_files = find_rust_files('/Users/henry/code/amberjs/src')
     print(f"📁 找到 {len(rust_files)} 个 Rust 文件")
 
     total_changes = 0

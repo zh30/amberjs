@@ -1,7 +1,7 @@
 //! Stage 21.6: V8 Runtime 网络模块集成测试
 //! 验证零拷贝网络 I/O 核心功能与 V8 Runtime 的集成
 
-use beejs::*;
+use amberjs::*;
 
 #[cfg(test)]
 mod network_integration_tests {
@@ -40,18 +40,18 @@ mod network_integration_tests {
     #[test]
     fn test_network_types_exported() {
         // 验证网络模块类型存在
-        let _tcp_socket: Option<beejs::network::ZeroCopyTcpSocket> = None;
-        let _udp_socket: Option<beejs::network::ZeroCopyUdpSocket> = None;
-        let _sendfile: Option<beejs::network::SendFile> = None;
-        let _splice: Option<beejs::network::Splice> = None;
-        let _buffer_pool: Option<beejs::network::NetworkBufferPool> = None;
-        let _connection_pool: Option<beejs::network::ConnectionPool> = None;
-        let _statistics: Option<beejs::network::NetworkIoStatistics> = None;
+        let _tcp_socket: Option<amberjs::network::ZeroCopyTcpSocket> = None;
+        let _udp_socket: Option<amberjs::network::ZeroCopyUdpSocket> = None;
+        let _sendfile: Option<amberjs::network::SendFile> = None;
+        let _splice: Option<amberjs::network::Splice> = None;
+        let _buffer_pool: Option<amberjs::network::NetworkBufferPool> = None;
+        let _connection_pool: Option<amberjs::network::ConnectionPool> = None;
+        let _statistics: Option<amberjs::network::NetworkIoStatistics> = None;
 
         // 验证配置类型存在
-        let _buffer_config: Option<beejs::BufferPoolConfig> = None;
-        let _connection_config: Option<beejs::ConnectionPoolConfig> = None;
-        let _stats_config: Option<beejs::StatisticsConfig> = None;
+        let _buffer_config: Option<amberjs::BufferPoolConfig> = None;
+        let _connection_config: Option<amberjs::ConnectionPoolConfig> = None;
+        let _stats_config: Option<amberjs::StatisticsConfig> = None;
 
         assert!(true);
     }

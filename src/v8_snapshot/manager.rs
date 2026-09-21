@@ -48,7 +48,7 @@ impl SnapshotManager {
               const arr = [1, 2, 3, 4, 5];
               arr.push(6);
               arr.filter(x => x % 2 === 0).map(x => x * 2).reduce((a, b) => a + b, 0);
-              return 'beejs-warmup-ok';
+              return 'amberjs-warmup-ok';
             })();
         "#;
         let data = Self::create_startup_blob(warmup_source)?;

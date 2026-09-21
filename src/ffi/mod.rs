@@ -1,4 +1,4 @@
-// Beejs Native Foreign Function Interface (bee:ffi)
+// Amber Native Foreign Function Interface (amber:ffi)
 // High-performance zero-dependency C ABI interop for JavaScript & TypeScript
 
 use anyhow::{anyhow, Result};
@@ -189,7 +189,7 @@ fn get_lib_registry() -> LibRegistry {
 
 static NEXT_LIB_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
 
-/// Initialize the `bee:ffi` subsystem in V8 context
+/// Initialize the `amber:ffi` subsystem in V8 context
 pub fn setup_ffi_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
     context: &v8::Local<v8::Context>,
@@ -747,13 +747,13 @@ pub fn setup_ffi_api(
     native_obj.set(scope, k_read_str.into(), read_cstring_fn.into());
     native_obj.set(scope, k_ptr.into(), ptr_fn.into());
 
-    let k_bee_ffi_native = v8::String::new(scope, "__bee_ffi_native").unwrap();
-    global.set(scope, k_bee_ffi_native.into(), native_obj.into());
+    let k_amber_ffi_native = v8::String::new(scope, "__amber_ffi_native").unwrap();
+    global.set(scope, k_amber_ffi_native.into(), native_obj.into());
 
     // Inject high-level user-friendly JavaScript wrapper
     let js_code = r#"
     (function() {
-        const native = globalThis.__bee_ffi_native;
+        const native = globalThis.__amber_ffi_native;
 
         const FFIType = Object.freeze({
             void: 'void',
@@ -828,7 +828,7 @@ pub fn setup_ffi_api(
             version: '1.4.0'
         };
 
-        globalThis.__bee_ffi = ffi;
+        globalThis.__amber_ffi = ffi;
         globalThis.ffi = ffi;
     })();
     "#;

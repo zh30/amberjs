@@ -1,7 +1,7 @@
 //! 测试编译警告修复
 //! 验证修复后代码的正确性和功能
 
-use beejs::Runtime;
+use amberjs::Runtime;
 
 #[cfg(test)]
 mod tests {

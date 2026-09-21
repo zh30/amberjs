@@ -1,4 +1,4 @@
-# Beejs Stage 73 Phase 2 完成报告
+# Amber Stage 73 Phase 2 完成报告
 
 ## 概述
 
@@ -44,7 +44,7 @@ Stage 73 Phase 2 已成功完成！通过智能化的编译警告清理，将警
 ✅ 简单箭头函数: (x: number) => x * 2 → (x) => x * 2 (输出: 10)
 ✅ 多参数箭头函数: (a, b) => a + b (输出: 30)
 ✅ 无参数箭头函数: () => 42 (输出: 42)
-✅ 类型标注函数: function greet(name) (输出: Hello, Beejs!)
+✅ 类型标注函数: function greet(name) (输出: Hello, Amber!)
 ```
 
 #### Rust 单元测试

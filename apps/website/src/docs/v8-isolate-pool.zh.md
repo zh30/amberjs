@@ -11,7 +11,7 @@ id: "v8-isolate-pool"
 
 传统以进程（Process）或容器（Container）为单元的隔离机制非常沉重，而 **V8 Isolate** 提供了全新的极致轻量方案：
 
-| 隔离维度 | Docker 容器 | OS 子进程 (fork) | V8 Isolate (Beejs) |
+| 隔离维度 | Docker 容器 | OS 子进程 (fork) | V8 Isolate (Amber) |
 | :--- | :---: | :---: | :---: |
 | **内存底噪** | ~50 MB – 200 MB | ~20 MB – 50 MB | **~2 MB – 5 MB** |
 | **冷启动耗时** | 500 ms – 2000 ms | 50 ms – 150 ms | **< 18 ms** |
@@ -32,19 +32,19 @@ id: "v8-isolate-pool"
 4. 构建完整的原型链。
 这一过程在普通机器上往往耗费 **35ms ~ 60ms**，严重拖慢 Serverless 首次响应。
 
-### Beejs 的零拷贝 mmap 快照机制
-Beejs 在构建二进制产物时，将上述完整的初始上下文状态一次性预编译并序列化为紧凑的二进制快照（Snapshot Blob）。
+### Amber 的零拷贝 mmap 快照机制
+Amber 在构建二进制产物时，将上述完整的初始上下文状态一次性预编译并序列化为紧凑的二进制快照（Snapshot Blob）。
 
-当用户执行 `bee run` 或启动新 Worker 时：
+当用户执行 `amber run` 或启动新 Worker 时：
 - **`memmap2::Mmap::map`**：直接通过系统调用将快照文件映射到虚拟内存地址空间，**完全绕过磁盘数据读取与内存二次拷贝**；
-- **操作系统 CoW (Copy-on-Write)**：多个 Worker 或多个 `bee` 实例共享相同的物理内存页，只有在某个 Isolate 修改特定内存页时才会按需克隆；
+- **操作系统 CoW (Copy-on-Write)**：多个 Worker 或多个 `amber` 实例共享相同的物理内存页，只有在某个 Isolate 修改特定内存页时才会按需克隆；
 - **冷启动压降至 <18ms**：较传统流程提速近 2 倍，几乎实现“随叫随到”的瞬时拉起。
 
 ---
 
 ## 3. Rust 与 V8 的零成本绑定
 
-Beejs 采用 `rusty_v8` 作为 Rust 与 Google V8 C++ 引擎之间的桥梁，并在其上封装了高性能的抽象层：
+Amber 采用 `rusty_v8` 作为 Rust 与 Google V8 C++ 引擎之间的桥梁，并在其上封装了高性能的抽象层：
 
 ```text
 +-----------------------------------------------------------+
@@ -55,7 +55,7 @@ Beejs 采用 `rusty_v8` 作为 Rust 与 Google V8 C++ 引擎之间的桥梁，�
                [Fast API Calls / Externals]
                               |
 +-----------------------------------------------------------+
-|                 Rust 宿主层 (Beejs Core)                  |
+|                 Rust 宿主层 (Amber Core)                  |
 |  - 句柄作用域自动管理 (HandleScope / EscapableHandleScope) |
 |  - 裸指针安全解引用与 Type-safe 转换                      |
 |  - 避免 C++ 异常穿透，基于 anyhow::Result 优雅错误捕获     |
@@ -63,7 +63,7 @@ Beejs 采用 `rusty_v8` 作为 Rust 与 Google V8 C++ 引擎之间的桥梁，�
 ```
 
 ### 关键生命周期约束
-- **严禁跨线程传递 Local 句柄**：V8 的 `v8::Local<v8::Value>` 强绑定于当前线程的 `HandleScope`。Beejs 在多线程并发时，全部通过序列化数据或 Rust Channel 传输纯数据，彻底避免多线程数据竞争与悬垂指针。
+- **严禁跨线程传递 Local 句柄**：V8 的 `v8::Local<v8::Value>` 强绑定于当前线程的 `HandleScope`。Amber 在多线程并发时，全部通过序列化数据或 Rust Channel 传输纯数据，彻底避免多线程数据竞争与悬垂指针。
 - **作用域即时释放**：耗时循环与批处理操作中均配置局部 `HandleScope`，确保临时 JS 包装对象在迭代结束时即刻被 V8 内存回收，避免大内存脚本执行期间的堆膨胀。
 
 ---
@@ -72,7 +72,7 @@ Beejs 采用 `rusty_v8` 作为 Rust 与 Google V8 C++ 引擎之间的桥梁，�
 
 Node.js 的标准 libuv 在面对成千上万个高频定时器（`setTimeout` / `setInterval`）并发注册时，由于双向链表或最小堆在插入与移除时的遍历成本，容易导致毫秒级卡顿。
 
-Beejs 在底层事件循环中引入了**分层时间轮（Hierarchical Timing Wheel）**调度算法：
+Amber 在底层事件循环中引入了**分层时间轮（Hierarchical Timing Wheel）**调度算法：
 - **$O(1)$ 复杂度**：定时器的注册、取消与到期检索均在恒定时间完成；
-- **批量到期处理**：1,000 个高频定时器并发注册与到期回调触发，基准测试耗时仅 **2.51ms**（较 Beejs 历史版本的 35.66ms 提升 **14.2 倍**，表现比肩 Bun 与 Node 24）；
+- **批量到期处理**：1,000 个高频定时器并发注册与到期回调触发，基准测试耗时仅 **2.51ms**（较 Amber 历史版本的 35.66ms 提升 **14.2 倍**，表现比肩 Bun 与 Node 24）；
 - **微任务优先队列**：严格遵循 ECMAScript 标准规范，在每个 Macrotask 回调执行完毕后即刻清空 Promise Microtask 队列。

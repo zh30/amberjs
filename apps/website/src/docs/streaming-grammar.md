@@ -1,5 +1,5 @@
 ---
-title: "Streaming Structured Output & Token Grammar Engine (bee:grammar)"
+title: "Streaming Structured Output & Token Grammar Engine (amber:grammar)"
 subtitle: "Incremental partial JSON auto-repair, SSE stream transformer, and constrained token generation"
 group: "Agent & Advanced"
 id: "streaming-grammar"
@@ -7,7 +7,7 @@ id: "streaming-grammar"
 
 When interacting with Large Language Models (LLMs) and local SLMs, responses arrive token-by-token over streams (such as Server-Sent Events / SSE). Standard JSON parsers like `JSON.parse` immediately throw a `SyntaxError` when fed incomplete JSON chunks, forcing applications to wait until the entire generation completes before parsing results, updating user interfaces, or triggering downstream tools.
 
-**Beejs v1.8.0 introduces the Native Streaming Structured Output & Token Grammar Engine (`bee:grammar`)**. It provides real-time partial JSON repair, incremental stream decoding, SSE chunk parsing, and grammar validation for constrained generation.
+**Amber v1.8.0 introduces the Native Streaming Structured Output & Token Grammar Engine (`amber:grammar`)**. It provides real-time partial JSON repair, incremental stream decoding, SSE chunk parsing, and grammar validation for constrained generation.
 
 ---
 
@@ -16,7 +16,7 @@ When interacting with Large Language Models (LLMs) and local SLMs, responses arr
 The `parsePartialJSON` function automatically detects unclosed strings, trailing commas, open arrays `[` and open objects `{`, balancing and closing them on the fly to return the valid partial JavaScript object:
 
 ```typescript
-import { parsePartialJSON } from 'bee:grammar';
+import { parsePartialJSON } from 'amber:grammar';
 
 // Incomplete JSON chunk from LLM streaming
 const incompleteChunk = '{"status": "running", "tags": ["agent", "work';
@@ -35,7 +35,7 @@ console.log(parsed.tags);   // ["agent", "work"]
 The `createStreamDecoder` utility accumulates text chunks and emits updated parsed snapshots in real time:
 
 ```typescript
-import { createStreamDecoder } from 'bee:grammar';
+import { createStreamDecoder } from 'amber:grammar';
 
 const decoder = createStreamDecoder({
   onChunk: (snapshot, isComplete) => {
@@ -56,7 +56,7 @@ decoder.finish();
 Parse streaming chunks from OpenAI, Anthropic, or Ollama endpoints directly:
 
 ```typescript
-import { parseSSEChunk } from 'bee:grammar';
+import { parseSSEChunk } from 'amber:grammar';
 
 const rawSSE = `
 event: delta
@@ -81,7 +81,7 @@ for (const ev of events) {
 Ensure local models and agents adhere to choice lists, regular expressions, or JSON schemas:
 
 ```typescript
-import { createChoiceGrammar, createRegexGrammar } from 'bee:grammar';
+import { createChoiceGrammar, createRegexGrammar } from 'amber:grammar';
 
 // Choice grammar
 const decisionGrammar = createChoiceGrammar(['ACCEPT', 'REJECT', 'NEED_MORE_INFO']);

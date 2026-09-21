@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-修复 Beejs 项目中的所有括号不匹配错误
+修复 Amber 项目中的所有括号不匹配错误
 """
 
 import os

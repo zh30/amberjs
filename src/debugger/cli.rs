@@ -65,7 +65,7 @@ impl DebugConsole {
     }
     /// Start the interactive debug session
     pub async fn run(&mut self) -> Result<()> {
-        println!("🐛 Beejs Debugger - Interactive Mode");
+        println!("🐛 Amber Debugger - Interactive Mode");
         println!("Type 'help' for available commands\n");
         loop {
             // Read command
@@ -86,7 +86,7 @@ impl DebugConsole {
     }
     /// Read a command from stdin
     fn read_command(&mut self) -> Result<String> {
-        print!("(beejs-debug) ");
+        print!("(amberjs-debug) ");
         io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
@@ -210,7 +210,7 @@ impl DebugConsole {
     }
     /// Print help information
     fn print_help(&self) {
-        println!("\n🐛 Beejs Debugger Commands:");
+        println!("\n🐛 Amber Debugger Commands:");
         println!("\nExecution Control:");
         println!("  continue (c, cont)  - Continue execution");
         println!("  next (n)            - Step to next line");

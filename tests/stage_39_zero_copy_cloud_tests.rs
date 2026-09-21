@@ -14,7 +14,7 @@ mod stage_39_tests {
         println!("🚀 开始测试: 零拷贝文件传输");
 
         // 创建临时测试文件
-        let test_file_path = "/tmp/beejs_test_file.bin";
+        let test_file_path = "/tmp/amberjs_test_file.bin";
         let test_data = vec![42u8; 1024 * 1024]; // 1MB 测试数据
 
         // 写入测试文件

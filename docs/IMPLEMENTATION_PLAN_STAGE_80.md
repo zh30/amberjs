@@ -1,11 +1,11 @@
-# Beejs Stage 80 实施计划 - 生态系统完善
+# Amber Stage 80 实施计划 - 生态系统完善
 
 ## 项目概述
 
-**目标**: 在 Stage 79 企业级功能基础上，构建完整的 Beejs 生态系统，包括包管理器、模块市场、开发者工具链和社区支持，使 Beejs 成为完整的 JavaScript/TypeScript 开发平台
+**目标**: 在 Stage 79 企业级功能基础上，构建完整的 Amber 生态系统，包括包管理器、模块市场、开发者工具链和社区支持，使 Amber 成为完整的 JavaScript/TypeScript 开发平台
 
 **核心价值**:
-- 📦 高性能包管理器: 类似 npm/yarn，但专为 Beejs 优化
+- 📦 高性能包管理器: 类似 npm/yarn，但专为 Amber 优化
 - 🏪 模块市场: 智能模块发现、版本管理和分发
 - 🛠️ 开发者工具链: 调试器、分析器、格式化工具
 - 👥 社区平台: 模块分享、协作和反馈
@@ -18,7 +18,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   Beejs Ecosystem Platform                   │
+│                   Amber Ecosystem Platform                   │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ 包管理器     │  │ 模块市场     │  │ 开发者工具链     │  │
@@ -394,13 +394,13 @@
 ### 1. 包管理器实现示例
 
 ```rust
-pub struct BeejsPackageManager {
+pub struct AmberPackageManager {
     resolver: Arc<DependencyResolver>,
     installer: Arc<PackageInstaller>,
     cache: Arc<CacheManager>,
 }
 
-impl BeejsPackageManager {
+impl AmberPackageManager {
     pub async fn install(&self, package_name: &str) -> Result<InstallationResult> {
         // 1. 解析依赖
         let dependencies = self.resolver.resolve(package_name).await?;
@@ -444,13 +444,13 @@ impl BeejsPackageManager {
 ### 2. 模块市场实现示例
 
 ```rust
-pub struct BeejsMarketplace {
+pub struct AmberMarketplace {
     registry: Arc<ModuleRegistry>,
     search: Arc<SearchEngine>,
     recommender: Arc<AiRecommender>,
 }
 
-impl BeejsMarketplace {
+impl AmberMarketplace {
     pub async fn search(&self, query: &SearchQuery) -> Result<SearchResults> {
         // 1. 文本搜索
         let text_results = self.search.text_search(query).await?;
@@ -489,14 +489,14 @@ impl BeejsMarketplace {
 ### 3. 开发者工具链实现示例
 
 ```rust
-pub struct BeejsDevTools {
+pub struct AmberDevTools {
     debugger: Arc<Debugger>,
     profiler: Arc<Profiler>,
     formatter: Arc<Formatter>,
     linter: Arc<Linter>,
 }
 
-impl BeejsDevTools {
+impl AmberDevTools {
     pub async fn debug_script(&self, script_path: &Path) -> Result<DebugSession> {
         // 1. 加载脚本
         let script = self.loader.load(script_path).await?;
@@ -609,7 +609,7 @@ impl BeejsDevTools {
 
 ### 中风险
 1. **社区接受度**
-   - **风险**: 开发者可能不愿意切换到 Beejs
+   - **风险**: 开发者可能不愿意切换到 Amber
    - **缓解**: 优秀的用户体验，充分的文档
 
 2. **性能开销**
@@ -662,4 +662,4 @@ impl BeejsDevTools {
 
 ---
 
-**结论**: Stage 80 将把 Beejs 从高性能运行时升级为完整的生态系统，通过包管理器、模块市场、开发者工具链和社区平台，为开发者提供一站式的 JavaScript/TypeScript 开发体验。这将使 Beejs 成为真正的 Node.js 和 Bun 的有力竞争者。
+**结论**: Stage 80 将把 Amber 从高性能运行时升级为完整的生态系统，通过包管理器、模块市场、开发者工具链和社区平台，为开发者提供一站式的 JavaScript/TypeScript 开发体验。这将使 Amber 成为真正的 Node.js 和 Bun 的有力竞争者。

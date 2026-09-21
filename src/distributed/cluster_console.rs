@@ -229,7 +229,7 @@ impl ClusterConsole {
         let real_time_metrics: _ = self.distributed_metrics.get_real_time_metrics().await;
         if let Some(metrics) = real_time_metrics {
             let overview: _ = ClusterOverview {
-                cluster_name: "beejs-cluster".to_string(),
+                cluster_name: "amberjs-cluster".to_string(),
                 total_nodes: metrics.cluster_summary.total_nodes,
                 healthy_nodes: metrics.cluster_summary.healthy_nodes,
                 unhealthy_nodes: metrics.cluster_summary.total_nodes - metrics.cluster_summary.healthy_nodes,

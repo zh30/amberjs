@@ -296,7 +296,7 @@ impl PerformanceDashboard {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Beejs Performance Dashboard</title>
+    <title>Amber Performance Dashboard</title>
     <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; }}
         .metric {{ margin: 10px 0; padding: 10px; border: 1px solid #ccc; }}
@@ -305,7 +305,7 @@ impl PerformanceDashboard {
     </style>
 </head>
 <body>
-    <h1>Beejs Performance Dashboard</h1>
+    <h1>Amber Performance Dashboard</h1>
     <div class="metric">
         <h3>CPU Usage</h3>
         <div class="value">{:.2}%</div>
@@ -368,7 +368,7 @@ mod tests {
         let config: _ = MonitorConfig::new();
         let monitor: _ = RealTimeMonitor::new(config);
         // 创建测试结果
-        let mut result = super::super::result::BenchmarkResult::new("test", Runtime::Beejs);
+        let mut result = super::super::result::BenchmarkResult::new("test", Runtime::Amber);
         result.add_iteration(Duration::from_millis(100));
         result.finish();
         // 记录结果

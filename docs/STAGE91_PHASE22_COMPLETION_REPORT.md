@@ -2,7 +2,7 @@
 
 ## 概述
 
-Phase 2.2 成功构建了完整的可观测性系统，为 Beejs 运行时提供生产级的监控、追踪和分析能力。该系统集成了 Prometheus 指标导出、结构化日志、分布式追踪和性能分析器四大核心组件。
+Phase 2.2 成功构建了完整的可观测性系统，为 Amber 运行时提供生产级的监控、追踪和分析能力。该系统集成了 Prometheus 指标导出、结构化日志、分布式追踪和性能分析器四大核心组件。
 
 ## 完成项目
 
@@ -26,12 +26,12 @@ Phase 2.2 成功构建了完整的可观测性系统，为 Beejs 运行时提供
 
 **关键指标**:
 ```
-beejs_script_executions_total      # 脚本执行总数
-beejs_script_execution_duration_ms # 执行持续时间
-beejs_memory_usage_bytes           # 内存使用量
-beejs_cpu_usage_percent            # CPU 使用率
-beejs_errors_total                 # 错误总数
-beejs_active_contexts              # 活跃上下文数
+amberjs_script_executions_total      # 脚本执行总数
+amberjs_script_execution_duration_ms # 执行持续时间
+amberjs_memory_usage_bytes           # 内存使用量
+amberjs_cpu_usage_percent            # CPU 使用率
+amberjs_errors_total                 # 错误总数
+amberjs_active_contexts              # 活跃上下文数
 ```
 
 ### ✅ 2. 结构化日志系统
@@ -60,7 +60,7 @@ beejs_active_contexts              # 活跃上下文数
   "timestamp": "2025-12-23T03:30:00Z",
   "level": "INFO",
   "message": "Script executed successfully",
-  "service": "beejs",
+  "service": "amberjs",
   "correlation_id": "trace-123",
   "context": {
     "script_name": "test.js",
@@ -341,7 +341,7 @@ ObservabilityConfig {
 
 ### 🔄 下一阶段
 
-Phase 2.2 已为 Phase 2.3 (配置管理) 奠定坚实基础。配置管理将进一步完善运行时调优能力，使 Beejs 能够在不同环境下自动优化性能。
+Phase 2.2 已为 Phase 2.3 (配置管理) 奠定坚实基础。配置管理将进一步完善运行时调优能力，使 Amber 能够在不同环境下自动优化性能。
 
 ---
 

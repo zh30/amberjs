@@ -1179,7 +1179,7 @@ fn fs_append_file_callback(
 
 // ============ fs.promises API - v0.3.66 ============
 // 注意：fs.promises API 使用简化的 thenable 实现
-// 真正的异步执行需要完整的 async runtime，这是 Beejs 未来的目标
+// 真正的异步执行需要完整的 async runtime，这是 Amber 未来的目标
 // 使用 V8 对象的内部字段存储路径数据，避免闭包捕获问题
 
 /// 编码类型枚举 - v0.3.66

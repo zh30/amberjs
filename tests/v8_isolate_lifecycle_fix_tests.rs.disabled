@@ -1,6 +1,6 @@
 /// V8 Isolate 生命周期修复验证测试
 /// 测试新的安全 Isolate 管理器是否解决了并发测试问题
-use beejs::Runtime;
+use amberjs::Runtime;
 // use std::sync::{Arc, Mutex};
 use std::thread;
 

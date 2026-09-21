@@ -3,7 +3,7 @@
 //! Stage 96 Phase 1: V8 API 兼容性完善
 //! 提供命令行工具来检查 V8 API 兼容性
 
-use beejs::v8_engine::{
+use amberjs::v8_engine::{
     V8CompatibilityChecker,
     V8APIAdapter,
     AdapterConfig,
@@ -51,7 +51,7 @@ async fn main() -> Result<(), anyhow::Error> {
 }
 
 fn print_usage() {
-    println!("Beejs V8 兼容性检查工具");
+    println!("Amber V8 兼容性检查工具");
     println!("\n用法:");
     println!("  cargo run --bin v8_compatibility_check <命令>");
     println!("\n命令:");

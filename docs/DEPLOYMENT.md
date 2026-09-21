@@ -1,10 +1,10 @@
-# Beejs 生产环境部署指南
+# Amber 生产环境部署指南
 
-> 发布校验说明（2026-05-26）：本文已按当前 public CLI 做基础修正。当前二进制名为 `bee`，脚本执行使用 `bee run <file>`，表达式执行使用 `bee eval <code>`；历史性能调优 flag（如 `--max-heap`、`--optimize`）不是当前公开 CLI 契约。
+> 发布校验说明（2026-05-26）：本文已按当前 public CLI 做基础修正。当前二进制名为 `amber`，脚本执行使用 `amber run <file>`，表达式执行使用 `amber eval <code>`；历史性能调优 flag（如 `--max-heap`、`--optimize`）不是当前公开 CLI 契约。
 
 ## 概述
 
-Beejs 是一个高性能的 JavaScript/TypeScript 运行时，专为 AI 时代的高性能脚本执行而设计。本指南将帮助您在生产环境中部署和优化 Beejs。
+Amber 是一个高性能的 JavaScript/TypeScript 运行时，专为 AI 时代的高性能脚本执行而设计。本指南将帮助您在生产环境中部署和优化 Amber。
 
 ## 系统要求
 
@@ -24,8 +24,8 @@ Beejs 是一个高性能的 JavaScript/TypeScript 运行时，专为 AI 时代�
 ### 方式一：一键安装 (推荐)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zh30/beejs/main/install.sh | sh
-bee --version
+curl -fsSL https://get.amberjs.com/install.sh | sh
+amber --version
 ```
 
 ### 方式二：二进制部署 (手动)
@@ -37,22 +37,22 @@ bee --version
    TARGET=x86_64-unknown-linux-gnu
 
    # 下载指定版本
-   curl -L https://github.com/zh30/beejs/releases/download/${VERSION}/bee-${VERSION}-${TARGET}.tar.gz -o bee.tar.gz
-   tar -xzf bee.tar.gz
-   chmod +x bee
+   curl -L https://github.com/zh30/amberjs/releases/download/${VERSION}/amber-${VERSION}-${TARGET}.tar.gz -o amber.tar.gz
+   tar -xzf amber.tar.gz
+   chmod +x amber
    ```
 
 2. **安装到系统路径**
    ```bash
-   mkdir -p ~/.beejs/bin
-   mv bee ~/.beejs/bin/
-   export PATH=\"$HOME/.beejs/bin:$PATH\"
-   bee --version
+   mkdir -p ~/.amberjs/bin
+   mv amber ~/.amberjs/bin/
+   export PATH=\"$HOME/.amberjs/bin:$PATH\"
+   amber --version
    ```
 
 3. **验证安装**
    ```bash
-   bee eval 'console.log("Hello from Beejs!"); 1+1'
+   amber eval 'console.log("Hello from Amber!"); 1+1'
    ```
 
 ### 方式二：源码编译
@@ -65,14 +65,14 @@ bee --version
 
 2. **编译项目**
    ```bash
-   git clone https://github.com/zh30/beejs.git
-   cd beejs
+   git clone https://github.com/zh30/amberjs.git
+   cd amberjs
    cargo build --release
    ```
 
 3. **安装**
    ```bash
-   sudo cp target/release/bee /usr/local/bin/
+   sudo cp target/release/amber /usr/local/bin/
    ```
 
 ## 性能优化配置
@@ -82,19 +82,19 @@ bee --version
 ```bash
 # 当前 public CLI 不支持 --max-heap / --stack-size；
 # 请用容器、systemd 或操作系统资源限制管理生产内存。
-bee run script.js
+amber run script.js
 ```
 
 ### V8 优化
 
 ```bash
 # 当前 public CLI 不支持 --optimize flag。
-bee run script.js
+amber run script.js
 ```
 
 ### Isolate 池化
 
-Beejs 自动使用 V8 Isolate 池化以提高性能：
+Amber 自动使用 V8 Isolate 池化以提高性能：
 - 默认池大小: CPU 核心数 (最大 8)
 - 在生产环境中自动启用
 
@@ -102,19 +102,19 @@ Beejs 自动使用 V8 Isolate 池化以提高性能：
 
 ### 1. 进程管理
 
-使用 systemd 管理 Beejs 进程：
+使用 systemd 管理 Amber 进程：
 
 ```ini
-# /etc/systemd/system/beejs.service
+# /etc/systemd/system/amberjs.service
 [Unit]
-Description=Beejs Runtime
+Description=Amber Runtime
 After=network.target
 
 [Service]
 Type=simple
-User=beejs
-WorkingDirectory=/opt/beejs
-ExecStart=/usr/local/bin/bee run /opt/beejs/app.js
+User=amberjs
+WorkingDirectory=/opt/amberjs
+ExecStart=/usr/local/bin/amber run /opt/amberjs/app.js
 Restart=always
 RestartSec=3
 
@@ -124,8 +124,8 @@ WantedBy=multi-user.target
 
 启用并启动服务：
 ```bash
-sudo systemctl enable beejs
-sudo systemctl start beejs
+sudo systemctl enable amberjs
+sudo systemctl start amberjs
 ```
 
 ### 2. 监控
@@ -133,16 +133,16 @@ sudo systemctl start beejs
 #### 日志配置
 ```bash
 # 启用详细日志
-bee --verbose script.js 2>&1 | tee /var/log/beejs.log
+amber --verbose script.js 2>&1 | tee /var/log/amberjs.log
 ```
 
 #### 性能监控
 ```bash
 # 查看内存使用
-ps aux | grep bee
+ps aux | grep amber
 
 # 查看 CPU 使用
-top -p $(pgrep bee)
+top -p $(pgrep amber)
 ```
 
 ### 3. 安全配置
@@ -150,16 +150,16 @@ top -p $(pgrep bee)
 #### 限制资源使用
 ```bash
 # 使用 cgroups 限制内存
-sudo cgcreate -g memory:beejs
-sudo cgset -r memory.limit_in_bytes=1073741824 beejs
-sudo cgexec -g memory:beejs bee script.js
+sudo cgcreate -g memory:amberjs
+sudo cgset -r memory.limit_in_bytes=1073741824 amberjs
+sudo cgexec -g memory:amberjs amber script.js
 ```
 
 #### 文件权限
 ```bash
-# 确保 Beejs 二进制文件权限正确
-sudo chmod 755 /usr/local/bin/bee
-sudo chown root:root /usr/local/bin/bee
+# 确保 Amber 二进制文件权限正确
+sudo chmod 755 /usr/local/bin/amber
+sudo chown root:root /usr/local/bin/amber
 ```
 
 ### 4. 负载均衡
@@ -171,8 +171,8 @@ sudo chown root:root /usr/local/bin/bee
 npm install -g pm2
 
 # 启动多个实例
-pm2 start bee --name "beejs-1" -- script.js
-pm2 start bee --name "beejs-2" -- script.js
+pm2 start amber --name "amberjs-1" -- script.js
+pm2 start amber --name "amberjs-2" -- script.js
 
 # 查看状态
 pm2 status
@@ -191,9 +191,9 @@ pm2 status
        ca-certificates \
        && rm -rf /var/lib/apt/lists/*
 
-   # 复制 Beejs 二进制文件
-   COPY bee /usr/local/bin/bee
-   RUN chmod +x /usr/local/bin/bee
+   # 复制 Amber 二进制文件
+   COPY amber /usr/local/bin/amber
+   RUN chmod +x /usr/local/bin/amber
 
    # 设置工作目录
    WORKDIR /app
@@ -202,17 +202,17 @@ pm2 status
    COPY . .
 
    # 运行应用
-   CMD ["bee", "script.js"]
+   CMD ["amber", "script.js"]
    ```
 
 2. **构建镜像**
    ```bash
-   docker build -t beejs:latest .
+   docker build -t amberjs:latest .
    ```
 
 3. **运行容器**
    ```bash
-   docker run -d --name beejs-app beejs:latest
+   docker run -d --name amberjs-app amberjs:latest
    ```
 
 ### Docker Compose
@@ -222,7 +222,7 @@ pm2 status
 version: '3.8'
 
 services:
-  beejs:
+  amberjs:
     build: .
     restart: always
     environment:
@@ -240,60 +240,60 @@ services:
 1. **内存不足错误**
    ```bash
    # 增加堆内存大小
-   bee run script.js
+   amber run script.js
    ```
 
 2. **V8 编译错误**
    ```bash
    # 禁用优化
-   bee run script.js
+   amber run script.js
    ```
 
 3. **性能问题**
    ```bash
    # 启用详细日志查看性能指标
-   bee --verbose script.js
+   amber --verbose script.js
    ```
 
 ### 日志分析
 
 查看错误日志：
 ```bash
-journalctl -u beejs -f
+journalctl -u amberjs -f
 ```
 
 查看应用日志：
 ```bash
-tail -f /var/log/beejs.log
+tail -f /var/log/amberjs.log
 ```
 
 ## 升级指南
 
-### 升级 Beejs
+### 升级 Amber
 
 1. **备份当前版本**
    ```bash
-   cp ~/.beejs/bin/bee ~/.beejs/bin/bee.backup
+   cp ~/.amberjs/bin/amber ~/.amberjs/bin/amber.backup
    ```
 
 2. **安装新版本**
    ```bash
    VERSION=v0.1.0
    TARGET=x86_64-unknown-linux-gnu
-   curl -L https://github.com/zh30/beejs/releases/download/${VERSION}/bee-${VERSION}-${TARGET}.tar.gz -o bee.tar.gz
-   tar -xzf bee.tar.gz
-   cp bee ~/.beejs/bin/bee
+   curl -L https://github.com/zh30/amberjs/releases/download/${VERSION}/amber-${VERSION}-${TARGET}.tar.gz -o amber.tar.gz
+   tar -xzf amber.tar.gz
+   cp amber ~/.amberjs/bin/amber
    ```
 
 3. **验证升级**
    ```bash
-   bee --version
-   bee eval 'console.log("Upgrade test"); 1+1'
+   amber --version
+   amber eval 'console.log("Upgrade test"); 1+1'
    ```
 
 4. **回滚（如需要）**
    ```bash
-   cp ~/.beejs/bin/bee.backup ~/.beejs/bin/bee
+   cp ~/.amberjs/bin/amber.backup ~/.amberjs/bin/amber
    ```
 
 ## 性能基准
@@ -308,10 +308,10 @@ tail -f /var/log/beejs.log
 
 ## 支持
 
-- **文档**: [https://docs.beejs.dev](https://docs.beejs.dev)
-- **GitHub**: [https://github.com/zh30/beejs](https://github.com/zh30/beejs)
-- **问题报告**: [https://github.com/zh30/beejs/issues](https://github.com/zh30/beejs/issues)
-- **社区**: [https://discord.gg/beejs](https://discord.gg/beejs)
+- **文档**: [https://docs.amberjs.dev](https://docs.amberjs.dev)
+- **GitHub**: [https://github.com/zh30/amberjs](https://github.com/zh30/amberjs)
+- **问题报告**: [https://github.com/zh30/amberjs/issues](https://github.com/zh30/amberjs/issues)
+- **社区**: [https://discord.gg/amberjs](https://discord.gg/amberjs)
 
 ---
 

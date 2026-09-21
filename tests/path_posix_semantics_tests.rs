@@ -6,7 +6,7 @@
 //! `extname` treated a dotfile's leading dot as an extension. Every expectation
 //! below is the value Node reports on POSIX.
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 fn eval(code: &str) -> String {

@@ -2,11 +2,11 @@
 // Verifies Node.js event loop behavior: nextTick -> microtasks -> timers -> setImmediate
 // This test file focuses on edge cases and execution order precision
 
-use beejs::nodejs_core::process::clear_next_tick_queue;
-use beejs::nodejs_core::timers::{
+use amberjs::nodejs_core::process::clear_next_tick_queue;
+use amberjs::nodejs_core::timers::{
     clear_all_async_timers, clear_all_timer_callbacks, clear_all_timers,
 };
-use beejs::MinimalRuntime;
+use amberjs::MinimalRuntime;
 use serial_test::serial;
 
 fn cleanup_global_state() {

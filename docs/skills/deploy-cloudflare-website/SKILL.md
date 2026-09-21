@@ -87,7 +87,7 @@ npx wrangler deploy
 ```
 
 发布成功后，命令行会返回生产环境的全球 CDN 访问域名：
-`https://bee.zhanghe.dev`
+`https://amber.zhanghe.dev`
 
 ---
 

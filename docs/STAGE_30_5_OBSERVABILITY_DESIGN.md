@@ -175,23 +175,23 @@ impl AlertingSystem {
 ## 📊 关键指标定义
 
 ### 运行时指标
-- `beejs_scripts_executed_total`: 脚本执行总数
-- `beejs_script_execution_duration_seconds`: 脚本执行耗时
-- `beejs_active_scripts`: 活跃脚本数
-- `beejs_memory_usage_bytes`: 内存使用量
-- `beejs_cpu_usage_percent`: CPU使用率
+- `amberjs_scripts_executed_total`: 脚本执行总数
+- `amberjs_script_execution_duration_seconds`: 脚本执行耗时
+- `amberjs_active_scripts`: 活跃脚本数
+- `amberjs_memory_usage_bytes`: 内存使用量
+- `amberjs_cpu_usage_percent`: CPU使用率
 
 ### 性能指标
-- `beejs_jit_compilation_duration_seconds`: JIT编译耗时
-- `beejs_gc_pause_duration_seconds`: GC暂停时间
-- `beejs_network_latency_seconds`: 网络延迟
-- `beejs_throughput_bytes_total`: 网络吞吐量
+- `amberjs_jit_compilation_duration_seconds`: JIT编译耗时
+- `amberjs_gc_pause_duration_seconds`: GC暂停时间
+- `amberjs_network_latency_seconds`: 网络延迟
+- `amberjs_throughput_bytes_total`: 网络吞吐量
 
 ### 业务指标
-- `beejs_packages_loaded_total`: 已加载包数
-- `beejs_hot_reloads_total`: 热重载次数
-- `beejs_concurrent_executions`: 并发执行数
-- `beejs_error_rate_percent`: 错误率
+- `amberjs_packages_loaded_total`: 已加载包数
+- `amberjs_hot_reloads_total`: 热重载次数
+- `amberjs_concurrent_executions`: 并发执行数
+- `amberjs_error_rate_percent`: 错误率
 
 ## 🔌 集成设计
 
@@ -258,20 +258,20 @@ End Root Span
 ### Prometheus 查询示例
 ```promql
 # 脚本执行成功率
-rate(beejs_scripts_executed_total{status="success"}[5m]) /
-rate(beejs_scripts_executed_total[5m]) * 100
+rate(amberjs_scripts_executed_total{status="success"}[5m]) /
+rate(amberjs_scripts_executed_total[5m]) * 100
 
 # P95 脚本执行延迟
 histogram_quantile(0.95,
-  rate(beejs_script_execution_duration_seconds_bucket[5m])
+  rate(amberjs_script_execution_duration_seconds_bucket[5m])
 )
 
 # 内存使用趋势
-rate(beejs_memory_usage_bytes[5m])
+rate(amberjs_memory_usage_bytes[5m])
 
 # JIT 编译效率
-rate(beejs_jit_compilation_duration_seconds_sum[5m]) /
-rate(beejs_jit_compilation_duration_seconds_count[5m])
+rate(amberjs_jit_compilation_duration_seconds_sum[5m]) /
+rate(amberjs_jit_compilation_duration_seconds_count[5m])
 ```
 
 ### Grafana 面板
@@ -286,7 +286,7 @@ rate(beejs_jit_compilation_duration_seconds_count[5m])
 ### 关键告警
 ```yaml
 - alert: HighErrorRate
-  expr: rate(beejs_scripts_executed_total{status="error"}[5m]) > 0.1
+  expr: rate(amberjs_scripts_executed_total{status="error"}[5m]) > 0.1
   for: 2m
   labels:
     severity: critical
@@ -295,7 +295,7 @@ rate(beejs_jit_compilation_duration_seconds_count[5m])
     description: "错误率超过10%"
 
 - alert: HighLatency
-  expr: histogram_quantile(0.95, rate(beejs_script_execution_duration_seconds_bucket[5m])) > 1
+  expr: histogram_quantile(0.95, rate(amberjs_script_execution_duration_seconds_bucket[5m])) > 1
   for: 5m
   labels:
     severity: warning
@@ -304,7 +304,7 @@ rate(beejs_jit_compilation_duration_seconds_count[5m])
     description: "P95延迟超过1秒"
 
 - alert: HighMemoryUsage
-  expr: beejs_memory_usage_bytes > 1073741824  # 1GB
+  expr: amberjs_memory_usage_bytes > 1073741824  # 1GB
   for: 5m
   labels:
     severity: warning

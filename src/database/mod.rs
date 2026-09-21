@@ -1,4 +1,4 @@
-//! Embedded Database & Vector Store Module for Beejs (`bee:db`, `bee:sqlite`, `bee:vector`).
+//! Embedded Database & Vector Store Module for Amber (`amber:db`, `amber:sqlite`, `amber:vector`).
 
 pub mod sqlite;
 pub mod vector;
@@ -196,13 +196,13 @@ pub fn setup_db_api(
     db_internal.set(scope, k_query.into(), query_fn.into());
     db_internal.set(scope, k_run.into(), run_fn.into());
 
-    let k_db_internal = v8::String::new(scope, "__bee_db_native").unwrap();
+    let k_db_internal = v8::String::new(scope, "__amber_db_native").unwrap();
     global.set(scope, k_db_internal.into(), db_internal.into());
 
     // 2. Inject Database & VectorDB JavaScript implementations
     let js_code = r#"
     (function() {
-        const native = globalThis.__bee_db_native;
+        const native = globalThis.__amber_db_native;
 
         // ==========================================
         // 1. Database: Embedded SQLite Class
@@ -286,7 +286,7 @@ pub fn setup_db_api(
         function toFloat32Array(vec) {
             if (vec instanceof Float32Array) return vec;
             if (Array.isArray(vec)) return new Float32Array(vec);
-            if (vec && vec.data instanceof Float32Array) return vec.data; // bee:ai Tensor
+            if (vec && vec.data instanceof Float32Array) return vec.data; // amber:ai Tensor
             if (ArrayBuffer.isView(vec)) return new Float32Array(vec.buffer, vec.byteOffset, vec.byteLength / 4);
             throw new TypeError('Vector must be an Array, Float32Array, or Tensor');
         }
@@ -458,8 +458,8 @@ pub fn setup_db_api(
             version: '1.4.0'
         };
 
-        globalThis.__bee_db = beeDb;
-        globalThis.__bee_vector = beeVector;
+        globalThis.__amber_db = beeDb;
+        globalThis.__amber_vector = beeVector;
         globalThis.db = beeDb;
         globalThis.vector = beeVector;
         globalThis.Database = Database;

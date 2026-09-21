@@ -1,4 +1,4 @@
-//! Beejs v1.7.0: Embedded Persistent Key-Value & Durable State Engine (`bee:kv`)
+//! Amber v1.7.0: Embedded Persistent Key-Value & Durable State Engine (`amber:kv`)
 //!
 //! Provides a zero-dependency, transactional, ACID-compliant key-value engine
 //! with in-memory mode, disk WAL persistence, prefix range scanning, TTL expiration,
@@ -393,7 +393,7 @@ where
     Some(f(&mut *store))
 }
 
-/// Native callback dispatcher for `bee:kv` operations
+/// Native callback dispatcher for `amber:kv` operations
 fn kv_native_dispatch(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -685,7 +685,7 @@ fn kv_native_dispatch(
     }
 }
 
-/// Sets up the `bee:kv` API inside V8 Context
+/// Sets up the `amber:kv` API inside V8 Context
 pub fn setup_kv_api(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
@@ -694,12 +694,12 @@ pub fn setup_kv_api(
 
     // Register native dispatcher callback
     let native_fn = v8::Function::new(scope, kv_native_dispatch).unwrap();
-    let k_native = v8::String::new(scope, "__bee_kv_native").unwrap();
+    let k_native = v8::String::new(scope, "__amber_kv_native").unwrap();
     global.set(scope, k_native.into(), native_fn.into());
 
     let kv_js_bootstrap = r#"
     (function() {
-        const native = globalThis.__bee_kv_native;
+        const native = globalThis.__amber_kv_native;
 
         class KVStore {
             #id;
@@ -848,7 +848,7 @@ pub fn setup_kv_api(
             default: { KVStore, open: KVStore.open, openMemory: KVStore.openMemory, openInMemory: KVStore.openInMemory }
         };
 
-        globalThis.__bee_kv = kvModule;
+        globalThis.__amber_kv = kvModule;
         globalThis.kv = kvModule;
     })();
     "#;

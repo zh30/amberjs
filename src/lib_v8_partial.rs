@@ -39,7 +39,7 @@ pub fn cleanup_v8() {
     }
     v8::V8::dispose_platform();
 }
-/// Beejs Runtime - High-performance JavaScript/TypeScript execution engine using V8
+/// Amber Runtime - High-performance JavaScript/TypeScript execution engine using V8
 pub struct Runtime {
     stack_size: usize,
     max_heap: usize,
@@ -51,7 +51,7 @@ pub struct Runtime {
     context: v8::Global<v8::Context>,
 }
 impl Runtime {
-    /// Create a new Beejs runtime instance
+    /// Create a new Amber runtime instance
     pub fn new(
         stack_size: usize,
         max_heap: usize,

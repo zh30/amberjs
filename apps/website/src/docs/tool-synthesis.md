@@ -1,5 +1,5 @@
 ---
-title: "Agent Tool Auto-Synthesis & OpenAPI Compiler (bee:tools)"
+title: "Agent Tool Auto-Synthesis & OpenAPI Compiler (amber:tools)"
 subtitle: "Dynamic JSON Schema validation, zero-boilerplate OpenAPI 3.x tool synthesis, and AgentPipeline integration"
 group: "Agent & Advanced"
 id: "tool-synthesis"
@@ -7,7 +7,7 @@ id: "tool-synthesis"
 
 Autonomous Agents interact with the real world through tools. Manually writing boilerplate validation, parsing REST endpoints, and coercing JSON arguments is tedious and error-prone. Furthermore, Agents increasingly discover APIs at runtime by reading Swagger / OpenAPI 3.x specifications.
 
-**Beejs v1.7.0 introduces the Agent Tool Auto-Synthesis & OpenAPI Schema Compiler (`bee:tools` / `bee:ai.tools`)**. It compiles JSON Schema definitions into type-validated tools, transforms OpenAPI specifications into ready-to-execute tools backed by native `fetch`, parses structured LLM tool calls from free text or markdown, and connects directly to `bee:ai.AgentPipeline`.
+**Amber v1.7.0 introduces the Agent Tool Auto-Synthesis & OpenAPI Schema Compiler (`amber:tools` / `amber:ai.tools`)**. It compiles JSON Schema definitions into type-validated tools, transforms OpenAPI specifications into ready-to-execute tools backed by native `fetch`, parses structured LLM tool calls from free text or markdown, and connects directly to `amber:ai.AgentPipeline`.
 
 ---
 
@@ -16,7 +16,7 @@ Autonomous Agents interact with the real world through tools. Manually writing b
 Create tools with parameter validation, type coercion, and OpenAI-compatible schema serialization:
 
 ```typescript
-import { compileSchemaTool } from 'bee:tools';
+import { compileSchemaTool } from 'amber:tools';
 
 const searchTool = compileSchemaTool({
   name: 'web_search',
@@ -56,7 +56,7 @@ Error: Tool 'web_search' argument validation failed: Missing required property: 
 Ingest any OpenAPI or Swagger 3.0/3.1 document and synthesize native tools instantly:
 
 ```typescript
-import { fromOpenAPI } from 'bee:tools';
+import { fromOpenAPI } from 'amber:tools';
 
 const openApiSpec = {
   openapi: '3.0.0',
@@ -108,8 +108,8 @@ const user = await tools.map.getUser.execute({ id: 'u_123' });
 LLMs output tool calls in various formats: raw JSON, markdown fences, or OpenAI blocks. `parseToolCalls` normalizes them all:
 
 ```typescript
-import { parseToolCalls, registerTools } from 'bee:tools';
-import ai from 'bee:ai';
+import { parseToolCalls, registerTools } from 'amber:tools';
+import ai from 'amber:ai';
 
 // Extract tool calls from raw LLM text
 const rawOutput = `
@@ -117,13 +117,13 @@ I will search for the user request:
 \`\`\`json
 {
   "name": "web_search",
-  "arguments": { "query": "Beejs v1.7.0 release" }
+  "arguments": { "query": "Amber v1.7.0 release" }
 }
 \`\`\`
 `;
 
 const calls = parseToolCalls(rawOutput);
-console.log(calls[0]); // { name: 'web_search', arguments: { query: 'Beejs v1.7.0 release' } }
+console.log(calls[0]); // { name: 'web_search', arguments: { query: 'Amber v1.7.0 release' } }
 
 // Wire tools directly into an AgentPipeline
 const pipeline = new ai.AgentPipeline();
@@ -132,7 +132,7 @@ registerTools(pipeline, tools);
 
 You can also access the tools module through `ai.tools`:
 ```typescript
-import ai from 'bee:ai';
+import ai from 'amber:ai';
 const tool = ai.tools.compileSchemaTool({ ... });
 ```
 

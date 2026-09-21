@@ -117,7 +117,7 @@ impl ExecutionContext {
         let module_system: _ = file_type.module_system();
         // Build initial argv
         let argv: _ = vec![
-            "bee".to_string(),
+            "amber".to_string(),
             script_path.to_string_lossy().to_string(),
         ];
         // Collect environment variables
@@ -161,7 +161,7 @@ impl ExecutionContext {
             .collect();
         format!(
             r#"
-// Beejs execution context setup
+// Amber execution context setup
 globalThis.__dirname = "{}";
 globalThis.__filename = "{}";
 // Ensure process object exists
@@ -261,10 +261,10 @@ pub mod shebang {
             None
         }
     }
-    /// Check if a shebang indicates a Beejs-compatible script
+    /// Check if a shebang indicates a Amber-compatible script
     pub fn is_compatible(shebang: &str) -> bool {
-        shebang.contains("bee")
-            || shebang.ends_with("/env bee")
+        shebang.contains("amber")
+            || shebang.ends_with("/env amber")
             || shebang.ends_with("/env node") // Node.js compatibility
             || shebang.ends_with("/env bun")  // Bun compatibility
             || shebang.ends_with("/node")
@@ -368,7 +368,7 @@ mod tests {
     fn test_execution_context_creation() {
         let ctx: _ = ExecutionContext::new(PathBuf::from("test.js"));
         assert!(ctx.argv.len() >= 2);
-        assert_eq!(ctx.argv[0], "bee");
+        assert_eq!(ctx.argv[0], "amber");
     }
     #[test]
     fn test_execution_context_with_args() {
@@ -379,18 +379,18 @@ mod tests {
     #[test]
     fn test_shebang_detection() {
         assert_eq!(
-            shebang::detect("#!/usr/bin/env bee\nconsole.log('hi')"),
-            Some("/usr/bin/env bee".to_string()));
+            shebang::detect("#!/usr/bin/env amber\nconsole.log('hi')"),
+            Some("/usr/bin/env amber".to_string()));
         assert!(shebang::detect("console.log('hi')").is_none());
     }
     #[test]
     fn test_shebang_strip() {
-        let content: _ = "#!/usr/bin/env bee\nconsole.log('hi')";
+        let content: _ = "#!/usr/bin/env amber\nconsole.log('hi')";
         assert_eq!(shebang::strip(content), "console.log('hi')");
     }
     #[test]
     fn test_shebang_compatibility() {
-        assert!(shebang::is_compatible("/usr/bin/env bee"));
+        assert!(shebang::is_compatible("/usr/bin/env amber"));
         assert!(shebang::is_compatible("/usr/bin/env node"));
         assert!(shebang::is_compatible("/usr/bin/env bun"));
         assert!(!shebang::is_compatible("/usr/bin/python"));

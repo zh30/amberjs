@@ -321,7 +321,7 @@ impl GlobalRouter {
         Ok(RouteResult {
             selected_node_id: best_node.id.clone(),
             selected_region: best_node.region.clone(),
-            endpoint_url: format!("https://{}.edge.beejs.ai", best_node.id),
+            endpoint_url: format!("https://{}.edge.amberjs.ai", best_node.id),
             expected_latency_ms: expected_latency,
             routing_score: *best_score,
             distance_km: self.calculate_geographic_distance(
@@ -486,7 +486,7 @@ mod tests {
     #[tokio::test]
     async fn test_anycast_dns() {
         let anycast: _ = AnycastDns::new();
-        let ips: _ = anycast.resolve("beejs-edge.com").await;
+        let ips: _ = anycast.resolve("amberjs-edge.com").await;
         assert!(ips.is_ok());
         let result: _ = ips.unwrap();
         assert!(!result.is_empty());
@@ -494,7 +494,7 @@ mod tests {
     #[tokio::test]
     async fn test_geo_dns() {
         let geo_dns: _ = GeoDns::new();
-        let endpoint: _ = geo_dns.resolve_with_region("beejs-edge.com", "203.0.113.1").await;
+        let endpoint: _ = geo_dns.resolve_with_region("amberjs-edge.com", "203.0.113.1").await;
         assert!(endpoint.is_ok());
         let result: _ = endpoint.unwrap();
         assert!(!result.region.is_empty());

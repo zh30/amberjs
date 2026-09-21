@@ -15,13 +15,13 @@ mod package_lock_tests {
         let cache_dir = temp_dir.path().join("cache");
         let node_modules = temp_dir.path().join("node_modules");
 
-        let config = beejs::package_manager::PackageManagerConfig {
+        let config = amberjs::package_manager::PackageManagerConfig {
             cache_dir,
             node_modules_dir: node_modules.clone(),
             ..Default::default()
         };
 
-        let pm = beejs::package_manager::PackageManager::new(config).unwrap();
+        let pm = amberjs::package_manager::PackageManager::new(config).unwrap();
 
         // Create a mock lock file in the correct location (node_modules)
         let lock_content = r#"{"name":"test-project","version":"1.0.0","lockfileVersion":3,"requires":true,"dependencies":{"ms":{"version":"2.1.3","resolved":"https://registry.npmjs.org/ms/-/ms-2.1.3.tgz","integrity":"sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==","dev":false}}}"#;
@@ -43,13 +43,13 @@ mod package_lock_tests {
         let cache_dir = temp_dir.path().join("cache");
         let node_modules = temp_dir.path().join("node_modules");
 
-        let config = beejs::package_manager::PackageManagerConfig {
+        let config = amberjs::package_manager::PackageManagerConfig {
             cache_dir,
             node_modules_dir: node_modules,
             ..Default::default()
         };
 
-        let pm = beejs::package_manager::PackageManager::new(config).unwrap();
+        let pm = amberjs::package_manager::PackageManager::new(config).unwrap();
 
         let lock_content = r#"{"name":"root-lock-project","version":"1.0.0","lockfileVersion":3,"requires":true,"dependencies":{"root-only":{"version":"1.2.3","resolved":"https://registry.npmjs.org/root-only/-/root-only-1.2.3.tgz","integrity":"sha512-root","dev":false}}}"#;
         let lock_path = temp_dir.path().join("package-lock.json");
@@ -70,13 +70,13 @@ mod package_lock_tests {
         let cache_dir = temp_dir.path().join("cache");
         let node_modules = temp_dir.path().join("node_modules");
 
-        let config = beejs::package_manager::PackageManagerConfig {
+        let config = amberjs::package_manager::PackageManagerConfig {
             cache_dir: cache_dir.clone(),
             node_modules_dir: node_modules.clone(),
             ..Default::default()
         };
 
-        let pm = beejs::package_manager::PackageManager::new(config).unwrap();
+        let pm = amberjs::package_manager::PackageManager::new(config).unwrap();
 
         // Simulate installed packages
         let ms_dir = node_modules.join("ms");
@@ -115,13 +115,13 @@ mod package_lock_tests {
 
         let cache_dir = temp_dir.path().join("cache");
 
-        let config = beejs::package_manager::PackageManagerConfig {
+        let config = amberjs::package_manager::PackageManagerConfig {
             cache_dir,
             node_modules_dir: node_modules,
             ..Default::default()
         };
 
-        let pm = beejs::package_manager::PackageManager::new(config).unwrap();
+        let pm = amberjs::package_manager::PackageManager::new(config).unwrap();
         let lock = pm.read_package_lock().unwrap();
 
         assert!(lock.dependencies.is_some());
@@ -144,13 +144,13 @@ mod package_lock_tests {
         let cache_dir = temp_dir.path().join("cache");
         let node_modules = temp_dir.path().join("node_modules");
 
-        let config = beejs::package_manager::PackageManagerConfig {
+        let config = amberjs::package_manager::PackageManagerConfig {
             cache_dir,
             node_modules_dir: node_modules.clone(),
             ..Default::default()
         };
 
-        let pm = beejs::package_manager::PackageManager::new(config).unwrap();
+        let pm = amberjs::package_manager::PackageManager::new(config).unwrap();
 
         // Install with save_exact = true
         // Note: This would actually download the package in a full implementation
@@ -180,13 +180,13 @@ mod package_lock_tests {
 
         let cache_dir = temp_dir.path().join("cache");
 
-        let config = beejs::package_manager::PackageManagerConfig {
+        let config = amberjs::package_manager::PackageManagerConfig {
             cache_dir,
             node_modules_dir: node_modules,
             ..Default::default()
         };
 
-        let pm = beejs::package_manager::PackageManager::new(config).unwrap();
+        let pm = amberjs::package_manager::PackageManager::new(config).unwrap();
 
         // Verify integrity
         let lock = pm.read_package_lock().unwrap();
@@ -217,18 +217,18 @@ mod package_lock_tests {
         let cache_dir = temp_dir.path().join("cache");
         let node_modules = temp_dir.path().join("node_modules");
 
-        let config = beejs::package_manager::PackageManagerConfig {
+        let config = amberjs::package_manager::PackageManagerConfig {
             cache_dir,
             node_modules_dir: node_modules,
             ..Default::default()
         };
 
-        let pm = beejs::package_manager::PackageManager::new(config).unwrap();
+        let pm = amberjs::package_manager::PackageManager::new(config).unwrap();
 
         // Update lock file with new version
         let updated_deps = vec![(
             "lodash".to_string(),
-            beejs::package_manager::LockedDependency {
+            amberjs::package_manager::LockedDependency {
                 version: "4.17.21".to_string(),
                 resolved: Some("https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz".to_string()),
                 integrity: Some("sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==".to_string()),
@@ -256,13 +256,13 @@ mod package_lock_tests {
         let cache_dir = temp_dir.path().join("cache");
         let node_modules = temp_dir.path().join("node_modules");
 
-        let config = beejs::package_manager::PackageManagerConfig {
+        let config = amberjs::package_manager::PackageManagerConfig {
             cache_dir,
             node_modules_dir: node_modules.clone(),
             ..Default::default()
         };
 
-        let pm = beejs::package_manager::PackageManager::new(config).unwrap();
+        let pm = amberjs::package_manager::PackageManager::new(config).unwrap();
 
         // Test version 2 lock file (backward compatibility)
         let v2_lock = r#"{"name":"v2-compat","version":"1.0.0","lockfileVersion":2,"requires":true,"dependencies":{}}"#;

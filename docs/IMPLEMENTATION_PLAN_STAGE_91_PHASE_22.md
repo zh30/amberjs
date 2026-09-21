@@ -1,7 +1,7 @@
 # Stage 91 Phase 2.2: 可观测性实施计划
 
 ## 项目概述
-Phase 2.2 专注于构建完整的可观测性系统，为 Beejs 运行时提供生产级的监控、追踪和分析能力。
+Phase 2.2 专注于构建完整的可观测性系统，为 Amber 运行时提供生产级的监控、追踪和分析能力。
 
 ## 目标
 - 📊 **指标导出**: Prometheus 指标集成，实时性能监控
@@ -30,24 +30,24 @@ Phase 2.2 专注于构建完整的可观测性系统，为 Beejs 运行时提供
 #### 1.3 关键指标
 ```
 # 性能指标
-beejs_script_executions_total
-beejs_script_execution_duration_seconds
-beejs_script_execution_latency_ms
+amberjs_script_executions_total
+amberjs_script_execution_duration_seconds
+amberjs_script_execution_latency_ms
 
 # 资源指标
-beejs_memory_usage_bytes
-beejs_cpu_usage_percent
-beejs_active_contexts
-beejs_v8_heap_size_bytes
+amberjs_memory_usage_bytes
+amberjs_cpu_usage_percent
+amberjs_active_contexts
+amberjs_v8_heap_size_bytes
 
 # 错误指标
-beejs_errors_total
-beejs_error_rate_percent
+amberjs_errors_total
+amberjs_error_rate_percent
 
 # 系统指标
-beejs_process_pool_size
-beejs_pending_tasks
-beejs_gc_duration_ms
+amberjs_process_pool_size
+amberjs_pending_tasks
+amberjs_gc_duration_ms
 ```
 
 ### 2. 日志结构化

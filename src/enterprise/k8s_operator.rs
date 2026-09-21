@@ -1,5 +1,5 @@
-// Kubernetes Operator for Beejs Cluster Management
-// 实现 Beejs 集群的 Kubernetes Operator，提供自动化集群管理能力
+// Kubernetes Operator for Amber Cluster Management
+// 实现 Amber 集群的 Kubernetes Operator，提供自动化集群管理能力
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -40,18 +40,18 @@ use std::::{
 use tokio::time::sleep;
 use tracing::{info, warn, error, debug};
 use uuid::Uuid;
-/// Custom Resource Definition for BeejsCluster
+/// Custom Resource Definition for AmberCluster
 #[derive(CustomResource, Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[kube(
-    group = "beejs.io",
+    group = "amberjs.io",
     version = "v1",
-    kind = "BeejsCluster",
-    plural = "beejsclusters",
+    kind = "AmberCluster",
+    plural = "amberjsclusters",
     shortname = "bc",
     namespaced
 )]
-pub struct BeejsClusterSpec {
-    /// Beejs version to deploy
+pub struct AmberClusterSpec {
+    /// Amber version to deploy
     pub version: String,
     /// Number of replica pods
     pub nodes: usize,
@@ -93,9 +93,9 @@ pub struct Toleration {
     pub value: Option<String>,
     pub effect: String,
 }
-/// BeejsCluster status
+/// AmberCluster status
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
-pub struct BeejsClusterStatus {
+pub struct AmberClusterStatus {
     /// Current phase of the cluster
     pub phase: ClusterPhase,
     /// Number of ready nodes
@@ -245,15 +245,15 @@ pub struct OperatorConfig {
     /// Enable auto-healing
     pub auto_healing: bool,
 }
-/// BeejsOperator main struct
+/// AmberOperator main struct
 #[derive(Debug)]
-pub struct BeejsOperator {
+pub struct AmberOperator {
     /// Kubernetes client
     client: Client,
     /// Operator configuration
     config: OperatorConfig,
     /// Cluster API
-    clusters: Api<BeejsCluster>,
+    clusters: Api<AmberCluster>,
     /// Deployment API
     deployments: Api<Deployment>,
     /// StatefulSet API
@@ -265,11 +265,11 @@ pub struct BeejsOperator {
     /// Event recorder
     recorder: Recorder,
 }
-impl BeejsOperator {
-    /// Create a new BeejsOperator
+impl AmberOperator {
+    /// Create a new AmberOperator
     pub fn new(client: Client, config: OperatorConfig) -> Self {
         let namespaces: _ = client.clone();
-        let recorder: _ = EventRecorder::new(client.clone(), "beejs-operator".to_string());
+        let recorder: _ = EventRecorder::new(client.clone(), "amberjs-operator".to_string());
         Self {
             client: client.clone(),
             config,
@@ -295,7 +295,7 @@ impl BeejsOperator {
     }
     /// Run the operator
     pub async fn run(&self) -> Result<()> {
-        info!("Starting Beejs Kubernetes Operator");
+        info!("Starting Amber Kubernetes Operator");
         let controller: _ = Controller::new(self.clusters.clone(), ListParams::default())
             .run(
                 self.reconcile(),
@@ -304,12 +304,12 @@ impl BeejsOperator {
             )
             .await
             .context("Failed to start controller")?;
-        info!("Beejs Operator started successfully");
+        info!("Amber Operator started successfully");
         Ok(()))
     }
     /// Reconciliation logic
-    fn reconcile(&self) -> Arc<dyn Fn(BeejsCluster) -> Action + Send + Sync + 'static> {
-        Arc::new(Mutex::new(move |beejs_cluster: BeejsCluster| {)),
+    fn reconcile(&self) -> Arc<dyn Fn(AmberCluster) -> Action + Send + Sync + 'static> {
+        Arc::new(Mutex::new(move |amberjs_cluster: AmberCluster| {)),
             let client: _ = self.client.clone()));
             let clusters: _ = self.clusters.clone();
             let deployments: _ = self.deployments.clone();
@@ -318,20 +318,20 @@ impl BeejsOperator {
             let configmaps: _ = self.configmaps.clone();
             let recorder: _ = self.recorder.clone();
             async move {
-                let name: _ = beejs_cluster.name_any();
-                let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
-                info!("Reconciling BeejsCluster: {}/{}", namespace, name);
+                let name: _ = amberjs_cluster.name_any();
+                let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
+                info!("Reconciling AmberCluster: {}/{}", namespace, name);
                 // Apply finalizer
                 let finalizer_action: _ = finalizer(
                     &clusters,
-                    "beejs.io/finalizer",
-                    beejs_cluster.clone(),
+                    "amberjs.io/finalizer",
+                    amberjs_cluster.clone(),
                     |event| async {
                         match event {
-                            Finalizer::Apply(beejs_cluster) => {
+                            Finalizer::Apply(amberjs_cluster) => {
                                 Self::reconcile_apply(
                                     client.clone(),
-                                    beejs_cluster.clone(),
+                                    amberjs_cluster.clone(),
                                     deployments.clone(),
                                     statefulsets.clone(),
                                     services.clone(),
@@ -340,10 +340,10 @@ impl BeejsOperator {
                                 )
                                 .await
                             }
-                            Finalizer::Cleanup(beejs_cluster) => {
+                            Finalizer::Cleanup(amberjs_cluster) => {
                                 Self::reconcile_cleanup(
                                     client.clone(),
-                                    beejs_cluster.clone(),
+                                    amberjs_cluster.clone(),
                                     deployments.clone(),
                                     statefulsets.clone(),
                                     services.clone(),
@@ -367,8 +367,8 @@ impl BeejsOperator {
         })
     }
     /// Error policy
-    fn error_policy(&self) -> Arc<dyn Fn(&kube::Error, &BeejsCluster) -> Action + Send + Sync + 'static> {
-        Arc::new(Mutex::new(move |_error, _beejs_cluster| {)),
+    fn error_policy(&self) -> Arc<dyn Fn(&kube::Error, &AmberCluster) -> Action + Send + Sync + 'static> {
+        Arc::new(Mutex::new(move |_error, _amberjs_cluster| {)),
             warn!("Error occurred during reconciliation")));
             Action::requeue(Duration::from_secs(60))
         })
@@ -376,23 +376,23 @@ impl BeejsOperator {
     /// Apply reconciliation
     async fn reconcile_apply(
         client: Client,
-        beejs_cluster: BeejsCluster,
+        amberjs_cluster: AmberCluster,
         deployments: Api<Deployment>,
         statefulsets: Api<StatefulSet>,
         services: Api<Service>,
         configmaps: Api<ConfigMap>,
         recorder: Recorder,
     ) -> Result<Action> {
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
         // Check if upgrade is needed
-        let status: _ = beejs_cluster.status.clone().unwrap_or_default();
-        let needs_upgrade: _ = Self::check_upgrade_needed(&beejs_cluster, &status);
+        let status: _ = amberjs_cluster.status.clone().unwrap_or_default();
+        let needs_upgrade: _ = Self::check_upgrade_needed(&amberjs_cluster, &status);
         if needs_upgrade {
-            info!("Initiating upgrade for BeejsCluster: {}/{}", namespace, name);
+            info!("Initiating upgrade for AmberCluster: {}/{}", namespace, name);
             return Self::perform_upgrade(
                 client.clone(),
-                beejs_cluster.clone(),
+                amberjs_cluster.clone(),
                 deployments.clone(),
                 statefulsets.clone(),
                 services.clone(),
@@ -402,31 +402,31 @@ impl BeejsOperator {
             .await;
         }
         // Create or update ConfigMap
-        let configmap: _ = Self::create_configmap(&beejs_cluster)?;
+        let configmap: _ = Self::create_configmap(&amberjs_cluster)?;
         configmaps
             .patch(
                 &format!("{}-config", name),
-                &PatchParams::apply("beejs-operator"),
+                &PatchParams::apply("amberjs-operator"),
                 &Patch::Apply(&configmap),
             )
             .await
             .context("Failed to patch ConfigMap")?;
         // Create or update StatefulSet for the cluster
-        let statefulset: _ = Self::create_statefulset(&beejs_cluster)?;
+        let statefulset: _ = Self::create_statefulset(&amberjs_cluster)?;
         statefulsets
             .patch(
                 &name,
-                &PatchParams::apply("beejs-operator"),
+                &PatchParams::apply("amberjs-operator"),
                 &Patch::Apply(&statefulset),
             )
             .await
             .context("Failed to patch StatefulSet")?;
         // Create or update Service
-        let service: _ = Self::create_service(&beejs_cluster)?;
+        let service: _ = Self::create_service(&amberjs_cluster)?;
         services
             .patch(
                 &format!("{}-svc", name),
-                &PatchParams::apply("beejs-operator"),
+                &PatchParams::apply("amberjs-operator"),
                 &Patch::Apply(&service),
             )
             .await
@@ -434,22 +434,22 @@ impl BeejsOperator {
         // Perform health check
         let health_status: _ = Self::perform_health_check(
             client.clone(),
-            &beejs_cluster,
+            &amberjs_cluster,
             statefulsets.clone(),
         )
         .await;
         // Update status
-        let mut new_status = beejs_cluster.status.clone().unwrap_or_default();
+        let mut new_status = amberjs_cluster.status.clone().unwrap_or_default();
         new_status.phase = ClusterPhase::Running;
-        new_status.ready_nodes = beejs_cluster.spec.nodes;
-        new_status.total_nodes = beejs_cluster.spec.nodes;
-        new_status.current_version = Some(beejs_cluster.spec.version.clone());
+        new_status.ready_nodes = amberjs_cluster.spec.nodes;
+        new_status.total_nodes = amberjs_cluster.spec.nodes;
+        new_status.current_version = Some(amberjs_cluster.spec.version.clone());
         new_status.health_status = health_status;
         new_status.last_update = Some(Time(Utc::now());
         let _: _ = recorder
             .publish(Event::normal(
-                &beejs_cluster,
-                &format!("BeejsCluster {} reconciled successfully", name),
+                &amberjs_cluster,
+                &format!("AmberCluster {} reconciled successfully", name),
             ))
             .await;
         Ok(Action::requeue(Duration::from_secs(30))
@@ -457,16 +457,16 @@ impl BeejsOperator {
     /// Cleanup reconciliation
     async fn reconcile_cleanup(
         client: Client,
-        beejs_cluster: BeejsCluster,
+        amberjs_cluster: AmberCluster,
         deployments: Api<Deployment>,
         statefulsets: Api<StatefulSet>,
         services: Api<Service>,
         configmaps: Api<ConfigMap>,
         recorder: Recorder,
     ) -> Result<Action> {
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
-        info!("Cleaning up BeejsCluster: {}/{}", namespace, name);
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
+        info!("Cleaning up AmberCluster: {}/{}", namespace, name);
         // Delete StatefulSet
         if let Err(e) = statefulsets.delete(&name, &Default::default()).await {
             warn!("Failed to delete StatefulSet: {}", e);
@@ -487,21 +487,21 @@ impl BeejsOperator {
         }
         let _: _ = recorder
             .publish(Event::normal(
-                &beejs_cluster,
-                &format!("BeejsCluster {} deleted", name),
+                &amberjs_cluster,
+                &format!("AmberCluster {} deleted", name),
             ))
             .await;
         Ok(Action::await())
     }
     /// Create ConfigMap for the cluster
-    fn create_configmap(beejs_cluster: &BeejsCluster) -> Result<ConfigMap> {
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
+    fn create_configmap(amberjs_cluster: &AmberCluster) -> Result<ConfigMap> {
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
         let mut data = BTreeMap::new();
-        data.insert("version".to_string(), beejs_cluster.spec.version.clone());
+        data.insert("version".to_string(), amberjs_cluster.spec.version.clone());
         data.insert(
             "nodes".to_string(),
-            beejs_cluster.spec.nodes.to_string(),
+            amberjs_cluster.spec.nodes.to_string(),
         );
         Ok(ConfigMap {
             metadata: kube::api::ObjectMeta {
@@ -515,12 +515,12 @@ impl BeejsOperator {
         })
     }
     /// Create StatefulSet for the cluster
-    fn create_statefulset(beejs_cluster: &BeejsCluster) -> Result<StatefulSet> {
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
-        let spec: _ = &beejs_cluster.spec;
+    fn create_statefulset(amberjs_cluster: &AmberCluster) -> Result<StatefulSet> {
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
+        let spec: _ = &amberjs_cluster.spec;
         let mut labels = Self::labels_for_cluster(name);
-        labels.insert("app".to_string(), "beejs".to_string());
+        labels.insert("app".to_string(), "amberjs".to_string());
         Ok(StatefulSet {
             metadata: kube::api::ObjectMeta {
                 name: Some(name.clone()),
@@ -542,7 +542,7 @@ impl BeejsOperator {
                     }),
                     spec: Some(k8s_openapi::api::core::v1::PodSpec {
                         containers: vec![k8s_openapi::api::core::v1::Container {
-                            name: "beejs".to_string(),
+                            name: "amberjs".to_string(),
                             image: Some(spec.config.image.clone().unwrap_or_default()),
                             ports: Some(vec![k8s_openapi::api::core::v1::ContainerPort {
                                 container_port: 3000,
@@ -566,9 +566,9 @@ impl BeejsOperator {
         })
     }
     /// Create Service for the cluster
-    fn create_service(beejs_cluster: &BeejsCluster) -> Result<Service> {
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
+    fn create_service(amberjs_cluster: &AmberCluster) -> Result<Service> {
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
         let labels: _ = Self::labels_for_cluster(name);
         Ok(Service {
             metadata: kube::api::ObjectMeta {
@@ -579,7 +579,7 @@ impl BeejsOperator {
             },
             spec: Some(k8s_openapi::api::core::v1::ServiceSpec {
                 type_: Some(
-                    beejs_cluster
+                    amberjs_cluster
                         .spec
                         .config
                         .service_type
@@ -600,17 +600,17 @@ impl BeejsOperator {
     /// Generate labels for cluster resources
     fn labels_for_cluster(name: &str) -> BTreeMap<String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String> {
         let mut labels = BTreeMap::new();
-        labels.insert("beejs.io/cluster".to_string(), name.to_string());
-        labels.insert("beejs.io/component".to_string(), "cluster".to_string());
+        labels.insert("amberjs.io/cluster".to_string(), name.to_string());
+        labels.insert("amberjs.io/component".to_string(), "cluster".to_string());
         labels
     }
     /// Check if cluster needs upgrade
     fn check_upgrade_needed(
-        beejs_cluster: &BeejsCluster,
-        status: &BeejsClusterStatus,
+        amberjs_cluster: &AmberCluster,
+        status: &AmberClusterStatus,
     ) -> bool {
         if let Some(current_version) = &status.current_version {
-            if current_version != &beejs_cluster.spec.version {
+            if current_version != &amberjs_cluster.spec.version {
                 return true;
             }
         }
@@ -619,16 +619,16 @@ impl BeejsOperator {
     /// Perform rolling upgrade
     async fn perform_upgrade(
         client: Client,
-        beejs_cluster: BeejsCluster,
+        amberjs_cluster: AmberCluster,
         deployments: Api<Deployment>,
         statefulsets: Api<StatefulSet>,
         services: Api<Service>,
         configmaps: Api<ConfigMap>,
         recorder: Recorder,
     ) -> Result<Action> {
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
-        info!("Starting rolling upgrade for BeejsCluster: {}/{}", namespace, name);
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
+        info!("Starting rolling upgrade for AmberCluster: {}/{}", namespace, name);
         // Get current StatefulSet
         let current_ss: _ = statefulsets.get(&name).await
             .context("Failed to get StatefulSet for upgrade")?;
@@ -637,8 +637,8 @@ impl BeejsOperator {
         if let Some(spec) = &mut new_ss.spec {
             if let Some(template) = &mut spec.template.spec {
                 for container in &mut template.containers {
-                    if container.name == "beejs" {
-                        container.image = Some(beejs_cluster.spec.version.clone());
+                    if container.name == "amberjs" {
+                        container.image = Some(amberjs_cluster.spec.version.clone());
                     }
                 }
             }
@@ -661,26 +661,26 @@ impl BeejsOperator {
         statefulsets
             .patch(
                 &name,
-                &PatchParams::apply("beejs-operator"),
+                &PatchParams::apply("amberjs-operator"),
                 &Patch::Apply(&new_ss),
             )
             .await
             .context("Failed to patch StatefulSet for upgrade")?;
         // Update status to upgrading
-        let mut status = beejs_cluster.status.clone().unwrap_or_default();
+        let mut status = amberjs_cluster.status.clone().unwrap_or_default();
         status.phase = ClusterPhase::Upgrading;
-        status.target_version = Some(beejs_cluster.spec.version.clone());
+        status.target_version = Some(amberjs_cluster.spec.version.clone());
         status.upgrade_progress = Some(UpgradeProgress {
             current_step: "Starting upgrade".to_string(),
-            total_steps: beejs_cluster.spec.nodes,
+            total_steps: amberjs_cluster.spec.nodes,
             percentage: 0,
             started_at: Some(Time(Utc::now()),
             estimated_completion: None,
         });
         let _: _ = recorder
             .publish(Event::normal(
-                &beejs_cluster,
-                &format!("Started upgrade to version {}", beejs_cluster.spec.version),
+                &amberjs_cluster,
+                &format!("Started upgrade to version {}", amberjs_cluster.spec.version),
             ))
             .await;
         Ok(Action::requeue(Duration::from_secs(10))
@@ -688,11 +688,11 @@ impl BeejsOperator {
     /// Perform health check on cluster
     async fn perform_health_check(
         client: Client,
-        beejs_cluster: &BeejsCluster,
+        amberjs_cluster: &AmberCluster,
         statefulsets: Api<StatefulSet>,
     ) -> HealthStatus {
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
         let mut checks = Vec::new();
         let mut healthy_nodes = 0;
         // Check StatefulSet status
@@ -725,7 +725,7 @@ impl BeejsOperator {
             }
         }
         // Determine overall health
-        let overall_status: _ = if healthy_nodes == beejs_cluster.spec.nodes {
+        let overall_status: _ = if healthy_nodes == amberjs_cluster.spec.nodes {
             HealthState::Healthy
         } else if healthy_nodes > 0 {
             HealthState::Degraded
@@ -742,12 +742,12 @@ impl BeejsOperator {
     /// Perform auto-healing if enabled
     async fn perform_auto_healing(
         client: Client,
-        beejs_cluster: &BeejsCluster,
+        amberjs_cluster: &AmberCluster,
         statefulsets: Api<StatefulSet>,
         recorder: Recorder,
     ) -> Result<Action> {
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
         // Get current StatefulSet
         let ss: _ = statefulsets.get(&name).await
             .context("Failed to get StatefulSet for healing")?;
@@ -766,10 +766,10 @@ impl BeejsOperator {
                     if let Some(template) = &mut spec.template.spec {
                         // Add annotation to force pod recreation
                         for container in &mut template.containers {
-                            if container.name == "beejs" {
+                            if container.name == "amberjs" {
                                 container.env = Some(vec![
                                     k8s_openapi::api::core::v1::EnvVar {
-                                        name: "BEEJS_AUTO_HEAL".to_string(),
+                                        name: "AMBER_AUTO_HEAL".to_string(),
                                         value: Some("true".to_string()),
                                         value_from: None,
                                     }
@@ -781,7 +781,7 @@ impl BeejsOperator {
                 statefulsets
                     .patch(
                         &name,
-                        &PatchParams::apply("beejs-operator"),
+                        &PatchParams::apply("amberjs-operator"),
                         &Patch::Apply(&patched_ss),
                     )
                     .await
@@ -789,7 +789,7 @@ impl BeejsOperator {
                 healing_actions.push("Restarted failed pods".to_string());
                 let _: _ = recorder
                     .publish(Event::normal(
-                        beejs_cluster,
+                        amberjs_cluster,
                         &format!("Auto-healed {} pods", total - ready),
                     ))
                     .await;
@@ -804,11 +804,11 @@ impl BeejsOperator {
     /// Get cluster metrics
     pub async fn get_cluster_metrics(
         &self,
-        beejs_cluster: &BeejsCluster,
+        amberjs_cluster: &AmberCluster,
     ) -> Result<BTreeMap<String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String>> {
         let mut metrics = BTreeMap::new();
-        let name: _ = beejs_cluster.name_any();
-        let namespace: _ = beejs_cluster.namespace().unwrap_or_default();
+        let name: _ = amberjs_cluster.name_any();
+        let namespace: _ = amberjs_cluster.namespace().unwrap_or_default();
         // Get StatefulSet metrics
         if let Ok(ss) = self.statefulsets.get(&name).await {
             if let Some(status) = ss.status {
@@ -838,19 +838,19 @@ use std::time::Duration;
             max_concurrent: 10,
             leader_election: true,
         };
-        let operator: _ = BeejsOperator::new(client, config);
+        let operator: _ = AmberOperator::new(client, config);
         assert_eq!(operator.config.reconcile_interval, Duration::from_secs(30));
     }
     #[test]
     fn test_create_configmap() {
-        let cluster: _ = BeejsCluster::new(
+        let cluster: _ = AmberCluster::new(
             "test-cluster",
-            BeejsClusterSpec {
+            AmberClusterSpec {
                 version: "v1.0.0".to_string(),
                 nodes: 3,
                 config: ClusterConfig {
                     namespace: Some("default".to_string()),
-                    image: Some("beejs:latest".to_string()),
+                    image: Some("amberjs:latest".to_string()),
                     service_type: Some("ClusterIP".to_string()),
                     monitoring: Some(true),
                     auto_scaling: Some(true),
@@ -864,29 +864,29 @@ use std::time::Duration;
                 },
             },
         );
-        let configmap: _ = BeejsOperator::create_configmap(&cluster).unwrap();
+        let configmap: _ = AmberOperator::create_configmap(&cluster).unwrap();
         assert_eq!(configmap.metadata.name, Some("test-cluster-config".to_string());
     }
     #[test]
     fn test_labels_for_cluster() {
-        let labels: _ = BeejsOperator::labels_for_cluster("test-cluster");
+        let labels: _ = AmberOperator::labels_for_cluster("test-cluster");
         assert_eq!(
-            labels.get("beejs.io/cluster"),
+            labels.get("amberjs.io/cluster"),
             Some(&"test-cluster".to_string());
         assert_eq!(
-            labels.get("beejs.io/component"),
+            labels.get("amberjs.io/component"),
             Some(&"cluster".to_string());
     }
     #[test]
     fn test_check_upgrade_needed() {
-        let cluster: _ = BeejsCluster::new(
+        let cluster: _ = AmberCluster::new(
             "test-cluster",
-            BeejsClusterSpec {
+            AmberClusterSpec {
                 version: "v2.0.0".to_string(),
                 nodes: 3,
                 config: ClusterConfig {
                     namespace: Some("default".to_string()),
-                    image: Some("beejs:v2.0.0".to_string()),
+                    image: Some("amberjs:v2.0.0".to_string()),
                     service_type: Some("ClusterIP".to_string()),
                     monitoring: Some(true),
                     auto_scaling: Some(true),
@@ -900,7 +900,7 @@ use std::time::Duration;
                 },
             },
         );
-        let old_status: _ = BeejsClusterStatus {
+        let old_status: _ = AmberClusterStatus {
             phase: ClusterPhase::Running,
             ready_nodes: 3,
             total_nodes: 3,
@@ -912,16 +912,16 @@ use std::time::Duration;
             health_status: HealthStatus::default(),
             node_statuses: vec![],
         };
-        assert!(BeejsOperator::check_upgrade_needed(&cluster, &old_status));
-        let current_status: _ = BeejsClusterStatus {
+        assert!(AmberOperator::check_upgrade_needed(&cluster, &old_status));
+        let current_status: _ = AmberClusterStatus {
             current_version: Some("v2.0.0".to_string()),
             ..old_status
         };
-        assert!(!BeejsOperator::check_upgrade_needed(&cluster, &current_status));
+        assert!(!AmberOperator::check_upgrade_needed(&cluster, &current_status));
     }
     #[test]
     fn test_default_config() {
-        let config: _ = BeejsOperator::default_config();
+        let config: _ = AmberOperator::default_config();
         assert_eq!(config.reconcile_interval, Duration::from_secs(30));
         assert_eq!(config.max_concurrent, 10);
         assert!(config.leader_election);

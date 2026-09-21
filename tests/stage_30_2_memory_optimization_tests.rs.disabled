@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod memory_optimization_tests {
-    use beejs::memory::{
+    use amberjs::memory::{
         UnifiedMemoryManager,
         AllocatorConfig,
         GCConfig,

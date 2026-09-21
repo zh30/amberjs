@@ -1,4 +1,4 @@
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]
@@ -7,7 +7,7 @@ fn test_schema_tool_compilation_and_execution() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { compileSchemaTool } = require('bee:tools');
+    const { compileSchemaTool } = require('amber:tools');
 
     // 1. Define and compile tool
     const searchTool = compileSchemaTool({
@@ -33,8 +33,8 @@ fn test_schema_tool_compilation_and_execution() {
 
     (async () => {
         // 2. Execute with full parameters
-        const res1 = await searchTool.execute({ query: 'Beejs', limit: 25, safeMode: false });
-        if (res1.q !== 'Beejs' || res1.resultCount !== 25 || res1.safe !== false) {
+        const res1 = await searchTool.execute({ query: 'Amber', limit: 25, safeMode: false });
+        if (res1.q !== 'Amber' || res1.resultCount !== 25 || res1.safe !== false) {
             throw new Error('res1 mismatch: ' + JSON.stringify(res1));
         }
 
@@ -76,7 +76,7 @@ fn test_openapi_spec_to_tools_synthesis() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { fromOpenAPI } = require('bee:tools');
+    const { fromOpenAPI } = require('amber:tools');
 
     const mockOpenApiSpec = {
         openapi: '3.0.0',
@@ -152,8 +152,8 @@ fn test_llm_tool_call_parsing_and_pipeline_registration() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { parseToolCalls, registerTools, compileSchemaTool } = require('bee:tools');
-    const ai = require('bee:ai');
+    const { parseToolCalls, registerTools, compileSchemaTool } = require('amber:tools');
+    const ai = require('amber:ai');
 
     // 1. Parse markdown code block
     const markdownLlmOutput = "I will check the weather.\n```json\n{\n  \"name\": \"get_weather\",\n  \"arguments\": {\"city\": \"London\"}\n}\n```";

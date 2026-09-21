@@ -1,4 +1,4 @@
-// Beejs Server Mode
+// Amber Server Mode
 //
 // This module provides a high-performance HTTP server for executing
 // JavaScript/TypeScript code with runtime reuse optimization.
@@ -68,7 +68,7 @@ impl Server {
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let server_url: _ = format!("{}:{}, self.config.host", self.config.port));
         let server: _ = HttpServer::http(&server_url).map_err(|e| format!("Failed to bind to {}: {}", server_url, e))?;
-        info!("🚀 Beejs Server started on http://{}", server_url);
+        info!("🚀 Amber Server started on http://{}", server_url);
         info!("📊 POST /api/v1/eval - Execute JavaScript code");
         info!("📊 GET  /api/v1/stats - Get server statistics");
         info!("❤️  GET  /health - Health check");

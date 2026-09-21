@@ -1,4 +1,4 @@
-// Beejs Package Manager
+// Amber Package Manager
 // 高性能包管理器，支持 npm/yarn 兼容
 //
 // 主要功能：
@@ -44,7 +44,7 @@ impl Default for PackageManagerConfig {
     fn default() -> Self {
         Self {
             registry_url: "https://registry.npmjs.org/".to_string(),
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
             node_modules_dir: PathBuf::from("node_modules"),
             timeout_secs: 30,
         }
@@ -737,7 +737,7 @@ impl PackageManager {
             .parent()
             .ok_or_else(|| anyhow!("Package target has no parent: {}", target_dir.display()))?;
         let staging_root = tempfile::Builder::new()
-            .prefix(".beejs-package-")
+            .prefix(".amberjs-package-")
             .tempdir_in(target_parent)
             .map_err(|e| anyhow!("Failed to create package staging directory: {}", e))?;
         let staging_dir = staging_root.path().join("package");
@@ -935,7 +935,7 @@ impl PackageManager {
         integrity: Option<&str>,
         tarball_url: Option<&str>,
     ) -> Result<()> {
-        let meta_path = package_dir.join(".beejs-integrity.json");
+        let meta_path = package_dir.join(".amberjs-integrity.json");
         check_fs_write_permission(&meta_path)?;
         let meta = serde_json::json!({
             "integrity": integrity,
@@ -951,7 +951,7 @@ impl PackageManager {
     }
 
     fn read_package_integrity_meta(&self, package_dir: &Path) -> (Option<String>, Option<String>) {
-        let meta_path = package_dir.join(".beejs-integrity.json");
+        let meta_path = package_dir.join(".amberjs-integrity.json");
         let Ok(content) = fs::read_to_string(&meta_path) else {
             return (None, None);
         };
@@ -1576,7 +1576,7 @@ impl PackageManager {
         }
 
         let lock = PackageLock {
-            name: format!("@beejs/temp-{}", package_name),
+            name: format!("@amberjs/temp-{}", package_name),
             version: "0.0.0".to_string(),
             lockfile_version: 3,
             requires: true,
@@ -1783,7 +1783,7 @@ mod tests {
         let temp_dir: _ = TempDir::new().unwrap();
         std::env::set_current_dir(temp_dir.path()).unwrap();
         let config: _ = PackageManagerConfig {
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
             node_modules_dir: PathBuf::from("node_modules"),
             ..Default::default()
         };

@@ -1,7 +1,7 @@
 //! 生态系统集成测试
 //! Stage 91 Phase 3 - 端到端集成测试
 
-use beejs::ecosystem::*;
+use amberjs::ecosystem::*;
 use serde_json::json;
 
 #[cfg(test)]

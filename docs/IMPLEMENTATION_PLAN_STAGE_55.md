@@ -2,9 +2,9 @@
 
 ## 📋 阶段概述
 
-Stage 55 专注于 **性能基准测试与优化**，将为 Beejs 建立完整的性能评估体系，并通过系统性的优化实现 **比 Bun 快 2-3x** 的目标性能。
+Stage 55 专注于 **性能基准测试与优化**，将为 Amber 建立完整的性能评估体系，并通过系统性的优化实现 **比 Bun 快 2-3x** 的目标性能。
 
-**目标**: 建立行业领先的性能基准测试体系，推动 Beejs 成为最快的 JavaScript/TypeScript 运行时。
+**目标**: 建立行业领先的性能基准测试体系，推动 Amber 成为最快的 JavaScript/TypeScript 运行时。
 
 ---
 
@@ -223,7 +223,7 @@ impl PerformanceBenchmark {
 ```rust
 /// 性能对比报告
 pub struct PerformanceComparisonReport {
-    beejs_results: Vec<BenchmarkResult>,
+    amberjs_results: Vec<BenchmarkResult>,
     nodejs_results: Vec<BenchmarkResult>,
     bun_results: Vec<BenchmarkResult>,
 }
@@ -232,10 +232,10 @@ impl PerformanceComparisonReport {
     /// 生成 Markdown 报告
     pub fn generate_markdown(&self) -> String {
         let mut report = String::new();
-        report.push_str("# Beejs 性能对比报告\n\n");
+        report.push_str("# Amber 性能对比报告\n\n");
 
-        for (beejs, nodejs, bun) in self
-            .beejs_results
+        for (amberjs, nodejs, bun) in self
+            .amberjs_results
             .iter()
             .zip(&self.nodejs_results)
             .zip(&self.bun_results)
@@ -243,12 +243,12 @@ impl PerformanceComparisonReport {
         {
             report.push_str(&format!(
                 "## {}\n\n",
-                beejs.name
+                amberjs.name
             ));
 
             report.push_str(&format!(
-                "- Beejs: {:.2}ms\n",
-                beejs.mean.as_millis()
+                "- Amber: {:.2}ms\n",
+                amberjs.mean.as_millis()
             ));
             report.push_str(&format!(
                 "- Node.js: {:.2}ms\n",
@@ -260,9 +260,9 @@ impl PerformanceComparisonReport {
             ));
 
             let speedup_vs_nodejs = nodejs.mean.as_millis() as f64
-                / beejs.mean.as_millis() as f64;
+                / amberjs.mean.as_millis() as f64;
             let speedup_vs_bun = bun.mean.as_millis() as f64
-                / beejs.mean.as_millis() as f64;
+                / amberjs.mean.as_millis() as f64;
 
             report.push_str(&format!(
                 "**性能提升**: {:.2}x vs Node.js, {:.2}x vs Bun\n\n",

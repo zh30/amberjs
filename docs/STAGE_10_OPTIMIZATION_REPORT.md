@@ -1,4 +1,4 @@
-# Beejs 阶段10: 启动时间终极优化完成报告
+# Amber 阶段10: 启动时间终极优化完成报告
 
 ## 🎯 优化目标
 - **目标**: 7ms → <5ms (30%提升)
@@ -38,7 +38,7 @@ let args = Args::parse();  // 第二次解析
 
 // 优化后: 单次解析
 if args_vec.len() == 2 && (args_vec[1] == "--help" || args_vec[1] == "-h") {
-    let mut app = clap::Command::new("beejs");
+    let mut app = clap::Command::new("amberjs");
     let _ = app.print_help();  // 使用print_help避免解析
     return Ok(());
 }
@@ -210,7 +210,7 @@ fn try_fast_constant_path(&self, code: &str) -> Option<String> {
 - ✅ **零质量回归**: 151/151测试通过，零警告
 - ✅ **技术债务**: 零新增，代码质量提升
 
-**Beejs现在已成为真正的高性能JavaScript/TypeScript运行时！**
+**Amber现在已成为真正的高性能JavaScript/TypeScript运行时！**
 
 ---
 

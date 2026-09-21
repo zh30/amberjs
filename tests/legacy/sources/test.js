@@ -1,1 +1,1 @@
-console.log('Hello from Beejs\!'); 2 + 2;
+console.log('Hello from Amber\!'); 2 + 2;

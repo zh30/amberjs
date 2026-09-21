@@ -1,8 +1,8 @@
 //! WebSocket 功能测试
 //! 按照 TDD 原则，先编写测试，再实现功能
 
-use beejs::server::Server;
-use beejs::Runtime;
+use amberjs::server::Server;
+use amberjs::Runtime;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
 use std::time::Duration;

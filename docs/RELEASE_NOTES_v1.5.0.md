@@ -1,18 +1,18 @@
-# Beejs v1.5.0 Release Notes: Wasm 2.0 Zero-Copy Shared Memory & Mainstream npm Framework Compatibility
+# Amber v1.5.0 Release Notes: Wasm 2.0 Zero-Copy Shared Memory & Mainstream npm Framework Compatibility
 
 > **Release Tag**: `v1.5.0`  
 > **Release Type**: Minor Release (次版本 / 中版本)  
-> **Target Commits**: Wasm 2.0 zero-copy physical shared memory bridge (`bee:wasm`), fast mmap WebAssembly module loading, seamless interop with `bee:ffi` pointers and `bee:ai.Tensor`, full compatibility suite for mainstream npm frameworks (Hono / Express / LangChain), asynchronous context propagation across promises in `AsyncLocalStorage`, extended Web Standard APIs (`ReadableStream.from`, async iteration, `Response.json`, `AbortSignal.timeout`/`any`), and `stream/promises` / `timers/promises` native resolution.
+> **Target Commits**: Wasm 2.0 zero-copy physical shared memory bridge (`amber:wasm`), fast mmap WebAssembly module loading, seamless interop with `amber:ffi` pointers and `amber:ai.Tensor`, full compatibility suite for mainstream npm frameworks (Hono / Express / LangChain), asynchronous context propagation across promises in `AsyncLocalStorage`, extended Web Standard APIs (`ReadableStream.from`, async iteration, `Response.json`, `AbortSignal.timeout`/`any`), and `stream/promises` / `timers/promises` native resolution.
 
 ---
 
 ## 概述 (Overview)
 
-Beejs **v1.5.0** 是在 v1.4.0（原生 C ABI FFI、多租户 IsolatePool 与端侧 SLM）基础上的关键演进版本。本版本聚焦于**超高性能跨运行时/跨硬件内存互通**以及**企业级主流 npm 框架与现代前端生态的开箱即用兼容性**：
+Amber **v1.5.0** 是在 v1.4.0（原生 C ABI FFI、多租户 IsolatePool 与端侧 SLM）基础上的关键演进版本。本版本聚焦于**超高性能跨运行时/跨硬件内存互通**以及**企业级主流 npm 框架与现代前端生态的开箱即用兼容性**：
 
-1. **Wasm 2.0 零拷贝物理共享内存互通 (`bee:wasm`)**：
+1. **Wasm 2.0 零拷贝物理共享内存互通 (`amber:wasm`)**：
    - 打破 JavaScript、WebAssembly 与原生系统 C ABI 之间的内存壁垒，支持从任意 `ArrayBuffer`、`TypedArray` 或 `WebAssembly.Memory` 提取底层硬件物理地址指针（`wasm.ptr`）。
-   - 零拷贝互连原生 `bee:ai.Tensor`：支持使用原生 C 物理指针直接包装构建 Tensor，或通过 `wasm.linkTensor` 零拷贝将 Tensor 的权重与输出缓冲区直接映射到 Wasm 线性内存。
+   - 零拷贝互连原生 `amber:ai.Tensor`：支持使用原生 C 物理指针直接包装构建 Tensor，或通过 `wasm.linkTensor` 零拷贝将 Tensor 的权重与输出缓冲区直接映射到 Wasm 线性内存。
    - `MemoryView` 高性能视图：提供针对任意物理指针的安全读写、TypedArray 切片包装（`asUint8Array` / `asFloat32Array` 等）、C 字符串读写和内存块填充/比较/拷贝（`memcpy` / `memset` / `memcmp` 等原生 SIMD 加速）。
    - 原生快速 mmap 模块加载（`wasm.loadModuleMmap`）：直接基于系统级内存映射加载并预编译 `.wasm` 文件，避免 JavaScript 堆中的重复大文件拷贝。
 
@@ -24,7 +24,7 @@ Beejs **v1.5.0** 是在 v1.4.0（原生 C ABI FFI、多租户 IsolatePool 与端
    - **现代 Promises 工具模块**：内置支持 `node:stream/promises`（`pipeline`, `finished`）与 `node:timers/promises`（`setTimeout`, `setImmediate`, `setInterval`），支持主流构建工具与现代库的直接导入。
 
 3. **类型系统与全语种文档升级**：
-   - `types/beejs.d.ts` 与 `src/types_export.rs` 完整纳入 `bee:wasm` 模块声明与 TypeScript 类型推导。
+   - `types/amberjs.d.ts` 与 `src/types_export.rs` 完整纳入 `amber:wasm` 模块声明与 TypeScript 类型推导。
    - 官方文档新增《Wasm 2.0 零拷贝互通》与《主流 npm 框架兼容性指南》中英双语技术文档。
    - 官方网站导航更新，同步支持英语、中文、西班牙语、法语、印地语 5 种语言。
 
@@ -32,10 +32,10 @@ Beejs **v1.5.0** 是在 v1.4.0（原生 C ABI FFI、多租户 IsolatePool 与端
 
 ## 模块新特性深度解析
 
-### 1. `bee:wasm` 零拷贝共享内存桥接
+### 1. `amber:wasm` 零拷贝共享内存桥接
 ```typescript
-import { ptr, MemoryView, linkTensor, createTensorFromMemory } from 'bee:wasm';
-import { Tensor } from 'bee:ai';
+import { ptr, MemoryView, linkTensor, createTensorFromMemory } from 'amber:wasm';
+import { Tensor } from 'amber:ai';
 
 // 1. 创建 WebAssembly.Memory 并获取底层硬件指针
 const wasmMem = new WebAssembly.Memory({ initial: 2 }); // 128KB
@@ -67,11 +67,11 @@ const app = new Hono();
 app.get('/api/user', (c) => {
   return Response.json({
     id: 'usr_1001',
-    name: 'Beejs Developer',
+    name: 'Amber Developer',
     role: 'Engineer',
   }, {
     status: 200,
-    headers: { 'X-Powered-By': 'Beejs v1.5' },
+    headers: { 'X-Powered-By': 'Amber v1.5' },
   });
 });
 
@@ -82,11 +82,11 @@ app.get('/legacy', (c) => {
 
 ### 3. LangChain 异步流式管道与 `for await`
 ```typescript
-import { ReadableStream, TransformStream } from 'bee:stream';
+import { ReadableStream, TransformStream } from 'amber:stream';
 import { setTimeout } from 'timers/promises';
 
 async function* tokenGenerator() {
-  const tokens = ['Beejs', ' is', ' extremely', ' fast!'];
+  const tokens = ['Amber', ' is', ' extremely', ' fast!'];
   for (const token of tokens) {
     await setTimeout(10);
     yield token;

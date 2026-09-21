@@ -2,7 +2,7 @@
 //! 修复 V8 Isolate 并发创建崩溃问题
 //! 通过串行执行和模拟并发来避免 V8 生命周期问题
 
-use beejs::Runtime;
+use amberjs::Runtime;
 use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
 use std::time::{Duration, Instant};
 
@@ -15,7 +15,7 @@ mod tests {
     #[test]
     fn test_concurrent_script_execution_fixed() {
         // 简单检查 V8 是否可用
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             println!("⚠️  Skipping test: V8 engine is not available");
             return;
         }
@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn test_batch_script_execution_fixed() {
         // 简单检查 V8 是否可用
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             println!("⚠️  Skipping test: V8 engine is not available");
             return;
         }
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_runtime_lifecycle_stability() {
         // 简单检查 V8 是否可用
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             println!("⚠️  Skipping test: V8 engine is not available");
             return;
         }
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn test_error_handling_in_concurrent_simulation() {
         // 简单检查 V8 是否可用
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             println!("⚠️  Skipping test: V8 engine is not available");
             return;
         }

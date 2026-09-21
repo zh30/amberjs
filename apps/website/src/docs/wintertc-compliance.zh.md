@@ -1,11 +1,11 @@
 ---
 title: "WinterTC 合规"
-subtitle: "Beejs 上的 ECMA-429、Runtime Keys 与 Sockets API"
+subtitle: "Amber 上的 ECMA-429、Runtime Keys 与 Sockets API"
 group: "参考与规范"
 id: "wintertc-compliance"
 ---
 
-Beejs 实现 WinterTC（Ecma TC55，原 WinterCG）基线，使同一套 Web 平台代码可以在类 Node 与边缘运行时上运行。
+Amber 实现 WinterTC（Ecma TC55，原 WinterCG）基线，使同一套 Web 平台代码可以在类 Node 与边缘运行时上运行。
 
 ## ECMA-429 最小公共 Web API
 
@@ -15,7 +15,7 @@ Beejs 实现 WinterTC（Ecma TC55，原 WinterCG）基线，使同一套 Web 平
 | `globalThis.self` | 等于 `globalThis` |
 | `reportError(error)` | 若设置了 `onerror` 则调用 |
 | `PromiseRejectionEvent` | 未处理拒绝时派发到 `onunhandledrejection` |
-| `navigator.userAgent` | `Beejs/{version}` |
+| `navigator.userAgent` | `Amber/{version}` |
 | `navigator.hardwareConcurrency` / `language` / `platform` | 已提供 |
 | `URLPattern` | `test()` / `exec()`，支持 `:param` |
 | `ByteLengthQueuingStrategy` / `CountQueuingStrategy` | 全局 |
@@ -30,7 +30,7 @@ Beejs 实现 WinterTC（Ecma TC55，原 WinterCG）基线，使同一套 Web 平
 ## Sockets API
 
 ```js
-const { connect } = require('bee:sockets');
+const { connect } = require('amber:sockets');
 const socket = connect({ hostname: 'example.com', port: 443 }, { secureTransport: 'on' });
 // socket.readable / socket.writable 是 Web Streams
 // socket.startTls() 走真实 rustls 握手

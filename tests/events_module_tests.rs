@@ -1,7 +1,7 @@
 // Events 模块测试 - v0.3.46
 // 测试 EventEmitter 功能
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

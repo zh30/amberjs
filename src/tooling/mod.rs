@@ -1,4 +1,4 @@
-//! Beejs Peripheral Tooling Module
+//! Amber Peripheral Tooling Module
 //!
 //! Exposes built-in developer tools:
 //! - `formatter`: code formatting based on OXC AST

@@ -1,14 +1,14 @@
-# Prometheus configuration for Beejs runtime monitoring
-# This file configures Prometheus to scrape metrics from Beejs instances
+# Prometheus configuration for Amber runtime monitoring
+# This file configures Prometheus to scrape metrics from Amber instances
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'beejs-cluster'
+    cluster: 'amberjs-cluster'
     environment: 'production'
 
-# Scrape configuration for Beejs runtime
+# Scrape configuration for Amber runtime
 scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
@@ -16,10 +16,10 @@ scrape_configs:
       - targets: ['localhost:9090']
     scrape_interval: 30s
 
-  # Beejs runtime instances
-  - job_name: 'beejs-runtime'
+  # Amber runtime instances
+  - job_name: 'amberjs-runtime'
     static_configs:
-      - targets: ['localhost:3000']  # Default Beejs metrics port
+      - targets: ['localhost:3000']  # Default Amber metrics port
     scrape_interval: 5s
     scrape_timeout: 3s
     metrics_path: '/metrics'
@@ -31,10 +31,10 @@ scrape_configs:
       # Add job label
       - source_labels: [__address__]
         target_label: job
-        replacement: 'beejs-runtime'
+        replacement: 'amberjs-runtime'
 
-  # Beejs runtime instances with custom port
-  - job_name: 'beejs-runtime-custom'
+  # Amber runtime instances with custom port
+  - job_name: 'amberjs-runtime-custom'
     static_configs:
       - targets: ['localhost:8080', 'localhost:8081']
     scrape_interval: 5s
@@ -67,7 +67,7 @@ alerting:
 
 # Rule files for alerting
 rule_files:
-  - "beejs_alerts.yml"
+  - "amberjs_alerts.yml"
 
 # Storage configuration
 storage:

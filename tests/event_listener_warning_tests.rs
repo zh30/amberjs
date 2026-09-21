@@ -8,7 +8,7 @@ use serial_test::serial;
 #[serial]
 fn test_listener_warning_exceeds_max() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const EventEmitter = require('events').EventEmitter;
         const emitter = new EventEmitter();
@@ -44,7 +44,7 @@ fn test_listener_warning_exceeds_max() {
 #[serial]
 fn test_no_warning_at_max() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const EventEmitter = require('events').EventEmitter;
         const emitter = new EventEmitter();
@@ -78,7 +78,7 @@ fn test_no_warning_at_max() {
 #[serial]
 fn test_no_warning_under_max() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const EventEmitter = require('events').EventEmitter;
         const emitter = new EventEmitter();
@@ -113,7 +113,7 @@ fn test_no_warning_under_max() {
 #[serial]
 fn test_warning_contains_max_listeners_exceeded() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const EventEmitter = require('events').EventEmitter;
         const emitter = new EventEmitter();
@@ -145,7 +145,7 @@ fn test_warning_contains_max_listeners_exceeded() {
 #[serial]
 fn test_default_max_listeners_is_10() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const EventEmitter = require('events').EventEmitter;
         const emitter = new EventEmitter();
@@ -160,7 +160,7 @@ fn test_default_max_listeners_is_10() {
 #[serial]
 fn test_process_set_max_listeners_affects_events() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         process.setMaxListeners(15);
         process.getMaxListeners() === 15;
@@ -178,7 +178,7 @@ fn test_process_set_max_listeners_affects_events() {
 #[serial]
 fn test_unlimited_max_listeners() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const EventEmitter = require('events').EventEmitter;
         const emitter = new EventEmitter();
@@ -212,7 +212,7 @@ fn test_unlimited_max_listeners() {
 #[serial]
 fn test_once_warning_exceeds_max() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const EventEmitter = require('events').EventEmitter;
         const emitter = new EventEmitter();

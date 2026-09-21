@@ -57,7 +57,7 @@ def fix_unused_variables(file_path):
 
 def main():
     """主函数：扫描所有 Rust 文件并修复未使用的变量"""
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
     total_files = 0
     fixed_files = 0
     total_changes = 0

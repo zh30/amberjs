@@ -111,7 +111,7 @@ pub use code_optimizer::{
 
 ### 使用示例
 ```rust
-use beejs::ai::{CodeOptimizer, Language, CodeContext};
+use amberjs::ai::{CodeOptimizer, Language, CodeContext};
 
 // 创建优化器
 let optimizer = CodeOptimizer::new();

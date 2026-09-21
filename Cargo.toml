@@ -1,6 +1,6 @@
 [package]
 name = "amberjs"
-version = "1.16.0"
+version = "1.16.1"
 edition = "2021"
 default-run = "amber"
 autobins = false
@@ -13,51 +13,19 @@ homepage = "https://amberjs.com"
 documentation = "https://docs.rs/amberjs"
 keywords = ["javascript", "typescript", "runtime", "v8"]
 categories = ["command-line-utilities", "development-tools"]
+# Whitelist: enough to build the default `amber` binary after `cargo publish`,
+# without shipping target/, node_modules/, apps/, or the 46MB benchmarks/ tree.
+# `/src/**` is required — lib.rs compiles many modules the old file-by-file
+# list omitted, and include_str! also needs src/web_api/*.js plus types/.
 include = [
     "/Cargo.toml",
     "/Cargo.lock",
     "/README.md",
     "/LICENSE",
     "/build.rs",
-    "/src/lib.rs",
-    "/src/napi/*.rs",
-    "/src/main.rs",
-    "/src/event_loop.rs",
-    "/src/runtime_minimal.rs",
-    "/src/package_manager.rs",
-    "/src/watcher.rs",
-    "/src/watcher_websocket.rs",
-    "/src/ecosystem_lite.rs",
-    "/src/performance_analyzer.rs",
-    "/src/performance_comparison.rs",
-    "/src/performance_regression.rs",
-    "/src/performance_reporter.rs",
-    "/src/ai/*.rs",
-    "/src/ai_inference/*.rs",
-    "/src/aiops/**/*.rs",
-    "/src/benchmarks/*.rs",
-    "/src/cloud_native/**/*.rs",
-    "/src/error/*.rs",
-    "/src/fallback/*.rs",
-    "/src/memory/*.rs",
-    "/src/monitor/**/*.rs",
-    "/src/multilang/*.rs",
-    "/src/nodejs_core/*.rs",
-    "/src/observability/**/*.rs",
-    "/src/platform/*.rs",
-    "/src/security/*.rs",
-    "/src/testing/**/*.rs",
-    "/src/typescript/*.rs",
-    "/src/v8_snapshot/*.rs",
-    "/src/web_api/*.rs",
-    "/types/*.d.ts",
-    "/tests/*.rs",
-    "/tests/integration/*.rs",
-    "/examples/basics/*.js",
-    "/examples/basics/*.ts",
-    "/examples/testing/*.js",
-    "/docs/CLI_USAGE_GUIDE.md",
-    "/docs/QUICK_START.md",
+    "/src/**",
+    "/types/**",
+    "/benches/runtime_startup.rs",
 ]
 
 [workspace]
@@ -91,9 +59,11 @@ wasmtime-wasi = "38.0"
 # WebAssembly bindings
 wasm-bindgen = "0.2"
 
-# Workspace member crates
-amber_transpile = { path = "crates/amber_transpile" }
-amber_sandbox = { path = "crates/amber_sandbox" }
+# Workspace member crates (path for local builds; version for crates.io).
+# `cargo publish -p amberjs --dry-run` cannot resolve these until the same
+# versions exist on crates.io; Release Assets publishes the members first.
+amber_transpile = { path = "crates/amber_transpile", version = "1.16.1" }
+amber_sandbox = { path = "crates/amber_sandbox", version = "1.16.1" }
 wasm-bindgen-futures = "0.4"
 
 # WebAssembly binary format
@@ -116,7 +86,7 @@ memmap2 = "0.9"
 # HTTP Server for Server mode
 tiny_http = "0.12"
 
-# Embedded SQLite for bee:db
+# Embedded SQLite for amber:db
 rusqlite = { version = "0.31", features = ["bundled"] }
 
 # System calls for zero-copy network I/O
@@ -264,7 +234,7 @@ futures-util = "0.3"
 serial_test = "3.0"
 
 # [[bin]]
-# name = "beejs-benchmark"
+# name = "amberjs-benchmark"
 # path = "tools/benchmark_runner.rs"
 
 [[bin]]

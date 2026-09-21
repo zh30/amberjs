@@ -60,7 +60,7 @@
 | 异步支持 | 正常 | 完整 |
 
 ### 版本信息
-- **Beejs**: v0.1.0
+- **Amber**: v0.1.0
 - **Cargo**: 1.92.0
 - **Rust**: 1.92.0 (ded5c06cf 2025-12-08)
 
@@ -226,10 +226,10 @@ python3 fix_final_warnings_stage69.py
 cargo check
 
 # 功能测试
-./beejs test_basic_functionality.js
+./amberjs test_basic_functionality.js
 
 # 性能测试
-./beejs performance_test_stage68.js
+./amberjs performance_test_stage68.js
 ```
 
 ### 测试结果

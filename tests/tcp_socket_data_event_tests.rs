@@ -1,7 +1,7 @@
 // TCP Socket Data Event Tests - v0.3.72
 // 测试 Socket data 事件和真实数据接收
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 /// 测试：Socket 支持 data 事件

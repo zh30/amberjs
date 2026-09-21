@@ -18,6 +18,7 @@ extensions/vscode/tsconfig.tsbuildinfo
 *~
 .pi-lens.json
 .pi/
+.wrangler/
 
 # OS
 .DS_Store
@@ -39,7 +40,7 @@ __pycache__/
 tmp/
 temp/
 wasm_cache/
-.beejs_cache/
+.amberjs_cache/
 .antigravitycli/
 benchmark_reports/
 docs/archive/local-artifacts/

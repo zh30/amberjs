@@ -14,63 +14,39 @@ pub fn setup_wasm_streaming_api(
             let js_script = r#"
             (function(WebAssembly) {
                 if (!WebAssembly) return;
-
-                WebAssembly.compile = async function compile(bytes) {
-                    return new WebAssembly.Module(bytes);
-                };
-
-                WebAssembly.instantiate = async function instantiate(bytesOrModule, importObject) {
-                    if (bytesOrModule instanceof WebAssembly.Module) {
-                        return new WebAssembly.Instance(bytesOrModule, importObject);
-                    }
-                    const module = new WebAssembly.Module(bytesOrModule);
-                    const instance = new WebAssembly.Instance(module, importObject);
-                    return { module, instance };
-                };
-
-                WebAssembly.compileStreaming = async function compileStreaming(source) {
+                async function bytesFromSource(source) {
                     const response = await Promise.resolve(source);
                     if (!response) {
                         throw new TypeError("Parameter 1 must be a Response object or a Promise for one");
                     }
                     if (typeof response.ok === 'boolean' && !response.ok) {
-                        throw new TypeError(`HTTP status code is not ok (status: ${response.status})`);
+                        throw new TypeError("HTTP status code is not ok (status: " + response.status + ")");
                     }
-                    let buffer;
                     if (response instanceof ArrayBuffer || ArrayBuffer.isView(response)) {
-                        buffer = response;
-                    } else if (typeof response.arrayBuffer === 'function') {
-                        buffer = response.arrayBuffer();
+                        return response;
+                    }
+                    if (typeof response.arrayBuffer === 'function') {
+                        let buffer = response.arrayBuffer();
                         if (buffer && typeof buffer.then === 'function') {
                             buffer = await buffer;
                         }
-                    } else {
-                        throw new TypeError("Response body is not a valid ArrayBuffer or Response");
+                        return buffer;
                     }
-                    return WebAssembly.compile(buffer);
-                };
-
-                WebAssembly.instantiateStreaming = async function instantiateStreaming(source, importObject) {
-                    const response = await Promise.resolve(source);
-                    if (!response) {
-                        throw new TypeError("Parameter 1 must be a Response object or a Promise for one");
-                    }
-                    if (typeof response.ok === 'boolean' && !response.ok) {
-                        throw new TypeError(`HTTP status code is not ok (status: ${response.status})`);
-                    }
-                    let buffer;
-                    if (response instanceof ArrayBuffer || ArrayBuffer.isView(response)) {
-                        buffer = response;
-                    } else if (typeof response.arrayBuffer === 'function') {
-                        buffer = response.arrayBuffer();
-                        if (buffer && typeof buffer.then === 'function') {
-                            buffer = await buffer;
-                        }
-                    } else {
-                        throw new TypeError("Response body is not a valid ArrayBuffer or Response");
-                    }
-                    return WebAssembly.instantiate(buffer, importObject);
-                };
+                    throw new TypeError("Response body is not a valid ArrayBuffer or Response");
+                }
+                if (typeof WebAssembly.compileStreaming !== 'function') {
+                    WebAssembly.compileStreaming = async function compileStreaming(source) {
+                        return new WebAssembly.Module(await bytesFromSource(source));
+                    };
+                }
+                if (typeof WebAssembly.instantiateStreaming !== 'function') {
+                    WebAssembly.instantiateStreaming = async function instantiateStreaming(source, importObject) {
+                        const buffer = await bytesFromSource(source);
+                        const module = new WebAssembly.Module(buffer);
+                        const instance = new WebAssembly.Instance(module, importObject);
+                        return { module, instance };
+                    };
+                }
             })(WebAssembly);
             "#;
 

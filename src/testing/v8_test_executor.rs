@@ -701,10 +701,10 @@ mod tests {
     #[serial]
     fn core_matchers_throw_for_mismatches() {
         let cases = [
-            ("expect('bee').toEqual('wasp');", "toEqual"),
+            ("expect('amber').toEqual('wasp');", "toEqual"),
             ("expect(0).toBeTruthy();", "toBeTruthy"),
             ("expect(1).toBeFalsy();", "toBeFalsy"),
-            ("expect('bee').toContain('js');", "toContain"),
+            ("expect('amber').toContain('js');", "toContain"),
             ("expect([1, 2]).toHaveLength(3);", "toHaveLength"),
             ("expect(undefined).toBeDefined();", "toBeDefined"),
             ("expect(1).toBeNull();", "toBeNull"),
@@ -728,13 +728,13 @@ mod tests {
     fn core_matchers_return_success_for_matching_values() {
         let result = execute_with_testing_apis(
             r#"
-            expect('bee').toEqual('bee');
+            expect('amber').toEqual('amber');
             expect(1).toBeTruthy();
             expect(0).toBeFalsy();
-            expect('beejs').toContain('js');
+            expect('amberjs').toContain('js');
             expect([1, 2]).toContain(2);
             expect([1, 2]).toHaveLength(2);
-            expect('bee').toHaveLength(3);
+            expect('amber').toHaveLength(5);
             expect(null).toBeNull();
             expect(1).toBeDefined();
             expect(() => { throw new Error('boom'); }).toThrow();

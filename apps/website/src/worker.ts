@@ -2,6 +2,12 @@ interface Env {
   ASSETS: {
     fetch: (request: Request | string) => Promise<Response>;
   };
+  DIST_BUCKET?: {
+    get: (key: string) => Promise<{
+      body: ReadableStream;
+      httpEtag: string;
+    } | null>;
+  };
 }
 
 async function firstOk(
@@ -29,6 +35,33 @@ export default {
       return new Response("Bad Request", { status: 400 });
     }
     const path = url.pathname;
+    const isGetSubdomain = url.hostname === "get.amberjs.com";
+
+    // Handle R2 install scripts (for get.amberjs.com or /install.sh / /install.ps1)
+    if (isGetSubdomain || path === "/install.sh" || path === "/install.ps1") {
+      let objectKey = "";
+      if (path === "/install.ps1") {
+        objectKey = "install.ps1";
+      } else if (path === "/install.sh" || (isGetSubdomain && (path === "/" || path === ""))) {
+        objectKey = "install.sh";
+      }
+
+      if (objectKey && env.DIST_BUCKET) {
+        try {
+          const object = await env.DIST_BUCKET.get(objectKey);
+          if (object) {
+            const headers = new Headers();
+            headers.set("content-type", "text/plain; charset=utf-8");
+            headers.set("cache-control", "public, max-age=300");
+            headers.set("etag", object.httpEtag);
+            headers.set("access-control-allow-origin", "*");
+            return new Response(object.body, { headers });
+          }
+        } catch {
+          // fallback to assets if R2 fetch fails
+        }
+      }
+    }
 
     if (
       path === "/robots.txt" ||

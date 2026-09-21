@@ -1,5 +1,5 @@
-# Beejs Runtime Docker Image
-# This image provides a ready-to-use Beejs runtime environment
+# Amber Runtime Docker Image
+# This image provides a ready-to-use Amber runtime environment
 
 FROM node:18-alpine AS base
 
@@ -10,17 +10,17 @@ RUN apk add --no-cache \
     ca-certificates \
     && update-ca-certificates
 
-# Install Beejs Runtime
-ARG BEEJS_VERSION=0.1.0
-RUN curl -L "https://github.com/beejs-team/beejs/releases/download/v${BEEJS_VERSION}/bee-linux-x64.tar.gz" \
-    -o bee.tar.gz \
-    && tar -xzf bee.tar.gz \
-    && chmod +x bee \
-    && mv bee /usr/local/bin/ \
-    && rm bee.tar.gz
+# Install Amber Runtime
+ARG AMBER_VERSION=0.1.0
+RUN curl -L "https://github.com/amberjs-team/amberjs/releases/download/v${AMBER_VERSION}/amber-linux-x64.tar.gz" \
+    -o amber.tar.gz \
+    && tar -xzf amber.tar.gz \
+    && chmod +x amber \
+    && mv amber /usr/local/bin/ \
+    && rm amber.tar.gz
 
 # Verify installation
-RUN bee --version
+RUN amber --version
 
 # Create app directory
 WORKDIR /app
@@ -39,21 +39,21 @@ FROM base AS production
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S beejs -u 1001
+    adduser -S amberjs -u 1001
 
 # Set ownership of app directory
-RUN chown -R beejs:nodejs /app
-USER beejs
+RUN chown -R amberjs:nodejs /app
+USER amberjs
 
 # Expose port for server mode
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD bee --version || exit 1
+    CMD amber --version || exit 1
 
 # Default command
-CMD ["bee", "start"]
+CMD ["amber", "start"]
 
 # Development stage
 FROM base AS development
@@ -71,13 +71,13 @@ RUN npm install -g \
 VOLUME ["/app"]
 
 # Default to interactive mode
-CMD ["bee", "repl"]
+CMD ["amber", "repl"]
 
 # Test stage
 FROM development AS test
 
 # Run tests
-RUN bee test --reporter=json --output=/tmp/test-results.json
+RUN amber test --reporter=json --output=/tmp/test-results.json
 
 # Save test results
 VOLUME ["/tmp/test-results.json"]
@@ -86,7 +86,7 @@ VOLUME ["/tmp/test-results.json"]
 FROM development AS build
 
 # Build application
-RUN bee bundle src/index.js --outfile=dist/bundle.js
+RUN amber bundle src/index.js --outfile=dist/bundle.js
 
 # Export build artifacts
 VOLUME ["/app/dist"]
@@ -96,17 +96,17 @@ FROM node:18-alpine AS bundle
 
 WORKDIR /app
 
-# Copy Beejs binary
-COPY --from=base /usr/local/bin/bee /usr/local/bin/bee
+# Copy Amber binary
+COPY --from=base /usr/local/bin/amber /usr/local/bin/amber
 
 # Copy built bundle
 COPY --from=build /app/dist/bundle.js /app/bundle.js
 
 # Set permissions
-RUN chmod +x /usr/local/bin/bee
+RUN chmod +x /usr/local/bin/amber
 
 # Verify
-RUN bee --version
+RUN amber --version
 
 # Export bundle
 VOLUME ["/app/bundle.js"]

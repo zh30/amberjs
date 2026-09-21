@@ -453,15 +453,15 @@ impl DataStore {
         let mut prometheus = String::new();
         for metric in data {
             let metric_name: _ = match &metric.metric_type {
-                MetricType::CpuUsage => "beejs_cpu_usage_percent",
-                MetricType::MemoryUsage => "beejs_memory_usage_bytes",
-                MetricType::HeapMemory => "beejs_heap_memory_bytes",
-                MetricType::ExecutionTime => "beejs_execution_time_microseconds",
-                MetricType::ConcurrentTasks => "beejs_concurrent_tasks",
-                MetricType::RequestsPerSecond => "beejs_requests_per_second",
-                MetricType::CacheHitRate => "beejs_cache_hit_rate_percent",
-                MetricType::GcTime => "beejs_gc_time_microseconds",
-                MetricType::V8HeapSize => "beejs_v8_heap_size_bytes",
+                MetricType::CpuUsage => "amberjs_cpu_usage_percent",
+                MetricType::MemoryUsage => "amberjs_memory_usage_bytes",
+                MetricType::HeapMemory => "amberjs_heap_memory_bytes",
+                MetricType::ExecutionTime => "amberjs_execution_time_microseconds",
+                MetricType::ConcurrentTasks => "amberjs_concurrent_tasks",
+                MetricType::RequestsPerSecond => "amberjs_requests_per_second",
+                MetricType::CacheHitRate => "amberjs_cache_hit_rate_percent",
+                MetricType::GcTime => "amberjs_gc_time_microseconds",
+                MetricType::V8HeapSize => "amberjs_v8_heap_size_bytes",
                 MetricType::Custom(name) => name,
             };
             let labels: _ = if metric.tags.is_empty() {

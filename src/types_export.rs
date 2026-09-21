@@ -44,26 +44,26 @@ mod tests {
     #[test]
     fn test_types_definitions_available() {
         let types = get_type_definitions();
-        assert!(types.contains("declare module \"bee:ai\""));
-        assert!(types.contains("declare module \"bee:db\""));
-        assert!(types.contains("declare module \"bee:vector\""));
-        assert!(types.contains("declare module \"bee:std\""));
-        assert!(types.contains("declare module \"bee:mcp\""));
-        assert!(types.contains("declare module \"bee:vfs\""));
-        assert!(types.contains("declare module \"bee:ffi\""));
-        assert!(types.contains("declare module \"bee:pool\""));
-        assert!(types.contains("declare module \"bee:wasm\""));
-        assert!(types.contains("declare module \"bee:replay\""));
-        assert!(types.contains("declare module \"bee:weights\""));
-        assert!(types.contains("declare module \"bee:security\""));
-        assert!(types.contains("declare module \"bee:permissions\""));
-        assert!(types.contains("declare module \"bee:kv\""));
-        assert!(types.contains("declare module \"bee:tools\""));
-        assert!(types.contains("declare module \"bee:sandbox\""));
-        assert!(types.contains("declare module \"bee:bus\""));
-        assert!(types.contains("declare module \"bee:grammar\""));
-        assert!(types.contains("declare module \"bee:checkpoint\""));
-        assert!(types.contains("declare module \"bee:sockets\""));
+        assert!(types.contains("declare module \"amber:ai\""));
+        assert!(types.contains("declare module \"amber:db\""));
+        assert!(types.contains("declare module \"amber:vector\""));
+        assert!(types.contains("declare module \"amber:std\""));
+        assert!(types.contains("declare module \"amber:mcp\""));
+        assert!(types.contains("declare module \"amber:vfs\""));
+        assert!(types.contains("declare module \"amber:ffi\""));
+        assert!(types.contains("declare module \"amber:pool\""));
+        assert!(types.contains("declare module \"amber:wasm\""));
+        assert!(types.contains("declare module \"amber:replay\""));
+        assert!(types.contains("declare module \"amber:weights\""));
+        assert!(types.contains("declare module \"amber:security\""));
+        assert!(types.contains("declare module \"amber:permissions\""));
+        assert!(types.contains("declare module \"amber:kv\""));
+        assert!(types.contains("declare module \"amber:tools\""));
+        assert!(types.contains("declare module \"amber:sandbox\""));
+        assert!(types.contains("declare module \"amber:bus\""));
+        assert!(types.contains("declare module \"amber:grammar\""));
+        assert!(types.contains("declare module \"amber:checkpoint\""));
+        assert!(types.contains("declare module \"amber:sockets\""));
         assert!(types.contains("class DOMException"));
         assert!(types.contains("class URLPattern"));
         assert!(types.contains("class MessageBus"));
@@ -80,15 +80,15 @@ mod tests {
         assert!(types.contains("class McpServer"));
         assert!(types.contains("class McpClient"));
         assert!(types.contains("embedBatch"));
-        assert!(types.contains("declare namespace bee"));
+        assert!(types.contains("declare namespace amber"));
     }
 
     #[test]
     fn test_export_types_to_file() {
         let dir = tempdir().expect("tempdir");
-        let file_path = dir.path().join("bee.d.ts");
+        let file_path = dir.path().join("amber.d.ts");
         export_types(Some(&file_path)).expect("export should succeed");
         let content = fs::read_to_string(&file_path).expect("read");
-        assert!(content.contains("declare module \"bee:ai\""));
+        assert!(content.contains("declare module \"amber:ai\""));
     }
 }

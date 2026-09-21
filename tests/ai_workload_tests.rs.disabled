@@ -1,5 +1,5 @@
 //! AI工作负载测试套件
-//! 测试Beejs在AI推理场景下的性能表现
+//! 测试Amber在AI推理场景下的性能表现
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -8,7 +8,7 @@ use tokio::runtime::Runtime as TokioRuntime;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use beejs::{AiMemoryPool, AiMemoryPoolConfig, PreallocationStrategy};
+    use amberjs::{AiMemoryPool, AiMemoryPoolConfig, PreallocationStrategy};
 
     /// AI推理任务数据结构
     #[derive(Debug, Clone)]

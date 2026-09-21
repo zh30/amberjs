@@ -1,5 +1,5 @@
 // Enterprise Monitoring and Metrics
-// Provides comprehensive monitoring for Beejs enterprise features
+// Provides comprehensive monitoring for Amber enterprise features
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
@@ -453,7 +453,7 @@ use std::time::Duration;
         };
         let manager: _ = MonitoringManager::new(config);
         let metric: _ = Metric::Counter {
-            name: "beejs_requests_total".to_string(),
+            name: "amberjs_requests_total".to_string(),
             value: 100,
             labels: {
                 let mut labels = std::collections::HashMap::new();
@@ -465,7 +465,7 @@ use std::time::Duration;
         };
         manager.record_metric(metric).await;
         let prometheus_output: _ = manager.export_prometheus_metrics().await.unwrap();
-        assert!(prometheus_output.contains("beejs_requests_total"));
+        assert!(prometheus_output.contains("amberjs_requests_total"));
         assert!(prometheus_output.contains("method=\"GET\""));
     }
     #[tokio::test]

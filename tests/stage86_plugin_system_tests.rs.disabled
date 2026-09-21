@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 // 导入插件系统模块
-use beejs::ecosystem::plugin_engine::{
+use amberjs::ecosystem::plugin_engine::{
     PluginEngine, PluginMetadata, PluginHandle,
     PluginAPI, PluginSandbox, PluginRegistry,
     PluginLoader, PluginResult, PermissionSet, ResourceLimits,
@@ -40,7 +40,7 @@ mod plugin_engine_tests {
             id: "test-plugin".to_string(),
             name: "Test Plugin".to_string(),
             version: "1.0.0".to_string(),
-            author: "Beejs Team".to_string(),
+            author: "Amber Team".to_string(),
             description: "A test plugin for unit testing".to_string(),
             entry_point: "index.js".to_string(),
             permissions: vec!["fs.read".to_string()],
@@ -82,7 +82,7 @@ mod plugin_engine_tests {
 
         let input = serde_json::json!({
             "action": "greet",
-            "name": "Beejs"
+            "name": "Amber"
         });
 
         let result = engine.execute_plugin(&handle, &input).await;

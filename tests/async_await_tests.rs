@@ -1,10 +1,10 @@
 // Async/Await 支持测试套件
 //
-// 目标：验证 Beejs 对现代 JavaScript async/await 语法的支持
+// 目标：验证 Amber 对现代 JavaScript async/await 语法的支持
 
 #[cfg(test)]
 mod tests {
-    use beejs::runtime_minimal::MinimalRuntime;
+    use amberjs::runtime_minimal::MinimalRuntime;
     use serial_test::serial;
 
     /// 测试1: 基本 async 函数
@@ -15,7 +15,7 @@ mod tests {
             async function greet(name) {
                 return "Hello, " + name + "!";
             }
-            greet("Beejs");
+            greet("Amber");
         "#;
 
         let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");

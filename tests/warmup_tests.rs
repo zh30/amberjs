@@ -6,7 +6,7 @@ use serial_test::serial;
 #[test]
 #[serial]
 fn test_warmup_basic() {
-    let mut runtime = beejs::MinimalRuntime::new().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new().unwrap();
 
     // 执行预热
     let result = runtime.warmup();
@@ -21,7 +21,7 @@ fn test_warmup_basic() {
 #[test]
 #[serial]
 fn test_warmup_string_operations() {
-    let mut runtime = beejs::MinimalRuntime::new().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new().unwrap();
     runtime.warmup().unwrap();
 
     // 测试字符串操作（应该使用预热后的优化）
@@ -39,7 +39,7 @@ fn test_warmup_string_operations() {
 #[test]
 #[serial]
 fn test_warmup_array_operations() {
-    let mut runtime = beejs::MinimalRuntime::new().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new().unwrap();
     runtime.warmup().unwrap();
 
     // 测试数组操作
@@ -56,7 +56,7 @@ fn test_warmup_array_operations() {
 #[test]
 #[serial]
 fn test_warmup_promise() {
-    let mut runtime = beejs::MinimalRuntime::new().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new().unwrap();
     runtime.warmup().unwrap();
 
     // 测试 Promise
@@ -71,7 +71,7 @@ fn test_warmup_promise() {
 #[test]
 #[serial]
 fn test_warmup_map_set() {
-    let mut runtime = beejs::MinimalRuntime::new().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new().unwrap();
     runtime.warmup().unwrap();
 
     // 测试 Map 和 Set
@@ -90,7 +90,7 @@ fn test_warmup_map_set() {
 #[serial]
 fn test_warmup_fast_mode() {
     // 快速模式也应该支持预热
-    let mut runtime = beejs::MinimalRuntime::new_fast().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new_fast().unwrap();
     let result = runtime.warmup();
     assert!(result.is_ok(), "快速模式预热应该成功");
 
@@ -103,7 +103,7 @@ fn test_warmup_fast_mode() {
 #[test]
 #[serial]
 fn test_warmup_multiple_times() {
-    let mut runtime = beejs::MinimalRuntime::new().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new().unwrap();
 
     // 多次预热应该没问题
     runtime.warmup().unwrap();
@@ -118,7 +118,7 @@ fn test_warmup_multiple_times() {
 #[test]
 #[serial]
 fn test_warmup_with_existing_context() {
-    let mut runtime = beejs::MinimalRuntime::new().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new().unwrap();
 
     // 先执行一些代码创建 context
     runtime.execute_code("let x = 1;").unwrap();
@@ -136,7 +136,7 @@ fn test_warmup_with_existing_context() {
 #[test]
 #[serial]
 fn test_warmup_after_execute() {
-    let mut runtime = beejs::MinimalRuntime::new().unwrap();
+    let mut runtime = amberjs::MinimalRuntime::new().unwrap();
 
     // 先执行代码
     runtime.execute_code("let y = 2;").unwrap();

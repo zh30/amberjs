@@ -1,5 +1,5 @@
 // Agent 工具沙箱与 MCP 协议测试套件
-use beejs::agent::*;
+use amberjs::agent::*;
 use serde_json::Value;
 use serial_test::serial;
 use std::fs;
@@ -56,7 +56,7 @@ export function greet(args) {
     .expect("Failed to write tool file");
 
     let input_data = r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}
-{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"greet","arguments":{"name":"Beejs"}}}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"greet","arguments":{"name":"Amber"}}}
 "#;
     let mut output = Vec::new();
     run_jsonrpc_session(tool_file, false, input_data.as_bytes(), &mut output)
@@ -72,7 +72,7 @@ export function greet(args) {
 
     let res2: Value = serde_json::from_str(lines[1]).unwrap();
     assert_eq!(res2["id"], 2);
-    assert_eq!(res2["result"], "Hello, Beejs!");
+    assert_eq!(res2["result"], "Hello, Amber!");
 }
 
 #[test]

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod typescript_compiler_integration_tests {
-    use beejs::typescript::{
+    use amberjs::typescript::{
         compile_typescript as compile_oxc, CompilationOutput, TypeScriptCompiler,
         TypeScriptCompilerConfig,
     };

@@ -1,13 +1,13 @@
 ---
-title: "Agent State Checkpoint & Time-Travel Snapshotting (bee:checkpoint)"
-subtitle: "Immutable state snapshots, deep structural diffing, reasoning branching, and bee:kv persistence"
+title: "Agent State Checkpoint & Time-Travel Snapshotting (amber:checkpoint)"
+subtitle: "Immutable state snapshots, deep structural diffing, reasoning branching, and amber:kv persistence"
 group: "Agent & Advanced"
 id: "agent-checkpoint"
 ---
 
 Long-running autonomous agent pipelines (e.g. multi-step code generation, financial report analysis, web research workflows) frequently encounter unexpected tool execution errors, hallucinations, or dead-ends. Without snapshotting, an entire workflow must either crash or restart from step one, discarding valuable context and wasting LLM tokens.
 
-**Beejs v1.8.0 introduces the Native Agent State Checkpoint & Time-Travel Snapshot Engine (`bee:checkpoint`)**. It delivers lightweight immutable state snapshotting, deep structural diffing, speculative execution branching (Tree-of-Thought), and native persistence into `bee:kv`.
+**Amber v1.8.0 introduces the Native Agent State Checkpoint & Time-Travel Snapshot Engine (`amber:checkpoint`)**. It delivers lightweight immutable state snapshotting, deep structural diffing, speculative execution branching (Tree-of-Thought), and native persistence into `amber:kv`.
 
 ---
 
@@ -16,7 +16,7 @@ Long-running autonomous agent pipelines (e.g. multi-step code generation, financ
 Take snapshots of intermediate agent memory and restore prior states upon execution failure:
 
 ```typescript
-import { createCheckpointManager } from 'bee:checkpoint';
+import { createCheckpointManager } from 'amber:checkpoint';
 
 const mgr = createCheckpointManager();
 
@@ -51,7 +51,7 @@ console.log('Recovered agent status:', recoveredState.status); // "executing"
 Inspect exactly what fields changed between two historical checkpoints:
 
 ```typescript
-import { diff, save } from 'bee:checkpoint';
+import { diff, save } from 'amber:checkpoint';
 
 const cp1 = save('v1', { title: 'Draft', wordCount: 150, reviewed: false });
 const cp2 = save('v2', { title: 'Final Report', wordCount: 320 });
@@ -68,7 +68,7 @@ console.log('Deleted:', delta.deleted);   // ['reviewed']
 Fork alternative agent exploration paths from any prior checkpoint without polluting the main execution lineage:
 
 ```typescript
-import { createCheckpointManager } from 'bee:checkpoint';
+import { createCheckpointManager } from 'amber:checkpoint';
 
 const mainMgr = createCheckpointManager();
 mainMgr.save('root', { problem: 'Design database schema' });
@@ -87,13 +87,13 @@ console.log('Branch checkpoints:', nosqlBranch.list().length); // 3
 
 ---
 
-## 4. Durable Persistence via `bee:kv`
+## 4. Durable Persistence via `amber:kv`
 
-Persist all checkpoints to durable disk Write-Ahead Logs (WAL) via `bee:kv`:
+Persist all checkpoints to durable disk Write-Ahead Logs (WAL) via `amber:kv`:
 
 ```typescript
-import { createCheckpointManager } from 'bee:checkpoint';
-import { open } from 'bee:kv';
+import { createCheckpointManager } from 'amber:checkpoint';
+import { open } from 'amber:kv';
 
 const kv = open({ path: './data/agent_checkpoints.wal' });
 const mgr = createCheckpointManager();

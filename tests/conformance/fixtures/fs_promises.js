@@ -6,7 +6,7 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg || 'assertion failed');
 }
 
-const root = path.join(os.tmpdir(), 'bee_conformance_fs_promises_' + process.pid);
+const root = path.join(os.tmpdir(), 'amber_conformance_fs_promises_' + process.pid);
 const file = path.join(root, 'hello.txt');
 fs.mkdirSync(root, { recursive: true });
 

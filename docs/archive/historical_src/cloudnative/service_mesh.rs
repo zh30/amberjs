@@ -1,5 +1,5 @@
 // Service Mesh Integration
-// Provides service mesh support (Envoy, Istio, Linkerd) for Beejs runtime
+// Provides service mesh support (Envoy, Istio, Linkerd) for Amber runtime
 
 use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};

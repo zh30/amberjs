@@ -8,7 +8,7 @@ use serial_test::serial;
 #[serial]
 fn test_process_kill_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.kill;
     "#;
@@ -25,7 +25,7 @@ fn test_process_kill_exists() {
 #[serial]
 fn test_process_kill_with_pid_only() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // Check process.kill function exists
         typeof process.kill === 'function';
@@ -39,7 +39,7 @@ fn test_process_kill_with_pid_only() {
 #[serial]
 fn test_process_kill_with_sigterm_number() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // Use signal number 15 (SIGTERM) but test returns false (can't send to self)
         process.kill(process.pid, 15) === false || process.kill(process.pid, 15) === true;
@@ -57,7 +57,7 @@ fn test_process_kill_with_sigterm_number() {
 #[serial]
 fn test_process_kill_with_signal_number() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // SIGTERM = 15, returns false when killing self (expected behavior)
         process.kill(process.pid, 15) === false;
@@ -75,7 +75,7 @@ fn test_process_kill_with_signal_number() {
 #[serial]
 fn test_process_kill_with_invalid_pid() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // Invalid PID should return false or not throw
         try {
@@ -98,7 +98,7 @@ fn test_process_kill_with_invalid_pid() {
 #[serial]
 fn test_process_kill_returns_boolean() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         let result = process.kill(process.pid, 0);
         typeof result === 'boolean';
@@ -112,7 +112,7 @@ fn test_process_kill_returns_boolean() {
 #[serial]
 fn test_process_kill_with_sigint() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // Use signal number 2 (SIGINT) - check function exists and works
         typeof process.kill === 'function' && typeof process.kill(process.pid, 2) === 'boolean';
@@ -130,7 +130,7 @@ fn test_process_kill_with_sigint() {
 #[serial]
 fn test_process_kill_with_sighup() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // Use signal number 1 (SIGHUP) - check function exists and works
         typeof process.kill === 'function' && typeof process.kill(process.pid, 1) === 'boolean';

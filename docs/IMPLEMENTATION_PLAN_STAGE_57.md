@@ -2,7 +2,7 @@
 
 ## 📋 阶段概述
 
-Stage 57 专注于实现 Beejs 的 REPL（Read-Eval-Print Loop）交互式环境，提供类似 Node.js 和 Bun 的交互式 JavaScript/TypeScript 执行体验。
+Stage 57 专注于实现 Amber 的 REPL（Read-Eval-Print Loop）交互式环境，提供类似 Node.js 和 Bun 的交互式 JavaScript/TypeScript 执行体验。
 
 **目标**: 构建完整的 REPL 系统，支持实时代码执行、历史记录、自动补全和特殊命令。
 
@@ -26,10 +26,10 @@ Stage 57 专注于实现 Beejs 的 REPL（Read-Eval-Print Loop）交互式环境
 - [ ] **模块加载**: 支持 import/export 和 require()
 
 ### CLI 集成
-- [ ] `beejs repl` - 启动 REPL 环境
-- [ ] `beejs repl --typescript` - TypeScript 模式
-- [ ] `beejs repl --load <file>` - 加载文件到 REPL
-- [ ] `beejs repl --eval <expr>` - 启动时执行表达式
+- [ ] `amberjs repl` - 启动 REPL 环境
+- [ ] `amberjs repl --typescript` - TypeScript 模式
+- [ ] `amberjs repl --load <file>` - 加载文件到 REPL
+- [ ] `amberjs repl --eval <expr>` - 启动时执行表达式
 
 ---
 
@@ -218,7 +218,7 @@ pub struct Completer {
 
 ## 📝 总结
 
-Stage 57 将为 Beejs 添加完整的 REPL 功能，提供与 Node.js 和 Bun 相似的交互式体验。这对于快速原型开发和学习 JavaScript/TypeScript 非常重要。
+Stage 57 将为 Amber 添加完整的 REPL 功能，提供与 Node.js 和 Bun 相似的交互式体验。这对于快速原型开发和学习 JavaScript/TypeScript 非常重要。
 
 **预计完成时间**: 10-13 小时
 **主要文件数量**: 12-15 个新文件

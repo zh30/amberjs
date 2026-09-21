@@ -1,5 +1,5 @@
 /**
- * Beejs Native AI Inference Demo (`bee:ai`)
+ * Amber Native AI Inference Demo (`amber:ai`)
  *
  * Demonstrates:
  * 1. Hardware accelerated zero-copy Tensor operations (Candle Core)
@@ -7,10 +7,10 @@
  * 3. Local streaming LLM inference with Apple Metal / CPU fallback
  */
 
-const { Tensor, LLM, embed, cosineSimilarity } = require('bee:ai');
+const { Tensor, LLM, embed, cosineSimilarity } = require('amber:ai');
 
 async function main() {
-    console.log('=== Beejs Native AI Acceleration (`bee:ai`) ===\n');
+    console.log('=== Amber Native AI Acceleration (`amber:ai`) ===\n');
 
     // 1. Zero-Copy Tensor Math
     console.log('--- 1. Native Tensor Matrix Multiplication (Candle) ---');

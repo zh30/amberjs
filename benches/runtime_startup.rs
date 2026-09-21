@@ -1,5 +1,5 @@
+use amberjs::runtime_minimal::MinimalRuntime;
 use anyhow::{Context, Result};
-use beejs::runtime_minimal::MinimalRuntime;
 use serde_json::json;
 use std::hint::black_box;
 use std::time::{Duration, Instant};
@@ -78,11 +78,11 @@ fn summary_json(summary: &Summary) -> serde_json::Value {
 }
 
 fn main() -> Result<()> {
-    let iterations = iteration_count("BEEJS_BENCH_ITERATIONS", DEFAULT_ITERATIONS)?;
-    let warmup_iterations = iteration_count("BEEJS_BENCH_WARMUP", DEFAULT_WARMUP_ITERATIONS)?;
+    let iterations = iteration_count("AMBER_BENCH_ITERATIONS", DEFAULT_ITERATIONS)?;
+    let warmup_iterations = iteration_count("AMBER_BENCH_WARMUP", DEFAULT_WARMUP_ITERATIONS)?;
 
     let initialize_started = Instant::now();
-    beejs::initialize_v8()?;
+    amberjs::initialize_v8()?;
     let initialize_v8_ns = initialize_started.elapsed().as_nanos();
 
     for _ in 0..warmup_iterations {

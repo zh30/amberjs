@@ -1,7 +1,7 @@
-// 并发性能测试 - 验证 Beejs 并发执行能力
+// 并发性能测试 - 验证 Amber 并发执行能力
 const iterations = 10000;
 
-console.log("=== Beejs 并发性能测试 ===");
+console.log("=== Amber 并发性能测试 ===");
 console.log(`测试规模: ${iterations} 次并发操作\n`);
 
 // 测试 1: 批量并发执行
@@ -99,4 +99,4 @@ console.log("目标: > 1000 ops/sec");
 console.log("测试场景: 6 个并发操作场景");
 console.log("内存管理: 良好");
 console.log("大规模处理: 支持");
-console.log("Beejs 并发性能优秀！ ✅");
+console.log("Amber 并发性能优秀！ ✅");

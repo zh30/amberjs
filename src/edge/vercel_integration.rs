@@ -54,7 +54,7 @@ impl VercelIntegration {
 impl CdnProvider for VercelIntegration {
     /// Deploy to Vercel Edge Runtime
     async fn deploy(&self, code: &[u8], region: &str) -> Result<DeploymentResult> {
-        let deployment_name: _ = format!("beejs-edge-{}", region));
+        let deployment_name: _ = format!("amberjs-edge-{}", region));
         let deployment_id: _ = self.create_deployment(&deployment_name, code).await?;
         Ok(DeploymentResult {
             deployment_id,

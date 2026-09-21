@@ -2,7 +2,7 @@
 
 ## 📋 阶段概述
 
-Stage 56.3 专注于实现 Beejs 的包管理器集成功能，包括模块解析、package.json 支持和 Node.js 核心模块 polyfill。
+Stage 56.3 专注于实现 Amber 的包管理器集成功能，包括模块解析、package.json 支持和 Node.js 核心模块 polyfill。
 
 ## ✅ 完成功能
 
@@ -113,7 +113,7 @@ cargo test --test stage_56_3_package_manager_tests
 
 ### 集成测试
 ```bash
-./beejs test_stage56_3_modules.js
+./amberjs test_stage56_3_modules.js
 ```
 - 测试脚本: `test_stage56_3_modules.js`
 - 功能验证: ✅ 模块检测正常
@@ -174,7 +174,7 @@ pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
 | 模块缓存 | ❌ | ✅ | 新增 |
 
 ### 与 Bun/Node.js 的兼容性
-| 功能 | Bun | Beejs 56.3 | Node.js |
+| 功能 | Bun | Amber 56.3 | Node.js |
 |------|-----|------------|---------|
 | 相对路径解析 | ✅ | ✅ | ✅ |
 | 内置模块 | ✅ | 🟡 (8/27) | ✅ |
@@ -203,14 +203,14 @@ pub fn register(scope: &mut v8::HandleScope, global: &v8::Local<v8::Object>) {
 
 ## 📝 总结
 
-Stage 56.3 成功实现了 Beejs 的包管理器集成核心功能：
+Stage 56.3 成功实现了 Amber 的包管理器集成核心功能：
 
 1. **模块解析器** - 完整实现 Node.js 兼容算法
 2. **核心模块 Polyfill** - 8 个重要模块已实现
 3. **测试套件** - 全面的测试覆盖
 4. **CLI 集成** - 无缝集成到命令行工具
 
-这些功能为 Beejs 提供了与 Bun 和 Node.js 相似的模块系统能力，为 AI 时代的高性能脚本执行奠定了坚实基础。
+这些功能为 Amber 提供了与 Bun 和 Node.js 相似的模块系统能力，为 AI 时代的高性能脚本执行奠定了坚实基础。
 
 **状态**: ✅ Stage 56.3 完成
 **最后更新**: 2025-12-19

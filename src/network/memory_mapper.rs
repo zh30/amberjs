@@ -503,7 +503,7 @@ mod tests {
     #[test]
     fn test_file_mapping() {
         // 创建临时测试文件
-        let test_file_path: _ = "/tmp/beejs_memory_map_test.bin";
+        let test_file_path: _ = "/tmp/amberjs_memory_map_test.bin";
         let test_data: _ = vec![42u8; 1024];
         std::fs::write(test_file_path, &test_data).expect("写入测试文件失败");
         let mapper: _ = MemoryMapper::new(None).expect("创建内存映射管理器失败");
@@ -521,7 +521,7 @@ mod tests {
     #[test]
     fn test_read_mapped_data() {
         // 创建临时测试文件
-        let test_file_path: _ = "/tmp/beejs_memory_map_read_test.bin";
+        let test_file_path: _ = "/tmp/amberjs_memory_map_read_test.bin";
         let test_data: _ = vec![1, 2, 3, 4, 5];
         std::fs::write(test_file_path, &test_data).expect("写入测试文件失败");
         let mapper: _ = MemoryMapper::new(None).expect("创建内存映射管理器失败");

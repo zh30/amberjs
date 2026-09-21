@@ -1,5 +1,5 @@
 /**
- * Beejs Agent Tool Auto-Calling & Structured Reasoning Demo
+ * Amber Agent Tool Auto-Calling & Structured Reasoning Demo
  *
  * Demonstrates:
  * 1. Registering deterministic tools in `AgentPipeline`
@@ -7,12 +7,37 @@
  * 3. Execution loop with conversation history
  */
 
-const { LLM, AgentPipeline } = require('bee:ai');
+const { LLM, AgentPipeline } = require('amber:ai');
+
+function evalArithmetic(expr) {
+    const source = String(expr).replace(/\s+/g, '');
+    if (!source || !/^[0-9+\-]+$/.test(source)) {
+        throw new Error('unsupported arithmetic expression');
+    }
+    let total = 0;
+    let sign = 1;
+    let digits = '';
+    for (const ch of source) {
+        if (ch === '+' || ch === '-') {
+            if (digits) {
+                total += sign * Number(digits);
+                digits = '';
+            }
+            sign = ch === '+' ? 1 : -1;
+            continue;
+        }
+        digits += ch;
+    }
+    if (digits) {
+        total += sign * Number(digits);
+    }
+    return total;
+}
 
 async function main() {
-    console.log('=== Beejs AgentPipeline Tool Calling ===\n');
+    console.log('=== Amber AgentPipeline Tool Calling ===\n');
 
-    const llm = await LLM.load('bee-agent-orchestrator', {
+    const llm = await LLM.load('amber-agent-orchestrator', {
         device: 'cpu'
     });
 
@@ -27,7 +52,7 @@ async function main() {
         description: 'Evaluates arithmetic expressions',
         execute: (expr) => {
             console.log(`  [Tool math_eval called with: "${expr}"]`);
-            return eval(expr);
+            return evalArithmetic(expr);
         }
     });
 
@@ -36,7 +61,7 @@ async function main() {
         description: 'Returns runtime system information',
         execute: () => {
             return {
-                runtime: 'Beejs',
+                runtime: 'Amber',
                 v8Version: process.versions.v8,
                 nodeVersion: process.versions.node,
                 arch: process.arch

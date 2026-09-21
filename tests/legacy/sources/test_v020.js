@@ -1,7 +1,7 @@
-// Beejs v0.2.0 功能测试
+// Amber v0.2.0 功能测试
 // 测试异步事件循环和真实 HTTP 功能
 
-console.log('=== Beejs v0.2.0 功能测试 ===');
+console.log('=== Amber v0.2.0 功能测试 ===');
 
 // 1. 基础 JavaScript 执行
 let sum = 0;

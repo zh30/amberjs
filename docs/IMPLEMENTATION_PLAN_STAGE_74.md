@@ -1,4 +1,4 @@
-# Beejs Stage 74 实施计划
+# Amber Stage 74 实施计划
 
 ## 项目概述
 
@@ -9,7 +9,7 @@
 
 ## 背景
 
-Stage 73 已完成 TypeScript 转译功能验证和代码质量提升（编译警告从 338 个减少到 ~40 个）。Stage 74 将专注于 Web API 生态系统的完善，为 Beejs 提供更完整的 Web 开发能力。
+Stage 73 已完成 TypeScript 转译功能验证和代码质量提升（编译警告从 338 个减少到 ~40 个）。Stage 74 将专注于 Web API 生态系统的完善，为 Amber 提供更完整的 Web 开发能力。
 
 ## 目标
 
@@ -298,7 +298,7 @@ src/web_api/
 
 ## 结论
 
-Stage 74 将显著提升 Beejs 的 Web 开发能力，使其更接近 Bun CLI 的功能对等。通过系统性的实现、严格的测试和性能优化，Stage 74 将为 Beejs 成为顶级 JavaScript/TypeScript 运行时奠定坚实基础。
+Stage 74 将显著提升 Amber 的 Web 开发能力，使其更接近 Bun CLI 的功能对等。通过系统性的实现、严格的测试和性能优化，Stage 74 将为 Amber 成为顶级 JavaScript/TypeScript 运行时奠定坚实基础。
 
 ---
 

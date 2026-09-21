@@ -1,6 +1,6 @@
-//! Enhanced Interactive REPL for Beejs (`bee repl`).
+//! Enhanced Interactive REPL for Amber (`amber repl`).
 //!
-//! Powered by `rustyline` for rich line editing, history persistence (~/.beejs_history),
+//! Powered by `rustyline` for rich line editing, history persistence (~/.amberjs_history),
 //! multi-line input detection, and full V8 context support via `MinimalRuntime`.
 
 use anyhow::{anyhow, Result};
@@ -23,7 +23,7 @@ impl Default for ReplConfig {
         Self {
             show_result: true,
             show_time: false,
-            prompt: "bee> ".to_string(),
+            prompt: "amber> ".to_string(),
             continuation_prompt: "...   ".to_string(),
             enable_history: true,
         }
@@ -54,7 +54,7 @@ pub fn run_interactive_repl(verbose: bool) -> Result<()> {
 }
 
 pub fn run_interactive_repl_with_config(config: &ReplConfig, verbose: bool) -> Result<()> {
-    println!("🐝 Beejs REPL - High-performance JavaScript/TypeScript shell");
+    println!("🐝 Amber REPL - High-performance JavaScript/TypeScript shell");
     println!("Type JavaScript code, '.help' for commands, '.exit' or Ctrl+D to quit.");
     println!();
 
@@ -64,7 +64,7 @@ pub fn run_interactive_repl_with_config(config: &ReplConfig, verbose: bool) -> R
     let mut rl = DefaultEditor::new()
         .map_err(|e| anyhow!("Failed to initialize terminal readline editor: {}", e))?;
 
-    let history_path = dirs::home_dir().map(|h| h.join(".beejs_history"));
+    let history_path = dirs::home_dir().map(|h| h.join(".amberjs_history"));
     if config.enable_history {
         if let Some(ref path) = history_path {
             let _ = rl.load_history(path);
@@ -94,7 +94,7 @@ pub fn run_interactive_repl_with_config(config: &ReplConfig, verbose: bool) -> R
                         let _ = std::io::stdout().flush();
                         continue;
                     } else if trimmed == ".help" || trimmed == ".h" {
-                        println!("Beejs REPL Commands:");
+                        println!("Amber REPL Commands:");
                         println!("  .exit, .quit, .q   Exit the REPL session");
                         println!("  .clear, .cls       Clear the console screen");
                         println!("  .help, .h          Show this help message");

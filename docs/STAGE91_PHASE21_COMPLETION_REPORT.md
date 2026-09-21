@@ -2,7 +2,7 @@
 
 ## 概述
 
-Phase 2.1 专注于生产环境的稳定性增强，包括错误处理、资源泄漏检测、边界条件测试和压力测试。通过本次工作，Beejs 运行时在稳定性和可靠性方面取得了显著进展。
+Phase 2.1 专注于生产环境的稳定性增强，包括错误处理、资源泄漏检测、边界条件测试和压力测试。通过本次工作，Amber 运行时在稳定性和可靠性方面取得了显著进展。
 
 ## 完成项目
 
@@ -12,7 +12,7 @@ Phase 2.1 专注于生产环境的稳定性增强，包括错误处理、资源�
 
 **核心组件**:
 - **`src/error/` 模块**: 完整的错误类型定义和恢复机制
-  - `types.rs`: BeejsError、ErrorContext、StackFrame 等核心类型
+  - `types.rs`: AmberError、ErrorContext、StackFrame 等核心类型
   - `recovery.rs`: AutoRecovery、RetryPolicy 自动恢复机制
 - **`src/error_handler.rs`**: 基础错误处理器
   - 错误统计和监控
@@ -20,8 +20,8 @@ Phase 2.1 专注于生产环境的稳定性增强，包括错误处理、资源�
   - 错误率阈值检测
 
 **宏支持**:
-- `beejs_try!`: 同步错误处理宏
-- `beejs_try_async!`: 异步错误处理宏
+- `amberjs_try!`: 同步错误处理宏
+- `amberjs_try_async!`: 异步错误处理宏
 - 错误上下文自动包装
 
 **验证结果**: ✅ 错误处理系统完整且功能正常
@@ -151,7 +151,7 @@ Phase 2.1 专注于生产环境的稳定性增强，包括错误处理、资源�
 
 ```rust
 // 1. 使用错误处理宏
-beejs_try!(some_operation(), "操作上下文")?;
+amberjs_try!(some_operation(), "操作上下文")?;
 
 // 2. 错误上下文追踪
 let context = ErrorContext::new(error, file, line, function);

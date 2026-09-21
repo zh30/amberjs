@@ -1,4 +1,4 @@
-# Beejs Stage 72 后续工作总结
+# Amber Stage 72 后续工作总结
 
 ## 完成的工作
 
@@ -23,16 +23,16 @@
 ✅ **正确命令语法**
 ```bash
 # 运行 JavaScript 文件
-beejs run test_basic.js
+amberjs run test_basic.js
 
 # 运行 TypeScript 文件（自动转译）
-beejs run test_simple_arrow.ts --verbose
+amberjs run test_simple_arrow.ts --verbose
 
 # 运行测试
-beejs test
+amberjs test
 
 # 启动 REPL
-beejs repl
+amberjs repl
 ```
 
 ## 当前状态

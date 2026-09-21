@@ -1,5 +1,5 @@
 // Kubernetes 集群管理器
-// 实现 Beejs 集群的 Kubernetes 部署、管理和运维功能
+// 实现 Amber 集群的 Kubernetes 部署、管理和运维功能
 
 
 use anyhow::{Result, Context};
@@ -22,8 +22,8 @@ impl Default for ClusterConfig {
             max_replicas: 10,
             cpu_threshold: 70.0,
             memory_threshold: 80.0,
-            namespace: "beejs".to_string(),
-            image: "beejs:latest".to_string(),
+            namespace: "amberjs".to_string(),
+            image: "amberjs:latest".to_string(),
             version: "v0.1.0".to_string(),
         }
     }
@@ -98,7 +98,7 @@ impl K8sManager {
             status: ClusterStatus::Running,
         };
         tracing::info!(
-            "Deployed Beejs cluster with {} replicas in namespace {}",
+            "Deployed Amber cluster with {} replicas in namespace {}",
             config.min_replicas,
             config.namespace
         );
@@ -224,15 +224,15 @@ use std::time::SystemTime;
     }
     #[tokio::test]
     async fn test_deploy_cluster() {
-        let manager: _ = K8sManager::new("beejs".to_string());
+        let manager: _ = K8sManager::new("amberjs".to_string());
         let config: _ = ClusterConfig::default();
         let handle: _ = manager.deploy_cluster(&config).await.unwrap();
-        assert_eq!(handle.namespace, "beejs");
+        assert_eq!(handle.namespace, "amberjs");
         assert_eq!(handle.status, ClusterStatus::Running);
     }
     #[tokio::test]
     async fn test_auto_scale_up() {
-        let manager: _ = K8sManager::new("beejs".to_string());
+        let manager: _ = K8sManager::new("amberjs".to_string());
         let high_load_metrics: _ = ClusterMetrics {
             cpu_usage: 85.0,
             memory_usage: 90.0,
@@ -245,7 +245,7 @@ use std::time::SystemTime;
     }
     #[tokio::test]
     async fn test_auto_scale_down() {
-        let manager: _ = K8sManager::new("beejs".to_string());
+        let manager: _ = K8sManager::new("amberjs".to_string());
         let low_load_metrics: _ = ClusterMetrics {
             cpu_usage: 25.0,
             memory_usage: 30.0,
@@ -258,8 +258,8 @@ use std::time::SystemTime;
     }
     #[tokio::test]
     async fn test_health_check() {
-        let manager: _ = K8sManager::new("beejs".to_string());
-        let health: _ = manager.check_node_health("beejs-node-1").await.unwrap();
+        let manager: _ = K8sManager::new("amberjs".to_string());
+        let health: _ = manager.check_node_health("amberjs-node-1").await.unwrap();
         match health {
             HealthStatus::Healthy => {}
             _ => panic!("Expected healthy status"),
@@ -274,7 +274,7 @@ use std::time::SystemTime;
     }
     #[tokio::test]
     async fn test_metrics_collection() {
-        let manager: _ = K8sManager::new("beejs".to_string());
+        let manager: _ = K8sManager::new("amberjs".to_string());
         let metrics: _ = manager.collect_metrics().await.unwrap();
         assert!(metrics.cpu_usage >= 0.0 && metrics.cpu_usage <= 100.0);
         assert!(metrics.memory_usage >= 0.0 && metrics.memory_usage <= 100.0);

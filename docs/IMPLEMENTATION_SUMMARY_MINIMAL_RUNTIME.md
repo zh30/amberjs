@@ -85,8 +85,8 @@
 
 ### 3. CLI 工具开发
 
-#### ✅ Beejs CLI 实现
-- **文件**: `src/bin/beejs.rs`
+#### ✅ Amber CLI 实现
+- **文件**: `src/bin/amberjs.rs`
 - **功能**:
   - `run`: 执行 JavaScript 文件
   - `eval`: 执行内联代码
@@ -98,12 +98,12 @@
 #### CLI 特性
 ```bash
 # 使用示例
-beejs run test_runtime.js      # 执行文件
-beejs eval "1 + 1"             # 评估代码
-beejs repl                      # 交互式 REPL
-beejs stats                     # 显示统计
-beejs test                      # 运行测试
-beejs version                   # 版本信息
+amberjs run test_runtime.js      # 执行文件
+amberjs eval "1 + 1"             # 评估代码
+amberjs repl                      # 交互式 REPL
+amberjs stats                     # 显示统计
+amberjs test                      # 运行测试
+amberjs version                   # 版本信息
 ```
 
 ### 4. 库集成
@@ -170,7 +170,7 @@ pub struct CoreRuntime {
 |------|------|------|
 | `tests/minimal_runtime_tests.rs` | 350+ | 测试套件 |
 | `src/runtime_core.rs` | 400+ | 核心运行时 |
-| `src/bin/beejs.rs` | 300+ | CLI 工具 |
+| `src/bin/amberjs.rs` | 300+ | CLI 工具 |
 | `test_runtime.js` | 80+ | 测试用例 |
 | **总计** | **1100+** | **完整实现** |
 
@@ -214,7 +214,7 @@ pub struct CoreRuntime {
 
 ## 🎉 总结
 
-本次实现成功完成了 Beejs 运行时的核心功能：
+本次实现成功完成了 Amber 运行时的核心功能：
 
 1. **✅ TDD 方法**: 遵循测试驱动开发原则
 2. **✅ 完整实现**: 从测试到实现的完整流程
@@ -223,7 +223,7 @@ pub struct CoreRuntime {
 5. **✅ CLI 工具**: 类似 Bun 的命令行接口
 6. **✅ 模块化**: 清晰的模块划分和设计
 
-这些实现为 Beejs 运行时的后续发展奠定了坚实的基础。
+这些实现为 Amber 运行时的后续发展奠定了坚实的基础。
 
 ---
 

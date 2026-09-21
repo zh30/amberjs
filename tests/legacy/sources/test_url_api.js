@@ -1,7 +1,7 @@
 //! URL API 测试用例
 //! 测试 URL Web API 的完整功能
 
-console.log("=== Beejs URL API 测试套件 ===\n");
+console.log("=== Amber URL API 测试套件 ===\n");
 
 // 测试 1: URL 对象创建
 console.log("测试 1: URL 对象创建");

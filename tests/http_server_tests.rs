@@ -1,7 +1,7 @@
 // HTTP Server Tests - v0.3.83
 // 测试 http.createServer() 和 server.listen() 功能
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

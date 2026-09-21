@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-修复 Beejs 项目中的常见语法错误
+修复 Amber 项目中的常见语法错误
 """
 
 import os
@@ -56,7 +56,7 @@ def process_file(file_path):
 
 def main():
     """主函数"""
-    print("开始修复 Beejs 编译错误...")
+    print("开始修复 Amber 编译错误...")
 
     # 需要修复的文件列表（从编译错误中提取）
     files_to_fix = [

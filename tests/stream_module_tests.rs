@@ -1,7 +1,7 @@
-// Stream module tests for Beejs runtime
+// Stream module tests for Amber runtime
 // v0.3.56: Tests for Readable, Writable, Transform, Duplex streams with backpressure support
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

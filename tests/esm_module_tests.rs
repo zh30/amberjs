@@ -1,10 +1,10 @@
 // ESM Module System Tests
-// Tests for true ES Module support in Beejs runtime
+// Tests for true ES Module support in Amber runtime
 //
 // NOTE: import.meta requires true ES Module context (V8 Module API), not Script context.
 // These tests verify the runtime's module system capabilities.
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
 
@@ -227,7 +227,7 @@ fn runtime_static_named_import_loads_commonjs_module() {
     let main_path = app_dir.join("main.mjs");
     fs::write(
         app_dir.join("math.js"),
-        "exports.answer = 42; exports.label = 'bee';",
+        "exports.answer = 42; exports.label = 'amber';",
     )
     .unwrap();
 
@@ -247,7 +247,7 @@ fn runtime_static_named_import_loads_commonjs_module() {
         .execute_code("globalThis.__esmStaticNamedResult")
         .expect("Failed to read static named import result");
 
-    assert_eq!(result.trim(), "bee:42");
+    assert_eq!(result.trim(), "amber:42");
 }
 
 #[test]
@@ -335,7 +335,7 @@ fn runtime_mjs_entry_supports_top_level_await_without_imports_or_exports() {
     runtime.set_main_module_path(&main_path);
     let code = r#"
         const answer = await Promise.resolve(42);
-        globalThis.__esmTlaEntryResult = `bee:${answer}`;
+        globalThis.__esmTlaEntryResult = `amber:${answer}`;
     "#;
 
     runtime.execute_code(code).expect("Execution failed");
@@ -343,7 +343,7 @@ fn runtime_mjs_entry_supports_top_level_await_without_imports_or_exports() {
         .execute_code("globalThis.__esmTlaEntryResult")
         .expect("Failed to read TLA entry result");
 
-    assert_eq!(result.trim(), "bee:42");
+    assert_eq!(result.trim(), "amber:42");
 }
 
 #[test]
@@ -511,7 +511,7 @@ fn runtime_mjs_dynamic_import_rejects_missing_transitive_dependency() {
     );
     assert!(
         !result.contains("Not supported"),
-        "Dynamic import should use Beejs loader rejection, got: {}",
+        "Dynamic import should use Amber loader rejection, got: {}",
         result
     );
 }
@@ -555,7 +555,7 @@ fn runtime_mjs_dynamic_import_rejects_dependency_syntax_error() {
     );
     assert!(
         !result.contains("Not supported"),
-        "Dynamic import should use Beejs loader rejection, got: {}",
+        "Dynamic import should use Amber loader rejection, got: {}",
         result
     );
 }
@@ -604,7 +604,7 @@ fn runtime_mjs_dynamic_import_commonjs_dependency_uses_namespace_cache() {
         globalThis.__dynamicImportCjsLoads =
             (globalThis.__dynamicImportCjsLoads || 0) + 1;
         exports.answer = 42;
-        exports.label = 'bee';
+        exports.label = 'amber';
         "#,
     )
     .unwrap();
@@ -645,7 +645,7 @@ fn runtime_mjs_dynamic_import_builtin_uses_namespace_cache() {
             first === nodePath,
             first.default === second.default,
             typeof first.join,
-            first.join('bee', 'js')
+            first.join('amber', 'js')
         ].join(':');
     "#;
 
@@ -654,7 +654,7 @@ fn runtime_mjs_dynamic_import_builtin_uses_namespace_cache() {
         .execute_code("globalThis.__dynamicImportBuiltinResult")
         .expect("Failed to read dynamic import builtin result");
 
-    assert_eq!(result.trim(), "true:true:true:function:bee/js");
+    assert_eq!(result.trim(), "true:true:true:function:amber/js");
 }
 
 #[test]
@@ -751,7 +751,7 @@ fn runtime_mjs_entry_top_level_await_settles_after_timer() {
         const value = await new Promise((resolve) => {
             setTimeout(() => resolve("after-timer"), 10);
         });
-        globalThis.__esmTimerTlaResult = `bee:${value}`;
+        globalThis.__esmTimerTlaResult = `amber:${value}`;
     "#;
 
     runtime.execute_code(code).expect("Execution failed");
@@ -759,7 +759,7 @@ fn runtime_mjs_entry_top_level_await_settles_after_timer() {
         .execute_code("globalThis.__esmTimerTlaResult")
         .expect("Failed to read timer-backed TLA result");
 
-    assert_eq!(result.trim(), "bee:after-timer");
+    assert_eq!(result.trim(), "amber:after-timer");
 }
 
 #[test]
@@ -775,7 +775,7 @@ fn runtime_type_module_js_entry_supports_top_level_await_without_imports_or_expo
     runtime.set_main_module_path(&main_path);
     let code = r#"
         const answer = await Promise.resolve(42);
-        globalThis.__typeModuleTlaEntryResult = `bee:${answer}`;
+        globalThis.__typeModuleTlaEntryResult = `amber:${answer}`;
     "#;
 
     runtime.execute_code(code).expect("Execution failed");
@@ -783,7 +783,7 @@ fn runtime_type_module_js_entry_supports_top_level_await_without_imports_or_expo
         .execute_code("globalThis.__typeModuleTlaEntryResult")
         .expect("Failed to read type module TLA entry result");
 
-    assert_eq!(result.trim(), "bee:42");
+    assert_eq!(result.trim(), "amber:42");
 }
 
 #[test]
@@ -805,7 +805,7 @@ fn runtime_static_import_esm_dependency_supports_top_level_await_export() {
     runtime.set_main_module_path(&main_path);
     let code = r#"
         import { answer } from './dep.mjs';
-        globalThis.__esmTlaDependencyResult = `bee:${answer}`;
+        globalThis.__esmTlaDependencyResult = `amber:${answer}`;
     "#;
 
     runtime.execute_code(code).expect("Execution failed");
@@ -813,7 +813,7 @@ fn runtime_static_import_esm_dependency_supports_top_level_await_export() {
         .execute_code("globalThis.__esmTlaDependencyResult")
         .expect("Failed to read TLA dependency result");
 
-    assert_eq!(result.trim(), "bee:42");
+    assert_eq!(result.trim(), "amber:42");
 }
 
 #[test]
@@ -863,7 +863,7 @@ fn runtime_mjs_entry_imports_type_module_js_dependency_as_esm() {
     fs::write(
         app_dir.join("dep.js"),
         r#"
-        export const label = "bee";
+        export const label = "amber";
         export const answer = 42;
         "#,
     )
@@ -881,7 +881,7 @@ fn runtime_mjs_entry_imports_type_module_js_dependency_as_esm() {
         .execute_code("globalThis.__mjsToTypeModuleJsResult")
         .expect("Failed to read mjs to type module JS result");
 
-    assert_eq!(result.trim(), "bee:42");
+    assert_eq!(result.trim(), "amber:42");
 }
 
 #[test]
@@ -900,7 +900,7 @@ fn runtime_mjs_entry_imports_package_exports_mjs_as_esm() {
     fs::write(
         package_dir.join("index.mjs"),
         r#"
-        export const label = "bee";
+        export const label = "amber";
         export const answer = 42;
         "#,
     )
@@ -918,7 +918,7 @@ fn runtime_mjs_entry_imports_package_exports_mjs_as_esm() {
         .execute_code("globalThis.__packageEsmImportResult")
         .expect("Failed to read package ESM import result");
 
-    assert_eq!(result.trim(), "bee:42");
+    assert_eq!(result.trim(), "amber:42");
 }
 
 #[test]
@@ -974,7 +974,7 @@ fn runtime_native_esm_imports_commonjs_dependency_default_namespace() {
     let main_path = app_dir.join("main.mjs");
     fs::write(
         app_dir.join("settings.js"),
-        "module.exports = { answer: 42, label: 'bee' };",
+        "module.exports = { answer: 42, label: 'amber' };",
     )
     .unwrap();
 
@@ -992,7 +992,7 @@ fn runtime_native_esm_imports_commonjs_dependency_default_namespace() {
         .execute_code("globalThis.__esmCjsInteropResult")
         .expect("Failed to read ESM/CJS interop result");
 
-    assert_eq!(result.trim(), "bee:42:42");
+    assert_eq!(result.trim(), "amber:42:42");
 }
 
 #[test]
@@ -1004,7 +1004,7 @@ fn runtime_native_esm_imports_commonjs_dependency_named_exports() {
     let main_path = app_dir.join("main.mjs");
     fs::write(
         app_dir.join("math.js"),
-        "exports.answer = 42; exports.label = 'bee';",
+        "exports.answer = 42; exports.label = 'amber';",
     )
     .unwrap();
 
@@ -1021,7 +1021,7 @@ fn runtime_native_esm_imports_commonjs_dependency_named_exports() {
         .execute_code("globalThis.__esmCjsNamedInteropResult")
         .expect("Failed to read ESM/CJS named interop result");
 
-    assert_eq!(result.trim(), "bee:42");
+    assert_eq!(result.trim(), "amber:42");
 }
 
 #[test]
@@ -1040,7 +1040,7 @@ fn runtime_native_esm_imports_builtin_path_namespace() {
         globalThis.__esmBuiltinPathResult = [
             typeof path.join,
             typeof pathDefault.join,
-            path.basename('/tmp/bee.js')
+            path.basename('/tmp/amber.js')
         ].join(':');
     "#;
 
@@ -1049,7 +1049,7 @@ fn runtime_native_esm_imports_builtin_path_namespace() {
         .execute_code("globalThis.__esmBuiltinPathResult")
         .expect("Failed to read builtin path import result");
 
-    assert_eq!(result.trim(), "function:function:bee.js");
+    assert_eq!(result.trim(), "function:function:amber.js");
 }
 
 #[test]
@@ -1060,7 +1060,7 @@ fn runtime_native_esm_imports_builtin_fs_namespace() {
     fs::create_dir_all(&app_dir).unwrap();
     let main_path = app_dir.join("main.mjs");
     let data_path = app_dir.join("data.txt");
-    fs::write(&data_path, "bee-data").unwrap();
+    fs::write(&data_path, "amber-data").unwrap();
 
     let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
     runtime.set_main_module_path(&main_path);
@@ -1082,7 +1082,7 @@ fn runtime_native_esm_imports_builtin_fs_namespace() {
         .execute_code("globalThis.__esmBuiltinFsResult")
         .expect("Failed to read builtin fs import result");
 
-    assert_eq!(result.trim(), "function:function:bee-data");
+    assert_eq!(result.trim(), "function:function:amber-data");
 }
 
 #[test]
@@ -1100,7 +1100,7 @@ fn runtime_native_esm_imports_builtin_url_namespace() {
         import nodeUrlDefault, { URL as NodeURL } from 'node:url';
         export const forceNativeModule = true;
         const parsed = new URL('https://example.com/docs?x=1');
-        const params = new URLSearchParams('a=bee');
+        const params = new URLSearchParams('a=amber');
         globalThis.__esmBuiltinUrlResult = [
             typeof URL,
             typeof URLSearchParams,
@@ -1120,7 +1120,7 @@ fn runtime_native_esm_imports_builtin_url_namespace() {
 
     assert_eq!(
         result.trim(),
-        "function:function:function:function:true:example.com:/docs:bee"
+        "function:function:function:function:true:example.com:/docs:amber"
     );
 }
 
@@ -1140,10 +1140,10 @@ fn runtime_native_esm_imports_builtin_events_namespace() {
         export const forceNativeModule = true;
         const emitter = new EventEmitter();
         let observed = 'missing';
-        emitter.on('__bee_esm_builtin_events__', value => {
+        emitter.on('__amber_esm_builtin_events__', value => {
             observed = value;
         });
-        emitter.emit('__bee_esm_builtin_events__', 'buzz');
+        emitter.emit('__amber_esm_builtin_events__', 'buzz');
         globalThis.__esmBuiltinEventsResult = [
             typeof EventEmitter,
             typeof eventsDefault.EventEmitter,
@@ -1316,8 +1316,8 @@ fn runtime_native_esm_imports_builtin_crypto_namespace() {
         } from 'crypto';
         import nodeCryptoDefault, { createHash as nodeCreateHash } from 'node:crypto';
         export const forceNativeModule = true;
-        const hash = createHash('sha256').update('bee').digest('hex');
-        const nodeHash = nodeCreateHash('sha256').update('bee').digest('hex');
+        const hash = createHash('sha256').update('amber').digest('hex');
+        const nodeHash = nodeCreateHash('sha256').update('amber').digest('hex');
         const bytes = randomBytes(8);
         const uuid = randomUUID();
         const input = new Uint8Array([1, 2, 3]);

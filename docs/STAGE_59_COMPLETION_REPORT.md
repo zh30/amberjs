@@ -2,7 +2,7 @@
 
 ## 📋 项目概述
 
-**项目**: Beejs - 高性能 JavaScript/TypeScript 运行时  
+**项目**: Amber - 高性能 JavaScript/TypeScript 运行时  
 **阶段**: Stage 59 - 可视化调试与 CLI 调试器  
 **目标**: 实现比 Bun 更快的运行时调试能力  
 **日期**: 2025-12-20  
@@ -128,7 +128,7 @@ DebugCliCommand {
 ### 调试流程
 
 ```
-1. 用户运行: beejs debug script.js
+1. 用户运行: amberjs debug script.js
    ↓
 2. main.rs 解析命令 → DebugSession::new()
    ↓
@@ -172,28 +172,28 @@ DebugCliCommand {
 ### 基本调试会话
 
 ```bash
-$ beejs debug test.js
-🐛 Beejs Debugger - Interactive Mode
+$ amberjs debug test.js
+🐛 Amber Debugger - Interactive Mode
 Type 'help' for available commands
 
-(beejs-debug) break 10
+(amberjs-debug) break 10
 ✅ Breakpoint set at line 10
 
-(beejs-debug) continue
+(amberjs-debug) continue
 📍 Breakpoint hit at test.js:10
  10: let sum = a + b;
 
-(beejs-debug) print a
+(amberjs-debug) print a
    Result: 5
 
-(beejs-debug) print b
+(amberjs-debug) print b
    Result: 3
 
-(beejs-debug) next
-(beejs-debug) print sum
+(amberjs-debug) next
+(amberjs-debug) print sum
    Result: 8
 
-(beejs-debug) quit
+(amberjs-debug) quit
 👋 Exiting debugger...
 ```
 
@@ -201,16 +201,16 @@ Type 'help' for available commands
 
 ```bash
 # 带初始断点的调试
-beejs debug app.js --break-at 42
+amberjs debug app.js --break-at 42
 
 # Web UI 模式
-beejs debug server.js --web
+amberjs debug server.js --web
 
 # 附加到进程
-beejs debug attach --pid 1234
+amberjs debug attach --pid 1234
 
 # 自定义端口
-beejs debug script.js --port 8080
+amberjs debug script.js --port 8080
 ```
 
 ## 🔄 与 Stage 58 的关系
@@ -265,7 +265,7 @@ Stage 59 在此基础上实现：
 
 ## 🎉 总结
 
-Stage 59 成功实现了 Beejs 调试器的交互式 CLI 核心功能，建立了坚实的架构基础。通过 814 行高质量代码，创建了：
+Stage 59 成功实现了 Amber 调试器的交互式 CLI 核心功能，建立了坚实的架构基础。通过 814 行高质量代码，创建了：
 
 - ✅ **完整的 CLI 调试体验**
 - ✅ **可扩展的命令架构**

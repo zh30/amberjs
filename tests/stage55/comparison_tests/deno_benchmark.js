@@ -2,7 +2,7 @@
 
 /**
  * Deno 性能对比测试
- * 用于与 Beejs 进行性能对比
+ * 用于与 Amber 进行性能对比
  */
 
 // Deno 不需要导入 fs，使用内置的 Deno.writeTextFileSync

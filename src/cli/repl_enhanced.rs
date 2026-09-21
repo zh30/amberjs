@@ -39,12 +39,12 @@ pub struct EnhancedReplConfig {
 impl Default for EnhancedReplConfig {
     fn default() -> Self {
         Self {
-            prompt: "bee> ".to_string(),
+            prompt: "amber> ".to_string(),
             history_size: 1000,
             tab_completion: true,
             syntax_highlighting: true,
             auto_indent: true,
-            history_file: Some(".beejs_repl_history".to_string()),
+            history_file: Some(".amberjs_repl_history".to_string()),
         }
     }
 }
@@ -125,7 +125,7 @@ impl EnhancedRepl {
     }
     /// Run the enhanced REPL
     pub fn run(&mut self) -> anyhow::Result<()> {
-        println!("🐝 Beejs Enhanced REPL - High-performance JavaScript/TypeScript runtime");
+        println!("🐝 Amber Enhanced REPL - High-performance JavaScript/TypeScript runtime");
         println!("Features: Tab completion, syntax highlighting, arrow key navigation");
         println!("Type JavaScript code and press Enter to execute");
         println!("Type .help for more information");
@@ -405,7 +405,7 @@ impl EnhancedRepl {
     fn save_session(&self, path: &str) -> anyhow::Result<()> {
         let mut file = std::fs::File::create(path)
             .map_err(|e| anyhow::anyhow!("Failed to create file: {}", e))?;
-        writeln!(file, "// Beejs REPL Session")?;
+        writeln!(file, "// Amber REPL Session")?;
         writeln!(file, "// Saved on {}", chrono::Utc::now())?;
         writeln!(file)?;
         for cmd in &self.history {
@@ -433,7 +433,7 @@ impl EnhancedRepl {
     }
     /// Print help information
     fn print_help(&self) {
-        println!("\n🐝 Beejs Enhanced REPL Commands:");
+        println!("\n🐝 Amber Enhanced REPL Commands:");
         println!("  .exit, .quit    - Exit the REPL");
         println!("  .help           - Show this help message");
         println!("  .clear          - Clear the screen");

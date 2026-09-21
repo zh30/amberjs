@@ -243,7 +243,7 @@ docs/
 
 ## 🙏 致谢
 
-感谢 Claude Code Assistant 的协助，让我们能够快速实现这个复杂的测试生态系统。通过 TDD 方法和增量开发，我们成功地建立了 Beejs 的质量保证体系。
+感谢 Claude Code Assistant 的协助，让我们能够快速实现这个复杂的测试生态系统。通过 TDD 方法和增量开发，我们成功地建立了 Amber 的质量保证体系。
 
 ---
 

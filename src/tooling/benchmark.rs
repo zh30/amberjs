@@ -1,4 +1,4 @@
-//! Built-in Microbenchmark Runner for Beejs (`bee bench`).
+//! Built-in Microbenchmark Runner for Amber (`amber bench`).
 //!
 //! Provides high-resolution execution timing, iteration warmups, and ops/sec statistics.
 
@@ -63,16 +63,16 @@ pub fn discover_benchmark_files(paths: &[PathBuf]) -> Vec<PathBuf> {
     files
 }
 
-/// JS bootstrap harness to inject `bee.bench` and `bench` globals into the runtime.
+/// JS bootstrap harness to inject `amber.bench` and `bench` globals into the runtime.
 pub const BENCHMARK_HARNESS_JS: &str = r#"
 globalThis.__benchmarks = [];
 globalThis.bench = function(name, fn) {
     globalThis.__benchmarks.push({ name, fn });
 };
-if (typeof globalThis.bee === 'undefined') {
-    globalThis.bee = {};
+if (typeof globalThis.amber === 'undefined') {
+    globalThis.amber = {};
 }
-globalThis.bee.bench = globalThis.bench;
+globalThis.amber.bench = globalThis.bench;
 "#;
 
 /// Runs a single benchmark file and collects results.

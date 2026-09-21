@@ -1,4 +1,4 @@
-use beejs::Runtime;
+use amberjs::Runtime;
 use std::io::Write;
 use tempfile::{NamedTempFile, TempDir};
 

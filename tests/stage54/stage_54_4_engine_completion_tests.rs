@@ -1,7 +1,7 @@
 // Stage 54.4: AI 推理引擎完善测试套件
 // 测试 TorchEngine 的完整 InferenceEngine trait 实现
 
-use beejs::ai_inference{
+use amberjs::ai_inference{
     TorchEngine, TorchEngineFactory, InferenceEngine, ModelFormat, EngineType,
     InferenceOptions, Tensor, ModelHandle, ModelInfo, EngineStats
 };

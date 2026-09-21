@@ -45,7 +45,7 @@ pub struct PrecompiledModuleCache {
 impl PrecompiledModuleCache {
     /// 创建新的预编译模块缓存
     pub fn new() -> Result<Self> {
-        let cache_dir: _ = std::env::temp_dir().join("beejs_precompiled_cache");
+        let cache_dir: _ = std::env::temp_dir().join("amberjs_precompiled_cache");
         Self::new_with_path(cache_dir)
     }
     /// 使用指定路径创建预编译模块缓存

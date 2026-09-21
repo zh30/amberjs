@@ -1,5 +1,5 @@
 ---
-title: "持久化 Key-Value 与 Agent 状态引擎 (bee:kv)"
+title: "持久化 Key-Value 与 Agent 状态引擎 (amber:kv)"
 subtitle: "嵌入式 ACID 事务存储、前缀范围扫描与 TTL 自动过期"
 group: "Agent & Advanced"
 id: "kv-store"
@@ -7,17 +7,17 @@ id: "kv-store"
 
 在运行长时间自治的 AI Agent 业务流时，Agent 极其依赖在 Worker 实例重启、Isolate 回收与会话更迭之间保存持久化上下文与内存。传统关系型数据库对于亚毫秒级的会话存取往往过于厚重，而内存中的 `Map` 又无法在进程退出后保留数据。
 
-**Beejs v1.7.0 正式引入原生持久化 Key-Value 与 Agent 状态持久引擎（`bee:kv`）**。完全基于 Rust 原生实现，零外部重型依赖，提供嵌入式 ACID 事务、纯内存/磁盘 WAL 预写日志双模运行、自动 TTL 过期剔除、前缀范围扫描及原子批量提交。
+**Amber v1.7.0 正式引入原生持久化 Key-Value 与 Agent 状态持久引擎（`amber:kv`）**。完全基于 Rust 原生实现，零外部重型依赖，提供嵌入式 ACID 事务、纯内存/磁盘 WAL 预写日志双模运行、自动 TTL 过期剔除、前缀范围扫描及原子批量提交。
 
 ---
 
 ## 1. 核心架构与运行模式
 
-`bee:kv` 提供灵活的双模存储架构：
+`amber:kv` 提供灵活的双模存储架构：
 
 ```
 [ 纯内存模式 ]                      [ 磁盘持久化模式 ]
-KVStore.openMemory()               KVStore.open("./agent.bee-kv")
+KVStore.openMemory()               KVStore.open("./agent.amber-kv")
         |                                       |
         v                                       v
 [ 内存瞬态索引 ]                     [ 内存索引 + 预写追加日志 WAL ]
@@ -40,13 +40,13 @@ KVStore.openMemory()               KVStore.open("./agent.bee-kv")
 ### 2.1 打开存储实例
 
 ```typescript
-import { KVStore } from 'bee:kv';
+import { KVStore } from 'amber:kv';
 
 // 模式 A: 极速纯内存存储
 const memStore = KVStore.openMemory();
 
 // 模式 B: 磁盘持久化存储（自动维护 WAL 与恢复）
-const diskStore = KVStore.open('./data/agent_memory.bee-kv');
+const diskStore = KVStore.open('./data/agent_memory.amber-kv');
 ```
 
 ### 2.2 存储与查询数据

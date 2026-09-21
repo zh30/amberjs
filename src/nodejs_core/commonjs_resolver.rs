@@ -34,10 +34,10 @@ pub fn clear_module_resolution_cache() {
 
 const JS_EXTENSIONS: &[&str] = &["js", "json", "ts", "mjs", "cjs", "tsx"];
 const COMMONJS_EXPORT_CONDITIONS: &[&str] = &[
-    "require", "wintercg", "wintertc", "node", "beejs", "default",
+    "require", "wintercg", "wintertc", "node", "amber", "amberjs", "default",
 ];
 const ESM_EXPORT_CONDITIONS: &[&str] = &[
-    "import", "wintercg", "wintertc", "node", "amber", "amberjs", "beejs", "default",
+    "import", "wintercg", "wintertc", "node", "amber", "amberjs", "default",
 ];
 const BUILTIN_MODULES: &[&str] = &[
     "ai",
@@ -71,34 +71,6 @@ const BUILTIN_MODULES: &[&str] = &[
     "assert",
     "assert/strict",
     "async_hooks",
-    "bee:ai",
-    "bee:db",
-    "bee:ffi",
-    "bee:pool",
-    "bee:wasm",
-    "bee:replay",
-    "bee:weights",
-    "bee:security",
-    "bee:permissions",
-    "bee:kv",
-    "bee:tools",
-    "bee:bus",
-    "bee:grammar",
-    "bee:checkpoint",
-    "bee:sockets",
-    "bee:sqlite",
-    "bee:vector",
-    "bee:std",
-    "bee:std/dotenv",
-    "bee:std/cli",
-    "bee:std/fs",
-    "bee:std/crypto",
-    "bee:std/assert",
-    "bee:mcp",
-    "bee:sandbox",
-    "bee:vfs",
-    "bee:test",
-    "bee:wasm",
     "db",
     "ffi",
     "pool",
@@ -434,10 +406,6 @@ fn normalize_builtin_specifier(specifier: &str) -> Option<&str> {
     let without_amber = specifier.strip_prefix("amber:").unwrap_or(specifier);
     if BUILTIN_MODULES.contains(&without_amber) {
         return Some(without_amber);
-    }
-    let without_bee = specifier.strip_prefix("bee:").unwrap_or(specifier);
-    if BUILTIN_MODULES.contains(&without_bee) {
-        return Some(without_bee);
     }
     let without_wintertc = specifier.strip_prefix("wintertc:").unwrap_or(specifier);
     if BUILTIN_MODULES.contains(&without_wintertc) {
@@ -800,7 +768,7 @@ fn resolve_package_main(
     package_root: &Path,
     conditions: &[&str],
 ) -> Result<Option<PathBuf>, CommonJsResolveError> {
-    let Some(package_json) = read_package_json(package_root)? else {
+    let Some(package_json) = read_package_json_required(package_root)? else {
         return Ok(None);
     };
 
@@ -838,7 +806,7 @@ fn resolve_package_subpath(
     subpath: &str,
     conditions: &[&str],
 ) -> Result<Option<PathBuf>, CommonJsResolveError> {
-    let Some(package_json) = read_package_json(package_root)? else {
+    let Some(package_json) = read_package_json_required(package_root)? else {
         return resolve_path_candidate(&package_root.join(subpath), conditions);
     };
 
@@ -877,8 +845,30 @@ fn resolve_package_subpath(
     }
 }
 
+#[derive(Clone, Copy)]
+enum PackageJsonDenyPolicy {
+    /// Walking ancestors for `type`/`imports` must not abort startup when a
+    /// parent `package.json` is sandboxed (e.g. repo root during a fixture).
+    TreatAsAbsent,
+    /// Reading the package we are actually resolving must surface the deny.
+    Fail,
+}
+
 fn read_package_json(
     package_root: &Path,
+) -> Result<Option<serde_json::Value>, CommonJsResolveError> {
+    read_package_json_with_policy(package_root, PackageJsonDenyPolicy::TreatAsAbsent)
+}
+
+fn read_package_json_required(
+    package_root: &Path,
+) -> Result<Option<serde_json::Value>, CommonJsResolveError> {
+    read_package_json_with_policy(package_root, PackageJsonDenyPolicy::Fail)
+}
+
+fn read_package_json_with_policy(
+    package_root: &Path,
+    deny_policy: PackageJsonDenyPolicy,
 ) -> Result<Option<serde_json::Value>, CommonJsResolveError> {
     if let Ok(cache) = PACKAGE_JSON_CACHE.read() {
         if let Some(cached) = cache.get(package_root) {
@@ -894,18 +884,20 @@ fn read_package_json(
         return Ok(None);
     }
 
-    crate::permissions::check_global_permission(
+    if let Err(error) = crate::permissions::check_global_permission(
         crate::permissions::PermissionKind::FileSystem,
         crate::permissions::PermissionAction::Read,
         crate::permissions::ResourceId::Path(package_json_path.clone()),
-    )
-    .map_err(|error| {
-        CommonJsResolveError::with_reason(
-            package_json_path.to_string_lossy(),
-            package_root,
-            error.to_string(),
-        )
-    })?;
+    ) {
+        return match deny_policy {
+            PackageJsonDenyPolicy::TreatAsAbsent => Ok(None),
+            PackageJsonDenyPolicy::Fail => Err(CommonJsResolveError::with_reason(
+                package_json_path.to_string_lossy(),
+                package_root,
+                error.to_string(),
+            )),
+        };
+    }
 
     let content = fs::read_to_string(&package_json_path).map_err(|error| {
         CommonJsResolveError::invalid_package_config(

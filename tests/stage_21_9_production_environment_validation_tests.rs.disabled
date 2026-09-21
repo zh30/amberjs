@@ -10,7 +10,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::network::{
+    use amberjs::network::{
         NetworkBufferPool, ConnectionPool, NetworkIoStatistics
     };
     use std::net::{SocketAddr, IpAddr, Ipv4Addr};
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_network_api_availability() {
-        use beejs::{Runtime, initialize_v8};
+        use amberjs::{Runtime, initialize_v8};
 
         // 初始化 V8
         initialize_v8();

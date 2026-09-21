@@ -4,7 +4,7 @@
 
 **时间**: 2025-12-19
 **阶段**: Stage 53
-**目标**: 扩展 Beejs 的 Web API 支持，提供现代 Web 标准兼容性
+**目标**: 扩展 Amber 的 Web API 支持，提供现代 Web 标准兼容性
 **前置条件**: Stage 52 完成（高级类型系统基础设施）
 
 ## 🎯 项目背景
@@ -193,7 +193,7 @@ pub fn js_fetch(
 
 ## 🚀 预期成果
 
-Stage 53 完成后，Beejs 将具备：
+Stage 53 完成后，Amber 将具备：
 
 1. ✅ **完整的 Fetch API** - 现代 HTTP 客户端
 2. ✅ **WebSocket 支持** - 实时双向通信
@@ -201,7 +201,7 @@ Stage 53 完成后，Beejs 将具备：
 4. ✅ **URL/FormData API** - 现代 Web 开发
 5. ✅ **标准兼容性** - 与现代浏览器 API 兼容
 
-这些 API 将使 Beejs 成为真正的现代 Web 运行时，为 AI 和 Web 应用提供强大支持。
+这些 API 将使 Amber 成为真正的现代 Web 运行时，为 AI 和 Web 应用提供强大支持。
 
 ## 📚 学习要点
 

@@ -91,7 +91,7 @@ def fix_file(filepath):
     return False
 
 def main():
-    base = Path('/Users/henry/code/beejs')
+    base = Path('/Users/henry/code/amberjs')
     fixed = 0
 
     for rs_file in base.rglob('*.rs'):

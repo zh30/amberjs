@@ -1,4 +1,4 @@
-// Beejs 生态系统集成 - 简化版
+// Amber 生态系统集成 - 简化版
 // Stage 91 Phase 3 - 生态系统集成
 //
 // 自包含的生态系统集成模块，不依赖可能有问题的其他模块
@@ -77,16 +77,16 @@ impl TypeDefinitionGenerator {
         let mut dts_content = String::new();
         // 添加文件头
         dts_content.push_str("// 自动生成 TypeScript 类型定义\n");
-        dts_content.push_str("// 由 Beejs 生态系统生成\n\n");
+        dts_content.push_str("// 由 Amber 生态系统生成\n\n");
         // 解析基本类型
-        dts_content.push_str("declare module 'beejs-runtime' {\n");
+        dts_content.push_str("declare module 'amberjs-runtime' {\n");
         dts_content.push_str("  export function run(code: string): any;\n");
         dts_content.push_str("  export function evaluate(expression: string): any;\n");
         dts_content.push_str("  export function loadModule(path: string): Promise<any>;\n");
         dts_content.push_str("}\n\n");
         // 为全局变量添加类型
         dts_content.push_str("declare global {\n");
-        dts_content.push_str("  const beejs: {\n");
+        dts_content.push_str("  const amberjs: {\n");
         dts_content.push_str("    run: (code: string) => any;\n");
         dts_content.push_str("    evaluate: (expression: string) => any;\n");
         dts_content.push_str("    loadModule: (path: string) => Promise<any>;\n");
@@ -152,7 +152,7 @@ impl Default for PackageManagerConfig {
         Self {
             manager_type: PackageManagerType::Npm,
             registry_url: "https://registry.npmjs.org/".to_string(),
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
         }
     }
 }
@@ -273,8 +273,8 @@ impl ReactRuntime {
         // 简化的 React 渲染实现
         // 实际实现需要 JSX 转换、组件编译等
         let mut output = String::new();
-        output.push_str("<div data-beejs-react=\"true\">\n");
-        output.push_str("  <!-- React Component Rendered by Beejs -->\n");
+        output.push_str("<div data-amberjs-react=\"true\">\n");
+        output.push_str("  <!-- React Component Rendered by Amber -->\n");
         output.push_str("  <p>React Component Placeholder</p>\n");
         output.push_str("</div>\n");
         Ok(output)
@@ -312,9 +312,9 @@ impl Default for VsCodeExtensionConfig {
         let mut engines = HashMap::new();
         engines.insert("vscode".to_string(), "^1.74.0".to_string());
         Self {
-            name: "beejs-language-support".to_string(),
+            name: "amberjs-language-support".to_string(),
             version: "0.1.0".to_string(),
-            publisher: "beejs-team".to_string(),
+            publisher: "amberjs-team".to_string(),
             engines,
             categories: vec!["Languages".to_string(), "Other".to_string()],
             activation_events: vec![
@@ -383,17 +383,17 @@ impl EcosystemIntegrator {
     }
     /// 初始化生态系统
     pub async fn initialize(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("Initializing Beejs Ecosystem...");
+        println!("Initializing Amber Ecosystem...");
         // 创建类型输出目录
         std::fs::create_dir_all("./types")?;
         // 添加默认构建插件
         self.build_plugins.push(BuildToolPlugin::new(
-            "beejs-webpack-plugin".to_string(),
+            "amberjs-webpack-plugin".to_string(),
             "0.1.0".to_string(),
             BuildPluginType::Webpack,
         ));
         self.build_plugins.push(BuildToolPlugin::new(
-            "beejs-vite-plugin".to_string(),
+            "amberjs-vite-plugin".to_string(),
             "0.1.0".to_string(),
             BuildPluginType::Vite,
         ));

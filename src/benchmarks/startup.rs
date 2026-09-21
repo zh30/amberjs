@@ -76,7 +76,7 @@ impl StartupBenchmark {
         framework.run_benchmark("cli_parsing", MetricType::StartupTime, || {
             // 模拟 CLI 参数解析
             let args: _ = vec![
-                "bee".to_string(),
+                "amber".to_string(),
                 "--eval".to_string(),
                 "console.log('test')".to_string(),
             ];

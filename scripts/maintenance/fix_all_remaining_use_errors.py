@@ -83,7 +83,7 @@ def find_all_rust_files(directory):
     return files
 
 def main():
-    src_dir = '/Users/henry/code/beejs/src'
+    src_dir = '/Users/henry/code/amberjs/src'
 
     print("Finding all Rust files...")
     all_files = find_all_rust_files(src_dir)

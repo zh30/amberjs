@@ -1,7 +1,7 @@
-// Debug Adapter Protocol (DAP) Implementation for Beejs
+// Debug Adapter Protocol (DAP) Implementation for Amber
 //
 // This module provides a Rust implementation of the Debug Adapter Protocol
-// for integrating Beejs with VS Code and other IDEs.
+// for integrating Amber with VS Code and other IDEs.
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -207,7 +207,7 @@ impl DebugAdapterProtocol {
         Ok(Some(response))
     }
     async fn handle_evaluate(&self, seq: i32, arguments: Option<serde_json::Value>) -> Result<Option<DapMessage>, String> {
-        // TODO: Evaluate expression in Beejs runtime
+        // TODO: Evaluate expression in Amber runtime
         let response: _ = DapMessage::Response {
             seq: seq + 1,
             request_seq: seq,

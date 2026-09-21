@@ -1,4 +1,4 @@
-// Beejs AI Engine - Edge Small Language Model (SLM) & Structured Generation
+// Amber AI Engine - Edge Small Language Model (SLM) & Structured Generation
 // Lightweight zero-dependency autoregressive token generation & constrained JSON decoding
 
 use anyhow::Result;
@@ -182,7 +182,7 @@ impl EdgeGenerator {
             } else {
                 map.insert("response".to_string(), serde_json::json!(prompt.trim()));
                 map.insert("status".to_string(), serde_json::json!("success"));
-                map.insert("model".to_string(), serde_json::json!("bee-slm-edge"));
+                map.insert("model".to_string(), serde_json::json!("amber-slm-edge"));
             }
         }
 
@@ -225,7 +225,7 @@ impl EdgeGenerator {
                 "the".to_string(),
                 "runtime".to_string(),
                 "analysis,".to_string(),
-                "Beejs".to_string(),
+                "Amber".to_string(),
                 "provides".to_string(),
                 "native".to_string(),
                 "high-performance".to_string(),

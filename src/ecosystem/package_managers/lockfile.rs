@@ -262,7 +262,7 @@ impl LockfileManager {
     /// 保存 package-lock.json
     async fn save_package_lock(&self, path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         let mut package_lock = serde_json::Map::new();
-        package_lock.insert("name".to_string(), serde_json::Value::String("beejs-project".to_string());
+        package_lock.insert("name".to_string(), serde_json::Value::String("amberjs-project".to_string());
         package_lock.insert("version".to_string(), serde_json::Value::String("1.0.0".to_string());
         package_lock.insert("lockfileVersion".to_string(), serde_json::Value::Number(serde_json::Number::from(3));
         let mut packages = serde_json::Map::new();

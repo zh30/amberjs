@@ -1,5 +1,5 @@
 /**
- * CI/CD Integration Tests for Beejs
+ * CI/CD Integration Tests for Amber
  *
  * This test suite validates the CI/CD integration functionality:
  * - GitHub Actions workflows
@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import { describe, test, before, after } from 'mocha';
 import { expect } from 'chai';
 
-describe('Beejs CI/CD Integrations', () => {
+describe('Amber CI/CD Integrations', () => {
     const testDir = path.join(__dirname, '..', '..', '..');
 
     before(async () => {
@@ -30,7 +30,7 @@ describe('Beejs CI/CD Integrations', () => {
                 'tools',
                 'ci-cd-integrations',
                 'github-actions',
-                'beejs-test.yml'
+                'amberjs-test.yml'
             );
 
             expect(fs.existsSync(workflowPath)).to.be.true;
@@ -54,12 +54,12 @@ describe('Beejs CI/CD Integrations', () => {
             expect(testJob).to.have.property('runs-on', 'ubuntu-latest');
             expect(testJob).to.have.property('steps');
 
-            // Validate Beejs installation step
+            // Validate Amber installation step
             const installStep = testJob.steps.find((step: any) =>
-                step.name === 'Install Beejs Runtime'
+                step.name === 'Install Amber Runtime'
             );
             expect(installStep).to.exist;
-            expect(installStep.run).to.contain('beejs');
+            expect(installStep.run).to.contain('amberjs');
         });
 
         test('should validate workflow triggers', async () => {
@@ -68,7 +68,7 @@ describe('Beejs CI/CD Integrations', () => {
                 'tools',
                 'ci-cd-integrations',
                 'github-actions',
-                'beejs-test.yml'
+                'amberjs-test.yml'
             );
 
             const content = fs.readFileSync(workflowPath, 'utf-8');
@@ -89,7 +89,7 @@ describe('Beejs CI/CD Integrations', () => {
                 'tools',
                 'ci-cd-integrations',
                 'github-actions',
-                'beejs-test.yml'
+                'amberjs-test.yml'
             );
 
             const content = fs.readFileSync(workflowPath, 'utf-8');
@@ -123,7 +123,7 @@ describe('Beejs CI/CD Integrations', () => {
             expect(content).to.contain('WORKDIR');
             expect(content).to.contain('COPY');
             expect(content).to.contain('RUN');
-            expect(content).to.contain('beejs');
+            expect(content).to.contain('amberjs');
 
             // Validate multi-stage build
             expect(content).to.contain('FROM base AS');
@@ -149,18 +149,18 @@ describe('Beejs CI/CD Integrations', () => {
             expect(compose).to.have.property('version', '3.8');
             expect(compose).to.have.property('services');
 
-            // Validate Beejs services
-            expect(compose.services).to.have.property('beejs-runtime');
-            expect(compose.services).to.have.property('beejs-test');
-            expect(compose.services).to.have.property('beejs-build');
-            expect(compose.services).to.have.property('beejs-prod');
+            // Validate Amber services
+            expect(compose.services).to.have.property('amberjs-runtime');
+            expect(compose.services).to.have.property('amberjs-test');
+            expect(compose.services).to.have.property('amberjs-build');
+            expect(compose.services).to.have.property('amberjs-prod');
 
             // Validate volumes and networks
             expect(compose).to.have.property('volumes');
             expect(compose).to.have.property('networks');
         });
 
-        test('should validate Beejs runtime installation', async () => {
+        test('should validate Amber runtime installation', async () => {
             const dockerfilePath = path.join(
                 testDir,
                 'tools',
@@ -171,10 +171,10 @@ describe('Beejs CI/CD Integrations', () => {
 
             const content = fs.readFileSync(dockerfilePath, 'utf-8');
 
-            // Check for Beejs installation commands
+            // Check for Amber installation commands
             expect(content).to.contain('curl');
-            expect(content).to.contain('bee-linux-x64.tar.gz');
-            expect(content).to.contain('bee --version');
+            expect(content).to.contain('amber-linux-x64.tar.gz');
+            expect(content).to.contain('amber --version');
         });
     });
 
@@ -200,12 +200,12 @@ describe('Beejs CI/CD Integrations', () => {
 
             // Validate stages
             expect(content).to.contain('stage(\'Checkout\')');
-            expect(content).to.contain('stage(\'Setup Beejs\')');
+            expect(content).to.contain('stage(\'Setup Amber\')');
             expect(content).to.contain('stage(\'Test\')');
             expect(content).to.contain('stage(\'Build\')');
         });
 
-        test('should validate Beejs setup in Jenkins', async () => {
+        test('should validate Amber setup in Jenkins', async () => {
             const jenkinsfilePath = path.join(
                 testDir,
                 'tools',
@@ -216,11 +216,11 @@ describe('Beejs CI/CD Integrations', () => {
 
             const content = fs.readFileSync(jenkinsfilePath, 'utf-8');
 
-            // Check for Beejs installation commands
-            expect(content).to.contain('beejs');
-            expect(content).to.contain('bee --version');
-            expect(content).to.contain('bee test');
-            expect(content).to.contain('bee bundle');
+            // Check for Amber installation commands
+            expect(content).to.contain('amberjs');
+            expect(content).to.contain('amber --version');
+            expect(content).to.contain('amber test');
+            expect(content).to.contain('amber bundle');
         });
 
         test('should validate environment variables', async () => {
@@ -236,7 +236,7 @@ describe('Beejs CI/CD Integrations', () => {
 
             // Check for environment configuration
             expect(content).to.contain('environment {');
-            expect(content).to.contain('BEEJS_VERSION');
+            expect(content).to.contain('AMBER_VERSION');
             expect(content).to.contain('NODE_VERSION');
             expect(content).to.contain('IMAGE_NAME');
         });
@@ -245,7 +245,7 @@ describe('Beejs CI/CD Integrations', () => {
     describe('Integration Validation', () => {
         test('should validate all CI/CD files exist', async () => {
             const requiredFiles = [
-                'tools/ci-cd-integrations/github-actions/beejs-test.yml',
+                'tools/ci-cd-integrations/github-actions/amberjs-test.yml',
                 'tools/ci-cd-integrations/docker/Dockerfile',
                 'tools/ci-cd-integrations/docker/docker-compose.yml',
                 'tools/ci-cd-integrations/jenkins/Jenkinsfile',
@@ -257,15 +257,15 @@ describe('Beejs CI/CD Integrations', () => {
             }
         });
 
-        test('should validate consistent Beejs version across files', async () => {
+        test('should validate consistent Amber version across files', async () => {
             const files = [
-                path.join(testDir, 'tools/ci-cd-integrations/github-actions/beejs-test.yml'),
+                path.join(testDir, 'tools/ci-cd-integrations/github-actions/amberjs-test.yml'),
                 path.join(testDir, 'tools/ci-cd-integrations/docker/Dockerfile'),
             ];
 
             const versions = files.map((filePath) => {
                 const content = fs.readFileSync(filePath, 'utf-8');
-                const match = content.match(/BEEJS_VERSION['"]?\s*[:=]\s*['"]?(\d+\.\d+\.\d+)/);
+                const match = content.match(/AMBER_VERSION['"]?\s*[:=]\s*['"]?(\d+\.\d+\.\d+)/);
                 return match ? match[1] : null;
             });
 
