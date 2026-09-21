@@ -23,6 +23,7 @@ id: "cli-usage"
 | `amber session <tool>` | JSON-RPC over stdin for agent hosts |
 | `amber mcp [tool]` | MCP stdio server |
 | `amber --version` / `amber version` | Version |
+| `amber bundle <entry>` | Local JS/TS/JSON graph → one JS file. Limits: [bundle & compile](/docs/bundling-compilation) |
 
 ### `amber run`
 
@@ -61,18 +62,16 @@ Present in the default binary; the contract is still tightening.
 | Command | What it does |
 | :--- | :--- |
 | `amber serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
-| `amber bundle <entry>` | oxc module graph → one JS file |
 | `amber compile <file>` | Append payload + `AMBER_STANDALONE` trailer to a copy of `amber` |
 | TypeScript / TSX | oxc type-strip, not `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
 ```bash
 amber serve app.js --host 127.0.0.1 --port 3000
-amber bundle src/index.ts -o dist/bundle.js --minify
 amber compile app.ts -o myapp
 ```
 
-Details: [bundle & compile](/docs/bundling-compilation).
+`amber bundle` is **Stable** (not webpack parity): [bundle & compile](/docs/bundling-compilation).
 
 ---
 

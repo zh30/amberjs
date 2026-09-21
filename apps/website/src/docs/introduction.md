@@ -50,7 +50,8 @@ Closest cousins: Deno (V8 + Rust, permissioned) and Bun (all-in-one CLI). Amber 
 | `amber:ai` | **Stable** | Tensor / LLM / AgentPipeline in-process |
 | `--sandbox` / MCP / session | **Preview** | Default-deny I/O, seed, freeze-time |
 | `amber serve` | **Preview** | WinterCG `fetch` handler; `--https` is rustls HTTP/1.1 |
-| `amber bundle` / `amber compile` | **Preview** | oxc graph bundle; SEA trailer `AMBER_STANDALONE` |
+| `amber bundle` | **Stable** | Local JS/TS/JSON graph → one IIFE. Limits in [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) |
+| `amber compile` | **Preview** | SEA trailer `AMBER_STANDALONE` |
 | `amber:wasm` | **Preview** | Zero-copy Memory / ArrayBuffer |
 | Package manager (`init`/`install`/`x`) | **Experimental** | Lightweight; not npm-complete |
 | Node API surface | **Preview** | Per-API. Conformance 5.0 is **55/55** |

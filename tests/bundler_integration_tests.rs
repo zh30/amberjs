@@ -549,8 +549,10 @@ fn test_bundle_missing_re_export_fails_before_writing_output() {
         "amber bundle should fail when a barrel re-exports a missing binding. output: {bundle_combined}"
     );
     assert!(
-        bundle_combined.contains("missing"),
-        "Missing re-export error should identify the binding name. output: {bundle_combined}"
+        bundle_combined.contains("error: amber bundle:")
+            && bundle_combined.contains("missing export")
+            && bundle_combined.contains("cannot re-export"),
+        "Missing re-export error should use the stable diagnostic. output: {bundle_combined}"
     );
     assert!(
         !output_file.exists(),
@@ -1025,8 +1027,10 @@ fn test_bundle_missing_named_import_fails_before_writing_output() {
         "amber bundle should fail before producing an invalid bundle. output: {bundle_combined}"
     );
     assert!(
-        bundle_combined.contains("missing"),
-        "Missing named import error should identify the export name. output: {bundle_combined}"
+        bundle_combined.contains("error: amber bundle:")
+            && bundle_combined.contains("missing export")
+            && bundle_combined.contains("'missing'"),
+        "Missing named import error should use the stable diagnostic. output: {bundle_combined}"
     );
     assert!(
         !output_file.exists(),

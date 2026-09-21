@@ -126,11 +126,16 @@ amber test examples/testing/math.test.js --update-snapshots
 
 ## Bundle
 
+`amber bundle` is **Stable**. Compatibility contract (entry points, externals, CJS/ESM, sourcemaps, assets, diagnostics): [BUNDLE_CONTRACT.md](BUNDLE_CONTRACT.md). Not webpack / rollup / esbuild parity. `amber compile` stays Preview.
+
 ```bash
 amber bundle src/index.js --outfile dist/bundle.js
 amber bundle src/index.js --outfile dist/bundle.js --minify
-amber bundle src/index.js --target browser --tree-shake
+amber bundle src/index.js --outfile dist/bundle.js --sourcemap
+amber bundle src/index.js --import-map import_map.json --outfile dist/bundle.js
 ```
+
+`--target` is a header comment only. `--tree-shake` is accepted and ignored. Contracted failures print `error: amber bundle:` and do not write the outfile.
 
 ## Serve
 
