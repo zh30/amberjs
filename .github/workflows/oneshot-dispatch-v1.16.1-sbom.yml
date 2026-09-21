@@ -1,0 +1,36 @@
+name: Oneshot dispatch v1.16.1 SBOM
+
+# Temporary: the cloud-agent token cannot call workflow_dispatch (403).
+# GITHUB_TOKEN *can* create workflow_dispatch runs. Delete this file after dispatch.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/oneshot-dispatch-v1.16.1-sbom.yml"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    name: Dispatch Release Assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: workflow_dispatch Release Assets for v1.16.1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh workflow run release-assets.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag=v1.16.1
+          echo "dispatched Release Assets tag=v1.16.1"
+          for i in 1 2 3 4 5 6; do
+            sleep 5
+            run_url="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow=release-assets.yml --event=workflow_dispatch --limit 1 --json url,status,createdAt,headSha --jq '.[0].url')"
+            echo "latest workflow_dispatch: ${run_url}"
+            if [ -n "${run_url}" ]; then
+              echo "RELEASE_ASSETS_RUN=${run_url}"
+              break
+            fi
+          done
