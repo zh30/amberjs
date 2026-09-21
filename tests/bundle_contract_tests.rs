@@ -429,7 +429,6 @@ fn contract_target_is_header_comment_only() {
 
 #[test]
 fn contract_library_errors_share_cli_prefix() {
-    let dir = tempdir().expect("tempdir");
     let err = bundle_project(&BundleOptions {
         entry: PathBuf::from("/definitely/missing/amber-bundle-contract.js"),
         outfile: None,
