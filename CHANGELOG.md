@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - **Release Assets**: macOS 任务安装 `openssl@3` 并导出 `OPENSSL_DIR` / `PKG_CONFIG_PATH`。`x86_64-apple-darwin` 仍在 `macos-latest`（ARM）上交叉编译，并从源码构建静态 x86_64 OpenSSL，避免 ARM Homebrew 库。发布步骤要求五套资产齐全（含 Intel mac 归档）后才写 GitHub Release / crates.io。
+- **Release Assets SBOM**: CycloneDX 改为 `anchore/sbom-action` 的 `file: Cargo.lock`（并钉住 action / syft）。`path: Cargo.lock` 会被当成目录扫描，syft 1.42 以 `dir:Cargo.lock` 失败，挡住 cosign、GitHub Release 和 crates.io。
 
 ## [1.16.1] - 2026-09-20
 
