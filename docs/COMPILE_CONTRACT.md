@@ -142,7 +142,7 @@ No platform is a silent success. A host that is not in the table fails the compi
 - Distribution code signing, notarization, Windows resources, icons, and version info
 - A `node_modules` directory inside the binary. Only modules the static graph inlines are present, as JavaScript text
 - Worker and child-process scripts that are not part of that one bundle
-- `amber install` (still Preview)
+- `amber install` (Stable subset in [`INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md); not npm/yarn/pnpm)
 - Year-2 sandbox / N-API / polyglot / io_uring work
 
 ## How this is enforced

@@ -53,7 +53,7 @@ id: "introduction"
 | `amber bundle` | **Stable** | 本地 JS/TS/JSON 图 → 单个 IIFE。限制见 [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) |
 | `amber compile` | **Stable** | 宿主 SEA。Trailer `AMBER_STANDALONE`。不是 pkg/nexe/Bun |
 | `amber:wasm` | **Preview** | Memory / ArrayBuffer 零拷贝 |
-| 包管理（`init`/`install`/`x`） | **Experimental** | 轻量实现，不是完整 npm |
+| `amber install` | **Stable** | 直接安装 `package.json` 依赖并核对 lock 的 `dependencies`。不是 npm/yarn/pnpm。`add` / `init` / `x` 仍是 Experimental |
 | Node API | **Preview** | 按 API 计。Conformance 5.0 为 **55/55** |
 
 用户侧能力边界以仓库里的 [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) 为准。历史阶段报告不是产品承诺。

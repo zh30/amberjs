@@ -99,7 +99,7 @@ Permission-broker denials (`--deny-fs` without `--allow-read` / `--allow-write`)
 - Dynamic `import()`, computed `require(expr)`, `import.meta.resolve`
 - Code splitting, CSS/asset pipelines, HTML entry, service-worker graphs
 - Watch mode for `amber bundle`
-- Promoting `amber compile` (SEA) or `amber install`
+- `amber compile` and `amber install` (separate contracts: [`COMPILE_CONTRACT.md`](COMPILE_CONTRACT.md), [`INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md))
 
 ## How this is enforced
 

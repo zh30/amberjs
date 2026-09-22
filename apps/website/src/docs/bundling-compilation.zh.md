@@ -10,7 +10,7 @@ id: "bundling-compilation"
 1. **`amber bundle`** — **Stable**。把本地 JS/TS/JSON 图打成一个 IIFE
 2. **`amber compile`** — **Stable**。复制宿主 `amber` 并嵌入脚本 payload（SEA）
 
-`amber bundle` 不是 webpack / rollup / esbuild 的对等实现。完整契约：[BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md)。`amber compile` 不是 pkg、nexe 或 Bun compile。SEA 契约见 [`docs/COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md)。`amber install` 仍是 Preview。
+`amber bundle` 不是 webpack / rollup / esbuild 的对等实现。完整契约：[BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md)。`amber compile` 不是 pkg、nexe 或 Bun compile。SEA 契约见 [`docs/COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md)。`amber install` 是另一份 **Stable** 子集，不是 npm 替代品：[`docs/INSTALL_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md)。
 
 ---
 
