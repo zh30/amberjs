@@ -1,16 +1,16 @@
 ---
 title: "打包与编译"
-subtitle: "v1.16.0 Preview：oxc amber bundle，SEA amber compile"
+subtitle: "Stable amber bundle（本地图）；Preview SEA amber compile"
 group: "开发者工具"
 id: "bundling-compilation"
 ---
 
-两个打包工具，都是 **Preview**：
+两个打包工具：
 
-1. **`amber bundle`** — 把本地模块图打成一个 JS 文件
-2. **`amber compile`** — 复制 `amber` 二进制并追加脚本 payload（SEA）
+1. **`amber bundle`** — **Stable**。把本地 JS/TS/JSON 图打成一个 IIFE
+2. **`amber compile`** — **Preview**。复制 `amber` 二进制并追加脚本 payload（SEA）
 
-契约还在收紧。不要当成 webpack / esbuild / pkg 的对等实现。
+`amber bundle` 不是 webpack / rollup / esbuild / pkg 的对等实现。完整契约：[BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md)。
 
 ---
 
@@ -19,16 +19,20 @@ id: "bundling-compilation"
 ```bash
 amber bundle src/index.ts -o dist/bundle.js
 amber bundle src/index.ts -o dist/bundle.min.js --minify
+amber bundle src/index.ts -o dist/bundle.js --sourcemap
 ```
 
-当前会做的事：
+契约（由 `tests/bundle_contract_tests.rs` 钉住）：
 
-- 递归跟随静态本地 import
-- 用 oxc 擦掉 `.ts` / `.tsx` 类型
-- 每个模块包进隔离的 registry（`__amberjs_require__`）
-- 可选 minify
+- 单文件入口。只跟随静态 `import` / `export from` / `require("...")`
+- 内联 `.js` / `.mjs` / `.cjs` / `.jsx` / `.ts` / `.tsx` / `.mts` / `.cts` / `.json`
+- 解析不到的 bare specifier 保留为运行时 `require()`（Node 内建、未找到的包）
+- 解析不到的 `./` / `../` 以及非 JS/JSON 资源以 `error: amber bundle:` 失败，且不写 outfile
+- `--sourcemap` 写出 SourceMap v3 `<name>.map`：`sources` 列出模块，`mappings` 为空
+- `--target` 只写进文件头注释；`--tree-shake` 接受但不生效
+- `node_modules` 只读 `package.json` 的 `"main"`（不读 `"exports"`）
 
-明确不做的承诺：完整 `node_modules` 生态打包、code splitting、浏览器应用工具链。
+明确不做：code splitting、CSS/图片/Wasm 管线、动态 `import()`、完整 Node 生态打包。
 
 ---
 
@@ -61,6 +65,6 @@ amber compile app.ts -o myapp
 
 | | 状态 |
 | :--- | :--- |
-| `amber bundle` | Preview |
+| `amber bundle` | **Stable**（限制见上方契约） |
 | `amber compile` | Preview |
-| 测试 | `tests/bundle_compile_tests.rs` |
+| 测试 | `tests/bundle_contract_tests.rs`、`tests/bundler_integration_tests.rs` |

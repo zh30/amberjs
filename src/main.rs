@@ -226,7 +226,7 @@ enum Command {
         #[arg(long)]
         coverage: bool,
     },
-    /// Bundle code (experimental: concatenates local static imports, not a bundler)
+    /// Bundle a local JS/TS module graph into one JS file
     Bundle {
         #[command(flatten)]
         permissions: PermissionCliOptions,
@@ -244,7 +244,7 @@ enum Command {
         /// Target environment
         #[arg(short = 't', long, default_value = "browser")]
         target: String,
-        /// Enable tree shaking
+        /// Accepted and ignored (no tree-shaking is performed)
         #[arg(long = "tree-shake")]
         tree_shake: bool,
     },
@@ -835,6 +835,16 @@ fn network_resource_from_cli_target(target: &str) -> amberjs::permissions::Resou
     } else {
         amberjs::permissions::ResourceId::Name(target.to_string())
     }
+}
+
+fn bundle_cli_fail(err: impl std::fmt::Display) -> ! {
+    let msg = err.to_string();
+    if msg.contains(amberjs::tooling::bundler::BUNDLE_ERROR_PREFIX) {
+        eprintln!("{msg}");
+    } else {
+        eprintln!("{} {msg}", amberjs::tooling::bundler::BUNDLE_ERROR_PREFIX);
+    }
+    std::process::exit(1);
 }
 
 fn check_file_read_permission(path: &Path) -> Result<()> {
@@ -4703,16 +4713,23 @@ fn main() -> Result<()> {
             target,
             tree_shake: _tree_shake,
         }) => {
-            apply_permission_cli_options(&permissions)?;
+            let import_map = permissions.import_map.clone();
+            if let Err(e) = apply_permission_cli_options(&permissions) {
+                bundle_cli_fail(e);
+            }
             println!("📦 Bundling JavaScript/TypeScript with Amber Bundler 2.0 (oxc)...");
 
-            check_file_read_permission(&entry)?;
+            if let Err(e) = check_file_read_permission(&entry) {
+                bundle_cli_fail(e);
+            }
             let output_path = outfile.unwrap_or_else(|| {
                 let mut path = entry.clone();
                 path.set_extension("bundle.js");
                 path
             });
-            check_file_write_permission(&output_path)?;
+            if let Err(e) = check_file_write_permission(&output_path) {
+                bundle_cli_fail(e);
+            }
 
             let options = amberjs::tooling::bundler::BundleOptions {
                 entry,
@@ -4720,10 +4737,13 @@ fn main() -> Result<()> {
                 minify,
                 sourcemap,
                 target,
-                import_map: None,
+                import_map,
             };
 
-            let bundle_out = amberjs::tooling::bundler::bundle_project(&options)?;
+            let bundle_out = match amberjs::tooling::bundler::bundle_project(&options) {
+                Ok(out) => out,
+                Err(e) => bundle_cli_fail(e),
+            };
             println!(
                 "✅ Bundle created: {} ({} modules, {} bytes)",
                 output_path.display(),
@@ -5995,7 +6015,7 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
             println!("  eval <code>      Evaluate JavaScript code");
             println!("  repl             Start interactive REPL");
             println!("  test [file]      Run tests (built-in or from file)");
-            println!("  bundle <file>    Bundle code for production");
+            println!("  bundle <file>    Bundle a local JS/TS module graph into one JS file");
             println!("  debug <file>     Debug a script with detailed output");
             println!("  serve [options]  HTTP/HTTPS fetch-handler server");
             println!("  init [name]      Initialize new project");

@@ -86,6 +86,9 @@ jobs:
           cargo build -q
           ./target/debug/amber test examples/testing
 
+      - name: amber bundle Stable contract
+        run: cargo test --test bundle_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 

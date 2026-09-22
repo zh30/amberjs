@@ -1,16 +1,16 @@
 ---
 title: "Bundle & compile"
-subtitle: "Preview in v1.16.0: oxc amber bundle, SEA amber compile"
+subtitle: "Stable amber bundle (local graph); Preview SEA amber compile"
 group: "Developer Tooling"
 id: "bundling-compilation"
 ---
 
-Two packaging tools, both **Preview**:
+Two packaging tools:
 
-1. **`amber bundle`** — resolve a local module graph into one JS file
-2. **`amber compile`** — copy the `amber` binary and append a script payload (SEA)
+1. **`amber bundle`** — **Stable**. Pack a local JS/TS/JSON graph into one IIFE
+2. **`amber compile`** — **Preview**. Copy the `amber` binary and append a script payload (SEA)
 
-The contract is still tightening. Do not treat this as webpack / esbuild / pkg parity.
+`amber bundle` is not webpack / rollup / esbuild / pkg parity. Full contract: [BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md).
 
 ---
 
@@ -19,16 +19,20 @@ The contract is still tightening. Do not treat this as webpack / esbuild / pkg p
 ```bash
 amber bundle src/index.ts -o dist/bundle.js
 amber bundle src/index.ts -o dist/bundle.min.js --minify
+amber bundle src/index.ts -o dist/bundle.js --sourcemap
 ```
 
-What it does today:
+Contract (pinned by `tests/bundle_contract_tests.rs`):
 
-- Recursively follows static local imports
-- Type-strips `.ts` / `.tsx` with oxc
-- Wraps each module in an isolated registry (`__amberjs_require__`)
-- Optional minify
+- Single file entry. Static `import` / `export from` / `require("...")` only
+- Inlines `.js` / `.mjs` / `.cjs` / `.jsx` / `.ts` / `.tsx` / `.mts` / `.cts` / `.json`
+- Unresolved bare specifiers stay runtime `require()` (Node builtins, missing packages)
+- Unresolved `./` / `../` and non-JS/JSON assets fail with `error: amber bundle:` and do not write the outfile
+- `--sourcemap` writes SourceMap v3 `<name>.map` with `sources` listed and `mappings` empty
+- `--target` is a header comment; `--tree-shake` is accepted and ignored
+- `node_modules` uses `package.json` `"main"` only (not `"exports"`)
 
-What it does **not** claim: full `node_modules` ecosystem bundling, code splitting, or browser-app tooling.
+Out of scope: code splitting, CSS/image/Wasm pipelines, dynamic `import()`, full Node ecosystem bundling.
 
 ---
 
@@ -61,6 +65,6 @@ Limitations: the result is roughly the size of `amber` plus your script; native 
 
 | | Status |
 | :--- | :--- |
-| `amber bundle` | Preview |
+| `amber bundle` | **Stable** (limits in the contract above) |
 | `amber compile` | Preview |
-| Tests | `tests/bundle_compile_tests.rs` |
+| Tests | `tests/bundle_contract_tests.rs`, `tests/bundler_integration_tests.rs` |

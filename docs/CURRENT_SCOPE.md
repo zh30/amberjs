@@ -18,10 +18,14 @@ Year-1 checklist vs this page (Graduation Rule):
 - N-API hello loader stays **Experimental** (Year-2: [#101](https://github.com/zh30/amberjs/issues/101)).
 - `multilang` / `cloudnative` / `enterprise` / empty `ai` stay **Experimental** and are not CI-gated (Year-2: [#100](https://github.com/zh30/amberjs/issues/100)–[#104](https://github.com/zh30/amberjs/issues/104)).
 
+G1 graduation (2026-09-21):
+
+- `amber bundle` is **Stable** under the Graduation Rule. The compatibility contract (entry points, externals, CJS/ESM, sourcemaps, assets, diagnostics) lives in [`docs/BUNDLE_CONTRACT.md`](BUNDLE_CONTRACT.md) and is pinned by `tests/bundle_contract_tests.rs`. `amber compile` and `amber install` remain Preview. This is not webpack/rollup/esbuild parity.
+
 v1.16.0 notes:
 
 - Wasm Engine 2.0: zero-copy `WebAssembly.Memory` / `ArrayBuffer` via V8 backing stores, mmap module load, `require('amber:wasm')`.
-- `amber bundle` (oxc) and `amber compile` (SEA trailer `AMBER_STANDALONE`) remain **Preview**.
+- `amber compile` (SEA trailer `AMBER_STANDALONE`) remains **Preview**. (`amber bundle` graduated in G1.)
 - URL / `fetch` / `ReadableStream` hot paths rewritten; suite 2.0 numbers are in `benchmarks/`.
 - Node.js Conformance 5.0 is **55/55 PASS**.
 
@@ -89,6 +93,7 @@ Current stable scope:
 - Manage V8 startup snapshots with zero-copy `mmap` backing: `amber snapshot [build|status|clean]`.
 - Run a tool file under `--sandbox` with explicit `--allow-*` / `--permission-policy` and structured JSONL audit trail (`--audit-log`).
 - Agent tool execution via `amber session` (stdin JSON-RPC) and `amber mcp` (MCP stdio server).
+- `amber bundle <entry>`: pack a local JS/TS/JSON module graph into one IIFE (oxc). Contract: [`docs/BUNDLE_CONTRACT.md`](BUNDLE_CONTRACT.md). Limits: static `import`/`require` only; unresolved bare specifiers stay runtime `require()`; relative misses and non-JS/JSON assets fail with `error: amber bundle:`; `--sourcemap` is a SourceMap v3 source inventory (`mappings` empty, file is `<outfile>` with extension `.map`); `--target` is a header comment; `--tree-shake` is a no-op; `package.json` `"main"` only (not `"exports"`). Not webpack/rollup/esbuild or full Node bundling.
 - Use the basic REPL with `amber repl`.
 - Use V8-backed execution through `src/runtime_minimal.rs` for repository examples and scripts.
 - WinterTC baseline: `DOMException`, `URLPattern`, `navigator`, queuing strategies, `ReadableStream.from`, `amber:sockets` (TCP + rustls TLS), `wintercg`/`wintertc` package export conditions, and `import.meta.main` / `env` / `resolve`.
@@ -108,7 +113,6 @@ Current preview scope:
 - Web API modules under `src/web_api/` are installed into the runtime, including areas such as fetch, WebSocket, Web Crypto, URL, events, FormData, Abort, Blob, timers, encoding, performance, streams, compression, structured clone, workers, service workers, broadcast channels, and message channels. Treat these as API-specific preview work, not blanket Web platform compatibility.
 - Watch and hot reload code paths exist through `amber run --watch`, `amber test --watch`, `src/watcher.rs`, and `src/watcher_websocket.rs`.
 - Agent host surface: `amber run --sandbox --export-tools`, `amber session` (stdin JSON-RPC), and `amber mcp` (MCP stdio). Models stay external. `feature=ai` is not a product LLM and may not compile.
-- Production-grade Module Bundler 2.0 (`amber bundle`): oxc AST-backed recursive dependency graph resolution, TypeScript/TSX compilation, module scope isolation, CommonJS/JSON interop, and minified single `.js` output.
 - Single Executable Application compiler (`amber compile`): bundles and embeds self-contained JS/TS code with the Amber runtime binary into a single, zero-dependency native executable.
 - Package installer (`amber install`): package.json dependency resolution with package-lock.json integrity validation.
 

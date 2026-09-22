@@ -23,6 +23,7 @@ id: "cli-usage"
 | `amber session <tool>` | Agent 宿主的 stdin JSON-RPC |
 | `amber mcp [tool]` | MCP stdio 服务 |
 | `amber --version` / `amber version` | 版本 |
+| `amber bundle <entry>` | 本地 JS/TS/JSON 图 → 单个 JS。限制见 [打包与编译](/docs/bundling-compilation) |
 
 ### `amber run`
 
@@ -61,18 +62,16 @@ amber run --inspect-brk app.ts
 | 命令 | 作用 |
 | :--- | :--- |
 | `amber serve [file]` | WinterCG `fetch` 处理器。`--https --cert --key` 是 rustls HTTP/1.1。 |
-| `amber bundle <entry>` | oxc 模块图 → 单个 JS |
 | `amber compile <file>` | 复制 `amber` 并追加 payload + `AMBER_STANDALONE` trailer |
 | TypeScript / TSX | oxc 类型擦除，不是 `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
 ```bash
 amber serve app.js --host 127.0.0.1 --port 3000
-amber bundle src/index.ts -o dist/bundle.js --minify
 amber compile app.ts -o myapp
 ```
 
-细节：[打包与编译](/docs/bundling-compilation)。
+`amber bundle` 已是 **Stable**（不是 webpack 对等）：[打包与编译](/docs/bundling-compilation)。
 
 ---
 

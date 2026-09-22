@@ -1,7 +1,7 @@
 # Amberjs Build System
 # JavaScript/TypeScript runtime built with Rust and V8
 
-.PHONY: all build test clean run help install dev release
+.PHONY: all build test test-bundle-contract clean run help install dev release
 
 # Default target
 all: build test
@@ -53,6 +53,11 @@ hello: build
 	@echo "Running hello world example..."
 	./target/release/amber run examples/basics/hello_world.js
 
+# Pin the Stable amber bundle contract (docs/BUNDLE_CONTRACT.md)
+test-bundle-contract:
+	@echo "Running amber bundle contract tests..."
+	cargo test --test bundle_contract_tests -- --test-threads=1
+
 # Check formatting
 fmt:
 	@echo "Checking code formatting..."
@@ -70,6 +75,7 @@ help:
 	@echo "Available targets:"
 	@echo "  build   - Build the project"
 	@echo "  test    - Run all tests"
+	@echo "  test-bundle-contract - Pin Stable amber bundle contract"
 	@echo "  run     - Run with a specific file (use: make run file=script.js)"
 	@echo "  clean   - Clean build artifacts"
 	@echo "  install - Install to system"
