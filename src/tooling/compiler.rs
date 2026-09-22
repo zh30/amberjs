@@ -953,6 +953,37 @@ fn mark_executable(output_path: &Path) -> Result<()> {
 }
 
 #[cfg(target_os = "macos")]
+fn remove_macos_signature(output_path: &Path) -> Result<()> {
+    let output = std::process::Command::new("codesign")
+        .args(["--remove-signature"])
+        .arg(output_path)
+        .output()
+        .map_err(|err| {
+            compile_error(format!(
+                "macOS codesign failed to start for '{}': {err}",
+                output_path.display()
+            ))
+        })?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stderr.to_ascii_lowercase().contains("not signed") {
+        return Ok(());
+    }
+    let detail = stderr.trim();
+    let detail = if detail.is_empty() {
+        format!("exit status {}", output.status)
+    } else {
+        detail.to_string()
+    };
+    Err(compile_error(format!(
+        "macOS codesign --remove-signature failed for '{}': {detail}",
+        output_path.display()
+    )))
+}
+
+#[cfg(target_os = "macos")]
 fn sign_macos_adhoc(output_path: &Path) -> Result<()> {
     let output = std::process::Command::new("codesign")
         .args(["--sign", "-", "--force"])
@@ -968,12 +999,17 @@ fn sign_macos_adhoc(output_path: &Path) -> Result<()> {
         return Ok(());
     }
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let detail = stderr.trim();
-    let detail = if detail.is_empty() {
-        format!("exit status {}", output.status)
-    } else {
-        detail.to_string()
-    };
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut detail = stderr.trim().to_string();
+    if !stdout.trim().is_empty() {
+        if !detail.is_empty() {
+            detail.push('\n');
+        }
+        detail.push_str(stdout.trim());
+    }
+    if detail.is_empty() {
+        detail = format!("exit status {}", output.status);
+    }
     Err(compile_error(format!(
         "macOS codesign failed for '{}': {detail}",
         output_path.display()
