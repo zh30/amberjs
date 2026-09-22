@@ -1024,11 +1024,7 @@ fn run_install_command(permissions: &PermissionCliOptions, frozen_lockfile: bool
             .and_then(|v| v.as_str())
             .unwrap_or("1.0.0");
 
-        if lock_path.exists() {
-            pm.generate_package_lock(lock_path, project_name, project_version)?;
-        } else {
-            pm.generate_package_lock(lock_path, project_name, project_version)?;
-        }
+        pm.generate_package_lock(lock_path, project_name, project_version)?;
         println!("✅ Generated package-lock.json");
     }
 
