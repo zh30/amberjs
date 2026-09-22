@@ -126,7 +126,7 @@ amber test examples/testing/math.test.js --update-snapshots
 
 ## Bundle
 
-`amber bundle` is **Stable**. Compatibility contract (entry points, externals, CJS/ESM, sourcemaps, assets, diagnostics): [BUNDLE_CONTRACT.md](BUNDLE_CONTRACT.md). Not webpack / rollup / esbuild parity. `amber compile` stays Preview.
+`amber bundle` is **Stable**. Compatibility contract (entry points, externals, CJS/ESM, sourcemaps, assets, diagnostics): [BUNDLE_CONTRACT.md](BUNDLE_CONTRACT.md). Not webpack / rollup / esbuild parity.
 
 ```bash
 amber bundle src/index.js --outfile dist/bundle.js
@@ -136,6 +136,17 @@ amber bundle src/index.js --import-map import_map.json --outfile dist/bundle.js
 ```
 
 `--target` is a header comment only. `--tree-shake` is accepted and ignored. Contracted failures print `error: amber bundle:` and do not write the outfile.
+
+## Compile (Stable SEA)
+
+`amber compile` 把当前宿主的 `amber` 拷贝一份，并写入打包后的脚本和 `AMBER_STANDALONE` trailer。Linux 与 Windows 把 trailer 追加在文件末尾。macOS 把同一段 trailer 放进 `__LINKEDIT` 之前的 Mach-O 段 `__AMBER`，再做 ad-hoc `codesign`（签名在文件末尾）。只支持 linux / macOS / Windows 本机产物，不交叉编译，不嵌入 `.node` 原生插件。完整契约见 [COMPILE_CONTRACT.md](COMPILE_CONTRACT.md)。
+
+```bash
+amber compile app.ts -o myapp
+./myapp
+```
+
+失败诊断以 `error: amber compile:` 开头，并且不会留下半成品二进制。`AMBER_STANDALONE` 是 trailer 魔数，不是环境变量。
 
 ## Serve
 

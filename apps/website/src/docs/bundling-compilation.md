@@ -1,6 +1,6 @@
 ---
 title: "Bundle & compile"
-subtitle: "Stable amber bundle (local graph); Preview SEA amber compile"
+subtitle: "Stable amber bundle and Stable SEA amber compile"
 group: "Developer Tooling"
 id: "bundling-compilation"
 ---
@@ -8,9 +8,9 @@ id: "bundling-compilation"
 Two packaging tools:
 
 1. **`amber bundle`** — **Stable**. Pack a local JS/TS/JSON graph into one IIFE
-2. **`amber compile`** — **Preview**. Copy the `amber` binary and append a script payload (SEA)
+2. **`amber compile`** — **Stable**. Copy the host `amber` binary and embed a script payload (SEA)
 
-`amber bundle` is not webpack / rollup / esbuild / pkg parity. Full contract: [BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md).
+`amber bundle` is not webpack / rollup / esbuild parity. Full contract: [BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md). `amber compile` is not pkg, nexe, or Bun compile. The SEA contract is [`docs/COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md). `amber install` stays Preview.
 
 ---
 
@@ -36,28 +36,42 @@ Out of scope: code splitting, CSS/image/Wasm pipelines, dynamic `import()`, full
 
 ---
 
-## `amber compile`
+## `amber compile` (Stable)
 
 ```bash
 amber compile app.ts -o myapp
 ./myapp
 ```
 
-Layout of the output binary:
+Linux, macOS, and Windows hosts only. The output is a copy of **this** `amber` plus a trailer. It is not cross-compiled and not freestanding: it needs the same dynamic linker as the `amber` that built it. Other operating systems fail with `unsupported host OS` and write nothing.
+
+On Linux and Windows the trailer is the last 32 bytes of the file. On macOS those same bytes are the end of a `__AMBER` segment inserted before `__LINKEDIT`; ad-hoc `codesign` then appends a signature, which is the end of the file.
+
+Layout:
 
 ```text
-+----------------------------------------------------------+
-|  Amber runtime (copy of the host `amber` executable)       |
-+----------------------------------------------------------+
-|  Bundled user script payload                             |
-+----------------------------------------------------------+
-|  payload size (u64)  |  magic AMBER_STANDALONE (16 bytes)  |
-+----------------------------------------------------------+
++---------------------------------------------------------------+
+|  host amber executable (unmodified copy)                      |
++---------------------------------------------------------------+
+|  UTF-8 bundled script                                         |
++---------------------------------------------------------------+
+|  payload length (u64 LE)  |  flags (u64 LE, must be 0)        |
++---------------------------------------------------------------+
+|  magic AMBER_STANDALONE (16 bytes)                            |
++---------------------------------------------------------------+
 ```
 
-On boot, `amber` inspects its own trailer. If `AMBER_STANDALONE` is present, it runs the embedded payload and skips the normal CLI parser.
+`AMBER_STANDALONE` is that magic. It is not an environment variable. On boot, a valid trailer runs the payload and skips the CLI, so `--help` and `--version` are script arguments. `process.argv[0]` and `process.argv[1]` are both the executable path.
 
-Limitations: the result is roughly the size of `amber` plus your script; native addons and a full Node module graph are out of scope.
+Contracted failures print a line starting with `error: amber compile:` (or `error: amber standalone:` once the binary is running) and do not leave a half-written output.
+
+Limits, all explicit:
+
+- dynamic `import()` and computed `require(expr)` fail the compile
+- `.node` native addons are rejected, not embedded
+- no virtual filesystem; workers and `fs` paths are the real disk
+- macOS inserts segment `__AMBER`, then ad-hoc `codesign`; if either step fails, the compile fails
+- not pkg / nexe / Bun compile parity
 
 ---
 
@@ -66,5 +80,5 @@ Limitations: the result is roughly the size of `amber` plus your script; native 
 | | Status |
 | :--- | :--- |
 | `amber bundle` | **Stable** (limits in the contract above) |
-| `amber compile` | Preview |
-| Tests | `tests/bundle_contract_tests.rs`, `tests/bundler_integration_tests.rs` |
+| `amber compile` | **Stable** |
+| Tests | `tests/bundle_contract_tests.rs`, `tests/compile_contract_tests.rs`, `tests/bundle_compile_tests.rs` |

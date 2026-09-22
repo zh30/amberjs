@@ -74,6 +74,9 @@ jobs:
       - name: WinterTC compliance tests
         run: cargo test --test wintertc_compliance_tests -- --test-threads=1
 
+      - name: amber compile Stable contract
+        run: cargo test --test compile_contract_tests -- --test-threads=1
+
       - name: Node conformance scorecard
         run: |
           cargo build -q
@@ -126,6 +129,9 @@ jobs:
           ./target/release/amber --version
           ./target/release/amber eval "1 + 1"
 
+      - name: SEA compile smoke
+        run: bash scripts/sea_compile_smoke.sh ./target/release/amber
+
       - name: Library tests on macOS
         if: runner.os == 'macOS'
         run: cargo test --lib --tests -- --test-threads=1
@@ -167,6 +173,10 @@ jobs:
         run: |
           .\target\release\amber.exe --version
           .\target\release\amber.exe eval "1 + 1"
+
+      - name: SEA compile smoke
+        shell: pwsh
+        run: ./scripts/sea_compile_smoke.ps1 -Amber .\target\release\amber.exe
 
   audit:
     name: cargo-audit

@@ -51,7 +51,7 @@ id: "introduction"
 | `--sandbox` / MCP / session | **Preview** | 默认拒绝 I/O，可冻结时钟与 PRNG |
 | `amber serve` | **Preview** | WinterCG `fetch` 处理器；`--https` 是 rustls HTTP/1.1 |
 | `amber bundle` | **Stable** | 本地 JS/TS/JSON 图 → 单个 IIFE。限制见 [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) |
-| `amber compile` | **Preview** | SEA trailer `AMBER_STANDALONE` |
+| `amber compile` | **Stable** | 宿主 SEA。Trailer `AMBER_STANDALONE`。不是 pkg/nexe/Bun |
 | `amber:wasm` | **Preview** | Memory / ArrayBuffer 零拷贝 |
 | 包管理（`init`/`install`/`x`） | **Experimental** | 轻量实现，不是完整 npm |
 | Node API | **Preview** | 按 API 计。Conformance 5.0 为 **55/55** |

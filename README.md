@@ -206,6 +206,7 @@ amber repl
 amber snapshot [build|status|clean]
 amber session <tool>           JSON-RPC over stdin
 amber mcp [tool]               MCP stdio server
+amber compile <file> [-o myapp]  Host SEA (linux/macos/windows). Contract: docs/COMPILE_CONTRACT.md
 amber --version | amber version
 amber bundle <entry> [-o dist/bundle.js] [--minify]
 ```
@@ -214,7 +215,6 @@ amber bundle <entry> [-o dist/bundle.js] [--minify]
 
 ```text
 amber serve [--https --cert --key]
-amber compile <file> [-o myapp]
 amber run --inspect / --inspect-brk
 TypeScript / TSX execution
 ```
