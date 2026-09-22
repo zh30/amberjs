@@ -24,6 +24,14 @@ id: "cli-usage"
 | `amber mcp [tool]` | MCP stdio 服务 |
 | `amber --version` / `amber version` | 版本 |
 | `amber bundle <entry>` | 本地 JS/TS/JSON 图 → 单个 JS。限制见 [打包与编译](/docs/bundling-compilation) |
+| `amber compile <file> [-o myapp]` | 宿主 SEA。契约：[COMPILE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md) |
+
+`amber compile` 复制本机 `amber`，写入打包脚本和 `AMBER_STANDALONE` trailer。Linux 与 Windows 追加在文件末尾；macOS 放在 `__LINKEDIT` 之前的 `__AMBER` 段里，再做 ad-hoc `codesign`。只支持 Linux、macOS、Windows。动态 `import()`、计算出来的 `require()`、`.node` 插件会让编译失败。`AMBER_STANDALONE` 不是环境变量。不是 pkg/nexe/Bun 的对等实现。
+
+```bash
+amber compile app.ts -o myapp
+./myapp
+```
 
 ### `amber run`
 
@@ -62,16 +70,14 @@ amber run --inspect-brk app.ts
 | 命令 | 作用 |
 | :--- | :--- |
 | `amber serve [file]` | WinterCG `fetch` 处理器。`--https --cert --key` 是 rustls HTTP/1.1。 |
-| `amber compile <file>` | 复制 `amber` 并追加 payload + `AMBER_STANDALONE` trailer |
 | TypeScript / TSX | oxc 类型擦除，不是 `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
 ```bash
 amber serve app.js --host 127.0.0.1 --port 3000
-amber compile app.ts -o myapp
 ```
 
-`amber bundle` 已是 **Stable**（不是 webpack 对等）：[打包与编译](/docs/bundling-compilation)。
+`amber bundle` 与 `amber compile` 都是 **Stable**：[打包与编译](/docs/bundling-compilation)。`amber install` 仍是 Preview。
 
 ---
 

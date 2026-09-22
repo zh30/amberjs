@@ -416,7 +416,11 @@ enum Command {
         #[arg(default_value = ".")]
         files: Vec<PathBuf>,
     },
-    /// Compile a script into a standalone self-executing binary
+    /// Compile a script into a host SEA binary (docs/COMPILE_CONTRACT.md).
+    ///
+    /// Copies this `amber` executable and appends a bundled script plus an
+    /// `AMBER_STANDALONE` trailer. Linux, macOS, and Windows hosts only.
+    /// Not cross-compilation and not pkg/nexe/Bun compile parity.
     Compile {
         /// Entry script (JS/TS) to compile
         entry: PathBuf,
@@ -3816,25 +3820,42 @@ __amberjsRunTests();
     wrapped
 }
 
-#[allow(clippy::needless_return)]
-fn main() -> Result<()> {
-    // 0. Standalone binary self-execution check (compiled via `amber compile`)
-    if let Ok(Some(standalone_script)) = amberjs::tooling::compiler::detect_standalone_payload() {
-        let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new()
-            .map_err(|e| anyhow!("Failed to initialize standalone runtime: {}", e))?;
-        let mut argv = Vec::new();
-        let exe_str = std::env::current_exe()
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "app".to_string());
-        argv.push(exe_str.clone());
-        argv.push(exe_str);
-        argv.extend(std::env::args().skip(1));
-        runtime.set_process_argv(argv);
-        if let Err(e) = runtime.execute_code(&standalone_script) {
-            eprintln!("Error executing standalone binary: {}", e);
+fn run_standalone_payload(standalone_script: &str) -> Result<()> {
+    let mut runtime = match amberjs::runtime_minimal::MinimalRuntime::new() {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            eprintln!("error: amber standalone: failed to initialize runtime: {err}");
             std::process::exit(1);
         }
-        return Ok(());
+    };
+    let mut argv = Vec::new();
+    let exe_str = std::env::current_exe()
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|_| "app".to_string());
+    argv.push(exe_str.clone());
+    argv.push(exe_str);
+    argv.extend(std::env::args().skip(1));
+    runtime.set_process_argv(argv);
+    if let Err(err) = runtime.execute_code(standalone_script) {
+        eprintln!("error: amber standalone: {err}");
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+#[allow(clippy::needless_return)]
+fn main() -> Result<()> {
+    // SEA binaries produced by `amber compile` carry an AMBER_STANDALONE trailer.
+    // A matching magic with a bad payload must fail closed; a normal amber has no trailer.
+    match amberjs::tooling::compiler::detect_standalone_payload() {
+        Ok(Some(standalone_script)) => {
+            return run_standalone_payload(&standalone_script);
+        }
+        Ok(None) => {}
+        Err(err) => {
+            eprintln!("{err}");
+            std::process::exit(1);
+        }
     }
 
     let cli = Cli::parse();
@@ -5952,7 +5973,10 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
                 let name = stem.to_string();
                 PathBuf::from(name)
             });
-            amberjs::tooling::compiler::compile_binary(&entry, &out)?;
+            if let Err(err) = amberjs::tooling::compiler::compile_binary(&entry, &out) {
+                eprintln!("{err}");
+                std::process::exit(1);
+            }
             return Ok(());
         }
         Some(Command::Types { outfile }) => {
