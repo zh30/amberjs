@@ -176,7 +176,7 @@ dependencies = [
  "tar",
  "tch",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.17",
  "tiny_http",
  "tokenizers",
  "tokio",
