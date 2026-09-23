@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
-fn beejs_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_bee"))
+fn amberjs_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
 fn run_js_test(code: &str) -> String {
@@ -16,11 +16,11 @@ fn run_js_test(code: &str) -> String {
     let test_file = temp_dir.path().join("test.js");
     fs::write(&test_file, code).unwrap();
 
-    let output = Command::new(beejs_path())
+    let output = Command::new(amberjs_path())
         .arg("run")
         .arg(&test_file)
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let lines: Vec<&str> = stdout

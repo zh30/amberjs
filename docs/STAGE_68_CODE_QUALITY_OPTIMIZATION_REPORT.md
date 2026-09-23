@@ -217,7 +217,7 @@ python3 fix_remaining_warnings_stage68.py
 cargo check
 
 # 运行性能测试
-./beejs performance_test_stage68.js
+./amberjs performance_test_stage68.js
 ```
 
 ### 测试结果

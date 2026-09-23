@@ -1,20 +1,20 @@
-//! Integration tests for Beejs v1.4.0 features
+//! Integration tests for Amber v1.4.0 features
 //!
 //! Tests:
-//! 1. Native Zero-Dependency C ABI FFI (`bee:ffi`, `dlopen`, math functions, `ptr`, `read`, `write`, `readCString`)
-//! 2. High-Density Multi-Tenant IsolatePool (`bee:pool`, `IsolatePool`, concurrent isolated execution, statistics)
-//! 3. Edge SLM Token Generation & Constrained JSON Schema Decoding (`bee:ai`, `generate`, `generateStream`, schema)
+//! 1. Native Zero-Dependency C ABI FFI (`amber:ffi`, `dlopen`, math functions, `ptr`, `read`, `write`, `readCString`)
+//! 2. High-Density Multi-Tenant IsolatePool (`amber:pool`, `IsolatePool`, concurrent isolated execution, statistics)
+//! 3. Edge SLM Token Generation & Constrained JSON Schema Decoding (`amber:ai`, `generate`, `generateStream`, schema)
 
 use std::process::Command;
 
-fn bee_path() -> &'static str {
-    env!("CARGO_BIN_EXE_bee")
+fn amber_path() -> &'static str {
+    env!("CARGO_BIN_EXE_amber")
 }
 
 #[test]
 fn test_v1_4_0_ffi_native_c_abi() {
     let script = r#"
-        const { dlopen, ptr, read, write, readCString, FFIType } = require('bee:ffi');
+        const { dlopen, ptr, read, write, readCString, FFIType } = require('amber:ffi');
 
         // 1. Test math symbols from the platform C library.
         // glibc keeps cos/sin in libm; libc.so.6 does not always re-export them.
@@ -78,10 +78,10 @@ fn test_v1_4_0_ffi_native_c_abi() {
         console.log(`ffi_cos=${cosVal.toFixed(1)},ffi_str=${greeting},ffi_val=${readVal}`);
     "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", script])
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     assert!(
         output.status.success(),
@@ -95,7 +95,7 @@ fn test_v1_4_0_ffi_native_c_abi() {
 #[test]
 fn test_v1_4_0_isolate_pool_execution() {
     let script = r#"
-        const { IsolatePool } = require('bee:pool');
+        const { IsolatePool } = require('amber:pool');
 
         async function main() {
             const pool = new IsolatePool({
@@ -106,14 +106,14 @@ fn test_v1_4_0_isolate_pool_execution() {
 
             // Run tasks concurrently in isolated V8 heaps
             const p1 = pool.run("30 * 40");
-            const p2 = pool.run("JSON.stringify({ agent: 'bee', isolated: true, version: '1.4.0' })");
+            const p2 = pool.run("JSON.stringify({ agent: 'amber', isolated: true, version: '1.4.0' })");
 
             const [res1, res2] = await Promise.all([p1, p2]);
 
             if (res1 !== 1200) {
                 throw new Error(`Expected 1200, got ${res1}`);
             }
-            if (res2.agent !== 'bee' || res2.isolated !== true) {
+            if (res2.agent !== 'amber' || res2.isolated !== true) {
                 throw new Error(`Unexpected payload from isolated worker: ${JSON.stringify(res2)}`);
             }
 
@@ -132,10 +132,10 @@ fn test_v1_4_0_isolate_pool_execution() {
         });
     "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", script])
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     assert!(
         output.status.success(),
@@ -143,17 +143,17 @@ fn test_v1_4_0_isolate_pool_execution() {
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    assert_eq!(stdout, "pool_res1=1200,agent=bee,completed=true");
+    assert_eq!(stdout, "pool_res1=1200,agent=amber,completed=true");
 }
 
 #[test]
 fn test_v1_4_0_edge_slm_structured_generation() {
     let script = r#"
-        const { generate, generateStream, LLM } = require('bee:ai');
+        const { generate, generateStream, LLM } = require('amber:ai');
 
         async function main() {
             // 1. Text generation with stop sequences
-            const resText = await generate("Explain how Beejs provides native speed", {
+            const resText = await generate("Explain how Amber provides native speed", {
                 maxTokens: 16
             });
 
@@ -192,8 +192,8 @@ fn test_v1_4_0_edge_slm_structured_generation() {
             const fullStreamText = chunks.join('');
 
             // 4. LLM class integration
-            const model = new LLM("bee-slm-0.5b");
-            const llmRes = await model.generate("Hello Beejs AI");
+            const model = new LLM("amber-slm-0.5b");
+            const llmRes = await model.generate("Hello Amber AI");
             if (!llmRes.text) {
                 throw new Error("LLM.generate failed");
             }
@@ -207,10 +207,10 @@ fn test_v1_4_0_edge_slm_structured_generation() {
         });
     "#;
 
-    let output = Command::new(bee_path())
+    let output = Command::new(amber_path())
         .args(["eval", script])
         .output()
-        .expect("failed to execute bee eval");
+        .expect("failed to execute amber eval");
 
     assert!(
         output.status.success(),
@@ -220,6 +220,6 @@ fn test_v1_4_0_edge_slm_structured_generation() {
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
     assert_eq!(
         stdout,
-        "schema_ok=true,chunks_cnt=true,llm_model=bee-slm-0.5b"
+        "schema_ok=true,chunks_cnt=true,llm_model=amber-slm-0.5b"
     );
 }

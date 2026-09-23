@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod typescript_intrinsic_string_types_tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     /// Test basic Uppercase intrinsic type (v0.3.199)
     #[test]

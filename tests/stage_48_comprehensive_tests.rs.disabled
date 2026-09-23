@@ -1,4 +1,4 @@
-//! Stage 48: Beejs 运行时综合测试套件
+//! Stage 48: Amber 运行时综合测试套件
 //! 测试所有核心功能的集成测试
 
 use anyhow::Result;
@@ -74,7 +74,7 @@ impl ComprehensiveTestSuite {
         // 测试 1: 简单类型注解
         let test_result = self.run_test("typescript_simple_types", || {
             let ts_code = "let x: number = 5;";
-            match beejs::typescript::compile_typescript(ts_code, "test.ts") {
+            match amberjs::typescript::compile_typescript(ts_code, "test.ts") {
                 Ok(output) => Ok(output.js_code),
                 Err(e) => Err(anyhow::anyhow!("TypeScript compilation failed: {}", e)),
             }
@@ -84,7 +84,7 @@ impl ComprehensiveTestSuite {
         // 测试 2: 接口定义
         let test_result = self.run_test("typescript_interface", || {
             let ts_code = "interface Person { name: string; age: number; }";
-            match beejs::typescript::compile_typescript(ts_code, "test.ts") {
+            match amberjs::typescript::compile_typescript(ts_code, "test.ts") {
                 Ok(output) => Ok(output.js_code),
                 Err(e) => Err(anyhow::anyhow!("TypeScript compilation failed: {}", e)),
             }
@@ -94,7 +94,7 @@ impl ComprehensiveTestSuite {
         // 测试 3: 函数类型注解
         let test_result = self.run_test("typescript_function_types", || {
             let ts_code = "function greet(name: string): string { return `Hello, ${name}`; }";
-            match beejs::typescript::compile_typescript(ts_code, "test.ts") {
+            match amberjs::typescript::compile_typescript(ts_code, "test.ts") {
                 Ok(output) => Ok(output.js_code),
                 Err(e) => Err(anyhow::anyhow!("TypeScript compilation failed: {}", e)),
             }
@@ -104,7 +104,7 @@ impl ComprehensiveTestSuite {
         // 测试 4: 类定义
         let test_result = self.run_test("typescript_class", || {
             let ts_code = "class Calculator { add(a: number, b: number): number { return a + b; } }";
-            match beejs::typescript::compile_typescript(ts_code, "test.ts") {
+            match amberjs::typescript::compile_typescript(ts_code, "test.ts") {
                 Ok(output) => Ok(output.js_code),
                 Err(e) => Err(anyhow::anyhow!("TypeScript compilation failed: {}", e)),
             }
@@ -118,8 +118,8 @@ impl ComprehensiveTestSuite {
     async fn test_javascript_execution(&self) -> Vec<ComprehensiveTestResult> {
         let mut results = Vec::new();
 
-        // 创建 Beejs 运行时实例（只在测试开始时创建一次）
-        let runtime = std::sync::Arc::new(beejs::Runtime::new(
+        // 创建 Amber 运行时实例（只在测试开始时创建一次）
+        let runtime = std::sync::Arc::new(amberjs::Runtime::new(
             num_cpus::get(), // pool_size
             1024 * 1024 * 1024, // 1GB max_memory
             true, // enable_optimization

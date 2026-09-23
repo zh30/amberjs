@@ -1,6 +1,6 @@
-// Stage 100 / v1.0.0: 原生 Agentic AI 核心加速层 (BeeJS-AI Core)
+// Stage 100 / v1.0.0: 原生 Agentic AI 核心加速层 (Amber-AI Core)
 // 对齐未来 3 年路线图 (2026-2029) Year 1 目标：提供零拷贝 Tensor、本地流式推理抽象与 Agent 执行管道
-// 模块路径: `bee:ai` 或 `ai`
+// 模块路径: `amber:ai` 或 `ai`
 
 use anyhow::Result;
 use rusty_v8 as v8;
@@ -58,7 +58,7 @@ fn create_v8_float32_array<'s>(
     v8::Float32Array::new(scope, buffer, 0, data.len())
 }
 
-/// 设置全局与模块化 `bee:ai` API
+/// 设置全局与模块化 `amber:ai` API
 pub fn setup_ai_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
     context: &v8::Local<v8::Context>,
@@ -406,7 +406,7 @@ pub fn setup_ai_api(
     .get_function(scope)
     .unwrap();
 
-    let native_key = v8::String::new(scope, "__bee_ai_native").unwrap();
+    let native_key = v8::String::new(scope, "__amber_ai_native").unwrap();
     global.set(scope, native_key.into(), ai_native_fn.into());
 
     let js_code = r#"
@@ -418,7 +418,7 @@ pub fn setup_ai_api(
             }
             const dims = options.dimensions || 64;
             const norm = options.normalize !== false;
-            const raw = globalThis.__bee_ai_native('embed', text, dims, norm);
+            const raw = globalThis.__amber_ai_native('embed', text, dims, norm);
             const floatArray = raw instanceof Float32Array ? raw : new Float32Array(raw);
             if (options.asTensor && typeof Tensor !== 'undefined') {
                 return new Tensor(floatArray, [floatArray.length], 'float32');
@@ -438,14 +438,14 @@ pub fn setup_ai_api(
             if (typeof prompt !== 'string') {
                 throw new TypeError('Prompt must be a string');
             }
-            const raw = globalThis.__bee_ai_native('generate', prompt, JSON.stringify(options));
+            const raw = globalThis.__amber_ai_native('generate', prompt, JSON.stringify(options));
             const parsed = JSON.parse(raw);
             return {
                 text: parsed.text,
                 tokens: parsed.tokens_generated,
                 finishReason: parsed.finish_reason,
                 schemaValid: options.schema ? true : false,
-                model: options.model || 'bee-slm-edge'
+                model: options.model || 'amber-slm-edge'
             };
         }
 
@@ -453,7 +453,7 @@ pub fn setup_ai_api(
             if (typeof prompt !== 'string') {
                 throw new TypeError('Prompt must be a string');
             }
-            const raw = globalThis.__bee_ai_native('generate_stream', prompt, JSON.stringify(options));
+            const raw = globalThis.__amber_ai_native('generate_stream', prompt, JSON.stringify(options));
             const chunks = JSON.parse(raw);
             for (const chunk of chunks) {
                 yield chunk;
@@ -557,9 +557,9 @@ pub fn setup_ai_api(
                     throw new Error(`Dimension mismatch in matmul: [${m}x${k1}] and [${k2}x${n}]`);
                 }
 
-                if (globalThis.__bee_ai_native) {
+                if (globalThis.__amber_ai_native) {
                     try {
-                        const accelerated = globalThis.__bee_ai_native('tensor_matmul', this.data, m, k1, other.data, k2, n);
+                        const accelerated = globalThis.__amber_ai_native('tensor_matmul', this.data, m, k1, other.data, k2, n);
                         if (accelerated instanceof Float32Array) {
                             return new Tensor(accelerated, [m, n], this.dtype);
                         }
@@ -592,9 +592,9 @@ pub fn setup_ai_api(
                 if (this.length !== other.length) {
                     throw new Error(`Tensors must have same length for dot product, got ${this.length} and ${other.length}`);
                 }
-                if (globalThis.__bee_ai_native) {
+                if (globalThis.__amber_ai_native) {
                     try {
-                        const accelerated = globalThis.__bee_ai_native('tensor_dot', this.data, other.data);
+                        const accelerated = globalThis.__amber_ai_native('tensor_dot', this.data, other.data);
                         if (typeof accelerated === 'number' && !isNaN(accelerated)) return accelerated;
                     } catch (_) {}
                 }
@@ -609,9 +609,9 @@ pub fn setup_ai_api(
 
             // L2 范数
             norm() {
-                if (globalThis.__bee_ai_native) {
+                if (globalThis.__amber_ai_native) {
                     try {
-                        const accelerated = globalThis.__bee_ai_native('tensor_norm', this.data);
+                        const accelerated = globalThis.__amber_ai_native('tensor_norm', this.data);
                         if (typeof accelerated === 'number' && !isNaN(accelerated)) return accelerated;
                     } catch (_) {}
                 }
@@ -675,9 +675,9 @@ pub fn setup_ai_api(
 
             // Softmax 归一化
             softmax(axis = -1) {
-                if (globalThis.__bee_ai_native && (axis === -1 || axis === this.ndim - 1)) {
+                if (globalThis.__amber_ai_native && (axis === -1 || axis === this.ndim - 1)) {
                     try {
-                        const accelerated = globalThis.__bee_ai_native('tensor_softmax', this.data, this.shape);
+                        const accelerated = globalThis.__amber_ai_native('tensor_softmax', this.data, this.shape);
                         if (accelerated instanceof Float32Array) {
                             return new Tensor(accelerated, this.shape, this.dtype);
                         }
@@ -743,9 +743,9 @@ pub fn setup_ai_api(
 
             // 静态工厂函数异步加载本地模型 (GGUF / SafeTensors)
             static async load(modelPathOrName, options = {}) {
-                if (globalThis.__bee_ai_native) {
+                if (globalThis.__amber_ai_native) {
                     try {
-                        const raw = globalThis.__bee_ai_native('load_model', String(modelPathOrName), JSON.stringify(options));
+                        const raw = globalThis.__amber_ai_native('load_model', String(modelPathOrName), JSON.stringify(options));
                         const parsed = JSON.parse(raw);
                         return new LLM(modelPathOrName, {
                             ...options,
@@ -764,8 +764,8 @@ pub fn setup_ai_api(
                 if (typeof prompt !== 'string') {
                     throw new TypeError('Prompt must be a string');
                 }
-                if (this._modelId && globalThis.__bee_ai_native) {
-                    const raw = globalThis.__bee_ai_native('model_generate', this._modelId, prompt, JSON.stringify({ ...options, model: this.model }));
+                if (this._modelId && globalThis.__amber_ai_native) {
+                    const raw = globalThis.__amber_ai_native('model_generate', this._modelId, prompt, JSON.stringify({ ...options, model: this.model }));
                     const parsed = JSON.parse(raw);
                     return {
                         text: parsed.text,
@@ -783,8 +783,8 @@ pub fn setup_ai_api(
                 if (typeof prompt !== 'string') {
                     throw new TypeError('Prompt must be a string');
                 }
-                if (this._modelId && globalThis.__bee_ai_native) {
-                    const raw = globalThis.__bee_ai_native('model_generate_stream', this._modelId, prompt, JSON.stringify({ ...options, model: this.model }));
+                if (this._modelId && globalThis.__amber_ai_native) {
+                    const raw = globalThis.__amber_ai_native('model_generate_stream', this._modelId, prompt, JSON.stringify({ ...options, model: this.model }));
                     const chunks = JSON.parse(raw);
                     for (const chunk of chunks) {
                         yield chunk;
@@ -864,25 +864,25 @@ pub fn setup_ai_api(
             LLM,
             AgentPipeline,
             cosineSimilarity,
-            version: '__BEE_PKG_VERSION__',
-            get weights() { return globalThis.__bee_weights; },
-            get tools() { return globalThis.__bee_tools; },
-            get kv() { return globalThis.__bee_kv; },
-            get bus() { return globalThis.__bee_bus; },
-            get grammar() { return globalThis.__bee_grammar; },
-            get checkpoint() { return globalThis.__bee_checkpoint; }
+            version: '__AMBER_PKG_VERSION__',
+            get weights() { return globalThis.__amber_weights; },
+            get tools() { return globalThis.__amber_tools; },
+            get kv() { return globalThis.__amber_kv; },
+            get bus() { return globalThis.__amber_bus; },
+            get grammar() { return globalThis.__amber_grammar; },
+            get checkpoint() { return globalThis.__amber_checkpoint; }
         };
 
         // 绑定到全局
-        globalThis.__bee_ai = beeAi;
-        globalThis.bee_ai = beeAi;
+        globalThis.__amber_ai = beeAi;
+        globalThis.amber_ai = beeAi;
         globalThis.embed = embed;
         globalThis.embedBatch = embedBatch;
         globalThis.generate = generate;
         globalThis.generateStream = generateStream;
     })();
     "#;
-    let js_code = js_code.replace("__BEE_PKG_VERSION__", env!("CARGO_PKG_VERSION"));
+    let js_code = js_code.replace("__AMBER_PKG_VERSION__", env!("CARGO_PKG_VERSION"));
 
     let script_source = v8::String::new(scope, &js_code).unwrap();
     if let Some(script) = v8::Script::compile(scope, script_source, None) {
@@ -890,8 +890,8 @@ pub fn setup_ai_api(
     }
 
     // 设置全局 `ai` 属性
-    let bee_ai_key = v8::String::new(scope, "__bee_ai").unwrap();
-    if let Some(ai_val) = global.get(scope, bee_ai_key.into()) {
+    let amber_ai_key = v8::String::new(scope, "__amber_ai").unwrap();
+    if let Some(ai_val) = global.get(scope, amber_ai_key.into()) {
         let ai_key = v8::String::new(scope, "ai").unwrap();
         global.set(scope, ai_key.into(), ai_val);
     }

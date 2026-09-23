@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Stage 68: 清理编译警告
-清理 Beejs 项目中的编译警告，提升代码质量
+清理 Amber 项目中的编译警告，提升代码质量
 
 警告类型:
 - unused imports (未使用的导入)
@@ -154,7 +154,7 @@ def main():
     print("\n步骤 5: 测试基本功能...")
     test_script = "test_basic_functionality.js"
     if os.path.exists(test_script):
-        stdout, stderr, code = run_command(f"./bee {test_script}")
+        stdout, stderr, code = run_command(f"./amber {test_script}")
         if code == 0:
             print("✓ 基本功能测试通过")
         else:

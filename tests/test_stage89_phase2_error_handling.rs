@@ -3,30 +3,30 @@
 
 #[cfg(test)]
 mod stage89_phase2_error_handling_tests {
-    use beejs::error::{AutoRecovery, BeejsError, ErrorContext};
-    use beejs::fallback::{FallbackManager, FallbackStrategy, Feature};
+    use amberjs::error::{AmberError, AutoRecovery, ErrorContext};
+    use amberjs::fallback::{FallbackManager, FallbackStrategy, Feature};
     use std::time::Duration;
 
     /// 测试 1: 错误分类和错误上下文
     #[tokio::test]
     async fn test_error_classification() {
-        let v8_error = BeejsError::V8Error("Invalid handle access".to_string());
-        assert!(matches!(v8_error, BeejsError::V8Error(_)));
+        let v8_error = AmberError::V8Error("Invalid handle access".to_string());
+        assert!(matches!(v8_error, AmberError::V8Error(_)));
 
-        let js_error = BeejsError::JsExecutionError("TypeError: Cannot read property".to_string());
-        assert!(matches!(js_error, BeejsError::JsExecutionError(_)));
+        let js_error = AmberError::JsExecutionError("TypeError: Cannot read property".to_string());
+        assert!(matches!(js_error, AmberError::JsExecutionError(_)));
 
-        let multi_error = BeejsError::MultiLanguageError("Python module not found".to_string());
-        assert!(matches!(multi_error, BeejsError::MultiLanguageError(_)));
+        let multi_error = AmberError::MultiLanguageError("Python module not found".to_string());
+        assert!(matches!(multi_error, AmberError::MultiLanguageError(_)));
 
-        let platform_error = BeejsError::PlatformError("iOS runtime unavailable".to_string());
-        assert!(matches!(platform_error, BeejsError::PlatformError(_)));
+        let platform_error = AmberError::PlatformError("iOS runtime unavailable".to_string());
+        assert!(matches!(platform_error, AmberError::PlatformError(_)));
     }
 
     /// 测试 2: 错误上下文信息
     #[tokio::test]
     async fn test_error_context() {
-        let error = BeejsError::V8Error("Test V8 error".to_string());
+        let error = AmberError::V8Error("Test V8 error".to_string());
         let context = ErrorContext::new(
             error.clone(),
             "test_file.js".to_string(),
@@ -55,7 +55,7 @@ mod stage89_phase2_error_handling_tests {
             .with_base_delay(Duration::from_millis(10));
 
         let result = recovery
-            .recover_from_error(&BeejsError::V8Error("Transient error".to_string()))
+            .recover_from_error(&AmberError::V8Error("Transient error".to_string()))
             .await;
         assert!(result.is_ok());
     }
@@ -64,14 +64,14 @@ mod stage89_phase2_error_handling_tests {
     #[tokio::test]
     async fn test_auto_recovery_fallback() {
         let recovery = AutoRecovery::new().with_fallback_strategy(Box::new(|error| {
-            if matches!(error, BeejsError::V8Error(_)) {
+            if matches!(error, AmberError::V8Error(_)) {
                 Some("Use simplified API".to_string())
             } else {
                 None
             }
         }));
 
-        let error = BeejsError::V8Error("Complex API failed".to_string());
+        let error = AmberError::V8Error("Complex API failed".to_string());
         let result = recovery.recover_from_error(&error).await;
         assert!(result.is_ok());
     }
@@ -134,7 +134,7 @@ mod stage89_phase2_error_handling_tests {
             .await;
 
         // 模拟 V8 错误并尝试恢复
-        let error = BeejsError::V8Error("Critical optimization failed".to_string());
+        let error = AmberError::V8Error("Critical optimization failed".to_string());
         let recovery_result = recovery.recover_from_error(&error).await;
 
         // 如果恢复失败，使用降级策略
@@ -149,7 +149,7 @@ mod stage89_phase2_error_handling_tests {
     /// 测试 9: 错误恢复建议生成
     #[tokio::test]
     async fn test_recovery_suggestions() {
-        let error = BeejsError::MultiLanguageError("Go runtime not initialized".to_string());
+        let error = AmberError::MultiLanguageError("Go runtime not initialized".to_string());
         let context = ErrorContext::new(error, "main.go".to_string(), 1, "main".to_string());
 
         let suggestions = context.get_recovery_suggestions();
@@ -167,7 +167,7 @@ mod stage89_phase2_error_handling_tests {
 
         for _ in 0..100 {
             let _ = recovery
-                .recover_from_error(&BeejsError::V8Error("Test".to_string()))
+                .recover_from_error(&AmberError::V8Error("Test".to_string()))
                 .await;
         }
 
@@ -184,9 +184,9 @@ mod stage89_phase2_error_handling_tests {
     #[tokio::test]
     async fn test_multiple_error_contexts() {
         let errors = [
-            BeejsError::V8Error("Error 1".to_string()),
-            BeejsError::JsExecutionError("Error 2".to_string()),
-            BeejsError::PlatformError("Error 3".to_string()),
+            AmberError::V8Error("Error 1".to_string()),
+            AmberError::JsExecutionError("Error 2".to_string()),
+            AmberError::PlatformError("Error 3".to_string()),
         ];
 
         for (i, error) in errors.iter().enumerate() {

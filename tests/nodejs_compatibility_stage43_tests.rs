@@ -1,7 +1,7 @@
 // Stage 43.0: Node.js 兼容性测试
 // 验证新实现的Node.js API兼容性
 
-use beejs::Runtime;
+use amberjs::Runtime;
 use serial_test::serial;
 
 #[test]

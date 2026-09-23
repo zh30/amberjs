@@ -1,5 +1,5 @@
 // Tests for crypto.subtle.generateKey implementation (v0.3.359)
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

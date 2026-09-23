@@ -9,22 +9,22 @@ echo
 echo "📊 Test 1: 5 separate executions (each creates new runtime)"
 time {
     for i in {1..5}; do
-        ./target/release/beejs --eval "console.log('Test $i')" > /dev/null 2>&1
+        ./target/release/amberjs --eval "console.log('Test $i')" > /dev/null 2>&1
     done
 }
 echo
 
 echo "📊 Test 2: Single execution (baseline)"
-time ./target/release/beejs --eval "console.log('Single test')" > /dev/null 2>&1
+time ./target/release/amberjs --eval "console.log('Single test')" > /dev/null 2>&1
 echo
 
 # Show that global runtime is being used
 echo "📊 Test 3: Showing global runtime initialization"
-./target/release/beejs --eval "console.log('First run')" --verbose 2>&1 | head -20
+./target/release/amberjs --eval "console.log('First run')" --verbose 2>&1 | head -20
 echo
 
 echo "📊 Test 4: Second run (should reuse global runtime)"
-./target/release/beejs --eval "console.log('Second run')" --verbose 2>&1 | head -5
+./target/release/amberjs --eval "console.log('Second run')" --verbose 2>&1 | head -5
 echo
 
 echo "✅ Optimization Summary:"

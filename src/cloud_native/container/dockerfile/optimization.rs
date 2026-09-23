@@ -69,7 +69,7 @@ impl Optimizer {
                 description: "Add security hardening measures".to_string(),
                 impact: "high".to_string(),
                 example: Some(
-                    "RUN addgroup -g 1000 beejs && adduser -D -s /bin/sh -G beejs beejs"
+                    "RUN addgroup -g 1000 amberjs && adduser -D -s /bin/sh -G amberjs amberjs"
                         .to_string(),
                 ),
             });
@@ -219,16 +219,17 @@ impl OptimizationStrategy for SecurityHardeningStrategy {
         let mut additions = Vec::new();
         if self.add_non_root_user {
             additions.push(
-                "RUN addgroup -g 1000 beejs && adduser -D -s /bin/sh -G beejs beejs".to_string(),
+                "RUN addgroup -g 1000 amberjs && adduser -D -s /bin/sh -G amberjs amberjs"
+                    .to_string(),
             );
-            additions.push("USER beejs".to_string());
+            additions.push("USER amberjs".to_string());
         }
         if self.read_only_root {
-            additions.push("RUN chmod -R u-w,go-w /usr/local/bin/bee".to_string());
+            additions.push("RUN chmod -R u-w,go-w /usr/local/bin/amber".to_string());
         }
         if self.drop_capabilities {
             additions.push(
-                "RUN setcap cap_setpcap,cap_setuid,cap_setgid+ep /usr/local/bin/bee".to_string(),
+                "RUN setcap cap_setpcap,cap_setuid,cap_setgid+ep /usr/local/bin/amber".to_string(),
             );
         }
         let mut result = dockerfile.to_string();
@@ -259,7 +260,7 @@ impl OptimizationStrategy for SizeOptimizationStrategy {
             // Add strip command to build
             result = result.replace(
                 "cargo build --release",
-                "cargo build --release && strip target/release/bee",
+                "cargo build --release && strip target/release/amber",
             );
         }
         if self.remove_unnecessary_files {

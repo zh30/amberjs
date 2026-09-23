@@ -1,4 +1,4 @@
-//! High-level filesystem extensions (`bee:std/fs`).
+//! High-level filesystem extensions (`amber:std/fs`).
 
 use anyhow::Result;
 use std::fs;

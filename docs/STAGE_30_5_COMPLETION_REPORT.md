@@ -122,30 +122,30 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"]
 ## 📊 关键指标定义
 
 ### 运行时指标
-- `beejs_active_scripts`: 活跃脚本数量
-- `beejs_memory_usage_bytes`: 内存使用量（字节）
-- `beejs_cpu_usage_percent`: CPU 使用率百分比
+- `amberjs_active_scripts`: 活跃脚本数量
+- `amberjs_memory_usage_bytes`: 内存使用量（字节）
+- `amberjs_cpu_usage_percent`: CPU 使用率百分比
 
 ### 性能指标
-- `beejs_script_execution_duration_seconds`: 脚本执行耗时
-- `beejs_jit_compilation_duration_seconds`: JIT 编译耗时
-- `beejs_gc_pause_duration_seconds`: GC 暂停时间
-- `beejs_network_latency_seconds`: 网络延迟
-- `beejs_network_throughput_bytes_total`: 网络吞吐量
+- `amberjs_script_execution_duration_seconds`: 脚本执行耗时
+- `amberjs_jit_compilation_duration_seconds`: JIT 编译耗时
+- `amberjs_gc_pause_duration_seconds`: GC 暂停时间
+- `amberjs_network_latency_seconds`: 网络延迟
+- `amberjs_network_throughput_bytes_total`: 网络吞吐量
 
 ### 业务指标
-- `beejs_scripts_loaded_total`: 脚本加载总数
-- `beejs_packages_loaded_total`: 包加载总数
-- `beejs_hot_reloads_total`: 热重载总数
-- `beejs_concurrent_executions`: 并发执行数
-- `beejs_script_errors_total`: 脚本错误总数
-- `beejs_script_successes_total`: 脚本成功总数
+- `amberjs_scripts_loaded_total`: 脚本加载总数
+- `amberjs_packages_loaded_total`: 包加载总数
+- `amberjs_hot_reloads_total`: 热重载总数
+- `amberjs_concurrent_executions`: 并发执行数
+- `amberjs_script_errors_total`: 脚本错误总数
+- `amberjs_script_successes_total`: 脚本成功总数
 
 ## 🔍 使用示例
 
 ### 基础使用
 ```rust
-use beejs::observability::{ObservableSystem, ObservabilityConfig};
+use amberjs::observability::{ObservableSystem, ObservabilityConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -173,11 +173,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### 结构化日志
 ```rust
-use beejs::observability::StructuredLogger;
+use amberjs::observability::StructuredLogger;
 use std::collections::HashMap;
 use serde_json::json;
 
-let logger = StructuredLogger::new(tracing::Level::INFO, "beejs".to_string());
+let logger = StructuredLogger::new(tracing::Level::INFO, "amberjs".to_string());
 
 let context = HashMap::from([
     ("user_id".to_string(), json!("12345")),
@@ -189,7 +189,7 @@ logger.info("User logged in", context).await;
 
 ### 自定义指标
 ```rust
-use beejs::observability::CustomMetrics;
+use amberjs::observability::CustomMetrics;
 
 let metrics = CustomMetrics::new();
 
@@ -240,19 +240,19 @@ metrics.record_network_io("http_get", 1024, Duration::from_millis(50)).await;
 ### Prometheus 查询示例
 ```promql
 # 脚本执行成功率
-rate(beejs_script_successes_total[5m]) /
-rate((beejs_script_successes_total + beejs_script_errors_total)[5m]) * 100
+rate(amberjs_script_successes_total[5m]) /
+rate((amberjs_script_successes_total + amberjs_script_errors_total)[5m]) * 100
 
 # P95 脚本执行延迟
 histogram_quantile(0.95,
-  rate(beejs_script_execution_duration_seconds_bucket[5m])
+  rate(amberjs_script_execution_duration_seconds_bucket[5m])
 )
 
 # 内存使用趋势
-rate(beejs_memory_usage_bytes[5m])
+rate(amberjs_memory_usage_bytes[5m])
 
 # 并发执行数
-beejs_concurrent_executions
+amberjs_concurrent_executions
 ```
 
 ### Grafana 面板
@@ -322,7 +322,7 @@ Stage 30.5 **生产监控与可观测性**已经**完成核心架构设计和模
 
 虽然由于 API 兼容性问题，某些功能需要进一步调试，但**核心架构已完成**，为后续的优化和修复奠定了坚实的基础。
 
-这个实现为 Beejs 运行时提供了**企业级**的可观测性能力，支持**生产环境的监控、追踪、日志和告警**，使其能够满足**大规模生产部署**的需求。
+这个实现为 Amber 运行时提供了**企业级**的可观测性能力，支持**生产环境的监控、追踪、日志和告警**，使其能够满足**大规模生产部署**的需求。
 
 ---
 

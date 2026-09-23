@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod typescript_import_type_tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     /// Test import type (v0.3.166)
     /// import type 用于仅导入类型，在编译时会被移除

@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const DIST = join(ROOT, "dist");
-const SITE = "https://bee.zhanghe.dev";
+const SITE = "https://amberjs.com";
 
 function esc(s) {
   return String(s)
@@ -243,7 +243,7 @@ function writePage(relPath, html) {
 }
 
 function nav() {
-  return `<nav><a href="/">Beejs</a> · <a href="/docs">Docs</a> · <a href="/blog">Blog</a> · <a href="https://github.com/zh30/beejs">GitHub</a></nav>`;
+  return `<nav><a href="/">Amber</a> · <a href="/docs">Docs</a> · <a href="/blog">Blog</a> · <a href="https://github.com/zh30/amberjs">GitHub</a></nav>`;
 }
 
 function loadDocs() {
@@ -273,7 +273,7 @@ function loadPosts() {
       excerpt: data.excerpt || data.title || slug,
       date: data.date || "",
       tag: data.tag || "Blog",
-      author: data.author || "Beejs",
+      author: data.author || "Amber",
       body,
     };
   });
@@ -286,9 +286,9 @@ export function renderRoute(pathname) {
       "",
     ) || "/";
 
-  const homeTitle = "Beejs | JavaScript and TypeScript runtime in Rust and V8";
+  const homeTitle = "Amber | JavaScript and TypeScript runtime in Rust and V8";
   const homeDesc =
-    "Beejs is a JS/TS runtime in Rust and V8. One bee binary for scripts, Jest-style tests, MCP tools, and an opt-in capability sandbox. Not a Node.js clone.";
+    "Amber is a JS/TS runtime in Rust and V8. One amber binary for scripts, Jest-style tests, MCP tools, and an opt-in capability sandbox. Not a Node.js clone.";
 
   if (path === "/") {
     return {
@@ -301,7 +301,7 @@ ${nav()}
 <h1>A JavaScript &amp; TypeScript runtime in Rust &amp; V8</h1>
 <p>${esc(homeDesc)}</p>
 <p><a href="/docs">Explore Docs</a> · <a href="/docs/installation">Installation</a></p>
-<pre><code>curl -fsSL https://bee.zhanghe.dev/install.sh | sh</code></pre>
+<pre><code>curl -fsSL https://get.amberjs.com/install.sh | sh</code></pre>
 </main>`,
     };
   }
@@ -309,13 +309,13 @@ ${nav()}
   const docs = loadDocs();
   if (path === "/docs") {
     return {
-      title: "Docs | Beejs",
+      title: "Docs | Amber",
       description:
-        "Beejs manual: install bee, CLI, capability sandbox, Node and Web APIs, and bee:ai. Per-API coverage, not a Node.js clone.",
+        "Amber manual: install amber, CLI, capability sandbox, Node and Web APIs, and amber:ai. Per-API coverage, not a Node.js clone.",
       canonical: `${SITE}/docs`,
       body: `<main>
 ${nav()}
-<h1>Beejs Docs</h1>
+<h1>Amber Docs</h1>
 <ul>
 ${docs.map((d) => `<li><a href="/docs/${esc(d.id)}">${esc(d.title)}</a></li>`).join("\n")}
 </ul>
@@ -327,10 +327,10 @@ ${docs.map((d) => `<li><a href="/docs/${esc(d.id)}">${esc(d.title)}</a></li>`).j
     const doc = docs.find((d) => d.id === id);
     if (doc) {
       return {
-        title: `${doc.title} | Beejs Docs`,
+        title: `${doc.title} | Amber Docs`,
         description: excerpt(
           doc.body,
-          doc.subtitle || `${doc.title} in the Beejs runtime manual.`,
+          doc.subtitle || `${doc.title} in the Amber runtime manual.`,
         ),
         canonical: `${SITE}/docs/${doc.id}`,
         body: `<main>
@@ -348,9 +348,9 @@ ${mdToHtml(doc.body)}
   const posts = loadPosts();
   if (path === "/blog") {
     return {
-      title: "Blog | Beejs",
+      title: "Blog | Amber",
       description:
-        "Beejs release notes: runtime changes, Wasm, packaging, and performance work.",
+        "Amber release notes: runtime changes, Wasm, packaging, and performance work.",
       canonical: `${SITE}/blog`,
       body: `<main>
 ${nav()}
@@ -366,7 +366,7 @@ ${posts.map((p) => `<li><a href="/blog/${esc(p.slug)}">${esc(p.title)}</a></li>`
     const post = posts.find((p) => p.slug === slug);
     if (post) {
       return {
-        title: `${post.title} | Beejs`,
+        title: `${post.title} | Amber`,
         description: excerpt(post.excerpt || post.body, post.title),
         ogType: "article",
         canonical: `${SITE}/blog/${post.slug}`,
@@ -391,9 +391,9 @@ ${mdToHtml(post.body)}
   }
   if (path === "/play") {
     return {
-      title: "Playground | Beejs",
+      title: "Playground | Amber",
       description:
-        "Write JavaScript and TypeScript in Monaco (the VS Code editor) and run it in the browser. Not the bee binary — Beejs cannot ship V8 inside WASM.",
+        "Write JavaScript and TypeScript in Monaco (the VS Code editor) and run it in the browser. Not the amber binary — Amber cannot ship V8 inside WASM.",
       canonical: `${SITE}/play`,
       body: `<main><h1>Playground</h1><p>Browser JS/TS editor. Loading…</p></main>`,
     };

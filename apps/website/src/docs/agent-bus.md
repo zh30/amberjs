@@ -1,5 +1,5 @@
 ---
-title: "Multi-Agent Message Bus & PubSub Channel Fabric (bee:bus)"
+title: "Multi-Agent Message Bus & PubSub Channel Fabric (amber:bus)"
 subtitle: "High-throughput in-process message routing, topic wildcards, request-reply semantics, and DLQ"
 group: "Agent & Advanced"
 id: "agent-bus"
@@ -7,19 +7,19 @@ id: "agent-bus"
 
 Autonomous multi-agent architectures (such as Planner-Worker-Critic trios, swarms, and collaborative task pipelines) require decoupled, asynchronous, and high-throughput communication. Traditional point-to-point callbacks tightly couple agent implementations and create fragile distributed state.
 
-**Beejs v1.8.0 introduces the Native Multi-Agent Message Bus & PubSub Channel Fabric (`bee:bus`)**. It provides an in-process, zero-dependency event bus with topic wildcard routing (`*`, `#`), asynchronous request-response RPC semantics, priority queues, middleware interceptors, and dead-letter queue (DLQ) support.
+**Amber v1.8.0 introduces the Native Multi-Agent Message Bus & PubSub Channel Fabric (`amber:bus`)**. It provides an in-process, zero-dependency event bus with topic wildcard routing (`*`, `#`), asynchronous request-response RPC semantics, priority queues, middleware interceptors, and dead-letter queue (DLQ) support.
 
 ---
 
 ## 1. Topic Wildcards & Hierarchical Routing
 
-The `bee:bus` routing engine supports dot-delimited hierarchical topics:
+The `amber:bus` routing engine supports dot-delimited hierarchical topics:
 - **Exact matching**: `agent.planner.task` matches only `agent.planner.task`.
 - **Single-segment wildcard (`*`)**: `agent.*.task` matches `agent.planner.task` and `agent.critic.task`, but not `agent.planner.sub.task`.
 - **Multi-segment wildcard (`#`)**: `agent.#` matches all subtopics like `agent.planner.task`, `agent.a.b.c`, and `agent.event`.
 
 ```typescript
-import { subscribe, publish, topicMatches } from 'bee:bus';
+import { subscribe, publish, topicMatches } from 'amber:bus';
 
 // Subscribe to all agent responses
 subscribe('agent.*.response', (message) => {
@@ -42,10 +42,10 @@ publish('agent.planner.response', {
 
 ## 2. Asynchronous Request-Reply (RPC Pattern)
 
-`bee:bus` supports bidirectional request-response semantics out of the box. The requester waits for a response on an ephemeral correlation topic with configurable timeout:
+`amber:bus` supports bidirectional request-response semantics out of the box. The requester waits for a response on an ephemeral correlation topic with configurable timeout:
 
 ```typescript
-import { request, subscribe, reply } from 'bee:bus';
+import { request, subscribe, reply } from 'amber:bus';
 
 // 1. Service provider registers a handler
 subscribe('service.calculator.add', (msg) => {
@@ -65,7 +65,7 @@ async function run() {
 ## 3. Priority Queues, Middlewares & Dead-Letter Queue (DLQ)
 
 ```typescript
-import { createBus } from 'bee:bus';
+import { createBus } from 'amber:bus';
 
 const bus = createBus();
 

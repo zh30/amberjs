@@ -1,4 +1,4 @@
-# Beejs Stage 73 进展报告
+# Amber Stage 73 进展报告
 
 ## 概述
 
@@ -101,7 +101,7 @@ ASTExpression::ArrowFunctionExpression {
 ### 3. 测试脚本更新 ✅
 
 **test_typescript_stage72.js** - 更新测试脚本
-- ✅ 修复 beejs 二进制文件路径 (`./target/release/beejs` → `./beejs`)
+- ✅ 修复 amberjs 二进制文件路径 (`./target/release/amberjs` → `./amberjs`)
 - ✅ 更新 CLI 参数格式 (`--verbose run --transpile`)
 - ✅ 4个测试用例覆盖所有箭头函数场景
 
@@ -131,15 +131,15 @@ ASTExpression::ArrowFunctionExpression {
 
 ### 1. 预编译版本兼容性 ⚠️
 
-**问题**: 根目录的预编译 `beejs` 二进制文件 (18MB) 是旧版本，不支持新的 CLI 子命令结构。
+**问题**: 根目录的预编译 `amberjs` 二进制文件 (18MB) 是旧版本，不支持新的 CLI 子命令结构。
 
 **症状**:
 ```
 error: unexpected argument '--transpile' found
-Usage: beejs [OPTIONS] [FILE] [COMMAND]
+Usage: amberjs [OPTIONS] [FILE] [COMMAND]
 ```
 
-**原因**: 旧版本期望 `beejs script.ts` 格式，而新版本使用 `beejs run script.ts` 格式。
+**原因**: 旧版本期望 `amberjs script.ts` 格式，而新版本使用 `amberjs run script.ts` 格式。
 
 **解决方案**: 需要编译最新版本以支持完整的 CLI 功能。
 
@@ -164,7 +164,7 @@ Usage: beejs [OPTIONS] [FILE] [COMMAND]
 
 2. **验证 CLI 功能**
    ```bash
-   ./target/release/beejs --verbose run test_simple_arrow.ts
+   ./target/release/amberjs --verbose run test_simple_arrow.ts
    ```
 
 3. **运行集成测试**

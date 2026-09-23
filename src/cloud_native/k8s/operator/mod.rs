@@ -1,5 +1,5 @@
 // Kubernetes Operator Controller Module
-// Provides reconciliation logic for BeejsCluster and BeejsWorkload resources
+// Provides reconciliation logic for AmberCluster and AmberWorkload resources
 pub mod controller;
 pub mod lifecycle;
 pub mod reconciler;

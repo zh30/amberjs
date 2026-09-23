@@ -1,4 +1,4 @@
-# Beejs Stage 40.0 实施计划 - WebAssembly 优化与边缘计算
+# Amber Stage 40.0 实施计划 - WebAssembly 优化与边缘计算
 
 ## 📋 任务概览
 
@@ -458,18 +458,18 @@ tests/
 
 ## 📝 总结
 
-Stage 40.0 将实现极致性能的 WebAssembly 优化和全球边缘计算支持，使 Beejs 成为真正的 AI 时代最快分布式 JavaScript/TypeScript 运行时：
+Stage 40.0 将实现极致性能的 WebAssembly 优化和全球边缘计算支持，使 Amber 成为真正的 AI 时代最快分布式 JavaScript/TypeScript 运行时：
 
 1. **极致性能**: 通过 WASM 极致优化实现 95%+ 原生性能
 2. **全球边缘**: 构建全球 100+ 城市边缘节点网络，就近访问
 3. **AI 加速**: 原生 AI 推理加速，GPU 加速 10x-100x
 4. **实时协作**: 支持实时多人协作，端到端加密，权限审计
 
-这将使 Beejs 真正成为"AI 时代最快的 JavaScript 运行时"，为全球开发者和 AI 应用提供极致性能支持。
+这将使 Amber 真正成为"AI 时代最快的 JavaScript 运行时"，为全球开发者和 AI 应用提供极致性能支持。
 
 ---
 
 **实施时间**: 2025-12-19
-**负责人**: Beejs 开发团队
+**负责人**: Amber 开发团队
 **状态**: 待开始
 **下一步**: Stage 41.0 - 量子计算与神经网络优化

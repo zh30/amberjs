@@ -1,0 +1,161 @@
+# Amber Helm Chart Values
+
+# 镜像配置
+image:
+  repository: amberjs/runtime
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# 副本配置
+replicaCount: 3
+
+# 镜像拉取密钥
+imagePullSecrets: []
+
+# 服务账户
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod 安全策略
+podAnnotations: {}
+
+# Pod 安全上下文
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# 容器安全上下文
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# 服务配置
+service:
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+
+# 入口配置
+ingress:
+  enabled: true
+  className: ""
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: amberjs.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: amberjs-tls
+      hosts:
+        - amberjs.example.com
+
+# 资源限制
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+# 自动扩缩容配置
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# 节点选择器
+nodeSelector: {}
+
+# 容忍度
+tolerations: []
+
+# 亲和性
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - amberjs
+          topologyKey: kubernetes.io/hostname
+
+# 网络配置
+network:
+  # WASM 模块缓存配置
+  wasmCache:
+    enabled: true
+    size: "1Gi"
+  # 并发连接数
+  maxConnections: 10000
+  # 批处理大小
+  batchSize: 100
+
+# 性能优化配置
+performance:
+  # 启用 JIT 优化
+  jitOptimization: true
+  # 内存池配置
+  memoryPool:
+    enabled: true
+    initialSize: "512Mi"
+    maxSize: "4Gi"
+  # 零拷贝 I/O
+  zeroCopyIO: true
+
+# 监控配置
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    path: /metrics
+  prometheusRule:
+    enabled: true
+
+# 生存探针
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# 就绪探针
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# 启动探针
+startupProbe:
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30

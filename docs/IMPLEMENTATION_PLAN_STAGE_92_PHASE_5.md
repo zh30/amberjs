@@ -1,7 +1,7 @@
 # Stage 92 Phase 5: 企业级功能集成实施计划
 
 ## 项目概述
-Phase 5 是 Beejs Stage 92 的最终阶段，专注于企业级功能和部署支持。通过集成 Kubernetes、监控、安全合规和高可用容灾，将 Beejs 打造成企业级生产就绪的 JavaScript/TypeScript 运行时。
+Phase 5 是 Amber Stage 92 的最终阶段，专注于企业级功能和部署支持。通过集成 Kubernetes、监控、安全合规和高可用容灾，将 Amber 打造成企业级生产就绪的 JavaScript/TypeScript 运行时。
 
 ## 核心理念
 - **生产就绪**: 100% 企业级部署支持
@@ -31,7 +31,7 @@ Phase 5 是 Beejs Stage 92 的最终阶段，专注于企业级功能和部署�
 
 #### 5.1.2 Helm Charts 优化
 - [ ] **创建生产级 Helm Charts**
-  - `charts/beejs/` 主 Chart
+  - `charts/amberjs/` 主 Chart
   - 配置文件模板化
   - 值文件分层 (开发/测试/生产)
   - Helm 模板测试
@@ -62,7 +62,7 @@ Phase 5 是 Beejs Stage 92 的最终阶段，专注于企业级功能和部署�
 
 #### 5.2.2 Grafana 仪表板
 - [ ] **创建 Grafana 仪表板配置**
-  - `grafana/dashboards/beejs-overview.json`
+  - `grafana/dashboards/amberjs-overview.json`
   - 实时性能监控
   - 错误率和告警
   - 自定义可视化
@@ -196,7 +196,7 @@ Phase 5 是 Beejs Stage 92 的最终阶段，专注于企业级功能和部署�
 ### 企业级架构图
 ```
 ┌─────────────────────────────────────────┐
-│           企业级 Beejs 运行时            │
+│           企业级 Amber 运行时            │
 ├─────────────────────────────────────────┤
 │  监控层  │  安全层  │  高可用层  │ GitOps │
 │  Prometheus  │ Security │ HA/DR   │ ArgoCD │
@@ -276,7 +276,7 @@ Phase 5 是 Beejs Stage 92 的最终阶段，专注于企业级功能和部署�
 
 ## 预期成果
 
-完成 Phase 5 后，Beejs 将成为：
+完成 Phase 5 后，Amber 将成为：
 - **企业级就绪**: 100% 生产部署支持
 - **全方位监控**: 可观测性完备
 - **安全合规**: 满足企业安全要求

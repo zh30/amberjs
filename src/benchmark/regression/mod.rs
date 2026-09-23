@@ -343,8 +343,8 @@ use std::collections::{BTreeMap, HashMap};
 use std::time::{Duration, SystemTime};
     #[test]
     fn test_regression_analysis() {
-        let current: _ = super::super::result::BenchmarkResult::new("test", Runtime::Beejs);
-        let baseline: _ = super::super::result::BenchmarkResult::new("test", Runtime::Beejs);
+        let current: _ = super::super::result::BenchmarkResult::new("test", Runtime::Amber);
+        let baseline: _ = super::super::result::BenchmarkResult::new("test", Runtime::Amber);
         let detector: _ = RegressionDetector::new(PathBuf::from("/tmp/test"));
         let analysis: _ = detector.analyze_regression(&current, &baseline);
         println!("Analysis: {:?}", analysis);
@@ -356,7 +356,7 @@ use std::time::{Duration, SystemTime};
         for i in 0..5 {
             let mut analysis = RegressionAnalysis {
                 test_name: format!("test_{}", i),
-                runtime: Runtime::Beejs,
+                runtime: Runtime::Amber,
                 baseline_performance: Duration::from_millis(100),
                 current_performance: Duration::from_millis(120),
                 performance_change_percent: -20.0,

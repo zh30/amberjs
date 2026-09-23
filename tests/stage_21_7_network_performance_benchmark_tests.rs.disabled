@@ -5,7 +5,7 @@
 //! - 高并发连接测试（10000+ 并发连接）
 //! - 性能对比测试（vs Bun/Node.js/传统网络 I/O）
 
-use beejs::{
+use amberjs::{
     network::{
         NetworkBufferPool, ConnectionPool, NetworkIoStatistics,
         ZeroCopyTcpSocket, ZeroCopyUdpSocket,
@@ -34,7 +34,7 @@ mod tests {
     fn test_large_file_transfer_performance() {
         // 创建测试文件（100MB，避免过大测试时间）
         let test_data = vec![42u8; 100 * 1024 * 1024];
-        let test_file = "/tmp/beejs_test_large_file.bin";
+        let test_file = "/tmp/amberjs_test_large_file.bin";
 
         // 写入测试文件
         let mut file = File::create(test_file).unwrap();
@@ -147,7 +147,7 @@ mod tests {
 
                 for stream in listener.incoming().take(concurrency) {
                     if let Ok(mut stream) = stream {
-                        let msg = b"Hello from Beejs!";
+                        let msg = b"Hello from Amber!";
                         let _ = stream.write_all(msg);
                         let _ = stream.flush();
                     }
@@ -251,7 +251,7 @@ mod tests {
         let zero_copy_start = Instant::now();
 
         // 创建临时文件用于 sendfile 测试
-        let temp_file = "/tmp/beejs_sendfile_test.bin";
+        let temp_file = "/tmp/amberjs_sendfile_test.bin";
         let mut file = File::create(temp_file).unwrap();
         file.write_all(&test_data).unwrap();
         file.sync_all().unwrap();
@@ -381,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_comprehensive_network_performance_benchmark() {
-        println!("\n=== Beejs 零拷贝网络 I/O 综合性能基准测试 ===\n");
+        println!("\n=== Amber 零拷贝网络 I/O 综合性能基准测试 ===\n");
 
         // 1. 缓冲区池性能测试
         println!("1. 缓冲区池性能测试:");

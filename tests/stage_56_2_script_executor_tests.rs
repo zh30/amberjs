@@ -164,7 +164,10 @@ mod execution_context {
                 script_path: absolute_path.clone(),
                 dirname,
                 filename: absolute_path,
-                argv: vec!["bee".to_string(), script_path.to_string_lossy().to_string()],
+                argv: vec![
+                    "amber".to_string(),
+                    script_path.to_string_lossy().to_string(),
+                ],
                 env: std::env::vars().collect(),
             }
         }
@@ -184,7 +187,7 @@ mod execution_context {
     fn test_context_creation() {
         let ctx = ExecutionContext::new(PathBuf::from("test.js"));
         assert!(ctx.argv.len() >= 2);
-        assert_eq!(ctx.argv[0], "bee");
+        assert_eq!(ctx.argv[0], "amber");
     }
 
     #[test]
@@ -403,7 +406,7 @@ mod argument_parsing {
     /// Parsed script arguments with separator handling
     #[derive(Debug, Clone)]
     pub struct ParsedArgs {
-        /// Arguments before -- separator (for bee)
+        /// Arguments before -- separator (for amber)
         pub runtime_args: Vec<String>,
         /// Arguments after -- separator (for script)
         pub script_args: Vec<String>,
@@ -472,7 +475,7 @@ mod argument_parsing {
 
     #[test]
     fn test_simple_script_path() {
-        let args = vec!["bee".to_string(), "script.js".to_string()];
+        let args = vec!["amber".to_string(), "script.js".to_string()];
         let parsed = ParsedArgs::parse(args);
         assert_eq!(parsed.script_path, Some("script.js".to_string()));
         assert!(parsed.script_args.is_empty());
@@ -481,7 +484,7 @@ mod argument_parsing {
     #[test]
     fn test_script_with_args() {
         let args = vec![
-            "bee".to_string(),
+            "amber".to_string(),
             "script.js".to_string(),
             "--port".to_string(),
             "3000".to_string(),
@@ -494,7 +497,7 @@ mod argument_parsing {
     #[test]
     fn test_separator_handling() {
         let args = vec![
-            "bee".to_string(),
+            "amber".to_string(),
             "--verbose".to_string(),
             "script.js".to_string(),
             "--".to_string(),
@@ -509,7 +512,7 @@ mod argument_parsing {
 
     #[test]
     fn test_no_script() {
-        let args = vec!["bee".to_string(), "--help".to_string()];
+        let args = vec!["amber".to_string(), "--help".to_string()];
         let parsed = ParsedArgs::parse(args);
         assert_eq!(parsed.script_path, None);
         assert_eq!(parsed.runtime_args, vec!["--help"]);
@@ -518,10 +521,10 @@ mod argument_parsing {
     #[test]
     fn test_complex_args() {
         let args = vec![
-            "bee".to_string(),
+            "amber".to_string(),
             "-v".to_string(),
             "--config".to_string(),
-            "beejs.config.js".to_string(),
+            "amberjs.config.js".to_string(),
             "app.ts".to_string(),
             "--".to_string(),
             "--env".to_string(),
@@ -675,7 +678,7 @@ mod script_executor {
 
         let argv = executor.build_process_argv(&ctx);
         assert!(argv.len() >= 4);
-        assert_eq!(argv[0], "bee");
+        assert_eq!(argv[0], "amber");
     }
 
     #[test]
@@ -729,19 +732,19 @@ mod shebang_detection {
         }
     }
 
-    /// Check if shebang indicates beejs script
-    pub fn is_beejs_shebang(shebang: &str) -> bool {
-        shebang.contains("bee") ||
-        shebang.ends_with("/env bee") ||
+    /// Check if shebang indicates amberjs script
+    pub fn is_amberjs_shebang(shebang: &str) -> bool {
+        shebang.contains("amber") ||
+        shebang.ends_with("/env amber") ||
         shebang.ends_with("/env node") ||  // Node compatibility
         shebang.ends_with("/env bun") // Bun compatibility
     }
 
     #[test]
-    fn test_detect_beejs_shebang() {
-        let content = "#!/usr/bin/env bee\nconsole.log('hello');";
+    fn test_detect_amberjs_shebang() {
+        let content = "#!/usr/bin/env amber\nconsole.log('hello');";
         let shebang = detect_shebang(content);
-        assert_eq!(shebang, Some("/usr/bin/env bee".to_string()));
+        assert_eq!(shebang, Some("/usr/bin/env amber".to_string()));
     }
 
     #[test]
@@ -749,7 +752,7 @@ mod shebang_detection {
         let content = "#!/usr/bin/env node\nconsole.log('hello');";
         let shebang = detect_shebang(content);
         assert!(shebang.is_some());
-        assert!(is_beejs_shebang(&shebang.unwrap()));
+        assert!(is_amberjs_shebang(&shebang.unwrap()));
     }
 
     #[test]
@@ -759,24 +762,24 @@ mod shebang_detection {
     }
 
     #[test]
-    fn test_is_beejs_shebang_direct() {
-        assert!(is_beejs_shebang("/usr/bin/bee"));
-        assert!(is_beejs_shebang("/usr/bin/env bee"));
+    fn test_is_amberjs_shebang_direct() {
+        assert!(is_amberjs_shebang("/usr/bin/amber"));
+        assert!(is_amberjs_shebang("/usr/bin/env amber"));
     }
 
     #[test]
     fn test_is_node_compatible_shebang() {
-        assert!(is_beejs_shebang("/usr/bin/env node"));
+        assert!(is_amberjs_shebang("/usr/bin/env node"));
     }
 
     #[test]
     fn test_is_bun_compatible_shebang() {
-        assert!(is_beejs_shebang("/usr/bin/env bun"));
+        assert!(is_amberjs_shebang("/usr/bin/env bun"));
     }
 
     #[test]
     fn test_unrecognized_shebang() {
-        assert!(!is_beejs_shebang("/usr/bin/python"));
-        assert!(!is_beejs_shebang("/bin/bash"));
+        assert!(!is_amberjs_shebang("/usr/bin/python"));
+        assert!(!is_amberjs_shebang("/bin/bash"));
     }
 }

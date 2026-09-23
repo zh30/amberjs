@@ -1,9 +1,9 @@
 {
-  "name": "beejs-debugger",
-  "displayName": "Beejs Debugger",
-  "description": "Debug Beejs JavaScript/TypeScript runtime",
+  "name": "amberjs-debugger",
+  "displayName": "Amber Debugger",
+  "description": "Debug Amber JavaScript/TypeScript runtime",
   "version": "0.1.0",
-  "publisher": "beejs-team",
+  "publisher": "amberjs-team",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -11,25 +11,25 @@
     "Debuggers"
   ],
   "activationEvents": [
-    "onCommand:beejs.startDebugging",
-    "onCommand:beejs.stopDebugging"
+    "onCommand:amberjs.startDebugging",
+    "onCommand:amberjs.stopDebugging"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "beejs.startDebugging",
-        "title": "Start Beejs Debugging"
+        "command": "amberjs.startDebugging",
+        "title": "Start Amber Debugging"
       },
       {
-        "command": "beejs.stopDebugging",
-        "title": "Stop Beejs Debugging"
+        "command": "amberjs.stopDebugging",
+        "title": "Stop Amber Debugging"
       }
     ],
     "debuggers": [
       {
-        "type": "beejs",
-        "label": "Beejs",
+        "type": "amberjs",
+        "label": "Amber",
         "program": "./dist/debugAdapter.js",
         "args": [],
         "configurationAttributes": {

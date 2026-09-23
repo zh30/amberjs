@@ -1,4 +1,4 @@
-# Beejs Stage 60 完成总结
+# Amber Stage 60 完成总结
 
 ## 🎉 Stage 60: 测试驱动性能监控与优化 - 已完成
 
@@ -79,7 +79,7 @@
 
 ---
 
-**总结**: Stage 60 成功建立了 Beejs 的测试驱动开发文化和性能监控体系，为成为最快的 JavaScript/TypeScript 运行时奠定了坚实基础！
+**总结**: Stage 60 成功建立了 Amber 的测试驱动开发文化和性能监控体系，为成为最快的 JavaScript/TypeScript 运行时奠定了坚实基础！
 
 **状态**: ✅ 完成  
 **日期**: 2025-12-20  

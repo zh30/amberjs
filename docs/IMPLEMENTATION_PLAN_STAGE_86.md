@@ -1,8 +1,8 @@
-# Beejs Stage 86 实施计划 - 生态完善
+# Amber Stage 86 实施计划 - 生态完善
 
 ## 项目概述
 
-**目标**: 在 Stage 85 AI 驱动运维基础上，构建完整的 Beejs 生态系统，实现插件系统开放、第三方工具集成、市场平台建设和社区生态发展，让 Beejs 成为开发者首选的高性能运行时平台。
+**目标**: 在 Stage 85 AI 驱动运维基础上，构建完整的 Amber 生态系统，实现插件系统开放、第三方工具集成、市场平台建设和社区生态发展，让 Amber 成为开发者首选的高性能运行时平台。
 
 **核心价值**:
 - 🔌 **开放插件系统**: 标准化插件接口，支持第三方扩展
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Beejs 生态系统                               │
+│                     Amber 生态系统                               │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ 插件系统     │  │ 工具集成     │  │ 插件市场         │  │
@@ -165,7 +165,7 @@
 1. **语言支持**
    ```typescript
    // 语法高亮和智能提示
-   export class BeejsLanguageService {
+   export class AmberLanguageService {
        async provideCompletionItems(document: TextDocument): Promise<CompletionItem[]> {
            // 提供代码补全
        }
@@ -179,7 +179,7 @@
 2. **调试支持**
    ```typescript
    // 调试适配器
-   export class BeejsDebugAdapter implements DebugAdapter {
+   export class AmberDebugAdapter implements DebugAdapter {
        async initialize(): Promise<void> {
            // 初始化调试
        }
@@ -201,28 +201,28 @@
 **功能要求**:
 1. **GitHub Actions**
    ```yaml
-   # .github/workflows/beejs-test.yml
-   name: Beejs Test
+   # .github/workflows/amberjs-test.yml
+   name: Amber Test
    on: [push, pull_request]
    jobs:
      test:
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v2
-         - name: Run Beejs tests
+         - name: Run Amber tests
            run: |
-             curl -L https://beejs.sh/install | sh
-             beejs test
+             curl -L https://amberjs.sh/install | sh
+             amberjs test
    ```
 
 2. **Docker 集成**
    ```dockerfile
    # Dockerfile
-   FROM beejs/runtime:latest
+   FROM amberjs/runtime:latest
    COPY . /app
    WORKDIR /app
-   RUN beejs build
-   CMD ["beejs", "start"]
+   RUN amberjs build
+   CMD ["amberjs", "start"]
    ```
 
 **测试驱动开发**:
@@ -423,14 +423,14 @@
 ### 1. 插件引擎实现示例
 
 ```rust
-pub struct BeejsPluginEngine {
+pub struct AmberPluginEngine {
     registry: Arc<PluginRegistry>,
     sandbox: Arc<SandboxManager>,
     loader: Arc<PluginLoader>,
     event_bus: Arc<EventBus>,
 }
 
-impl BeejsPluginEngine {
+impl AmberPluginEngine {
     pub async fn initialize(&self) -> Result<()> {
         // 1. 初始化插件注册表
         self.registry.initialize().await?;
@@ -466,7 +466,7 @@ impl BeejsPluginEngine {
 // VS Code 扩展主文件
 export function activate(context: ExtensionContext) {
     // 注册语言服务
-    const languageService = new BeejsLanguageService();
+    const languageService = new AmberLanguageService();
     context.subscriptions.push(
         languages.registerCompletionItemProvider(
             'javascript',
@@ -475,10 +475,10 @@ export function activate(context: ExtensionContext) {
     );
 
     // 注册调试适配器
-    const debugAdapterFactory = new BeejsDebugAdapterFactory();
+    const debugAdapterFactory = new AmberDebugAdapterFactory();
     context.subscriptions.push(
         debug.registerDebugAdapterDescriptorFactory(
-            'beejs',
+            'amberjs',
             debugAdapterFactory
         )
     );
@@ -596,4 +596,4 @@ export function activate(context: ExtensionContext) {
 
 ---
 
-**结论**: Stage 86 将为 Beejs 构建完整的生态系统，通过插件系统、工具集成、市场平台和社区建设，让 Beejs 成为开发者首选的高性能运行时平台，推动生态繁荣发展。
+**结论**: Stage 86 将为 Amber 构建完整的生态系统，通过插件系统、工具集成、市场平台和社区建设，让 Amber 成为开发者首选的高性能运行时平台，推动生态繁荣发展。

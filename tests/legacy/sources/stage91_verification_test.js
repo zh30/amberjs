@@ -1,10 +1,10 @@
-#!/usr/bin/env beejs
+#!/usr/bin/env amberjs
 /**
  * Stage 91 验证测试
- * 验证 beejs 运行时基本功能
+ * 验证 amberjs 运行时基本功能
  */
 
-console.log("✅ Beejs 运行时验证测试");
+console.log("✅ Amber 运行时验证测试");
 console.log("===========================\n");
 
 console.log("📋 基本功能测试:");
@@ -111,5 +111,5 @@ if (duration < 1000) { // 少于 1 秒认为通过
 }
 
 console.log("\n🎉 所有测试完成！");
-console.log("✅ Beejs 运行时基本功能正常");
+console.log("✅ Amber 运行时基本功能正常");
 console.log(`📈 轻量级性能: ${opsPerSec.toLocaleString()} ops/sec\n`);

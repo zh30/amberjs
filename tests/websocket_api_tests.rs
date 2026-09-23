@@ -1,11 +1,11 @@
 // WebSocket API 测试套件 - v0.2.2
 //
-// 目标：验证 Beejs 对 WebSocket API 的完整支持
+// 目标：验证 Amber 对 WebSocket API 的完整支持
 // WebSocket 提供双向实时通信能力，适用于聊天、实时更新等场景
 
 #[cfg(test)]
 mod tests {
-    use beejs::MinimalRuntime;
+    use amberjs::MinimalRuntime;
 
     /// 测试 WebSocket 构造函数可用性
     #[test]

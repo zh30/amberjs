@@ -1,5 +1,5 @@
-// Final verification test for Beejs v0.1.8
-console.log("🎯 Beejs v0.1.8 最终验证测试");
+// Final verification test for Amber v0.1.8
+console.log("🎯 Amber v0.1.8 最终验证测试");
 console.log("====================================\n");
 
 // Test 1: All Web APIs
@@ -33,4 +33,4 @@ console.log("  crypto.randomUUID() =", crypto.randomUUID());
 console.log("\n5. JSON API 测试:");
 console.log("  JSON.stringify({test: true}) =", JSON.stringify({test: true}));
 
-console.log("\n✅ 所有功能验证完成! Beejs v0.1.8 运行正常!");
+console.log("\n✅ 所有功能验证完成! Amber v0.1.8 运行正常!");

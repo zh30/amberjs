@@ -65,7 +65,7 @@ impl Default for PackageManagerConfig {
         Self {
             manager_type: PackageManagerType::Npm,
             registry_url: "https://registry.npmjs.org/".to_string(),
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
             timeout_ms: 30000,
             retry_count: 3,
             auth_token: None,

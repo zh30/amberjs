@@ -6,7 +6,7 @@
 
 ## 🎯 阶段目标
 
-扩展 Beejs 的测试生态系统，建立完整的质量保证体系，包括扩展基准测试套件、端到端测试覆盖、性能回归检测和跨平台兼容性测试，确保 Beejs 在各种场景下都能稳定运行。
+扩展 Amber 的测试生态系统，建立完整的质量保证体系，包括扩展基准测试套件、端到端测试覆盖、性能回归检测和跨平台兼容性测试，确保 Amber 在各种场景下都能稳定运行。
 
 ## 📋 核心任务概览
 
@@ -68,7 +68,7 @@ for (let i = 0; i < 10000; i++) {
 **测试场景**:
 ```javascript
 // 企业多租户测试
-const tenant = beejs.createTenant('enterprise-customer-1');
+const tenant = amberjs.createTenant('enterprise-customer-1');
 const result = await tenant.run(async () => {
     return await processEnterpriseWorkload();
 });
@@ -270,8 +270,8 @@ async fn test_ai_pipeline_end_to_end() {
 ```rust
 #[tokio::test]
 async fn test_enterprise_deployment() {
-    // 1. 创建 BeejsCluster
-    let cluster = BeejsCluster::create("test-cluster")
+    // 1. 创建 AmberCluster
+    let cluster = AmberCluster::create("test-cluster")
         .with_replicas(3)
         .with_resources(ResourceRequirements::enterprise())
         .await

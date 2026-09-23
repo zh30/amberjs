@@ -1,8 +1,8 @@
-# Beejs Stage 79 实施计划 - 企业级功能增强
+# Amber Stage 79 实施计划 - 企业级功能增强
 
 ## 项目概述
 
-**目标**: 在 Stage 78 WebAssembly 极致优化的基础上，构建企业级生产环境功能，使 Beejs 成为可部署、可监控、可扩展的企业级 JavaScript/TypeScript 运行时
+**目标**: 在 Stage 78 WebAssembly 极致优化的基础上，构建企业级生产环境功能，使 Amber 成为可部署、可监控、可扩展的企业级 JavaScript/TypeScript 运行时
 
 **核心价值**:
 - 🏢 企业级部署: Kubernetes、容器化、集群支持
@@ -17,7 +17,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   Beejs Enterprise Platform                  │
+│                   Amber Enterprise Platform                  │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ 集群管理器   │  │ 负载均衡器   │  │ 服务发现         │  │
@@ -44,7 +44,7 @@
 ### 2. 关键组件
 
 #### 2.1 ClusterManager (集群管理器)
-- **职责**: 管理多节点 Beejs 集群
+- **职责**: 管理多节点 Amber 集群
 - **特性**:
   - 自动扩缩容 (HPA)
   - 节点健康检查
@@ -99,7 +99,7 @@
    }
 
    pub async fn deploy_cluster(&self, config: &ClusterConfig) -> Result<ClusterHandle> {
-       // 部署 Beejs 集群到 Kubernetes
+       // 部署 Amber 集群到 Kubernetes
    }
    ```
 
@@ -133,7 +133,7 @@
    }
 
    pub async fn build_image(&self, version: &str) -> Result<String> {
-       // 构建 Beejs Docker 镜像
+       // 构建 Amber Docker 镜像
    }
    ```
 
@@ -384,13 +384,13 @@
 ### 1. Kubernetes 集成示例
 
 ```rust
-pub struct K8sBeejsCluster {
+pub struct K8sAmberCluster {
     client: kube::Client,
     namespace: String,
     config: ClusterConfig,
 }
 
-impl K8sBeejsCluster {
+impl K8sAmberCluster {
     pub async fn deploy(&self) -> Result<K8sClusterHandle> {
         // 1. 创建 Namespace
         let ns = self.create_namespace().await?;
@@ -417,7 +417,7 @@ impl K8sBeejsCluster {
     async fn configure_hpa(&self) -> Result<()> {
         let hpa = HorizontalPodAutoscaler {
             metadata: ObjectMeta {
-                name: "beejs-hpa".to_string(),
+                name: "amberjs-hpa".to_string(),
                 namespace: Some(self.namespace.clone()),
                 ..Default::default()
             },
@@ -425,7 +425,7 @@ impl K8sBeejsCluster {
                 scale_target_ref: ScaleTargetRef {
                     api_version: Some("apps/v1".to_string()),
                     kind: "StatefulSet".to_string(),
-                    name: "beejs-cluster".to_string(),
+                    name: "amberjs-cluster".to_string(),
                 },
                 min_replicas: Some(self.config.min_replicas),
                 max_replicas: self.config.max_replicas,
@@ -452,7 +452,7 @@ impl K8sBeejsCluster {
 ### 2. 监控指标示例
 
 ```rust
-pub struct BeejsMetrics {
+pub struct AmberMetrics {
     pub requests_total: Counter<u64>,
     pub request_duration: Histogram<f64>,
     pub active_connections: Gauge<u64>,
@@ -460,34 +460,34 @@ pub struct BeejsMetrics {
     pub cpu_usage: Gauge<f64>,
 }
 
-impl BeejsMetrics {
+impl AmberMetrics {
     pub fn new() -> Self {
         let registry = Registry::default();
 
-        let requests_total = Counter::new("beejs_requests_total", "Total requests")
+        let requests_total = Counter::new("amberjs_requests_total", "Total requests")
             .register(&registry);
 
         let request_duration = Histogram::new(
-            "beejs_request_duration_seconds",
+            "amberjs_request_duration_seconds",
             "Request duration in seconds",
         )
         .buckets(vec![0.1, 0.5, 1.0, 2.0, 5.0])
         .register(&registry);
 
         let active_connections = Gauge::new(
-            "beejs_active_connections",
+            "amberjs_active_connections",
             "Number of active connections",
         )
         .register(&registry);
 
         let memory_usage = Gauge::new(
-            "beejs_memory_usage_bytes",
+            "amberjs_memory_usage_bytes",
             "Memory usage in bytes",
         )
         .register(&registry);
 
         let cpu_usage = Gauge::new(
-            "beejs_cpu_usage_percent",
+            "amberjs_cpu_usage_percent",
             "CPU usage percentage",
         )
         .register(&registry);
@@ -681,4 +681,4 @@ impl EnterpriseAuth {
 
 ---
 
-**结论**: Stage 79 将把 Beejs 从高性能运行时升级为企业级平台，通过集群管理、监控、安全和分布式架构，为企业提供生产级解决方案。这将使 Beejs 成为企业级 JavaScript/TypeScript 运行时的首选。
+**结论**: Stage 79 将把 Amber 从高性能运行时升级为企业级平台，通过集群管理、监控、安全和分布式架构，为企业提供生产级解决方案。这将使 Amber 成为企业级 JavaScript/TypeScript 运行时的首选。

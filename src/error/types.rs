@@ -7,7 +7,7 @@ use thiserror::Error;
 
 /// 错误类型枚举 - 统一所有可能的错误
 #[derive(Debug, Error, Clone, PartialEq)]
-pub enum BeejsError {
+pub enum AmberError {
     #[error("V8 Error: {0}")]
     V8Error(String),
     #[error("JavaScript Execution Error: {0}")]
@@ -91,7 +91,7 @@ impl fmt::Display for ErrorSeverity {
 /// 错误上下文 - 提供完整的错误上下文信息
 #[derive(Debug, Clone)]
 pub struct ErrorContext {
-    pub error_type: BeejsError,
+    pub error_type: AmberError,
     pub source_location: Option<SourceLocation>,
     pub stack_trace: Vec<StackFrame>,
     pub severity: ErrorSeverity,
@@ -101,7 +101,7 @@ pub struct ErrorContext {
 }
 impl ErrorContext {
     /// 创建新的错误上下文
-    pub fn new(error_type: BeejsError, file: String, line: u32, function: String) -> Self {
+    pub fn new(error_type: AmberError, file: String, line: u32, function: String) -> Self {
         let source_location: _ = Some(SourceLocation::new(file, line, function));
         let severity: _ = Self::determine_severity(&error_type);
         let recovery_suggestions: _ = Self::generate_recovery_suggestions(&error_type);
@@ -116,7 +116,7 @@ impl ErrorContext {
         }
     }
     /// 创建无源位置的错误上下文
-    pub fn new_without_location(error_type: BeejsError) -> Self {
+    pub fn new_without_location(error_type: AmberError) -> Self {
         let severity: _ = Self::determine_severity(&error_type);
         let recovery_suggestions: _ = Self::generate_recovery_suggestions(&error_type);
         Self {
@@ -130,78 +130,78 @@ impl ErrorContext {
         }
     }
     /// 根据错误类型确定严重级别
-    fn determine_severity(error: &BeejsError) -> ErrorSeverity {
+    fn determine_severity(error: &AmberError) -> ErrorSeverity {
         match error {
-            BeejsError::V8Error(_) | BeejsError::JsExecutionError(_) => ErrorSeverity::High,
-            BeejsError::MultiLanguageError(_) | BeejsError::PlatformError(_) => {
+            AmberError::V8Error(_) | AmberError::JsExecutionError(_) => ErrorSeverity::High,
+            AmberError::MultiLanguageError(_) | AmberError::PlatformError(_) => {
                 ErrorSeverity::Medium
             }
-            BeejsError::CompilationError(_) | BeejsError::RuntimeError(_) => ErrorSeverity::High,
-            BeejsError::SecurityError(_) => ErrorSeverity::Critical,
-            BeejsError::PerformanceError(_) | BeejsError::NetworkError(_) => ErrorSeverity::Medium,
-            BeejsError::IoError(_) | BeejsError::ConfigurationError(_) => ErrorSeverity::Low,
-            BeejsError::ResourceError(_) => ErrorSeverity::Medium,
+            AmberError::CompilationError(_) | AmberError::RuntimeError(_) => ErrorSeverity::High,
+            AmberError::SecurityError(_) => ErrorSeverity::Critical,
+            AmberError::PerformanceError(_) | AmberError::NetworkError(_) => ErrorSeverity::Medium,
+            AmberError::IoError(_) | AmberError::ConfigurationError(_) => ErrorSeverity::Low,
+            AmberError::ResourceError(_) => ErrorSeverity::Medium,
         }
     }
     /// 生成恢复建议
-    fn generate_recovery_suggestions(error: &BeejsError) -> Vec<String> {
+    fn generate_recovery_suggestions(error: &AmberError) -> Vec<String> {
         match error {
-            BeejsError::V8Error(_) => vec![
+            AmberError::V8Error(_) => vec![
                 "Check V8 version compatibility".to_string(),
                 "Verify isolate state".to_string(),
                 "Review API usage".to_string(),
             ],
-            BeejsError::JsExecutionError(_) => vec![
+            AmberError::JsExecutionError(_) => vec![
                 "Check JavaScript syntax".to_string(),
                 "Verify variable types".to_string(),
                 "Review function calls".to_string(),
             ],
-            BeejsError::MultiLanguageError(_) => vec![
+            AmberError::MultiLanguageError(_) => vec![
                 "Initialize runtime before use".to_string(),
                 "Check module imports".to_string(),
                 "Verify language bindings".to_string(),
             ],
-            BeejsError::PlatformError(_) => vec![
+            AmberError::PlatformError(_) => vec![
                 "Check platform compatibility".to_string(),
                 "Verify runtime installation".to_string(),
                 "Review platform-specific code".to_string(),
             ],
-            BeejsError::CompilationError(_) => vec![
+            AmberError::CompilationError(_) => vec![
                 "Fix syntax errors".to_string(),
                 "Check type definitions".to_string(),
                 "Review import statements".to_string(),
             ],
-            BeejsError::RuntimeError(_) => vec![
+            AmberError::RuntimeError(_) => vec![
                 "Check runtime state".to_string(),
                 "Verify resource availability".to_string(),
                 "Review execution flow".to_string(),
             ],
-            BeejsError::SecurityError(_) => vec![
+            AmberError::SecurityError(_) => vec![
                 "Check security policies".to_string(),
                 "Verify permissions".to_string(),
                 "Review access controls".to_string(),
             ],
-            BeejsError::PerformanceError(_) => vec![
+            AmberError::PerformanceError(_) => vec![
                 "Optimize resource usage".to_string(),
                 "Check memory allocation".to_string(),
                 "Review performance bottlenecks".to_string(),
             ],
-            BeejsError::NetworkError(_) => vec![
+            AmberError::NetworkError(_) => vec![
                 "Check network connectivity".to_string(),
                 "Verify URL/endpoint".to_string(),
                 "Review timeout settings".to_string(),
             ],
-            BeejsError::IoError(_) => vec![
+            AmberError::IoError(_) => vec![
                 "Check file/directory permissions".to_string(),
                 "Verify path existence".to_string(),
                 "Review I/O operations".to_string(),
             ],
-            BeejsError::ConfigurationError(_) => vec![
+            AmberError::ConfigurationError(_) => vec![
                 "Check configuration file".to_string(),
                 "Verify configuration values".to_string(),
                 "Review environment variables".to_string(),
             ],
-            BeejsError::ResourceError(_) => vec![
+            AmberError::ResourceError(_) => vec![
                 "Check resource availability".to_string(),
                 "Optimize resource usage".to_string(),
                 "Review resource limits".to_string(),

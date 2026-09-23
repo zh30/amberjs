@@ -41,7 +41,7 @@ def fix_file(file_path):
     return 0
 
 def main():
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
 
     # 获取所有有 E0252 错误的文件
     result_files = [

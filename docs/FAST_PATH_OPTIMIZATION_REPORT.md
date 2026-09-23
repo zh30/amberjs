@@ -1,8 +1,8 @@
-# Beejs 快路径优化最终报告 (2025-12-18)
+# Amber 快路径优化最终报告 (2025-12-18)
 
 ## 执行摘要
 
-本报告总结了 Beejs 高性能 JavaScript/TypeScript 运行时在快路径优化和 CLI 启动性能方面的最新改进。通过系统性的快路径扩展和启动流程优化，显著提升了简单脚本的执行速度和整体用户体验。
+本报告总结了 Amber 高性能 JavaScript/TypeScript 运行时在快路径优化和 CLI 启动性能方面的最新改进。通过系统性的快路径扩展和启动流程优化，显著提升了简单脚本的执行速度和整体用户体验。
 
 ## 🚀 最新优化成果 (2025-12-18)
 
@@ -56,10 +56,10 @@
 
 ```bash
 # 优化前启动时间
-beejs --eval '1+1'  # ~16ms
+amberjs --eval '1+1'  # ~16ms
 
 # 优化后启动时间
-beejs --eval '1+1'  # ~14ms
+amberjs --eval '1+1'  # ~14ms
 ```
 
 **性能提升**: ~12.5% 启动时间优化
@@ -135,11 +135,11 @@ if parts[1] == "length" && parts[0].starts_with('[') && parts[0].ends_with(']') 
 // 延迟 verbose 输出直到 runtime 就绪
 let verbose = args.verbose;
 
-let runtime = beejs::get_smart_runtime(...).context("Failed to get smart runtime")?;
+let runtime = amberjs::get_smart_runtime(...).context("Failed to get smart runtime")?;
 
 // runtime 就绪后显示详细信息
 if verbose {
-    println!("Beejs Runtime started (smart mode)");
+    println!("Amber Runtime started (smart mode)");
     println!("Stack size: {} bytes", args.stack_size);
     println!("Max heap size: {} bytes", args.max_heap);
     println!("V8 optimization mode: {:?}", args.optimize);
@@ -268,7 +268,7 @@ arr[0]                // ⚠️ 降级到 V8 (非属性访问)
 4. ✅ **CLI 启动优化**: 减少启动开销
 5. ✅ **错误率降低**: 通过验证提高稳定性
 
-这些优化为 Beejs 达到 1000 ops/sec 性能目标奠定了坚实基础，特别是在简单脚本场景下。通过系统性的快路径扩展，显著提升了用户体验和整体性能。
+这些优化为 Amber 达到 1000 ops/sec 性能目标奠定了坚实基础，特别是在简单脚本场景下。通过系统性的快路径扩展，显著提升了用户体验和整体性能。
 
 ## 📄 相关文件
 
@@ -286,6 +286,6 @@ arr[0]                // ⚠️ 降级到 V8 (非属性访问)
 ---
 
 **报告生成时间**: 2025-12-18 10:30:00
-**负责人**: Beejs 性能优化团队
+**负责人**: Amber 性能优化团队
 **版本**: v0.1.0
 **状态**: ✅ 优化完成，性能验证通过

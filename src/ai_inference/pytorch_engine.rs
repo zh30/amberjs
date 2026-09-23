@@ -1,5 +1,5 @@
 // PyTorch TorchScript 推理引擎实现
-// 为 Beejs 提供原生 PyTorch 支持，支持 TorchScript 模型推理
+// 为 Amber 提供原生 PyTorch 支持，支持 TorchScript 模型推理
 
 use crate::ai_inference::engine_interface::{
     EngineFactory, EngineStats, EngineType, InferenceEngine, InferenceOptions, InferenceResult,

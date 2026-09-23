@@ -2,7 +2,7 @@
 """
 scripts/generate_release_notes.py
 
-Generates a formal, comprehensive Release Document for Beejs releases in GitHub Actions.
+Generates a formal, comprehensive Release Document for Amber releases in GitHub Actions.
 
 Features:
 1. Priority 1: Reads formal release document from `docs/releases/<tag>.md`.
@@ -112,7 +112,7 @@ def extract_changelog_section(tag, repo_root):
     match = re.search(pattern, content, re.DOTALL)
     if match:
         section = match.group(1).strip()
-        return f"# Beejs {tag} Release Notes\n\n{section}"
+        return f"# Amber {tag} Release Notes\n\n{section}"
     return ""
 
 
@@ -149,7 +149,7 @@ def generate_git_changelog(tag, prev_tag, repo_root):
 
     diff_stat = run_cmd(["git", "diff", "--stat", revision_range])
 
-    sections = [f"# Beejs {tag} Release Notes\n"]
+    sections = [f"# Amber {tag} Release Notes\n"]
     if features:
         sections.append("### 🚀 Features\n" + "\n".join(features) + "\n")
     if fixes:
@@ -217,7 +217,7 @@ def process_release_assets(release_dir):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate formal Beejs release notes.")
+    parser = argparse.ArgumentParser(description="Generate formal Amber release notes.")
     parser.add_argument("--tag", help="Release tag name (e.g. v0.4.0)", default=None)
     parser.add_argument(
         "--release-dir",

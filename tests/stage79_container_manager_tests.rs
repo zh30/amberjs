@@ -45,11 +45,11 @@ mod tests {
         let _manager = ContainerManager {};
 
         let version = "v0.1.0";
-        let expected_image = format!("beejs:{}", version);
+        let expected_image = format!("amberjs:{}", version);
 
         // 模拟构建镜像
         // 实际实现中会调用 manager.build_image(version).await
-        assert_eq!(expected_image, "beejs:v0.1.0");
+        assert_eq!(expected_image, "amberjs:v0.1.0");
     }
 
     #[tokio::test]
@@ -58,12 +58,12 @@ mod tests {
         let _manager = ContainerManager {};
 
         let config = ContainerConfig {
-            image: "beejs:latest".to_string(),
+            image: "amberjs:latest".to_string(),
             version: "v0.1.0".to_string(),
             replicas: 3,
             port: 8080,
             env: vec![
-                ("BEEJS_ENV".to_string(), "production".to_string()),
+                ("AMBER_ENV".to_string(), "production".to_string()),
                 ("LOG_LEVEL".to_string(), "info".to_string()),
             ],
         };
@@ -80,7 +80,7 @@ mod tests {
         // 测试容器生命周期管理
         let _manager = ContainerManager {};
 
-        let container_id = "beejs-container-123";
+        let container_id = "amberjs-container-123";
 
         // 模拟启动容器
         // let handle = manager.start_container(&container_id).await.unwrap();
@@ -89,7 +89,7 @@ mod tests {
         // 模拟停止容器
         // manager.stop_container(container_id).await.unwrap();
 
-        assert_eq!(container_id, "beejs-container-123");
+        assert_eq!(container_id, "amberjs-container-123");
     }
 
     #[tokio::test]
@@ -116,14 +116,14 @@ mod tests {
     async fn test_container_environment() {
         // 测试容器环境变量配置
         let env_vars = [
-            ("BEEJS_VERSION".to_string(), "v0.1.0".to_string()),
+            ("AMBER_VERSION".to_string(), "v0.1.0".to_string()),
             ("RUST_ENV".to_string(), "production".to_string()),
-            ("BEEJS_WORKERS".to_string(), "4".to_string()),
+            ("AMBER_WORKERS".to_string(), "4".to_string()),
         ];
 
         // 验证环境变量
         assert_eq!(env_vars.len(), 3);
-        assert!(env_vars.iter().any(|(k, _)| k == "BEEJS_VERSION"));
+        assert!(env_vars.iter().any(|(k, _)| k == "AMBER_VERSION"));
         assert!(env_vars.iter().any(|(k, _)| k == "RUST_ENV"));
     }
 
@@ -162,13 +162,13 @@ mod tests {
     async fn test_container_logs() {
         // 测试容器日志收集
         let _manager = ContainerManager {};
-        let container_id = "beejs-container-456";
+        let container_id = "amberjs-container-456";
 
         // 模拟获取日志
         // let logs = manager.get_logs(container_id).await.unwrap();
         // assert!(!logs.is_empty());
 
-        assert_eq!(container_id, "beejs-container-456");
+        assert_eq!(container_id, "amberjs-container-456");
     }
 
     #[tokio::test]
@@ -193,13 +193,13 @@ mod tests {
         // 测试容器卷挂载
         let volume_mounts = [
             VolumeMount {
-                source: "/data/beejs".to_string(),
+                source: "/data/amberjs".to_string(),
                 target: "/app/data".to_string(),
                 read_only: false,
             },
             VolumeMount {
-                source: "/logs/beejs".to_string(),
-                target: "/var/log/beejs".to_string(),
+                source: "/logs/amberjs".to_string(),
+                target: "/var/log/amberjs".to_string(),
                 read_only: true,
             },
         ];

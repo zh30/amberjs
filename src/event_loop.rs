@@ -1,5 +1,5 @@
 // V8 事件循环实现
-// 为 Beejs 提供异步 JavaScript 执行支持
+// 为 Amber 提供异步 JavaScript 执行支持
 // v0.3.247: 添加异步定时器调度支持 (setTimeout/setInterval/setImmediate)
 // v0.3.248: 使用 fired timer 队列简化架构
 

@@ -22,13 +22,13 @@ fn dockerfile_text() -> String {
     fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Dockerfile")).unwrap()
 }
 
-fn dockerfile_has_bee_entrypoint() -> bool {
+fn dockerfile_has_amber_entrypoint() -> bool {
     let docker = dockerfile_text();
-    docker.contains("ENTRYPOINT [\"bee\"]")
+    docker.contains("ENTRYPOINT [\"amber\"]")
 }
 
 #[test]
-fn tag_v_star_publishes_non_draft_release_with_five_bee_archives() {
+fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
     let yaml = release_assets_yaml();
 
     assert!(
@@ -51,6 +51,37 @@ fn tag_v_star_publishes_non_draft_release_with_five_bee_archives() {
         yaml.contains("cosign sign-blob") && yaml.contains("cdx.json"),
         "release must attach cosign signatures and a CycloneDX SBOM"
     );
+    let sbom = yaml
+        .split("Generate CycloneDX SBOM")
+        .nth(1)
+        .expect("SBOM step")
+        .split("\n      - name:")
+        .next()
+        .expect("SBOM step body");
+    assert!(
+        sbom.contains("file: Cargo.lock"),
+        "anchore/sbom-action path: is a directory; Cargo.lock must use file:: {sbom}"
+    );
+    assert!(
+        !sbom.contains("path: Cargo.lock"),
+        "path: Cargo.lock makes syft scan dir:Cargo.lock and fail: {sbom}"
+    );
+    assert!(
+        sbom.contains("format: cyclonedx-json"),
+        "SBOM must be CycloneDX JSON: {sbom}"
+    );
+    assert!(
+        sbom.contains("upload-release-assets: false"),
+        "SBOM action must not upload before action-gh-release creates the Release: {sbom}"
+    );
+    assert!(
+        sbom.contains("anchore/sbom-action@v0.24.2"),
+        "SBOM action must stay pinned so syft input mapping does not float: {sbom}"
+    );
+    assert!(
+        yaml.contains("Verify CycloneDX SBOM"),
+        "publish job must fail closed if the SBOM file is missing or not CycloneDX"
+    );
     assert!(
         yaml.contains("x86_64-unknown-linux-gnu")
             && yaml.contains("aarch64-unknown-linux-gnu")
@@ -60,8 +91,8 @@ fn tag_v_star_publishes_non_draft_release_with_five_bee_archives() {
         "must ship linux gnu x64/arm64, macOS arm64/x64, and Windows x64"
     );
     assert!(
-        yaml.contains("archive: zip") && yaml.contains("bee.exe"),
-        "Windows asset must be a zip containing bee.exe"
+        yaml.contains("archive: zip") && yaml.contains("amber.exe"),
+        "Windows asset must be a zip containing amber.exe"
     );
     assert!(
         !yaml.contains("continue-on-error: ${{ matrix.os == 'windows-latest' }}")
@@ -69,17 +100,192 @@ fn tag_v_star_publishes_non_draft_release_with_five_bee_archives() {
         "Windows MSVC release job must not continue-on-error"
     );
     assert!(
-        yaml.contains("Windows zip bee-*-x86_64-pc-windows-msvc.zip")
+        yaml.contains("Windows zip amber-*-x86_64-pc-windows-msvc.zip")
             || yaml.contains("x86_64-pc-windows-msvc.zip"),
         "publish job must require the Windows zip"
     );
+    let require = yaml
+        .split("Require Unix archives")
+        .nth(1)
+        .expect("require archives step")
+        .split("\n      - name:")
+        .next()
+        .expect("require step body");
     assert!(
-        yaml.contains("bee.exe"),
-        "Windows zip must be checked for bee.exe"
+        require.contains("x86_64-apple-darwin.tar.gz"),
+        "publish job must require the Intel mac archive for Homebrew: {require}"
+    );
+    assert!(
+        yaml.contains("amber.exe"),
+        "Windows zip must be checked for amber.exe"
     );
     assert!(
         yaml.contains("CARGO_REGISTRY_TOKEN is not set") || yaml.contains("skipping crates.io"),
         "missing crates.io token must be annotated, not silent success"
+    );
+}
+
+fn first_package_version(toml: &str) -> &str {
+    let package = toml
+        .split("[package]")
+        .nth(1)
+        .expect("[package] table")
+        .split('[')
+        .next()
+        .expect("package fields");
+    package
+        .lines()
+        .find_map(|line| {
+            let line = line.trim();
+            line.strip_prefix("version = \"")
+                .and_then(|rest| rest.strip_suffix('"'))
+        })
+        .expect("package version")
+}
+
+#[test]
+fn workspace_path_deps_have_crates_io_versions_matching_members() {
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let root = fs::read_to_string(manifest.join("Cargo.toml")).unwrap();
+    let transpile = fs::read_to_string(manifest.join("crates/amber_transpile/Cargo.toml")).unwrap();
+    let sandbox = fs::read_to_string(manifest.join("crates/amber_sandbox/Cargo.toml")).unwrap();
+    let zed = fs::read_to_string(manifest.join("extensions/zed/Cargo.toml")).unwrap();
+
+    let root_ver = first_package_version(&root);
+    let transpile_ver = first_package_version(&transpile);
+    let sandbox_ver = first_package_version(&sandbox);
+    assert_eq!(
+        root_ver, transpile_ver,
+        "amber_transpile version must match root"
+    );
+    assert_eq!(
+        root_ver, sandbox_ver,
+        "amber_sandbox version must match root"
+    );
+    assert!(
+        root.contains(&format!(
+            "amber_transpile = {{ path = \"crates/amber_transpile\", version = \"{root_ver}\" }}"
+        )),
+        "root must depend on amber_transpile with path + version for cargo publish: {root}"
+    );
+    assert!(
+        root.contains(&format!(
+            "amber_sandbox = {{ path = \"crates/amber_sandbox\", version = \"{root_ver}\" }}"
+        )),
+        "root must depend on amber_sandbox with path + version for cargo publish: {root}"
+    );
+
+    for (name, toml) in [("amber_transpile", &transpile), ("amber_sandbox", &sandbox)] {
+        assert!(
+            toml.contains("license = \"MIT\""),
+            "{name} must declare MIT license"
+        );
+        assert!(
+            toml.contains("repository = \"https://github.com/zh30/amberjs\""),
+            "{name} must declare the GitHub repository for crates.io"
+        );
+        assert!(
+            toml.contains("description = \""),
+            "{name} must have a crates.io description"
+        );
+        assert!(
+            !toml.contains("publish = false"),
+            "{name} must be publishable"
+        );
+    }
+    assert!(
+        zed.contains("publish = false"),
+        "Zed extension must not be published to crates.io"
+    );
+}
+
+#[test]
+fn cargo_package_include_covers_src_and_types_not_huge_trees() {
+    let cargo =
+        fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml")).unwrap();
+    let include = cargo
+        .split("include = [")
+        .nth(1)
+        .and_then(|rest| rest.split(']').next())
+        .expect("include list");
+    assert!(
+        include.contains("/src/**"),
+        "include must ship the whole src tree so the published crate builds: {include}"
+    );
+    assert!(
+        include.contains("/types/**") || include.contains("/types/*.d.ts"),
+        "include must ship types/ for include_str!(amberjs.d.ts): {include}"
+    );
+    assert!(
+        include.contains("/build.rs") && include.contains("/Cargo.lock"),
+        "published package must include build.rs and Cargo.lock: {include}"
+    );
+    for banned in [
+        "node_modules",
+        "benchmarks/",
+        "/apps/",
+        "/target/",
+        "/docs/STAGE_",
+    ] {
+        assert!(
+            !include.contains(banned),
+            "include must not whitelist {banned}: {include}"
+        );
+    }
+}
+
+#[test]
+fn crates_io_publish_is_ordered_and_idempotent_after_github_release() {
+    let yaml = release_assets_yaml();
+    let release_at = yaml
+        .find("uses: softprops/action-gh-release")
+        .expect("GitHub Release step");
+    let publish_at = yaml
+        .find("Publish to crates.io")
+        .expect("crates.io publish step");
+    assert!(
+        publish_at > release_at,
+        "crates.io publish must run after action-gh-release"
+    );
+    let publish = &yaml[publish_at..];
+    let transpile = publish
+        .find("amber_transpile")
+        .expect("publish amber_transpile");
+    let sandbox = publish
+        .find("amber_sandbox")
+        .expect("publish amber_sandbox");
+    let root = publish
+        .find("publish_one amberjs")
+        .or_else(|| publish.find("-p amberjs"))
+        .expect("publish amberjs");
+    assert!(
+        transpile < sandbox && sandbox < root,
+        "publish order must be amber_transpile, amber_sandbox, amberjs"
+    );
+    assert!(
+        publish.contains("already exists") && publish.contains("already uploaded"),
+        "re-running a tag must skip versions already on crates.io"
+    );
+    assert!(
+        publish.contains("--locked") && publish.contains("--token"),
+        "cargo publish must use --locked and CARGO_REGISTRY_TOKEN"
+    );
+    assert!(
+        publish.contains("CARGO_REGISTRY_TOKEN"),
+        "publish must use the existing CARGO_REGISTRY_TOKEN secret"
+    );
+    assert!(
+        !publish.contains("zed-amberjs"),
+        "Zed extension crate must not be published"
+    );
+    let publish_step = yaml.split("Publish to crates.io").nth(1).unwrap_or("");
+    let publish_step = publish_step
+        .split("\n      - name:")
+        .next()
+        .unwrap_or(publish_step);
+    assert!(
+        !publish_step.contains("continue-on-error"),
+        "crates.io publish must fail the job when the registry is down"
     );
 }
 
@@ -117,7 +323,7 @@ fn dockerfile_has_curl_for_rusty_v8_static_lib_download() {
 
 /// Paths `include_str!` / `include_bytes!` load from outside `src/` must be in
 /// the Docker build context. GHCR failed with:
-/// `couldn't read src/../types/beejs.d.ts`.
+/// `couldn't read src/../types/amberjs.d.ts`.
 fn rust_include_assets_outside_src() -> Vec<PathBuf> {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let src = manifest.join("src");
@@ -183,7 +389,7 @@ fn docker_context_includes_compile_time_assets() {
     let assets = rust_include_assets_outside_src();
     assert!(
         !assets.is_empty(),
-        "expected at least types/beejs.d.ts via include_str!"
+        "expected at least types/amberjs.d.ts via include_str!"
     );
     for asset in &assets {
         let top = asset
@@ -204,8 +410,8 @@ fn docker_context_includes_compile_time_assets() {
         );
     }
     assert!(
-        assets.iter().any(|p| p.ends_with("types/beejs.d.ts")),
-        "scanner missed types/beejs.d.ts: {assets:?}"
+        assets.iter().any(|p| p.ends_with("types/amberjs.d.ts")),
+        "scanner missed types/amberjs.d.ts: {assets:?}"
     );
 }
 
@@ -238,10 +444,42 @@ fn macos_x86_64_asset_job_uses_live_intel_runner() {
         .next()
         .expect("steps");
 
+    // x86_64 macOS is cross-compiled on macos-latest (ARM). macos-15-intel is
+    // not required and was dropped to avoid the retired / scarce Intel runner.
     assert!(
-        intel_block.contains("os: macos-15-intel")
-            && intel_block.contains("target: x86_64-apple-darwin"),
-        "x86_64-apple-darwin must run on macos-15-intel (GitHub-hosted Intel macOS 15)"
+        intel_block.contains("os: macos-latest")
+            && intel_block.contains("target: x86_64-apple-darwin")
+            && !intel_block.contains("macos-15-intel"),
+        "x86_64-apple-darwin must be listed on macos-latest (cross-compile), not macos-15-intel: {intel_block}"
+    );
+}
+
+#[test]
+fn macos_release_jobs_install_and_export_openssl() {
+    let yaml = release_assets_yaml();
+    assert!(
+        yaml.contains("brew install openssl@3") && yaml.contains("pkg-config"),
+        "macOS release jobs must brew install openssl@3 and pkg-config"
+    );
+    assert!(
+        yaml.contains("OPENSSL_DIR") && yaml.contains("PKG_CONFIG_PATH"),
+        "macOS release jobs must export OPENSSL_DIR and PKG_CONFIG_PATH for openssl-sys"
+    );
+    assert!(
+        yaml.contains("darwin64-x86_64-cc") && yaml.contains("lipo -info"),
+        "x86_64-apple-darwin must build/verify an x86_64 OpenSSL, not ARM Homebrew libs"
+    );
+    assert!(
+        yaml.contains("a8f84a39918ec6415ce765d9b429d313ba97b8143169c172e734b9514464f5b2"),
+        "x86_64 OpenSSL tarball SHA-256 must stay pinned"
+    );
+    assert!(
+        yaml.contains("Install OpenSSL (macOS)") && yaml.contains("Configure OpenSSL env (macOS)"),
+        "macOS OpenSSL install/env steps must be named in the workflow (inline, not a new tag script)"
+    );
+    assert!(
+        !yaml.contains("./scripts/macos_openssl_env"),
+        "do not call a repo script for macOS OpenSSL; workflow_dispatch checks out the tag"
     );
 }
 
@@ -299,8 +537,8 @@ fn ci_gates_are_fail_closed_and_cover_oses() {
 fn docker_workflow_publishes_ghcr_on_v_tags() {
     let yaml = docker_yaml();
     assert!(
-        yaml.contains("ghcr.io/zh30/beejs"),
-        "image must target ghcr.io/zh30/beejs"
+        yaml.contains("ghcr.io/zh30/amberjs"),
+        "image must target ghcr.io/zh30/amberjs"
     );
     assert!(
         yaml.contains("tags: [\"v*\"]") || yaml.contains("tags: ['v*']"),
@@ -312,12 +550,12 @@ fn docker_workflow_publishes_ghcr_on_v_tags() {
     );
     assert!(
         yaml.contains("docker run --rm") && yaml.contains("--version"),
-        "image job must smoke bee --version"
+        "image job must smoke amber --version"
     );
     assert!(
         !yaml.contains("docker run --rm ${{ env.IMAGE }}:ci --version")
-            || dockerfile_has_bee_entrypoint(),
-        "docker run IMAGE --version requires ENTRYPOINT [\"bee\"]; otherwise --version replaces CMD"
+            || dockerfile_has_amber_entrypoint(),
+        "docker run IMAGE --version requires ENTRYPOINT [\"amber\"]; otherwise --version replaces CMD"
     );
     assert!(
         yaml.contains("amd64-only") || yaml.contains("linux/amd64 only"),
@@ -330,19 +568,19 @@ fn docker_workflow_publishes_ghcr_on_v_tags() {
 }
 
 #[test]
-fn dockerfile_entrypoint_is_bee_so_docker_run_version_works() {
+fn dockerfile_entrypoint_is_amber_so_docker_run_version_works() {
     let docker = dockerfile_text();
     assert!(
-        docker.contains("ENTRYPOINT [\"bee\"]"),
-        "GHCR smoke is `docker run IMAGE --version`; that only works with ENTRYPOINT bee: {docker}"
+        docker.contains("ENTRYPOINT [\"amber\"]"),
+        "GHCR smoke is `docker run IMAGE --version`; that only works with ENTRYPOINT amber: {docker}"
     );
     assert!(
         docker.contains("CMD [\"serve\""),
-        "default container args must be serve host/port, not a second bee executable: {docker}"
+        "default container args must be serve host/port, not a second amber executable: {docker}"
     );
     assert!(
-        !docker.contains("CMD [\"bee\", \"serve\""),
-        "CMD must not start with bee once ENTRYPOINT is bee (would become `bee bee serve`)"
+        !docker.contains("CMD [\"amber\", \"serve\""),
+        "CMD must not start with amber once ENTRYPOINT is amber (would become `amber amber serve`)"
     );
 }
 
@@ -356,21 +594,21 @@ fn dependabot_covers_cargo_and_github_actions() {
 
 #[test]
 fn homebrew_formula_points_at_github_release_assets() {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Formula/bee.rb");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Formula/amber.rb");
     let formula =
         fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
     for asset in [
-        "bee-v#{version}-aarch64-apple-darwin.tar.gz",
-        "bee-v#{version}-x86_64-apple-darwin.tar.gz",
-        "bee-v#{version}-aarch64-unknown-linux-gnu.tar.gz",
-        "bee-v#{version}-x86_64-unknown-linux-gnu.tar.gz",
+        "amber-v#{version}-aarch64-apple-darwin.tar.gz",
+        "amber-v#{version}-x86_64-apple-darwin.tar.gz",
+        "amber-v#{version}-aarch64-unknown-linux-gnu.tar.gz",
+        "amber-v#{version}-x86_64-unknown-linux-gnu.tar.gz",
     ] {
         assert!(
             formula.contains(asset),
             "Homebrew formula missing asset {asset}"
         );
     }
-    assert!(formula.contains("https://github.com/zh30/beejs/releases/download/"));
+    assert!(formula.contains("https://github.com/zh30/amberjs/releases/download/"));
 }
 
 #[test]
@@ -385,8 +623,8 @@ import importlib.util
 spec = importlib.util.spec_from_file_location("grn", r"{script}")
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
-assert mod.detect_target_platform("bee-v1.8.0-aarch64-unknown-linux-gnu.tar.gz") == "Linux (aarch64)", mod.detect_target_platform("bee-v1.8.0-aarch64-unknown-linux-gnu.tar.gz")
-assert mod.detect_target_platform("bee-v1.8.0-x86_64-unknown-linux-gnu.tar.gz") == "Linux (x86_64)"
+assert mod.detect_target_platform("amber-v1.8.0-aarch64-unknown-linux-gnu.tar.gz") == "Linux (aarch64)", mod.detect_target_platform("amber-v1.8.0-aarch64-unknown-linux-gnu.tar.gz")
+assert mod.detect_target_platform("amber-v1.8.0-x86_64-unknown-linux-gnu.tar.gz") == "Linux (x86_64)"
 print("ok")
 "#,
             script = script.display()
@@ -414,8 +652,8 @@ fn install_sh_maps_unix_platforms_to_release_targets() {
         let output = Command::new("sh")
             .arg(&script)
             .arg("--print-platform")
-            .env("BEEJS_UNAME_S", os)
-            .env("BEEJS_UNAME_M", arch)
+            .env("AMBER_UNAME_S", os)
+            .env("AMBER_UNAME_M", arch)
             .output()
             .expect("run install.sh --print-platform");
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -434,47 +672,36 @@ fn install_sh_maps_unix_platforms_to_release_targets() {
     let ps1 = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("install.ps1");
     let ps1_text = fs::read_to_string(&ps1).expect("install.ps1");
     assert!(ps1_text.contains("x86_64-pc-windows-msvc.zip"));
-    assert!(ps1_text.contains("bee.exe"));
+    assert!(ps1_text.contains("amber.exe"));
+    assert!(
+        ps1_text.contains("bee-$Version-$Target.zip") && ps1_text.contains("bee.exe"),
+        "install.ps1 must fall back to legacy bee- zip / bee.exe"
+    );
 }
 
 #[test]
 fn windows_sys_imports_match_v0_52_modules() {
-    let rss = fs::read_to_string(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/runtime_minimal.rs"),
-    )
-    .unwrap();
-    assert!(
-        rss.contains("use windows_sys::Win32::System::Threading::GetCurrentProcess"),
-        "GetCurrentProcess must come from Threading on windows-sys 0.52"
-    );
-    assert!(
-        rss.contains("use windows_sys::Win32::System::ProcessStatus::{")
-            && rss.contains("GetProcessMemoryInfo")
-            && rss.contains("PROCESS_MEMORY_COUNTERS"),
-        "GetProcessMemoryInfo/PROCESS_MEMORY_COUNTERS must come from ProcessStatus"
-    );
-    assert!(
-        !rss.contains("Win32::Foundation::GetCurrentProcess"),
-        "GetCurrentProcess is not in Foundation in windows-sys 0.52"
-    );
-    assert!(
-        !rss.contains("Diagnostics::Debug::{\n            GetProcessMemoryInfo"),
-        "GetProcessMemoryInfo is not in Diagnostics::Debug in windows-sys 0.52"
-    );
-
     let cpu = fs::read_to_string(
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/nodejs_core/process.rs"),
     )
     .unwrap();
     assert!(
-        cpu.contains(
-            "use windows_sys::Win32::System::Threading::{GetCurrentProcess, GetProcessTimes}"
-        ),
-        "GetProcessTimes must come from Threading"
+        cpu.contains("use windows_sys::Win32::System::Threading::GetCurrentProcess"),
+        "GetCurrentProcess must come from Threading on windows-sys 0.52"
     );
     assert!(
-        cpu.contains("use windows_sys::Win32::Foundation::FILETIME"),
-        "GetProcessTimes takes FILETIME pointers"
+        cpu.contains("use windows_sys::Win32::System::ProcessStatus::{")
+            && cpu.contains("GetProcessMemoryInfo")
+            && cpu.contains("PROCESS_MEMORY_COUNTERS"),
+        "GetProcessMemoryInfo/PROCESS_MEMORY_COUNTERS must come from ProcessStatus"
+    );
+    assert!(
+        !cpu.contains("Win32::Foundation::GetCurrentProcess"),
+        "GetCurrentProcess is not in Foundation in windows-sys 0.52"
+    );
+    assert!(
+        !cpu.contains("Diagnostics::Debug::{\n            GetProcessMemoryInfo"),
+        "GetProcessMemoryInfo is not in Diagnostics::Debug in windows-sys 0.52"
     );
     assert!(
         !cpu.contains("Diagnostics::Process::GetProcessTimes"),
@@ -561,12 +788,12 @@ fn windows_os_uptime_uses_gettickcount64_not_sys_info_boottime() {
 }
 
 #[test]
-fn linux_bee_exports_napi_symbols_via_per_binary_flag() {
+fn linux_amber_exports_napi_symbols_via_per_binary_flag() {
     let build = fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("build.rs"))
         .expect("build.rs");
     assert!(
-        build.contains("cargo:rustc-link-arg-bin=bee=-Wl,--export-dynamic"),
-        "Linux N-API addons resolve napi_* from bee dynsym; flag must be per-binary: {build}"
+        build.contains("cargo:rustc-link-arg-bin=amber=-Wl,--export-dynamic"),
+        "Linux N-API addons resolve napi_* from amber dynsym; flag must be per-binary: {build}"
     );
     assert!(
         build.contains("linux"),
@@ -587,12 +814,12 @@ fn debugger_docs_describe_inspect_not_stage59_debug() {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docs/DEBUGGER_USAGE.md"),
     )
     .unwrap();
-    assert!(debugger.contains("bee run --inspect"));
-    assert!(debugger.contains("bee run --inspect-brk"));
+    assert!(debugger.contains("amber run --inspect"));
+    assert!(debugger.contains("amber run --inspect-brk"));
     assert!(debugger.contains("9229"));
     assert!(
-        !debugger.contains("当前 public CLI 仅暴露 `bee debug"),
-        "DEBUGGER_USAGE.md must not claim bee debug is the public inspector"
+        !debugger.contains("当前 public CLI 仅暴露 `amber debug"),
+        "DEBUGGER_USAGE.md must not claim amber debug is the public inspector"
     );
     assert!(
         !debugger.contains("v0.1.0 Stage 59"),
@@ -616,11 +843,11 @@ fn debugger_docs_describe_inspect_not_stage59_debug() {
 fn homebrew_updater_writes_nonzero_sha256_and_refuses_zeros() {
     let script =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("scripts/update_homebrew_formula.py");
-    let formula_src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Formula/bee.rb");
+    let formula_src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Formula/amber.rb");
     let dir = tempfile::tempdir().unwrap();
     let release = dir.path().join("release");
     fs::create_dir_all(&release).unwrap();
-    let formula = dir.path().join("bee.rb");
+    let formula = dir.path().join("amber.rb");
     fs::copy(&formula_src, &formula).unwrap();
 
     let version = "1.11.0";
@@ -631,7 +858,7 @@ fn homebrew_updater_writes_nonzero_sha256_and_refuses_zeros() {
         "x86_64-unknown-linux-gnu",
     ] {
         fs::write(
-            release.join(format!("bee-v{version}-{target}.tar.gz")),
+            release.join(format!("amber-v{version}-{target}.tar.gz")),
             format!("dummy-{target}-payload"),
         )
         .unwrap();
@@ -668,11 +895,11 @@ fn homebrew_updater_writes_nonzero_sha256_and_refuses_zeros() {
 
 #[test]
 fn winget_manifest_installer_url_uses_windows_zip() {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("manifests/winget/zh30.bee.yaml");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("manifests/winget/zh30.amber.yaml");
     let text = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
     assert!(
         text.contains("x86_64-pc-windows-msvc.zip"),
         "winget InstallerUrl must use the Windows zip name"
     );
-    assert!(text.contains("bee-v"));
+    assert!(text.contains("amber-v"));
 }

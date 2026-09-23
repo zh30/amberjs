@@ -18,7 +18,7 @@ pub struct SimpleReplConfig {
 impl Default for SimpleReplConfig {
     fn default() -> Self {
         Self {
-            prompt: "bee> ".to_string(),
+            prompt: "amber> ".to_string(),
             history_size: 100,
         }
     }
@@ -53,7 +53,7 @@ impl SimpleRepl {
 
     /// Run the REPL
     pub fn run(&mut self) -> Result<()> {
-        println!("🐝 Beejs REPL - High-performance JavaScript/TypeScript runtime");
+        println!("🐝 Amber REPL - High-performance JavaScript/TypeScript runtime");
         println!("Built with Rust + V8 (minimal edition)");
         println!("Type JavaScript code and press Enter to execute");
         println!("Type .exit or Ctrl+C to quit");
@@ -125,7 +125,7 @@ impl SimpleRepl {
                 io::stdout().flush()?;
             }
             ".info" => {
-                println!("Beejs Runtime Information:");
+                println!("Amber Runtime Information:");
                 println!("  Version: 0.1.3");
                 println!("  Engine: V8 (rusty_v8)");
                 println!("  Runtime: MinimalRuntime");

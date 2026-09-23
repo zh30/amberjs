@@ -1,10 +1,10 @@
 {
   "dashboard": {
     "id": null,
-    "uid": "beejs-enterprise-metrics",
-    "title": "Beejs Enterprise Metrics",
+    "uid": "amberjs-enterprise-metrics",
+    "title": "Amber Enterprise Metrics",
     "description": "Enterprise-level metrics for multi-tenant and multi-instance monitoring",
-    "tags": ["beejs", "enterprise", "metrics", "multi-tenant"],
+    "tags": ["amberjs", "enterprise", "metrics", "multi-tenant"],
     "style": "dark",
     "timezone": "browser",
     "refresh": "5s",
@@ -21,7 +21,7 @@
           "name": "instance",
           "type": "query",
           "label": "Instance",
-          "query": "label_values(beejs_instance)",
+          "query": "label_values(amberjs_instance)",
           "refresh": 1,
           "hide": 0,
           "sort": 0
@@ -30,7 +30,7 @@
           "name": "namespace",
           "type": "query",
           "label": "Namespace",
-          "query": "label_values(beejs_namespace)",
+          "query": "label_values(amberjs_namespace)",
           "refresh": 1,
           "hide": 0,
           "sort": 0
@@ -39,7 +39,7 @@
           "name": "tenant",
           "type": "query",
           "label": "Tenant",
-          "query": "label_values(beejs_tenant)",
+          "query": "label_values(amberjs_tenant)",
           "refresh": 1,
           "hide": 0,
           "sort": 0
@@ -72,7 +72,7 @@
         },
         "targets": [
           {
-            "expr": "count(beejs_instance)",
+            "expr": "count(amberjs_instance)",
             "legendFormat": "Instances",
             "refId": "A"
           }
@@ -125,7 +125,7 @@
         },
         "targets": [
           {
-            "expr": "count(beejs_tenant)",
+            "expr": "count(amberjs_tenant)",
             "legendFormat": "Tenants",
             "refId": "A"
           }
@@ -178,7 +178,7 @@
         },
         "targets": [
           {
-            "expr": "sum(beejs_scripts_deployed_total)",
+            "expr": "sum(amberjs_scripts_deployed_total)",
             "legendFormat": "Deployed Scripts",
             "refId": "A"
           }
@@ -231,7 +231,7 @@
         },
         "targets": [
           {
-            "expr": "sum(beejs_hot_reloads_total)",
+            "expr": "sum(amberjs_hot_reloads_total)",
             "legendFormat": "Hot Reloads",
             "refId": "A"
           }
@@ -284,12 +284,12 @@
         },
         "targets": [
           {
-            "expr": "sum(rate(beejs_cpu_usage_percent{tenant=\"$tenant\"}[$__interval])) by (tenant)",
+            "expr": "sum(rate(amberjs_cpu_usage_percent{tenant=\"$tenant\"}[$__interval])) by (tenant)",
             "legendFormat": "CPU {{tenant}}",
             "refId": "A"
           },
           {
-            "expr": "sum(beejs_memory_usage_bytes{tenant=\"$tenant\"}) by (tenant) / 1024 / 1024 / 1024",
+            "expr": "sum(amberjs_memory_usage_bytes{tenant=\"$tenant\"}) by (tenant) / 1024 / 1024 / 1024",
             "legendFormat": "Memory {{tenant}}",
             "refId": "B"
           }
@@ -361,7 +361,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_operator_status{instance=\"$instance\"}",
+            "expr": "amberjs_operator_status{instance=\"$instance\"}",
             "legendFormat": "{{operator}}",
             "refId": "A"
           }
@@ -435,7 +435,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_resource_quota_used_bytes{tenant=\"$tenant\"} / beejs_resource_quota_limit_bytes{tenant=\"$tenant\"} * 100",
+            "expr": "amberjs_resource_quota_used_bytes{tenant=\"$tenant\"} / amberjs_resource_quota_limit_bytes{tenant=\"$tenant\"} * 100",
             "legend_typeFormat": "{{resource}}",
             "refId": "A"
           }
@@ -502,12 +502,12 @@
         },
         "targets": [
           {
-            "expr": "rate(beejs_service_mesh_requests_total{instance=\"$instance\"}[$__interval])",
+            "expr": "rate(amberjs_service_mesh_requests_total{instance=\"$instance\"}[$__interval])",
             "legendFormat": "Requests {{service}}",
             "refId": "A"
           },
           {
-            "expr": "rate(beejs_service_mesh_errors_total{instance=\"$instance\"}[$__interval])",
+            "expr": "rate(amberjs_service_mesh_errors_total{instance=\"$instance\"}[$__interval])",
             "legendFormat": "Errors {{service}}",
             "refId": "B"
           }
@@ -579,7 +579,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_trace_duration_ms_bucket{instance=\"$instance\"}",
+            "expr": "amberjs_trace_duration_ms_bucket{instance=\"$instance\"}",
             "legendFormat": "{{le}}",
             "refId": "A"
           }
@@ -635,7 +635,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_cost_per_tenant_dollars{tenant=\"$tenant\"}",
+            "expr": "amberjs_cost_per_tenant_dollars{tenant=\"$tenant\"}",
             "legendFormat": "{{tenant}}",
             "refId": "A"
           }
@@ -685,7 +685,7 @@
         },
         "targets": [
           {
-            "expr": "beejs_sla_compliance_percent{instance=\"$instance\"}",
+            "expr": "amberjs_sla_compliance_percent{instance=\"$instance\"}",
             "legendFormat": "SLA",
             "refId": "A"
           }
@@ -751,7 +751,7 @@
         },
         "targets": [
           {
-            "expr": "count(beejs_deployment_status{instance=\"$instance\"}) by (status)",
+            "expr": "count(amberjs_deployment_status{instance=\"$instance\"}) by (status)",
             "legendFormat": "{{status}}",
             "refId": "A"
           }

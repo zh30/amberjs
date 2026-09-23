@@ -7,11 +7,11 @@ echo
 
 # Test 1: Multiple separate executions (each creates new runtime)
 echo "📊 Test 1: Separate executions (old way - each process creates new runtime)"
-echo "Running 10 separate beejs processes..."
+echo "Running 10 separate amberjs processes..."
 
 start1=$(date +%s%3N)
 for i in {1..10}; do
-    ./target/release/beejs --eval "console.log('Run $i')" > /dev/null 2>&1
+    ./target/release/amberjs --eval "console.log('Run $i')" > /dev/null 2>&1
 done
 end1=$(date +%s%3N)
 time1=$((end1 - start1))
@@ -35,7 +35,7 @@ EOF
 
 # Use timeout to limit watch mode execution
 start2=$(date +%s%3N)
-timeout 5 ./target/release/beejs --watch /tmp/test_runtime.js > /dev/null 2>&1 &
+timeout 5 ./target/release/amberjs --watch /tmp/test_runtime.js > /dev/null 2>&1 &
 watch_pid=$!
 
 # Modify file multiple times to trigger re-executions
@@ -61,7 +61,7 @@ echo "Running 5 eval commands in sequence..."
 
 start3=$(date +%s%3N)
 for i in {1..5}; do
-    ./target/release/beejs --eval "console.log('Eval $i')" > /dev/null 2>&1
+    ./target/release/amberjs --eval "console.log('Eval $i')" > /dev/null 2>&1
 done
 end3=$(date +%s%3N)
 time3=$((end3 - start3))

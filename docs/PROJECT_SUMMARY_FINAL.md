@@ -1,8 +1,8 @@
-# Beejs 高性能 JavaScript/TypeScript 运行时 - 项目完整总结
+# Amber 高性能 JavaScript/TypeScript 运行时 - 项目完整总结
 
 ## 🎯 项目概述
 
-**项目名称**: Beejs
+**项目名称**: Amber
 **版本**: 0.1.0 (Stage 21.4)
 **目标**: 构建比 Bun 更快的 JavaScript/TypeScript 运行时
 **技术栈**: Rust + V8 + 现代优化技术
@@ -77,7 +77,7 @@
 
 ### 与 Bun 对比 (真实测试)
 
-| 指标 | Beejs | Bun | 差距 |
+| 指标 | Amber | Bun | 差距 |
 |------|-------|-----|------|
 | 启动时间 | 33.24ms | 0.00012ms | Bun 快 61,478x |
 | 简单执行 | 112 ops/sec | 1,373,885 ops/sec | Bun 快 7,882x |
@@ -90,7 +90,7 @@
 - Bun 在纯性能方面领先
 - 差距主要在启动时间和 JIT 编译效率
 
-**Beejs 优势**:
+**Amber 优势**:
 - ✅ 内存安全 (Rust)
 - ✅ AI 工作负载优化
 - ✅ 零拷贝 I/O
@@ -150,10 +150,10 @@ cargo build --release
 cargo test
 
 # 基准测试
-./beejs benchmarks/beejs_benchmark.js
+./amberjs benchmarks/amberjs_benchmark.js
 
 # 运行
-./beejs -e 'console.log("Hello")'
+./amberjs -e 'console.log("Hello")'
 ```
 
 ---
@@ -161,7 +161,7 @@ cargo test
 ## 🎯 战略定位
 
 ### 当前定位
-Beejs 是一个**功能完整、架构优良**的 JavaScript 运行时，专注于：
+Amber 是一个**功能完整、架构优良**的 JavaScript 运行时，专注于：
 - AI 工作负载优化 (独有优势)
 - 内存安全 (Rust 保障)
 - 服务器模式 (Web 服务)
@@ -184,8 +184,8 @@ Beejs 是一个**功能完整、架构优良**的 JavaScript 运行时，专注�
 ## 📦 交付成果
 
 ### 可执行文件
-- **beejs**: 主运行时 (~18MB)
-- **beejs-benchmark**: 基准测试工具
+- **amberjs**: 主运行时 (~18MB)
+- **amberjs-benchmark**: 基准测试工具
 - **startup_benchmark**: 启动性能测试
 
 ### 核心模块 (54 个源文件)
@@ -259,7 +259,7 @@ Beejs 是一个**功能完整、架构优良**的 JavaScript 运行时，专注�
 
 ## 🎓 总结
 
-**Beejs 项目已经达到了其核心目标**：
+**Amber 项目已经达到了其核心目标**：
 - ✅ 构建了功能完整的 JavaScript/TypeScript 运行时
 - ✅ 实现了独特的 AI 工作负载优化
 - ✅ 建立了优秀的测试和文档体系
@@ -274,7 +274,7 @@ Beejs 是一个**功能完整、架构优良**的 JavaScript 运行时，专注�
 ---
 
 **项目总结生成时间**: 2025-12-18 19:22
-**负责人**: Beejs 开发团队
+**负责人**: Amber 开发团队
 **下次评估**: Stage 22 完成后
 
-**🚀 Beejs: 为 AI 时代而生的 JavaScript 运行时**
+**🚀 Amber: 为 AI 时代而生的 JavaScript 运行时**

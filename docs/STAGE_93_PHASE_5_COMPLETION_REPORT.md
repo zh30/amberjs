@@ -4,7 +4,7 @@
 
 **Stage 93 Phase 5: 性能基准测试套件** 已圆满完成！
 
-本阶段为 Beejs 高性能 JavaScript/TypeScript 运行时构建了完整的性能基准测试系统，实现了与 Bun、Node.js 等主流运行时的全面性能对比，建立了性能回归自动检测机制。
+本阶段为 Amber 高性能 JavaScript/TypeScript 运行时构建了完整的性能基准测试系统，实现了与 Bun、Node.js 等主流运行时的全面性能对比，建立了性能回归自动检测机制。
 
 ## ✅ 完成内容
 
@@ -43,7 +43,7 @@
 ### 3. 运行时对比系统 (`src/benchmark/runtime_comparison/`)
 
 #### 核心组件
-- **RuntimeDetector** - 自动检测可用运行时 (Beejs、Node.js、Bun、Deno)
+- **RuntimeDetector** - 自动检测可用运行时 (Amber、Node.js、Bun、Deno)
 - **ProcessLauncher** - 统一的进程启动和输出捕获
 - **ComparisonReport** - 性能对比报告生成
 - **PerformanceComparison** - 吞吐量、延迟、统计显著性分析
@@ -170,9 +170,9 @@ src/benchmark/
 
 ## 📝 总结
 
-Stage 93 Phase 5 为 Beejs 构建了完整、强大、易用的性能基准测试系统。该系统不仅提供了全面的性能测试能力，还建立了自动化的性能回归检测机制，为 Beejs 的持续优化提供了有力保障。
+Stage 93 Phase 5 为 Amber 构建了完整、强大、易用的性能基准测试系统。该系统不仅提供了全面的性能测试能力，还建立了自动化的性能回归检测机制，为 Amber 的持续优化提供了有力保障。
 
-通过本阶段的实施，Beejs 已成为一个具备完整性能测试和监控能力的高性能 JavaScript/TypeScript 运行时，为 AI 时代的高性能 JS/TS 脚本执行提供了坚实基础。
+通过本阶段的实施，Amber 已成为一个具备完整性能测试和监控能力的高性能 JavaScript/TypeScript 运行时，为 AI 时代的高性能 JS/TS 脚本执行提供了坚实基础。
 
 ---
 

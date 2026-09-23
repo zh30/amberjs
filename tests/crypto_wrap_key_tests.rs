@@ -3,7 +3,7 @@
 // wrapKey wraps (encrypts) a key for secure storage/transport
 // unwrapKey unwraps (decrypts) a wrapped key
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]
@@ -694,7 +694,7 @@ fn test_unwrap_key_rejects_invalid_format() {
 
             try {
                 await crypto.subtle.unwrapKey(
-                    'beejs-internal',
+                    'amberjs-internal',
                     wrapped,
                     wrappingKey,
                     { name: 'AES-GCM', iv },

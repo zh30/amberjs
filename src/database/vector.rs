@@ -1,7 +1,7 @@
-//! High-performance vector similarity search engine for Beejs (`bee:vector`).
+//! High-performance vector similarity search engine for Amber (`amber:vector`).
 //!
 //! Designed for Agentic AI workflows: stores embeddings, computes cosine/euclidean/dot
-//! distance, and returns Top-K nearest neighbors. Directly interoperates with `bee:ai`'s
+//! distance, and returns Top-K nearest neighbors. Directly interoperates with `amber:ai`'s
 //! Tensor and Float32Array.
 
 use anyhow::{anyhow, Result};

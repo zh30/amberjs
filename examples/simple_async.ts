@@ -9,7 +9,7 @@ function greet(user: User): string {
 }
 
 const user: User = {
-    name: "Beejs",
+    name: "Amber",
     version: "0.3.102"
 };
 

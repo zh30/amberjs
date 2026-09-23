@@ -1,11 +1,11 @@
 // TextEncoder/TextDecoder API 测试套件
 //
-// 目标：验证 Beejs 对 TextEncoder 和 TextDecoder 的完整支持
+// 目标：验证 Amber 对 TextEncoder 和 TextDecoder 的完整支持
 // 这两个 API 用于高效处理 UTF-8 编码/解码
 
 #[cfg(test)]
 mod tests {
-    use beejs::runtime_minimal::MinimalRuntime;
+    use amberjs::runtime_minimal::MinimalRuntime;
     use serial_test::serial;
 
     /// 测试 TextEncoder 构造函数可用性

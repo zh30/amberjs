@@ -82,7 +82,7 @@ def fix_ordering_duplicates(file_path):
 
 def main():
     """主函数：查找并修复所有 Ordering 重复导入错误"""
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
 
     print("🔧 开始修复 Ordering 重复导入错误...")
 

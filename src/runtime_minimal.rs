@@ -234,7 +234,7 @@ extern "C" fn promise_reject_callback(message: v8::PromiseRejectMessage) {
     let context = scope.get_current_context();
     let scope = &mut v8::ContextScope::new(scope, context);
     let global = context.global(scope);
-    let key = v8::String::new(scope, "__bee_dispatch_unhandled_rejection").unwrap();
+    let key = v8::String::new(scope, "__amber_dispatch_unhandled_rejection").unwrap();
     let Some(fn_val) = global.get(scope, key.into()) else {
         return;
     };
@@ -4271,7 +4271,7 @@ pub struct MinimalRuntime {
     esm_module_cache_fingerprints: HashMap<PathBuf, [u8; 32]>,
     timer_drain_limit_ms: u64,
     /// When true, `execute_code` stays alive while an HTTP server is listening.
-    /// CLI `bee run` sets this; library/integration tests leave it false so
+    /// CLI `amber run` sets this; library/integration tests leave it false so
     /// `listen()` does not hang the test process.
     http_server_keep_alive: bool,
 }
@@ -4282,7 +4282,7 @@ impl MinimalRuntime {
     const DEFAULT_TIMER_DRAIN_LIMIT_MS: u64 = u64::MAX;
 
     fn default_process_argv() -> Vec<String> {
-        vec!["bee".to_string(), "<program>".to_string()]
+        vec!["amber".to_string(), "<program>".to_string()]
     }
 
     fn default_main_module_dir() -> String {
@@ -4316,7 +4316,7 @@ impl MinimalRuntime {
         // 16MB initial / 2GB max — same initial as `new_fast`, full production max.
         let create_params = Self::isolate_create_params(16 * 1024 * 1024, 2048 * 1024 * 1024);
 
-        let profile_startup = std::env::var_os("BEEJS_PROFILE_STARTUP").is_some();
+        let profile_startup = std::env::var_os("AMBER_PROFILE_STARTUP").is_some();
         let t_iso = if profile_startup {
             Some(std::time::Instant::now())
         } else {
@@ -4438,7 +4438,7 @@ impl MinimalRuntime {
     pub fn set_process_argv(&mut self, argv: Vec<String>) {
         let mut argv = argv;
         if argv.is_empty() {
-            argv.push("bee".to_string());
+            argv.push("amber".to_string());
         }
         if argv.len() == 1 {
             argv.push("<program>".to_string());
@@ -4717,7 +4717,7 @@ impl MinimalRuntime {
             .and_then(|extension| extension.to_str())
             == Some("mjs")
         {
-            // `bee eval` with `import`/`export` uses a virtual `eval.mjs` path.
+            // `amber eval` with `import`/`export` uses a virtual `eval.mjs` path.
             // Treat any static import/export as native ESM so users get module
             // errors instead of a Script SyntaxError.
             return Ok(has_export_syntax || has_await_syntax || !import_specifiers.is_empty());
@@ -5408,7 +5408,7 @@ impl MinimalRuntime {
         referrer_path: &Path,
     ) -> Result<(v8::Local<'scope, v8::Module>, PathBuf), String> {
         if let Some(builtin_name) = Self::normalized_esm_builtin_name(specifier) {
-            let module_path = PathBuf::from(format!("beejs:builtin:{}", builtin_name));
+            let module_path = PathBuf::from(format!("amberjs:builtin:{}", builtin_name));
             let cached_module = ESM_MODULE_LOAD_STATE.with(|state| {
                 state
                     .borrow()
@@ -5760,7 +5760,7 @@ impl MinimalRuntime {
                     v8::String::new(scope, "exitCode").unwrap(),
                     v8::String::new(scope, "nextTick").unwrap(),
                     v8::String::new(scope, "features").unwrap(),
-                    v8::String::new(scope, "isBeejs").unwrap(),
+                    v8::String::new(scope, "isAmber").unwrap(),
                     v8::String::new(scope, "browser").unwrap(),
                     v8::String::new(scope, "release").unwrap(),
                     v8::String::new(scope, "on").unwrap(),
@@ -6111,7 +6111,7 @@ impl MinimalRuntime {
             "exitCode",
             "nextTick",
             "features",
-            "isBeejs",
+            "isAmber",
             "browser",
             "release",
             "on",
@@ -6219,7 +6219,7 @@ impl MinimalRuntime {
         }
         let module_name = v8::String::new(
             scope,
-            &format!("beejs:commonjs:{}", module_path.to_string_lossy()),
+            &format!("amberjs:commonjs:{}", module_path.to_string_lossy()),
         )
         .ok_or_else(|| {
             format!(
@@ -6577,14 +6577,14 @@ impl MinimalRuntime {
     }
 
     fn compile_typescript_commonjs_module(code: &str, filename: &str) -> Result<String> {
-        let module_exports_marker = "__beejs_commonjs_module_exports__";
+        let module_exports_marker = "__amberjs_commonjs_module_exports__";
         let module_export_assignment_pattern =
             regex::Regex::new(r"(?s)\bmodule\s*\.\s*exports\b\s*=\s*.*?;").unwrap();
         let mut module_export_statements = Vec::<(String, String)>::new();
         let protected_assignments = module_export_assignment_pattern
             .replace_all(code, |captures: &regex::Captures| {
                 let marker = format!(
-                    "__beejs_commonjs_export_statement_{}",
+                    "__amberjs_commonjs_export_statement_{}",
                     module_export_statements.len()
                 );
                 module_export_statements.push((marker.clone(), captures[0].to_string()));
@@ -8308,7 +8308,7 @@ impl MinimalRuntime {
                     }
                 };
             }
-            globalThis.__bee_dispatch_unhandled_rejection = function(promise, reason) {
+            globalThis.__amber_dispatch_unhandled_rejection = function(promise, reason) {
                 let event;
                 try {
                     event = new PromiseRejectionEvent('unhandledrejection', {
@@ -8363,7 +8363,7 @@ impl MinimalRuntime {
         // Transpile TypeScript-only source through oxc before V8 parse.
         // Do not treat `import` / `export` as TypeScript: those are valid JS.
         let skip_runtime_typescript_transpile =
-            code.starts_with("// @beejs-no-runtime-typescript-transpile");
+            code.starts_with("// @amberjs-no-runtime-typescript-transpile");
         let has_raw_typescript = !skip_runtime_typescript_transpile
             && crate::typescript::looks_like_typescript_source(code);
 
@@ -8423,7 +8423,7 @@ impl MinimalRuntime {
 
         let scope = &mut v8::ContextScope::new(scope, context);
 
-        let profile_startup = std::env::var_os("BEEJS_PROFILE_STARTUP").is_some();
+        let profile_startup = std::env::var_os("AMBER_PROFILE_STARTUP").is_some();
         let _t_start = if profile_startup {
             Some(std::time::Instant::now())
         } else {
@@ -8549,14 +8549,14 @@ impl MinimalRuntime {
                         });
                         let runtime_error = v8_exception_to_runtime_error(scope, exception);
                         return Err(anyhow::anyhow!(
-                            "[Beejs Error] {}: {}",
+                            "[Amber Error] {}: {}",
                             runtime_error.code,
                             runtime_error.message
                         ));
                     }
 
                     return Err(anyhow::anyhow!(
-                        "[Beejs Error] MODULE_ERROR: {}",
+                        "[Amber Error] MODULE_ERROR: {}",
                         error_message
                     ));
                 }
@@ -8595,7 +8595,7 @@ impl MinimalRuntime {
                     // v0.3.235: Create enhanced RuntimeError with structured information
                     let runtime_error = v8_exception_to_runtime_error(scope, exception);
 
-                    return Err(anyhow::anyhow!("[Beejs Error] SyntaxError: {}\nHint: Check for missing parentheses, brackets, or invalid syntax.", runtime_error.message));
+                    return Err(anyhow::anyhow!("[Amber Error] SyntaxError: {}\nHint: Check for missing parentheses, brackets, or invalid syntax.", runtime_error.message));
                 }
             };
 
@@ -8674,7 +8674,7 @@ impl MinimalRuntime {
                         };
 
                         return Err(anyhow::anyhow!(
-                            "[Beejs Error] {}: {}{}{}",
+                            "[Amber Error] {}: {}{}{}",
                             runtime_error.code,
                             runtime_error.message,
                             runtime_error
@@ -8685,7 +8685,7 @@ impl MinimalRuntime {
                             hint
                         ));
                     } else {
-                        return Err(anyhow::anyhow!("[Beejs Error] InternalError: Script execution returned no result\nHint: This may indicate an internal runtime issue."));
+                        return Err(anyhow::anyhow!("[Amber Error] InternalError: Script execution returned no result\nHint: This may indicate an internal runtime issue."));
                     }
                 }
             }
@@ -8928,7 +8928,7 @@ impl MinimalRuntime {
             }
         }
 
-        // CLI `bee run` keeps the process alive while HTTP servers listen.
+        // CLI `amber run` keeps the process alive while HTTP servers listen.
         // Tests leave `http_server_keep_alive` false so listen() returns.
         if http_server_keep_alive {
             crate::nodejs_core::http::register_http_dispatch_thread(std::thread::current());
@@ -9063,7 +9063,7 @@ impl MinimalRuntime {
         }
     }
 
-    /// Call a previously loaded named export. Used by `bee session` / `bee mcp`.
+    /// Call a previously loaded named export. Used by `amber session` / `amber mcp`.
     pub fn call_named_export(&mut self, name: &str, args_json: &str) -> Result<String> {
         let name_json = serde_json::to_string(name)
             .map_err(|e| anyhow::anyhow!("Failed to encode tool name: {e}"))?;
@@ -9579,7 +9579,7 @@ impl MinimalRuntime {
         let bootstrap = r##"
 (function () {
   const NativeURL = globalThis.URL;
-  if (typeof NativeURL !== "function" || NativeURL.__beejsLiveSearchParams === true) {
+  if (typeof NativeURL !== "function" || NativeURL.__amberjsLiveSearchParams === true) {
     return;
   }
 
@@ -9830,7 +9830,7 @@ impl MinimalRuntime {
   BeeURL.prototype = Object.create(NativeURL.prototype || Object.prototype);
   BeeURL.prototype.constructor = BeeURL;
   Object.defineProperty(BeeURL, "name", { value: "URL" });
-  Object.defineProperty(BeeURL, "__beejsLiveSearchParams", { value: true });
+  Object.defineProperty(BeeURL, "__amberjsLiveSearchParams", { value: true });
   globalThis.URL = BeeURL;
 })();
 "##;
@@ -12894,7 +12894,7 @@ impl MinimalRuntime {
                 // Return promise immediately
                 retval.set(promise.into());
 
-                // Compute synchronously and resolve the Promise immediately. Beejs'
+                // Compute synchronously and resolve the Promise immediately. Amber'
                 // CLI already runs inside a Tokio runtime, so creating a nested
                 // runtime here would panic before the Promise can settle.
                 {
@@ -16242,7 +16242,7 @@ impl MinimalRuntime {
                         };
                         key_bytes = store_slice.to_vec();
                     } else {
-                        // Handle Beejs Buffer (Object with length property and numeric indices)
+                        // Handle Amber Buffer (Object with length property and numeric indices)
                         if let Ok(obj) = v8::Local::<v8::Object>::try_from(key_input) {
                             let length_key = v8::String::new(scope, "length").unwrap();
                             let length_prop = obj.get(scope, length_key.into());
@@ -16552,7 +16552,6 @@ impl MinimalRuntime {
                     }
                 } else if let Some(amber_name) = requested_module_id_str
                     .strip_prefix("amber:")
-                    .or_else(|| requested_module_id_str.strip_prefix("bee:"))
                 {
                     if crate::nodejs_core::commonjs_resolver::is_builtin_module(&requested_module_id_str)
                         || crate::nodejs_core::commonjs_resolver::is_builtin_module(amber_name)
@@ -17328,12 +17327,12 @@ impl MinimalRuntime {
                     | "url" | "querystring" | "dns" | "child_process" | "tcp_async" | "stream"
                     | "stream/promises" | "timers" | "timers/promises"
                     | "readline" | "performance" | "perf_hooks" | "assert" | "assert/strict"
-                    | "diagnostics_channel" | "async_hooks" | "wasm" | "bee:wasm" | "amber:wasm"
-                    | "ai" | "bee:ai" | "amber:ai" | "replay" | "bee:replay" | "amber:replay" | "weights" | "bee:weights" | "amber:weights"
-                    | "security" | "bee:security" | "amber:security" | "permissions" | "bee:permissions" | "amber:permissions"
-                    | "kv" | "bee:kv" | "amber:kv" | "tools" | "bee:tools" | "amber:tools" | "sandbox" | "bee:sandbox" | "amber:sandbox" | "vfs" | "bee:vfs" | "amber:vfs"
-                    | "bus" | "bee:bus" | "amber:bus" | "grammar" | "bee:grammar" | "amber:grammar" | "checkpoint" | "bee:checkpoint" | "amber:checkpoint"
-                    | "sockets" | "bee:sockets" | "amber:sockets" | "wintertc:sockets" | "std:cli" | "bee:std/cli" | "amber:std/cli" => {
+                    | "diagnostics_channel" | "async_hooks" | "wasm" | "amber:wasm"
+                    | "ai" | "amber:ai" | "replay" | "amber:replay" | "weights" | "amber:weights"
+                    | "security" | "amber:security" | "permissions" | "amber:permissions"
+                    | "kv" | "amber:kv" | "tools" | "amber:tools" | "sandbox" | "amber:sandbox" | "vfs" | "amber:vfs"
+                    | "bus" | "amber:bus" | "grammar" | "amber:grammar" | "checkpoint" | "amber:checkpoint"
+                    | "sockets" | "amber:sockets" | "wintertc:sockets" | "std:cli" | "amber:std/cli" => {
                         // Get context and global object
                         let ctx = scope.get_current_context();
                         let global_obj = ctx.global(scope);
@@ -17466,7 +17465,7 @@ impl MinimalRuntime {
                         }
 
                         if module_id_str == "ai" {
-                            let ai_key = v8::String::new(scope, "__bee_ai").unwrap();
+                            let ai_key = v8::String::new(scope, "__amber_ai").unwrap();
                             if let Some(ai_val) = global_obj.get(scope, ai_key.into()) {
                                 if !ai_val.is_undefined() {
                                     retval.set(ai_val);
@@ -17559,10 +17558,9 @@ impl MinimalRuntime {
 
                         if module_id_str == "sockets"
                             || module_id_str == "amber:sockets"
-                            || module_id_str == "bee:sockets"
                             || module_id_str == "wintertc:sockets"
                         {
-                            let sock_key = v8::String::new(scope, "__bee_sockets").unwrap();
+                            let sock_key = v8::String::new(scope, "__amber_sockets").unwrap();
                             if let Some(sock_val) = global_obj.get(scope, sock_key.into()) {
                                 if !sock_val.is_undefined() {
                                     retval.set(sock_val);
@@ -17574,7 +17572,6 @@ impl MinimalRuntime {
                         // Try to get the module from global
                         let clean_id = module_id_str
                             .strip_prefix("amber:")
-                            .or_else(|| module_id_str.strip_prefix("bee:"))
                             .unwrap_or(&module_id_str);
                         let mod_key = v8::String::new(scope, clean_id).unwrap();
                         if let Some(mod_val) = global_obj.get(scope, mod_key.into()) {
@@ -17593,9 +17590,9 @@ impl MinimalRuntime {
                             }
                         }
 
-                        let bee_mod_key =
-                            v8::String::new(scope, &format!("__bee_{}", clean_id)).unwrap();
-                        if let Some(mod_val) = global_obj.get(scope, bee_mod_key.into()) {
+                        let amber_mod_key =
+                            v8::String::new(scope, &format!("__amber_{}", clean_id)).unwrap();
+                        if let Some(mod_val) = global_obj.get(scope, amber_mod_key.into()) {
                             if !mod_val.is_undefined() {
                                 retval.set(mod_val);
                                 return;
@@ -17630,7 +17627,6 @@ impl MinimalRuntime {
                             Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::Builtin(name)) => {
                                 let clean = name
                                     .strip_prefix("amber:")
-                                    .or_else(|| name.strip_prefix("bee:"))
                                     .unwrap_or(&name);
                                 for candidate in &[
                                     name.as_str(),
@@ -17643,15 +17639,15 @@ impl MinimalRuntime {
                                             return;
                                         }
                                     }
-                                    let bee_key = v8::String::new(scope, &format!("__{}", candidate)).unwrap();
-                                    if let Some(val) = global.get(scope, bee_key.into()) {
+                                    let amber_key = v8::String::new(scope, &format!("__{}", candidate)).unwrap();
+                                    if let Some(val) = global.get(scope, amber_key.into()) {
                                         if !val.is_undefined() && !val.is_null() {
                                             retval.set(val);
                                             return;
                                         }
                                     }
-                                    let full_bee_key = v8::String::new(scope, &format!("__bee_{}", candidate)).unwrap();
-                                    if let Some(val) = global.get(scope, full_bee_key.into()) {
+                                    let full_amber_key = v8::String::new(scope, &format!("__amber_{}", candidate)).unwrap();
+                                    if let Some(val) = global.get(scope, full_amber_key.into()) {
                                         if !val.is_undefined() && !val.is_null() {
                                             retval.set(val);
                                             return;
@@ -17707,7 +17703,7 @@ impl MinimalRuntime {
                             if module_format
                                 == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule
                             {
-                                let cache_global_key = v8::String::new(scope, "__beejsEsmNamespaceCache").unwrap();
+                                let cache_global_key = v8::String::new(scope, "__amberjsEsmNamespaceCache").unwrap();
                                 let cache_obj = match global.get(scope, cache_global_key.into())
                                     .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
                                 {
@@ -17719,7 +17715,7 @@ impl MinimalRuntime {
                                     }
                                 };
                                 let fingerprint_cache_global_key =
-                                    v8::String::new(scope, "__beejsEsmNamespaceFingerprintCache").unwrap();
+                                    v8::String::new(scope, "__amberjsEsmNamespaceFingerprintCache").unwrap();
                                 let fingerprint_cache_obj = match global.get(scope, fingerprint_cache_global_key.into())
                                     .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
                                 {
@@ -17825,7 +17821,7 @@ impl MinimalRuntime {
                                 return;
                             }
 
-                            let cache_global_key = v8::String::new(scope, "__beejsModuleCache").unwrap();
+                            let cache_global_key = v8::String::new(scope, "__amberjsModuleCache").unwrap();
                             let cache_obj = match global.get(scope, cache_global_key.into())
                                 .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
                             {
@@ -17956,28 +17952,28 @@ impl MinimalRuntime {
                                         serde_json::to_string(&module_dirname).unwrap();
                                     let wrapper_code = format!(
                                         r#"(function(module, exports, __dirname, __filename) {{
-const __beejsModuleDir = {module_dir_json};
-const __beejsGlobalRequire = globalThis.require;
+const __amberjsModuleDir = {module_dir_json};
+const __amberjsGlobalRequire = globalThis.require;
 function require(specifier) {{
   const __previousDirname = globalThis.__dirname;
   const __previousFilename = globalThis.__filename;
-  globalThis.__dirname = __beejsModuleDir;
+  globalThis.__dirname = __amberjsModuleDir;
   globalThis.__filename = __filename;
   try {{
-    return __beejsGlobalRequire(specifier);
+    return __amberjsGlobalRequire(specifier);
   }} finally {{
     globalThis.__dirname = __previousDirname;
     globalThis.__filename = __previousFilename;
   }}
 }}
-require.main = __beejsGlobalRequire.main;
+require.main = __amberjsGlobalRequire.main;
 require.resolve = function(specifier) {{
   const __previousDirname = globalThis.__dirname;
   const __previousFilename = globalThis.__filename;
-  globalThis.__dirname = __beejsModuleDir;
+  globalThis.__dirname = __amberjsModuleDir;
   globalThis.__filename = __filename;
   try {{
-    return __beejsGlobalRequire.resolve(specifier);
+    return __amberjsGlobalRequire.resolve(specifier);
   }} finally {{
     globalThis.__dirname = __previousDirname;
     globalThis.__filename = __previousFilename;
@@ -18417,7 +18413,7 @@ mod tests {
     #[serial_test::serial]
     fn test_console_log() {
         let mut runtime = MinimalRuntime::new().unwrap();
-        let result = runtime.execute_code("console.log('Hello from Beejs!'); 42;");
+        let result = runtime.execute_code("console.log('Hello from Amber!'); 42;");
         assert!(result.is_ok());
         assert_eq!(result.unwrap().trim(), "42");
     }
@@ -18473,7 +18469,7 @@ mod tests {
     #[serial_test::serial]
     fn required_module_can_use_fetch_and_blob_without_entry_markers() {
         let dir =
-            std::env::temp_dir().join(format!("beejs_require_extended_{}", std::process::id()));
+            std::env::temp_dir().join(format!("amberjs_require_extended_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
 

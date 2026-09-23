@@ -9,11 +9,11 @@ function greet(user: User): string {
 }
 
 const user: User = {
-    name: "Beejs",
+    name: "Amber",
     version: "0.3.102"
 };
 
-console.log("Hello World for Beejs!");
+console.log("Hello World for Amber!");
 console.log(greet(user));
 
 // Arrow functions with types

@@ -149,7 +149,7 @@ Stage 93 Phase 3.3 测试框架增强已经基本完成，实现了企业级测�
 ✅ **项目构建成功**
 ```bash
 cargo build
-   Compiling beejs v0.1.0 (/Users/henry/code/beejs)
+   Compiling amberjs v0.1.0 (/Users/henry/code/amberjs)
     Finished dev profile [unoptimized + debuginfo] target(s) in 2.89s
 ```
 

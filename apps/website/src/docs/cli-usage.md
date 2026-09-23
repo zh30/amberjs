@@ -1,13 +1,13 @@
 ---
 title: "CLI reference"
-subtitle: "What bee actually ships in v1.16.0 — Stable, Preview, Experimental"
+subtitle: "What amber actually ships in v1.16.0 — Stable, Preview, Experimental"
 group: "Reference & Specs"
 id: "cli-usage"
 ---
 
-`bee --help` is the source of truth. This page groups the same commands by maturity. See [Current Scope](https://github.com/zh30/beejs/blob/main/docs/CURRENT_SCOPE.md) in the repo.
+`amber --help` is the source of truth. This page groups the same commands by maturity. See [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) in the repo.
 
-`--verbose` is global and must come **before** the subcommand: `bee --verbose run app.js`.
+`--verbose` is global and must come **before** the subcommand: `amber --verbose run app.js`.
 
 ---
 
@@ -15,24 +15,34 @@ id: "cli-usage"
 
 | Command | What it does |
 | :--- | :--- |
-| `bee run <file> [args...]` | Run JS. `.ts` / `.tsx` go through oxc first (TS contract is Preview). |
-| `bee eval <code>` | Evaluate an expression |
-| `bee repl` | Interactive REPL |
-| `bee test [files...] [--watch]` | Jest-style runner |
-| `bee snapshot [build\|status\|clean]` | V8 startup snapshots |
-| `bee session <tool>` | JSON-RPC over stdin for agent hosts |
-| `bee mcp [tool]` | MCP stdio server |
-| `bee --version` / `bee version` | Version |
+| `amber run <file> [args...]` | Run JS. `.ts` / `.tsx` go through oxc first (TS contract is Preview). |
+| `amber eval <code>` | Evaluate an expression |
+| `amber repl` | Interactive REPL |
+| `amber test [files...] [--watch]` | Jest-style runner |
+| `amber snapshot [build\|status\|clean]` | V8 startup snapshots |
+| `amber session <tool>` | JSON-RPC over stdin for agent hosts |
+| `amber mcp [tool]` | MCP stdio server |
+| `amber --version` / `amber version` | Version |
+| `amber bundle <entry>` | Local JS/TS/JSON graph → one JS file. Limits: [bundle & compile](/docs/bundling-compilation) |
+| `amber compile <file> [-o myapp]` | Host SEA binary. Contract: [COMPILE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md) |
+| `amber install [--frozen-lockfile]` | Direct `package.json` deps and lock `dependencies` pins. Not npm/yarn/pnpm. Contract: [INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md) |
 
-### `bee run`
+`amber compile` copies this machine's `amber` and writes a bundled script plus an `AMBER_STANDALONE` trailer. Linux and Windows append it. macOS stores it in a `__AMBER` segment before `__LINKEDIT`, then ad-hoc `codesign`. Dynamic `import()`, computed `require()`, and `.node` addons fail the compile. `AMBER_STANDALONE` is not an environment variable. Not pkg/nexe/Bun parity.
 
 ```bash
-bee run app.ts
-bee run app.js -- arg1 arg2
-bee run --watch --debounce 200 app.ts
-bee run --preload ./setup.js app.js
-bee run --sandbox --permission-policy policy.json app.ts
-bee run --inspect-brk app.ts
+amber compile app.ts -o myapp
+./myapp
+```
+
+### `amber run`
+
+```bash
+amber run app.ts
+amber run app.js -- arg1 arg2
+amber run --watch --debounce 200 app.ts
+amber run --preload ./setup.js app.js
+amber run --sandbox --permission-policy policy.json app.ts
+amber run --inspect-brk app.ts
 ```
 
 Useful flags:
@@ -50,7 +60,7 @@ Useful flags:
 | `--permission-policy <file>` | JSON policy (alias `--policy`) |
 | `--inspect` / `--inspect-brk` | CDP on `127.0.0.1:9229` (Preview) |
 
-`bee test --parallel` is rejected (exit code 2).
+`amber test --parallel` is rejected (exit code 2).
 
 ---
 
@@ -60,19 +70,15 @@ Present in the default binary; the contract is still tightening.
 
 | Command | What it does |
 | :--- | :--- |
-| `bee serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
-| `bee bundle <entry>` | oxc module graph → one JS file |
-| `bee compile <file>` | Append payload + `BEE_STANDALONE` trailer to a copy of `bee` |
+| `amber serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
 | TypeScript / TSX | oxc type-strip, not `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
 ```bash
-bee serve app.js --host 127.0.0.1 --port 3000
-bee bundle src/index.ts -o dist/bundle.js --minify
-bee compile app.ts -o myapp
+amber serve app.js --host 127.0.0.1 --port 3000
 ```
 
-Details: [bundle & compile](/docs/bundling-compilation).
+`amber bundle` and `amber compile` are **Stable**: [bundle & compile](/docs/bundling-compilation). `amber install` is **Stable** for the subset in [INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md). It does not replace npm, yarn, or pnpm.
 
 ---
 
@@ -80,9 +86,11 @@ Details: [bundle & compile](/docs/bundling-compilation).
 
 Do **not** treat these as product promises. They exist on the CLI; behavior may be incomplete.
 
-`debug`, `record`, `replay`, `init`, `create`, `add`, `remove`, `install`, `prune`, `x`, `upgrade`, `fmt`, `lint`, `bench`, `compile` extras, `types`, `task`, `profile`, `lsp`, `deploy`.
+`debug`, `record`, `replay`, `init`, `create`, `add`, `remove`, `prune`, `x`, `upgrade`, `fmt`, `lint`, `bench`, `types`, `task`, `profile`, `lsp`, `deploy`.
 
-Chrome DevTools attach should use `bee run --inspect`, not `bee debug`.
+`amber install` is not in this list. It is the Stable command above, and it is not a full package-manager replacement.
+
+Chrome DevTools attach should use `amber run --inspect`, not `amber debug`.
 
 ---
 
@@ -91,9 +99,9 @@ Chrome DevTools attach should use `bee run --inspect`, not `bee debug`.
 Default is still allow-all unless `--sandbox` or `--deny-*` is set.
 
 ```bash
-bee eval --deny-fs "require('fs').readFileSync('secret.txt', 'utf8')"
-bee run --deny-fs --allow-read config.json app.js
-bee eval --deny-net --allow-net example.com "fetch('https://example.com')"
+amber eval --deny-fs "require('fs').readFileSync('secret.txt', 'utf8')"
+amber run --deny-fs --allow-read config.json app.js
+amber eval --deny-net --allow-net example.com "fetch('https://example.com')"
 ```
 
 Policy file (relative paths resolve from the policy file directory):

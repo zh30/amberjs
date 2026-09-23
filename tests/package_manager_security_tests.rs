@@ -1,5 +1,5 @@
-use beejs::package_manager::{PackageJson, PackageManager, PackageManagerConfig};
-use beejs::permissions::{
+use amberjs::package_manager::{PackageJson, PackageManager, PackageManagerConfig};
+use amberjs::permissions::{
     global_resource_broker, PermissionAction, PermissionKind, ResourceBroker, ResourceId,
 };
 use flate2::write::GzEncoder;

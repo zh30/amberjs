@@ -1,0 +1,21 @@
+{
+  "name": "amberjs",
+  "version": "1.16.0",
+  "description": "JavaScript and TypeScript runtime in Rust and V8",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zh30/amberjs.git"
+  },
+  "homepage": "https://amberjs.com",
+  "keywords": [
+    "amber",
+    "amberjs",
+    "runtime",
+    "javascript",
+    "typescript",
+    "v8"
+  ],
+  "author": "Henry Zhang",
+  "license": "MIT"
+}

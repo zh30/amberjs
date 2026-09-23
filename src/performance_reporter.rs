@@ -1,5 +1,5 @@
 // 性能对比报告生成器
-// 负责收集Beejs性能数据，与Bun进行对比，生成详细的性能报告
+// 负责收集Amber性能数据，与Bun进行对比，生成详细的性能报告
 
 use crate::Runtime;
 use std::collections::HashMap;
@@ -18,10 +18,10 @@ pub enum PerformanceMetric {
 #[derive(Debug, Clone)]
 pub struct ComparisonResult {
     pub metric_name: String,
-    pub beejs_value: f64,
+    pub amberjs_value: f64,
     pub bun_value: f64,
     pub unit: String,
-    pub improvement: f64, // 正值表示Beejs更快/更好
+    pub improvement: f64, // 正值表示Amber更快/更好
     pub passed: bool,
 }
 /// 性能报告配置
@@ -62,8 +62,8 @@ impl PerformanceReporter {
     pub fn with_default_config(runtime: Runtime) -> Self {
         Self::new(runtime, ReportConfig::default())
     }
-    /// 收集Beejs性能数据
-    pub fn collect_beejs_metrics(&self) -> HashMap<String, PerformanceMetric> {
+    /// 收集Amber性能数据
+    pub fn collect_amberjs_metrics(&self) -> HashMap<String, PerformanceMetric> {
         let mut metrics = HashMap::new();
         // 1. 测试启动时间
         let startup_time: _ = self.measure_startup_time();
@@ -129,27 +129,27 @@ impl PerformanceReporter {
     }
     /// 生成性能对比报告
     pub fn generate_comparison_report(&self) -> String {
-        let beejs_metrics: _ = self.collect_beejs_metrics();
+        let amberjs_metrics: _ = self.collect_amberjs_metrics();
         let bun_metrics: _ = Self::collect_bun_metrics();
-        let comparisons: _ = self.create_comparisons(&beejs_metrics, &bun_metrics);
+        let comparisons: _ = self.create_comparisons(&amberjs_metrics, &bun_metrics);
         self.format_markdown_report(&comparisons)
     }
     /// 生成JSON格式的对比报告
     pub fn generate_json_report(&self) -> String {
-        let beejs_metrics: _ = self.collect_beejs_metrics();
+        let amberjs_metrics: _ = self.collect_amberjs_metrics();
         let bun_metrics: _ = Self::collect_bun_metrics();
-        let comparisons: _ = self.create_comparisons(&beejs_metrics, &bun_metrics);
+        let comparisons: _ = self.create_comparisons(&amberjs_metrics, &bun_metrics);
         // 生成JSON格式
         let mut json = String::new();
         json.push_str("{\n");
         json.push_str("  \"test_date\": \"2025-12-18\",\n");
-        json.push_str("  \"beejs_version\": \"0.1.0\",\n");
+        json.push_str("  \"amberjs_version\": \"0.1.0\",\n");
         json.push_str("  \"bun_version\": \"1.0.0\",\n");
         json.push_str("  \"comparisons\": [\n");
         for (i, comp) in comparisons.iter().enumerate() {
             json.push_str("    {\n");
             json.push_str(&format!("      \"metric\": \"{}\",\n", comp.metric_name));
-            json.push_str(&format!("      \"beejs\": {},\n", comp.beejs_value));
+            json.push_str(&format!("      \"amberjs\": {},\n", comp.amberjs_value));
             json.push_str(&format!("      \"bun\": {},\n", comp.bun_value));
             json.push_str(&format!("      \"unit\": \"{}\",\n", comp.unit));
             json.push_str(&format!(
@@ -267,21 +267,21 @@ impl PerformanceReporter {
     /// 创建对比结果
     fn create_comparisons(
         &self,
-        beejs_metrics: &HashMap<String, PerformanceMetric>,
+        amberjs_metrics: &HashMap<String, PerformanceMetric>,
         bun_metrics: &HashMap<String, PerformanceMetric>,
     ) -> Vec<ComparisonResult> {
         let mut comparisons = Vec::new();
         // 对比启动时间
-        if let (Some(beejs), Some(bun)) = (
-            beejs_metrics.get("startup_time"),
+        if let (Some(amberjs), Some(bun)) = (
+            amberjs_metrics.get("startup_time"),
             bun_metrics.get("startup_time"),
         ) {
-            let beejs_ms: _ = self.extract_duration_ms(beejs);
+            let amberjs_ms: _ = self.extract_duration_ms(amberjs);
             let bun_ms: _ = self.extract_duration_ms(bun);
-            let improvement: _ = (bun_ms - beejs_ms) / bun_ms * 100.0;
+            let improvement: _ = (bun_ms - amberjs_ms) / bun_ms * 100.0;
             comparisons.push(ComparisonResult {
                 metric_name: "启动时间".to_string(),
-                beejs_value: beejs_ms,
+                amberjs_value: amberjs_ms,
                 bun_value: bun_ms,
                 unit: "ms".to_string(),
                 improvement,
@@ -289,16 +289,16 @@ impl PerformanceReporter {
             });
         }
         // 对比简单执行速度
-        if let (Some(beejs), Some(bun)) = (
-            beejs_metrics.get("simple_execution"),
+        if let (Some(amberjs), Some(bun)) = (
+            amberjs_metrics.get("simple_execution"),
             bun_metrics.get("simple_execution"),
         ) {
-            let beejs_ops: _ = self.extract_ops_per_sec(beejs);
+            let amberjs_ops: _ = self.extract_ops_per_sec(amberjs);
             let bun_ops: _ = self.extract_ops_per_sec(bun);
-            let improvement: _ = (beejs_ops - bun_ops) / bun_ops * 100.0;
+            let improvement: _ = (amberjs_ops - bun_ops) / bun_ops * 100.0;
             comparisons.push(ComparisonResult {
                 metric_name: "简单执行".to_string(),
-                beejs_value: beejs_ops,
+                amberjs_value: amberjs_ops,
                 bun_value: bun_ops,
                 unit: "ops/sec".to_string(),
                 improvement,
@@ -306,16 +306,16 @@ impl PerformanceReporter {
             });
         }
         // 对比复杂计算速度
-        if let (Some(beejs), Some(bun)) = (
-            beejs_metrics.get("complex_calculation"),
+        if let (Some(amberjs), Some(bun)) = (
+            amberjs_metrics.get("complex_calculation"),
             bun_metrics.get("complex_calculation"),
         ) {
-            let beejs_ops: _ = self.extract_ops_per_sec(beejs);
+            let amberjs_ops: _ = self.extract_ops_per_sec(amberjs);
             let bun_ops: _ = self.extract_ops_per_sec(bun);
-            let improvement: _ = (beejs_ops - bun_ops) / bun_ops * 100.0;
+            let improvement: _ = (amberjs_ops - bun_ops) / bun_ops * 100.0;
             comparisons.push(ComparisonResult {
                 metric_name: "复杂计算".to_string(),
-                beejs_value: beejs_ops,
+                amberjs_value: amberjs_ops,
                 bun_value: bun_ops,
                 unit: "ops/sec".to_string(),
                 improvement,
@@ -323,16 +323,16 @@ impl PerformanceReporter {
             });
         }
         // 对比内存使用
-        if let (Some(beejs), Some(bun)) = (
-            beejs_metrics.get("memory_usage"),
+        if let (Some(amberjs), Some(bun)) = (
+            amberjs_metrics.get("memory_usage"),
             bun_metrics.get("memory_usage"),
         ) {
-            let beejs_mb: _ = self.extract_memory_mb(beejs);
+            let amberjs_mb: _ = self.extract_memory_mb(amberjs);
             let bun_mb: _ = self.extract_memory_mb(bun);
-            let improvement: _ = (bun_mb - beejs_mb) / bun_mb * 100.0; // 负值表示更好
+            let improvement: _ = (bun_mb - amberjs_mb) / bun_mb * 100.0; // 负值表示更好
             comparisons.push(ComparisonResult {
                 metric_name: "内存使用".to_string(),
-                beejs_value: beejs_mb,
+                amberjs_value: amberjs_mb,
                 bun_value: bun_mb,
                 unit: "MB".to_string(),
                 improvement,
@@ -340,16 +340,16 @@ impl PerformanceReporter {
             });
         }
         // 对比并发能力
-        if let (Some(beejs), Some(bun)) = (
-            beejs_metrics.get("concurrent_capacity"),
+        if let (Some(amberjs), Some(bun)) = (
+            amberjs_metrics.get("concurrent_capacity"),
             bun_metrics.get("concurrent_capacity"),
         ) {
-            let beejs_cap: _ = self.extract_concurrent_capacity(beejs);
+            let amberjs_cap: _ = self.extract_concurrent_capacity(amberjs);
             let bun_cap: _ = self.extract_concurrent_capacity(bun);
-            let improvement: _ = (beejs_cap - bun_cap) as f64 / bun_cap as f64 * 100.0;
+            let improvement: _ = (amberjs_cap - bun_cap) as f64 / bun_cap as f64 * 100.0;
             comparisons.push(ComparisonResult {
                 metric_name: "并发执行".to_string(),
-                beejs_value: beejs_cap as f64,
+                amberjs_value: amberjs_cap as f64,
                 bun_value: bun_cap as f64,
                 unit: "scripts".to_string(),
                 improvement,
@@ -361,9 +361,9 @@ impl PerformanceReporter {
     /// 格式化Markdown报告
     fn format_markdown_report(&self, comparisons: &[ComparisonResult]) -> String {
         let mut report = String::new();
-        report.push_str("# Beejs vs Bun 性能对比报告\n\n");
+        report.push_str("# Amber vs Bun 性能对比报告\n\n");
         report.push_str("## 测试环境\n");
-        report.push_str("- **Beejs**: 高性能 JavaScript/TypeScript 运行时 (v0.1.0)\n");
+        report.push_str("- **Amber**: 高性能 JavaScript/TypeScript 运行时 (v0.1.0)\n");
         report.push_str("- **Bun**: 快速的 JavaScript 运行时 (v1.0.0)\n");
         report.push_str("- **测试日期**: 2025-12-18\n");
         report.push_str("- **测试平台**: macOS Darwin 25.2.0\n\n");
@@ -395,8 +395,8 @@ impl PerformanceReporter {
             report.push_str("| 运行时 | 性能 |\n");
             report.push_str("|--------|------|\n");
             report.push_str(&format!(
-                "| Beejs | {:.2} {} |\n",
-                result.beejs_value, result.unit
+                "| Amber | {:.2} {} |\n",
+                result.amberjs_value, result.unit
             ));
             report.push_str(&format!(
                 "| Bun | {:.2} {} |\n\n",
@@ -420,7 +420,7 @@ impl PerformanceReporter {
         }
         report.push_str("## 关键发现\n\n");
         report.push_str("### 性能优势\n");
-        report.push_str("- **启动时间优化**: Beejs 启动速度比 Bun 快 37.5%\n");
+        report.push_str("- **启动时间优化**: Amber 启动速度比 Bun 快 37.5%\n");
         report.push_str("- **执行速度提升**: 简单代码执行速度提升 27.6%\n");
         report.push_str("- **复杂计算优化**: 复杂算法执行速度提升 35.7%\n");
         report.push_str("- **内存使用优化**: 内存占用减少 16.7%\n");
@@ -433,9 +433,9 @@ impl PerformanceReporter {
         report.push_str("- ✅ **零拷贝 I/O**: 高效数据传输和异步处理\n\n");
         report.push_str("## 结论\n\n");
         report
-            .push_str("Beejs 在所有关键指标上都显著超越了 Bun，特别是在启动时间和执行速度方面。\n");
+            .push_str("Amber 在所有关键指标上都显著超越了 Bun，特别是在启动时间和执行速度方面。\n");
         report.push_str(
-            "这使得 Beejs 成为 AI 时代高性能 JavaScript/TypeScript 脚本执行的理想选择。\n\n",
+            "这使得 Amber 成为 AI 时代高性能 JavaScript/TypeScript 脚本执行的理想选择。\n\n",
         );
         report.push_str("### 推荐使用场景\n");
         report.push_str("- 🤖 **AI 模型推理**: 高效批量处理 AI 任务\n");

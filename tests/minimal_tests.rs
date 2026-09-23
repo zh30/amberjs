@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::typescript;
+    use amberjs::typescript;
 
     /// 测试1: TypeScript declare global 语法支持 (v0.3.170)
     #[test]
@@ -108,7 +108,7 @@ const config = { apiKey: "test" };
 function greet(name: string): string {
     return `Hello, ${name}!`;
 }
-greet("Beejs");
+greet("Amber");
 "#;
         let result = typescript::compile_typescript(ts_code, "test.ts");
         assert!(
@@ -4620,7 +4620,7 @@ function assertInRange(value: number): asserts value {
     #[test]
     #[serial_test::serial]
     fn test_runtime_benchmark() {
-        use beejs::MinimalRuntime;
+        use amberjs::MinimalRuntime;
 
         let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
 
@@ -4673,7 +4673,7 @@ person.name"#;
     #[test]
     #[serial_test::serial]
     fn test_execute_timed() {
-        use beejs::MinimalRuntime;
+        use amberjs::MinimalRuntime;
 
         let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
 

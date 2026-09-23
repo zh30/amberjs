@@ -7,16 +7,16 @@ id: "framework-compat"
 
 ## 1. Overview
 
-Beejs is designed not just for scripts, but as a drop-in execution platform for mainstream TypeScript and JavaScript frameworks.
+Amber is designed not just for scripts, but as a drop-in execution platform for mainstream TypeScript and JavaScript frameworks.
 
-In **Beejs v1.5.0**, we completed end-to-end verification and API hardening for three ecosystem pillars:
+In **Amber v1.5.0**, we completed end-to-end verification and API hardening for three ecosystem pillars:
 1. **Hono**: The ultra-fast, lightweight web framework built on Web Standards.
 2. **Express**: The industry standard Node.js server framework.
 3. **LangChain**: The leading LLM application and agent orchestration framework.
 
 ---
 
-## 2. Hono Framework on Beejs
+## 2. Hono Framework on Amber
 
 Hono relies heavily on standard Web APIs (`Request`, `Response`, `Headers`, `fetch`) and Node's `AsyncLocalStorage` for request context storage.
 
@@ -37,7 +37,7 @@ const als = new AsyncLocalStorage();
 
 // Context middleware
 app.use('*', async (c, next) => {
-  return als.run({ traceId: 'bee-req-999' }, async () => {
+  return als.run({ traceId: 'amber-req-999' }, async () => {
     await next();
   });
 });
@@ -52,7 +52,7 @@ export default app;
 
 ---
 
-## 3. Express Framework on Beejs
+## 3. Express Framework on Amber
 
 Express applications require full fidelity on `http.IncomingMessage`, `http.ServerResponse`, and Node stream pipelines.
 
@@ -87,7 +87,7 @@ server.listen(3000, () => {
 
 ---
 
-## 4. LangChain on Beejs
+## 4. LangChain on Amber
 
 LangChain and LLM orchestrators make heavy use of **Web Streams**, SSE streaming, and async context tracking.
 
@@ -100,7 +100,7 @@ LangChain and LLM orchestrators make heavy use of **Web Streams**, SSE streaming
 ### Example: LLM Token Streaming Pipeline
 
 ```typescript
-// Token stream from Beejs Edge SLM or external provider
+// Token stream from Amber Edge SLM or external provider
 const tokenStream = ReadableStream.from([
   'Thinking', ' ', 'step', ' ', 'by', ' ', 'step', '...'
 ]);

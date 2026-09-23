@@ -59,8 +59,8 @@ impl AuthManager {
             self.auth_configs.insert("https://registry.npmjs.org/".to_string(), auth_info);
         }
         // 从环境变量加载私有仓库认证
-        if let Ok(url) = std::env::var("BEEJS_PRIVATE_REGISTRY") {
-            if let Ok(token) = std::env::var("BEEJS_PRIVATE_REGISTRY_TOKEN") {
+        if let Ok(url) = std::env::var("AMBER_PRIVATE_REGISTRY") {
+            if let Ok(token) = std::env::var("AMBER_PRIVATE_REGISTRY_TOKEN") {
                 let auth_info: _ = AuthInfo {
                     registry_url: url.clone(),
                     auth_type: AuthType::Bearer(token),

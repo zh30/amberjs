@@ -1,7 +1,7 @@
-// Beejs Hello World Example
+// Amber Hello World Example
 // High-performance JavaScript runtime built with Rust + V8
 
-console.log("🐝 Hello from Beejs!");
+console.log("🐝 Hello from Amber!");
 console.log("🚀 Running JavaScript with Rust + V8");
 
 // Basic operations
@@ -15,7 +15,7 @@ console.log(`Array doubled: ${doubled.join(", ")}`);
 
 // Object operations
 const user = {
-    name: "Beejs User",
+    name: "Amber User",
     version: "0.3.100",
     features: ["fast", "secure", "AI-ready"]
 };
@@ -32,4 +32,4 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     console.log("✅ Async operation completed!");
 })();
 
-console.log("\n✨ Beejs is faster than Bun!");
+console.log("\n✨ Amber is faster than Bun!");

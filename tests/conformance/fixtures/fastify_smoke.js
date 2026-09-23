@@ -31,11 +31,11 @@ async function main() {
         method: 'POST',
         url: '/echo',
         headers: { 'content-type': 'application/json' },
-        payload: { greeting: 'fastify-beejs' },
+        payload: { greeting: 'fastify-amberjs' },
     });
     assert.strictEqual(res2.statusCode, 200);
     const body2 = JSON.parse(res2.body);
-    assert.deepStrictEqual(body2.echo, { greeting: 'fastify-beejs' });
+    assert.deepStrictEqual(body2.echo, { greeting: 'fastify-amberjs' });
 
     console.log('CONFORMANCE_PASS');
 }

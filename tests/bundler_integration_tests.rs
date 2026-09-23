@@ -1,21 +1,21 @@
 // Bundle Integration Tests
 //
-// Tests for the bee bundle command and bundler functionality
+// Tests for the amber bundle command and bundler functionality
 
 use std::fs;
 use std::process::Command;
 
-fn bee_path() -> &'static str {
-    env!("CARGO_BIN_EXE_bee")
+fn amber_path() -> &'static str {
+    env!("CARGO_BIN_EXE_amber")
 }
 
 #[test]
 fn test_bundle_command_help() {
     // Test that the bundle command is recognized and shows help
     let output = Command::new("cargo")
-        .args(["run", "--bin", "bee", "--", "bundle", "--help"])
+        .args(["run", "--bin", "amber", "--", "bundle", "--help"])
         .output()
-        .expect("Failed to run bee bundle --help");
+        .expect("Failed to run amber bundle --help");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -58,7 +58,7 @@ fn test_bundle_basic_functionality() {
         .args([
             "run",
             "--bin",
-            "bee",
+            "amber",
             "--",
             "bundle",
             entry_file.to_str().unwrap(),
@@ -66,7 +66,7 @@ fn test_bundle_basic_functionality() {
             output_file.to_str().unwrap(),
         ])
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -107,13 +107,13 @@ fn test_bundle_static_import_dependency_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
 
     let bundle_combined = format!(
         "{}{}",
@@ -122,14 +122,14 @@ fn test_bundle_static_import_dependency_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
     assert!(
         output_file.exists(),
         "Bundle output file should be created. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -169,13 +169,13 @@ fn test_bundle_static_import_alias_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -183,10 +183,10 @@ fn test_bundle_static_import_alias_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -226,13 +226,13 @@ fn test_bundle_static_default_import_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -240,10 +240,10 @@ fn test_bundle_static_default_import_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -286,13 +286,13 @@ fn test_bundle_static_namespace_import_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -300,10 +300,10 @@ fn test_bundle_static_namespace_import_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -346,13 +346,13 @@ fn test_bundle_static_export_list_named_import_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -360,10 +360,10 @@ fn test_bundle_static_export_list_named_import_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -406,13 +406,13 @@ fn test_bundle_multiline_export_list_without_semicolon_preserves_following_code(
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -420,10 +420,10 @@ fn test_bundle_multiline_export_list_without_semicolon_preserves_following_code(
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -471,13 +471,13 @@ fn test_bundle_static_re_export_named_import_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -485,10 +485,10 @@ fn test_bundle_static_re_export_named_import_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -532,13 +532,13 @@ fn test_bundle_missing_re_export_fails_before_writing_output() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -546,11 +546,13 @@ fn test_bundle_missing_re_export_fails_before_writing_output() {
     );
     assert!(
         !bundle_output.status.success(),
-        "bee bundle should fail when a barrel re-exports a missing binding. output: {bundle_combined}"
+        "amber bundle should fail when a barrel re-exports a missing binding. output: {bundle_combined}"
     );
     assert!(
-        bundle_combined.contains("missing"),
-        "Missing re-export error should identify the binding name. output: {bundle_combined}"
+        bundle_combined.contains("error: amber bundle:")
+            && bundle_combined.contains("missing export")
+            && bundle_combined.contains("cannot re-export"),
+        "Missing re-export error should use the stable diagnostic. output: {bundle_combined}"
     );
     assert!(
         !output_file.exists(),
@@ -585,13 +587,13 @@ fn test_bundle_static_export_star_namespace_import_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -599,10 +601,10 @@ fn test_bundle_static_export_star_namespace_import_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -649,13 +651,13 @@ fn test_bundle_static_default_re_export_named_import_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -663,10 +665,10 @@ fn test_bundle_static_default_re_export_named_import_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -710,13 +712,13 @@ fn test_bundle_multiple_default_imports_do_not_share_internal_binding() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -724,10 +726,10 @@ fn test_bundle_multiple_default_imports_do_not_share_internal_binding() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -771,13 +773,13 @@ fn test_bundle_duplicate_named_exports_do_not_share_internal_binding() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -785,10 +787,10 @@ fn test_bundle_duplicate_named_exports_do_not_share_internal_binding() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -831,13 +833,13 @@ fn test_bundle_multiple_same_line_named_exports_run_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -845,10 +847,10 @@ fn test_bundle_multiple_same_line_named_exports_run_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -891,13 +893,13 @@ fn test_bundle_same_line_import_preserves_following_code() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -905,10 +907,10 @@ fn test_bundle_same_line_import_preserves_following_code() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -951,13 +953,13 @@ fn test_bundle_multiline_named_import_runs_from_output_dir() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -965,10 +967,10 @@ fn test_bundle_multiline_named_import_runs_from_output_dir() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle should succeed. output: {bundle_combined}"
+        "amber bundle should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -1008,13 +1010,13 @@ fn test_bundle_missing_named_import_fails_before_writing_output() {
     .expect("Failed to write entry file");
 
     let output_file = dist_dir.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .output()
-        .expect("Failed to run bee bundle");
+        .expect("Failed to run amber bundle");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -1022,11 +1024,13 @@ fn test_bundle_missing_named_import_fails_before_writing_output() {
     );
     assert!(
         !bundle_output.status.success(),
-        "bee bundle should fail before producing an invalid bundle. output: {bundle_combined}"
+        "amber bundle should fail before producing an invalid bundle. output: {bundle_combined}"
     );
     assert!(
-        bundle_combined.contains("missing"),
-        "Missing named import error should identify the export name. output: {bundle_combined}"
+        bundle_combined.contains("error: amber bundle:")
+            && bundle_combined.contains("missing export")
+            && bundle_combined.contains("'missing'"),
+        "Missing named import error should use the stable diagnostic. output: {bundle_combined}"
     );
     assert!(
         !output_file.exists(),
@@ -1049,7 +1053,7 @@ fn test_bundle_with_minify_flag() {
         .args([
             "run",
             "--bin",
-            "bee",
+            "amber",
             "--",
             "bundle",
             entry_file.to_str().unwrap(),
@@ -1058,7 +1062,7 @@ fn test_bundle_with_minify_flag() {
             "--minify",
         ])
         .output()
-        .expect("Failed to run bee bundle --minify");
+        .expect("Failed to run amber bundle --minify");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -1080,14 +1084,14 @@ fn test_bundle_minify_output_runs_without_comment_swallowing_code() {
         .expect("Failed to write entry file");
 
     let output_file = temp_path.join("bundle.js");
-    let bundle_output = Command::new(bee_path())
+    let bundle_output = Command::new(amber_path())
         .arg("bundle")
         .arg(&entry_file)
         .arg("--outfile")
         .arg(&output_file)
         .arg("--minify")
         .output()
-        .expect("Failed to run bee bundle --minify");
+        .expect("Failed to run amber bundle --minify");
     let bundle_combined = format!(
         "{}{}",
         String::from_utf8_lossy(&bundle_output.stdout),
@@ -1095,10 +1099,10 @@ fn test_bundle_minify_output_runs_without_comment_swallowing_code() {
     );
     assert!(
         bundle_output.status.success(),
-        "bee bundle --minify should succeed. output: {bundle_combined}"
+        "amber bundle --minify should succeed. output: {bundle_combined}"
     );
 
-    let run_output = Command::new(bee_path())
+    let run_output = Command::new(amber_path())
         .arg("run")
         .arg(&output_file)
         .output()
@@ -1133,7 +1137,7 @@ fn test_bundle_with_sourcemap_flag() {
         .args([
             "run",
             "--bin",
-            "bee",
+            "amber",
             "--",
             "bundle",
             entry_file.to_str().unwrap(),
@@ -1142,7 +1146,7 @@ fn test_bundle_with_sourcemap_flag() {
             "--sourcemap",
         ])
         .output()
-        .expect("Failed to run bee bundle --sourcemap");
+        .expect("Failed to run amber bundle --sourcemap");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -1173,7 +1177,7 @@ fn test_bundle_tree_shake_flag() {
         .args([
             "run",
             "--bin",
-            "bee",
+            "amber",
             "--",
             "bundle",
             entry_file.to_str().unwrap(),
@@ -1182,7 +1186,7 @@ fn test_bundle_tree_shake_flag() {
             "--tree-shake",
         ])
         .output()
-        .expect("Failed to run bee bundle --tree-shake");
+        .expect("Failed to run amber bundle --tree-shake");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -1210,7 +1214,7 @@ fn test_bundle_target_options() {
         .args([
             "run",
             "--bin",
-            "bee",
+            "amber",
             "--",
             "bundle",
             entry_file.to_str().unwrap(),
@@ -1220,7 +1224,7 @@ fn test_bundle_target_options() {
             "browser",
         ])
         .output()
-        .expect("Failed to run bee bundle --target browser");
+        .expect("Failed to run amber bundle --target browser");
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 

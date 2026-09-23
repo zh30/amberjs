@@ -1,15 +1,15 @@
 // Info Command Module
 // Stage 91 Phase 4.1 - 系统信息命令
 //
-/// 实现 `beejs info` 命令，显示运行时和系统信息
+/// 实现 `amberjs info` 命令，显示运行时和系统信息
 use std::env;
 use std::path::Path;
 use super::output_formatter::OutputFormatter;
 /// 系统信息结构
 #[derive(Debug, Default)]
 pub struct SystemInfo {
-    /// Beejs 版本
-    pub beejs_version: String,
+    /// Amber 版本
+    pub amberjs_version: String,
     /// 操作系统
     pub os: String,
     /// CPU 架构
@@ -41,8 +41,8 @@ impl SystemInfo {
     /// 收集系统信息
     pub fn collect() -> Self {
         let mut info = Self::default();
-        // Beejs 版本
-        info.beejs_version = env!("CARGO_PKG_VERSION").to_string();
+        // Amber 版本
+        info.amberjs_version = env!("CARGO_PKG_VERSION").to_string();
         // 操作系统信息
         info.os = Self::get_os_info();
         info.arch = std::env::consts::ARCH.to_string();
@@ -224,7 +224,7 @@ impl InfoCommand {
         // Runtime Information
         self.formatter.title("Runtime Information");
         self.formatter
-            .key_value_with_icon("📦", "Beejs Version", &info.beejs_version);
+            .key_value_with_icon("📦", "Amber Version", &info.amberjs_version);
         self.formatter
             .key_value_with_icon("⚙️", "V8 Engine", &info.v8_version);
         self.formatter
@@ -325,8 +325,8 @@ impl InfoCommand {
     pub fn execute_json(&self) -> anyhow::Result<()> {
         let info: _ = SystemInfo::collect();
         let json: _ = serde_json::json!({
-            "beejs": {
-                "version": info.beejs_version,
+            "amberjs": {
+                "version": info.amberjs_version,
                 "v8_version": info.v8_version,
             },
             "system": {
@@ -358,7 +358,7 @@ use std::time::Duration;
     #[test]
     fn test_system_info_collect() {
         let info: _ = SystemInfo::collect();
-        assert!(!info.beejs_version.is_empty());
+        assert!(!info.amberjs_version.is_empty());
         assert!(!info.os.is_empty());
         assert!(!info.arch.is_empty());
         assert!(info.cpu_count > 0);

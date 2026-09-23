@@ -1,4 +1,4 @@
-# Beejs 常量快路径优化 - 最终报告
+# Amber 常量快路径优化 - 最终报告
 
 ## 📊 优化成果总结
 
@@ -69,19 +69,19 @@ fn try_fast_constant_path(&self, code: &str) -> Option<String> {
 ### 性能测试场景
 ```bash
 # 测试 1: 简单表达式
-$ time beejs --eval '1+1'
+$ time amberjs --eval '1+1'
 0.005s (5ms) ✅
 
 # 测试 2: 算术运算
-$ time beejs --eval '2*3+4'
+$ time amberjs --eval '2*3+4'
 0.005s (5ms) ✅
 
 # 测试 3: 复杂计算
-$ time beejs --eval 'for(let i=0; i<10000; i++) sum += i'
+$ time amberjs --eval 'for(let i=0; i<10000; i++) sum += i'
 0.015s (15ms) ✅
 
 # 测试 4: REPL 模式
-$ echo '1+1' | beejs repl
+$ echo '1+1' | amberjs repl
 瞬时执行 (5ms) ✅
 ```
 
@@ -189,10 +189,10 @@ $ echo '1+1' | beejs repl
 - 代码实现细节
 - 测试验证方案
 
-**最终结论**: Beejs 已经从一个概念验证成长为高性能 JavaScript 运行时，为 AI 时代的脚本执行提供了极致性能保障。
+**最终结论**: Amber 已经从一个概念验证成长为高性能 JavaScript 运行时，为 AI 时代的脚本执行提供了极致性能保障。
 
 ---
 
 **报告生成时间**: 2025-12-18 20:25
-**优化负责人**: Beejs 性能团队
+**优化负责人**: Amber 性能团队
 **项目状态**: 🚀 生产就绪，性能达标

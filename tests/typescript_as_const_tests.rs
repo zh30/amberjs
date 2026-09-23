@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod typescript_as_const_tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     /// Test basic as const assertion (v0.3.167)
     /// as const 将表达式转换为字面量只读类型

@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod typescript_satisfies_tests {
-    use beejs::typescript::compile_typescript;
+    use amberjs::typescript::compile_typescript;
 
     /// Test basic satisfies with simple type (v0.3.168)
     /// satisfies 检查类型兼容性，但保留原始推断类型

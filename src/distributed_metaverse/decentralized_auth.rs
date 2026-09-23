@@ -67,7 +67,7 @@ impl DecentralizedAuth {
     }
     /// 创建身份
     pub fn create_identity(&mut self, user_id: &str) -> Result<Identity, AuthError> {
-        let did: _ = format!("did:beejs:{}", user_id);
+        let did: _ = format!("did:amberjs:{}", user_id);
         let identity: _ = Identity {
             did: did.clone(),
             public_key: vec![0u8; 32], // 简化实现

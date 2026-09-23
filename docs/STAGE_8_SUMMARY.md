@@ -190,7 +190,7 @@ Initialized Isolate pool with 8 isolates
 
 ## 📝 总结
 
-阶段8成功实现了进程池与Runtime的完整集成，这是Beejs向高性能JavaScript/TypeScript运行时迈出的关键一步。通过消除进程创建开销，预期实现10-50x的性能提升，为AI时代的高性能脚本执行奠定了坚实基础。
+阶段8成功实现了进程池与Runtime的完整集成，这是Amber向高性能JavaScript/TypeScript运行时迈出的关键一步。通过消除进程创建开销，预期实现10-50x的性能提升，为AI时代的高性能脚本执行奠定了坚实基础。
 
 **关键技术成就**:
 - ✅ 进程池完全集成到Runtime

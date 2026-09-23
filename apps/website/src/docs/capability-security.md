@@ -1,5 +1,5 @@
 ---
-title: "Enterprise Capability-Based Security (bee:security)"
+title: "Enterprise Capability-Based Security (amber:security)"
 subtitle: "Dynamic permission introspection, runtime privilege attenuation, and granular ResourceBroker enforcement"
 group: "Agent & Advanced"
 id: "capability-security"
@@ -7,7 +7,7 @@ id: "capability-security"
 
 When executing autonomous multi-agent workloads or running plugins from third-party ecosystems, binary allow/deny flags specified at CLI startup are often insufficient. Applications need to **query their own permission state, drop privileges dynamically after initialization, and attenuate policies before delegating work to untrusted sub-agents**.
 
-**Beejs v1.6.0 introduces Enterprise Capability-Based Security (`bee:security` & `bee:permissions`)**, providing standard W3C-aligned permission APIs, policy attenuation math, and dynamic capability revocation directly within JavaScript.
+**Amber v1.6.0 introduces Enterprise Capability-Based Security (`amber:security` & `amber:permissions`)**, providing standard W3C-aligned permission APIs, policy attenuation math, and dynamic capability revocation directly within JavaScript.
 
 ---
 
@@ -19,12 +19,12 @@ When executing autonomous multi-agent workloads or running plugins from third-pa
 
 ---
 
-## 2. Dynamic Permission Queries (`bee:permissions`)
+## 2. Dynamic Permission Queries (`amber:permissions`)
 
 Compatible with the web `navigator.permissions` specification:
 
 ```typescript
-import { query, has, list, revoke } from 'bee:permissions';
+import { query, has, list, revoke } from 'amber:permissions';
 
 // Query if reading a specific path is permitted
 const status = query({ name: 'read', path: '/etc/hosts' });
@@ -50,7 +50,7 @@ console.log(`Active deny rules: ${activeRules.deny.length}`);
 Drop capabilities permanently during application lifecycle:
 
 ```typescript
-import { revoke } from 'bee:permissions';
+import { revoke } from 'amber:permissions';
 
 // After reading database credentials, revoke read access to secret folders
 revoke({ name: 'read', path: '/run/secrets' });
@@ -61,12 +61,12 @@ revoke({ name: 'net', host: '*' });
 
 ---
 
-## 4. Policy Creation & Policy Attenuation (`bee:security`)
+## 4. Policy Creation & Policy Attenuation (`amber:security`)
 
 Create sandboxed sub-policies and attenuate capabilities before executing sub-agents or untrusted code:
 
 ```typescript
-import { createSandboxPolicy, attenuate } from 'bee:security';
+import { createSandboxPolicy, attenuate } from 'amber:security';
 
 // 1. Define base supervisor policy
 const supervisorPolicy = createSandboxPolicy({
@@ -94,9 +94,9 @@ console.log(workerPolicy.denyNet);   // true
 
 | Module | API Signature | Description |
 | :--- | :--- | :--- |
-| `bee:permissions` | `query(descriptor): PermissionStatus` | Queries granted/denied status for resource |
-| `bee:permissions` | `has(descriptor): boolean` | Returns boolean check for permission grant |
-| `bee:permissions` | `list(): { allow, deny }` | Dumps current active ResourceBroker rule list |
-| `bee:permissions` | `revoke(descriptor): boolean` | Permanently revokes capability at runtime |
-| `bee:security` | `createSandboxPolicy(rules): Policy` | Creates a validated sandbox policy object |
-| `bee:security` | `attenuate(base, restriction): Policy` | Combines policies using least-privilege attenuation |
+| `amber:permissions` | `query(descriptor): PermissionStatus` | Queries granted/denied status for resource |
+| `amber:permissions` | `has(descriptor): boolean` | Returns boolean check for permission grant |
+| `amber:permissions` | `list(): { allow, deny }` | Dumps current active ResourceBroker rule list |
+| `amber:permissions` | `revoke(descriptor): boolean` | Permanently revokes capability at runtime |
+| `amber:security` | `createSandboxPolicy(rules): Policy` | Creates a validated sandbox policy object |
+| `amber:security` | `attenuate(base, restriction): Policy` | Combines policies using least-privilege attenuation |

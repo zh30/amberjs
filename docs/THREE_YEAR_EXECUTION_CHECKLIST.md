@@ -1,4 +1,4 @@
-# 📋 Beejs 三年规划长期任务执行清单 (2026 – 2029)
+# 📋 Amber 三年规划长期任务执行清单 (2026 – 2029)
 
 > **文档定位**：本文档是 [`docs/THREE_YEAR_ROADMAP_2026_2029.md`](./THREE_YEAR_ROADMAP_2026_2029.md) 的落地执行检查清单（Execution Checklist）。  
 > **使用规范**：每个阶段、任务与子任务均配备 GitHub Checkbox（`- [ ]`），开发人员或 Agent 在完成具体任务并经测试验证后，直接将状态勾选为 `- [x]` 即可。
@@ -7,11 +7,12 @@
 
 ## 🧭 当前总览与版本坐标
 
-- **当前版本**: `v1.16.0` (2026-09)
+- **当前版本**: `v1.16.1` (2026-09)
+- **能力边界**: 用户可见的 Stable / Preview / Experimental 以 [`docs/CURRENT_SCOPE.md`](./CURRENT_SCOPE.md) 为准。本文勾选记录交付进度，**不**自动晋升 Stable。
 - **底层引擎**: 官方最新现代 `v8 = "152.2.0"` (Chromium 134+) + `PinScope` 栈固定内存安全架构
 - **网络核心**: Tokio 异步多线程反应堆 + 零延迟即时唤醒 (Zero-Hop) + V8 单态 JIT 分发，吞吐 70k+ req/s
 - **核心合规**: Node.js Conformance 5.0 (55/55 PASS, 100%), 支持 Express 5.x / Fastify 5.x / Hono 4.x
-- **核心 AI 引擎**: `bee:ai` 纯血本地模型推理 (Candle 0.8 / GGUF / Metal 硬件加速直通)
+- **核心 AI 引擎**: `amber:ai` 纯血本地模型推理 (Candle 0.8 / GGUF / Metal 硬件加速直通)
 - **当前阶段**: **第一阶段（2026 - 2027）极速冷启动与边缘原生 AI** 攻坚期
 
 ---
@@ -24,7 +25,7 @@
   - [x] 适配 `v8::scope!`, `v8::callback_scope!`, `v8::tc_scope!` 现代宏体系
   - [x] ArrayBuffer 与 BackingStore 内存解构安全重构 (`Option<NonNull<c_void>>`)
   - [x] ESM dynamic import 与 synthetic module 回调签名安全化
-  - [x] 快照隔离升级至 `BEEJS_V3` 并动态绑定 `v8::V8::get_version()`，杜绝脏缓存崩溃
+  - [x] 快照隔离升级至 `AMBER_V3` 并动态绑定 `v8::V8::get_version()`，杜绝脏缓存崩溃
   - [x] 解除被锁死的 `serde = "=1.0.197"` 与历史 swc 依赖限制
 - [x] **M1. Node.js Conformance 5.0 与主流 Web 框架打通 (v1.11.0)**
   - [x] Express 5.x 端到端跑通（路由、JSON 中间件、参数解析、HTTP 响应）
@@ -37,7 +38,7 @@
   - [x] Conformance 测试套件扩展至 55/55 PASS (100%)
 - [x] **M2. 全面性能基准自动化流水线建立 (v1.11.0)**
   - [x] 建立 5 大维度基准测试脚本 (`benchmarks/run_comprehensive_benchmark.py`)
-  - [x] 验证冷启动时延（Beejs 14~17ms，比 Node.js 快 1.5x+）
+  - [x] 验证冷启动时延（Amber 14~17ms，比 Node.js 快 1.5x+）
   - [x] 验证 12 项运行态微基准（对象分配与 EventEmitter 优于 Node.js）
   - [x] 验证 4 大框架高并发吞吐（Express 5.x 达 40,417 req/s，Hono 达 18,857 req/s）
   - [x] 验证空闲物理内存回收机制（高压冷却后回落 41%，显著优于 Node.js 与 Bun）
@@ -61,13 +62,13 @@
 
 > **战略目标**：打破启动时延与重量级依赖的桎梏，实现 `< 0.5ms` 亚毫秒冷启动与端侧零拷贝 AI 推理。
 
-### 任务 1.1: `bee:ai` 纯血本地模型推理加速 (Candle / GGUF / Metal 集成)
+### 任务 1.1: `amber:ai` 纯血本地模型推理加速 (Candle / GGUF / Metal 集成)
 
 - **目标版本**: `v1.12.0`
 - **核心模块**: `src/nodejs_core/ai.rs`, `src/weights/`, `Cargo.toml`
 - **待执行清单**:
   - [x] 引入 `candle-core`, `candle-transformers`, `candle-nn`, `tokenizers` 至 `Cargo.toml`
-  - [x] 实现 `bee:ai` 真实的 `LLM.load(path, options)`，支持从本地载入 `.gguf` 量化模型与架构自适应
+  - [x] 实现 `amber:ai` 真实的 `LLM.load(path, options)`，支持从本地载入 `.gguf` 量化模型与架构自适应
   - [x] 适配 Apple Silicon Metal 后端硬件加速 (`feature = "metal"`)，并通过 live 设备探针验证
   - [x] 适配 Linux CUDA 后端硬件加速 (`feature = "cuda"`) 与跨平台 CPU 自动安全降级
   - [x] 实现 `LLM.generateStream(prompt)` 原生 AsyncIterator 流式 Token 生成
@@ -83,8 +84,8 @@
   - [x] 研究基于 `mmap` 的 Copy-on-Write (CoW) 机制在 macOS 与 Linux 上的实现路径
   - [x] 将已编译的 V8 Snapshot 内存区域以只读共享页映射到新进程 (`memmap2::Mmap` + `Advice::WillNeed` + 零拷贝 `StartupData::from(blob)`)
   - [x] 实现轻量级 Isolate 预热池 (Isolate Prewarmer Pool)，维持常驻就绪队列 (`THREAD_ISOLATE_STANDBY` 线程亲和预热架构)
-  - [x] 支持 CLI `bee run --warm` 或守护模式下的瞬时执行复用 (及环境变量 `BEE_WARM=1` / `BEEJS_WARM=1`)
-  - [x] 优化基础 CLI `bee eval "1+1"` 冷启动时延，从当前 14ms 突破至 **< 1.0ms**（预热池下达 **0.18ms**，超越 0.5ms 目标）
+  - [x] 支持 CLI `amber run --warm` 或守护模式下的瞬时执行复用 (及环境变量 `AMBER_WARM=1` / `AMBER_WARM=1`)
+  - [x] 优化基础 CLI `amber eval "1+1"` 冷启动时延，从当前 14ms 突破至 **< 1.0ms**（预热池下达 **0.18ms**，超越 0.5ms 目标）
   - [x] 编写并发 Isolate 内存占用与回收测试 `tests/v8_cow_snapshot_tests.rs` (6/6 全部通过)
 
 ### 任务 1.3: WebAssembly 与 V8 内存零拷贝互通 (Wasm Engine 2.0)
@@ -97,14 +98,14 @@
   - [x] 确保在 Rust/C Wasm 模块与 JS 代码间传递大图像、向量、音频 Buffer 时零序列化、零纳秒开销
   - [x] 新增 Wasm 零拷贝数据传递基准与集成测试 `tests/wasm_zero_copy_tests.rs` (7/7 全部通过)
 
-### 任务 1.4: 生产级独立打包器与轻量包管理 (`bee bundle` & `bee install`)
+### 任务 1.4: 生产级独立打包器与轻量包管理 (`amber bundle` & `amber install`)
 
 - **目标版本**: `v1.15.0`
 - **核心模块**: `src/package_manager.rs`, `src/main.rs`, `src/typescript/`, `src/tooling/bundler.rs`, `src/tooling/compiler.rs`
 - **待执行清单**:
-  - [x] 重构 `bee bundle`：基于 oxc 模块解析器，支持将 TS/JS 源码与本地依赖打包为单个自包含 `.js` 文件
-  - [x] 支持 `bee compile <entry.ts> -o <binary>`：将 JS/TS 代码与精简运行时头打包为单一独立系统可执行文件 (Single Executable Application)
-  - [x] 完善 `bee install`：支持解析 `package.json` 与标准 lockfile，实现高速并行依赖下载与符号链接缓存
+  - [x] 重构 `amber bundle`：基于 oxc 模块解析器，支持将 TS/JS 源码与本地依赖打包为单个自包含 `.js` 文件
+  - [x] 支持 `amber compile <entry.ts> -o <binary>`：将 JS/TS 代码与精简运行时头打包为单一独立系统可执行文件 (Single Executable Application)
+  - [x] 完善 `amber install`：支持解析 `package.json` 与标准 lockfile，实现高速并行依赖下载与符号链接缓存
   - [x] 将打包与包管理特性在 `docs/CURRENT_SCOPE.md` 中由 Experimental 晋级为 Preview/Stable (Preview)
 
 ---
@@ -187,7 +188,7 @@
 - **待执行清单**:
   - [ ] 扩展现有的 `--seed` 和 `--freeze-time`，实现对所有外联 I/O、Socket 报文、环境变量访问的确定性录制
   - [ ] 输出紧凑型 Agent 执行录制追踪包 (`.beerun`)
-  - [ ] 实现 `bee replay <trace.beerun>`：在本地完全离线、100% 精确复现任何生产环境偶发故障
+  - [ ] 实现 `amber replay <trace.beerun>`：在本地完全离线、100% 精确复现任何生产环境偶发故障
   - [ ] 支持时间旅行调试（Time-Travel Debugging），支持倒退至上一执行帧检查堆栈
 
 ---

@@ -78,7 +78,7 @@ impl WorkerHost {
         };
 
         let join = thread::Builder::new()
-            .name(format!("bee-worker-{}", id))
+            .name(format!("amber-worker-{}", id))
             .spawn(move || {
                 if let Err(err) = run_worker_thread(
                     worker_id,
@@ -184,9 +184,9 @@ impl WorkerHost {
         let context = scope.get_current_context();
         let global = context.global(scope);
 
-        let msg_fn_key = v8::String::new(scope, "__bee_dispatch_parent_message").unwrap();
-        let err_fn_key = v8::String::new(scope, "__bee_dispatch_parent_error").unwrap();
-        let exit_fn_key = v8::String::new(scope, "__bee_dispatch_parent_exit").unwrap();
+        let msg_fn_key = v8::String::new(scope, "__amber_dispatch_parent_message").unwrap();
+        let err_fn_key = v8::String::new(scope, "__amber_dispatch_parent_error").unwrap();
+        let exit_fn_key = v8::String::new(scope, "__amber_dispatch_parent_exit").unwrap();
 
         for msg in messages {
             match msg {
@@ -285,7 +285,7 @@ fn run_worker_thread(
         let console_key = v8::String::new(scope, "console").unwrap();
         global.set(scope, console_key.into(), console.into());
 
-        // Native callback: __bee_worker_post_message(payload_str)
+        // Native callback: __amber_worker_post_message(payload_str)
         let send_fn = v8::Function::new(
             scope,
             |scope: &mut v8::PinScope,
@@ -304,7 +304,7 @@ fn run_worker_thread(
             },
         )
         .unwrap();
-        let send_key = v8::String::new(scope, "__bee_worker_post_message").unwrap();
+        let send_key = v8::String::new(scope, "__amber_worker_post_message").unwrap();
         global.set(scope, send_key.into(), send_fn.into());
 
         // Worker bootstrap script
@@ -312,13 +312,13 @@ fn run_worker_thread(
         let bootstrap_source = format!(
             r#"
             (function() {{
-                globalThis.__bee_worker_listening = false;
+                globalThis.__amber_worker_listening = false;
 
                 class WorkerEventEmitter {{
                     constructor() {{ this._events = {{}}; }}
                     on(event, fn) {{
                         (this._events[event] = this._events[event] || []).push(fn);
-                        if (event === 'message') globalThis.__bee_worker_listening = true;
+                        if (event === 'message') globalThis.__amber_worker_listening = true;
                         return this;
                     }}
                     once(event, fn) {{
@@ -335,7 +335,7 @@ fn run_worker_thread(
                         if (!this._events[event]) return this;
                         this._events[event] = this._events[event].filter(cb => cb !== fn && cb._original !== fn);
                         if (event === 'message' && this._events[event].length === 0) {{
-                            globalThis.__bee_worker_listening = false;
+                            globalThis.__amber_worker_listening = false;
                         }}
                         return this;
                     }}
@@ -343,10 +343,10 @@ fn run_worker_thread(
                     removeAllListeners(event) {{
                         if (event) {{
                             delete this._events[event];
-                            if (event === 'message') globalThis.__bee_worker_listening = false;
+                            if (event === 'message') globalThis.__amber_worker_listening = false;
                         }} else {{
                             this._events = {{}};
-                            globalThis.__bee_worker_listening = false;
+                            globalThis.__amber_worker_listening = false;
                         }}
                         return this;
                     }}
@@ -355,10 +355,10 @@ fn run_worker_thread(
 
                 const parentPort = new WorkerEventEmitter();
                 parentPort.postMessage = function(data) {{
-                    __bee_worker_post_message(typeof data === 'string' ? JSON.stringify(data) : JSON.stringify(data));
+                    __amber_worker_post_message(typeof data === 'string' ? JSON.stringify(data) : JSON.stringify(data));
                 }};
                 parentPort.close = function() {{
-                    globalThis.__bee_worker_listening = false;
+                    globalThis.__amber_worker_listening = false;
                 }};
 
                 globalThis.postMessage = function(data) {{
@@ -381,7 +381,7 @@ fn run_worker_thread(
                     Worker: function() {{ throw new Error("Nested Worker is not supported"); }}
                 }};
 
-                globalThis.__bee_worker_threads = wtModule;
+                globalThis.__amber_worker_threads = wtModule;
                 globalThis.require = function(mod) {{
                     if (mod === 'worker_threads' || mod === 'node:worker_threads') {{
                         return wtModule;
@@ -394,7 +394,7 @@ fn run_worker_thread(
 
                 globalThis.addEventListener = function(event, fn) {{
                     if (event === 'message') {{
-                        globalThis.__bee_worker_listening = true;
+                        globalThis.__amber_worker_listening = true;
                         parentPort.on('message', (data) => fn({{ data }}));
                     }}
                 }};
@@ -405,12 +405,12 @@ fn run_worker_thread(
                     set(fn) {{
                         userOnmessage = fn;
                         if (fn) {{
-                            globalThis.__bee_worker_listening = true;
+                            globalThis.__amber_worker_listening = true;
                         }}
                     }}
                 }});
 
-                globalThis.__bee_dispatch_message = function(raw) {{
+                globalThis.__amber_dispatch_message = function(raw) {{
                     let data;
                     try {{
                         data = JSON.parse(raw);
@@ -464,7 +464,7 @@ fn run_worker_thread(
 
         // Check if worker registered message listeners
         let is_listening = {
-            let key = v8::String::new(scope, "__bee_worker_listening").unwrap();
+            let key = v8::String::new(scope, "__amber_worker_listening").unwrap();
             global
                 .get(scope, key.into())
                 .map(|v| v.to_boolean(scope).is_true())
@@ -476,7 +476,7 @@ fn run_worker_thread(
                 match rx.recv() {
                     Ok(WorkerMessage::PostMessage(payload)) => {
                         let dispatch_key =
-                            v8::String::new(scope, "__bee_dispatch_message").unwrap();
+                            v8::String::new(scope, "__amber_dispatch_message").unwrap();
                         if let Some(handler) = global.get(scope, dispatch_key.into()) {
                             if let Ok(func) = v8::Local::<v8::Function>::try_from(handler) {
                                 let arg = v8::String::new(scope, &payload).unwrap();
@@ -565,7 +565,7 @@ pub fn setup_worker_host_api(
 ) -> Result<()> {
     let global = context.global(scope);
 
-    // Native: __bee_spawn_worker(source, url, workerDataJson) -> id
+    // Native: __amber_spawn_worker(source, url, workerDataJson) -> id
     let spawn_fn = v8::Function::new(
         scope,
         |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
@@ -606,10 +606,10 @@ pub fn setup_worker_host_api(
         },
     )
     .unwrap();
-    let spawn_key = v8::String::new(scope, "__bee_spawn_worker").unwrap();
+    let spawn_key = v8::String::new(scope, "__amber_spawn_worker").unwrap();
     global.set(scope, spawn_key.into(), spawn_fn.into());
 
-    // Native: __bee_worker_post(id, payloadJson)
+    // Native: __amber_worker_post(id, payloadJson)
     let post_fn = v8::Function::new(
         scope,
         |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
@@ -633,10 +633,10 @@ pub fn setup_worker_host_api(
         },
     )
     .unwrap();
-    let post_key = v8::String::new(scope, "__bee_worker_post").unwrap();
+    let post_key = v8::String::new(scope, "__amber_worker_post").unwrap();
     global.set(scope, post_key.into(), post_fn.into());
 
-    // Native: __bee_worker_terminate(id)
+    // Native: __amber_worker_terminate(id)
     let term_fn = v8::Function::new(
         scope,
         |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
@@ -650,10 +650,10 @@ pub fn setup_worker_host_api(
         },
     )
     .unwrap();
-    let term_key = v8::String::new(scope, "__bee_worker_terminate").unwrap();
+    let term_key = v8::String::new(scope, "__amber_worker_terminate").unwrap();
     global.set(scope, term_key.into(), term_fn.into());
 
-    // Native: __bee_worker_ref(id, is_refed)
+    // Native: __amber_worker_ref(id, is_refed)
     let ref_fn = v8::Function::new(
         scope,
         |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
@@ -668,10 +668,10 @@ pub fn setup_worker_host_api(
         },
     )
     .unwrap();
-    let ref_key = v8::String::new(scope, "__bee_worker_ref").unwrap();
+    let ref_key = v8::String::new(scope, "__amber_worker_ref").unwrap();
     global.set(scope, ref_key.into(), ref_fn.into());
 
-    // Native: __bee_resolve_script_file(script_ref) -> JSON string { source, url }
+    // Native: __amber_resolve_script_file(script_ref) -> JSON string { source, url }
     let resolve_fn = v8::Function::new(
         scope,
         |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut rv: v8::ReturnValue| {
@@ -700,13 +700,13 @@ pub fn setup_worker_host_api(
         },
     )
     .unwrap();
-    let resolve_key = v8::String::new(scope, "__bee_resolve_script_file").unwrap();
+    let resolve_key = v8::String::new(scope, "__amber_resolve_script_file").unwrap();
     global.set(scope, resolve_key.into(), resolve_fn.into());
 
     // Install JavaScript Worker and worker_threads bootstrap
     let js_bootstrap = r#"
     (function() {
-        globalThis.__bee_workers = {};
+        globalThis.__amber_workers = {};
 
         class BeeWorkerEventEmitter {
             constructor() { this._events = {}; }
@@ -752,7 +752,7 @@ pub fn setup_worker_host_api(
                     source = filename;
                     scriptUrl = '[eval]';
                 } else {
-                    const resolved = __bee_resolve_script_file(filename);
+                    const resolved = __amber_resolve_script_file(filename);
                     source = resolved.source;
                     scriptUrl = resolved.url;
                 }
@@ -762,14 +762,14 @@ pub fn setup_worker_host_api(
                     workerDataJson = JSON.stringify(options.workerData);
                 }
 
-                const id = __bee_spawn_worker(source, scriptUrl, workerDataJson);
+                const id = __amber_spawn_worker(source, scriptUrl, workerDataJson);
                 this.threadId = id;
                 this._workerId = id;
                 this._isTerminated = false;
                 this.onmessage = null;
                 this.onerror = null;
 
-                globalThis.__bee_workers[id] = this;
+                globalThis.__amber_workers[id] = this;
             }
 
             postMessage(data) {
@@ -777,24 +777,24 @@ pub fn setup_worker_host_api(
                     throw new Error("Cannot postMessage to a terminated worker");
                 }
                 const payload = JSON.stringify(data);
-                __bee_worker_post(this._workerId, payload);
+                __amber_worker_post(this._workerId, payload);
             }
 
             terminate() {
                 if (this._isTerminated) return;
                 this._isTerminated = true;
-                __bee_worker_terminate(this._workerId);
-                delete globalThis.__bee_workers[this._workerId];
+                __amber_worker_terminate(this._workerId);
+                delete globalThis.__amber_workers[this._workerId];
                 this.emit('exit', 0);
             }
 
             ref() {
-                __bee_worker_ref(this._workerId, true);
+                __amber_worker_ref(this._workerId, true);
                 return this;
             }
 
             unref() {
-                __bee_worker_ref(this._workerId, false);
+                __amber_worker_ref(this._workerId, false);
                 return this;
             }
 
@@ -807,8 +807,8 @@ pub fn setup_worker_host_api(
             }
         }
 
-        globalThis.__bee_dispatch_parent_message = function(id, rawPayload) {
-            const worker = globalThis.__bee_workers[id];
+        globalThis.__amber_dispatch_parent_message = function(id, rawPayload) {
+            const worker = globalThis.__amber_workers[id];
             if (!worker) return;
             let data;
             try {
@@ -822,8 +822,8 @@ pub fn setup_worker_host_api(
             }
         };
 
-        globalThis.__bee_dispatch_parent_error = function(id, errorMessage) {
-            const worker = globalThis.__bee_workers[id];
+        globalThis.__amber_dispatch_parent_error = function(id, errorMessage) {
+            const worker = globalThis.__amber_workers[id];
             if (!worker) return;
             const err = new Error(errorMessage);
             worker.emit('error', err);
@@ -832,11 +832,11 @@ pub fn setup_worker_host_api(
             }
         };
 
-        globalThis.__bee_dispatch_parent_exit = function(id, exitCode) {
-            const worker = globalThis.__bee_workers[id];
+        globalThis.__amber_dispatch_parent_exit = function(id, exitCode) {
+            const worker = globalThis.__amber_workers[id];
             if (!worker) return;
             worker._isTerminated = true;
-            delete globalThis.__bee_workers[id];
+            delete globalThis.__amber_workers[id];
             worker.emit('exit', exitCode);
         };
 

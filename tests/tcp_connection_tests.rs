@@ -1,7 +1,7 @@
 // TCP Connection Tests - v0.3.69
 // 测试 net 模块 TCP 连接功能
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

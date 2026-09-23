@@ -289,6 +289,7 @@ fn url_to_json_callback(
         .unwrap_or(v8::String::new(scope, "").unwrap().into());
     retval.set(href);
 }
+#[allow(dead_code)]
 fn search_params_constructor_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -802,6 +803,7 @@ fn parse_url_string(url: &str, _base: &str) -> Option<ParsedUrl> {
     Some(parts)
 }
 // 查询字符串解析
+#[allow(dead_code)]
 fn parse_query_string(query: &str) -> Vec<(String, String)> {
     let mut pairs = Vec::new();
     let parts: _ = query.split('&');

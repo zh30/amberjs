@@ -1,5 +1,5 @@
-// Beejs WebAssembly 2.0 Zero-Copy Shared Memory Subsystem (bee:wasm)
-// High-performance physical memory bridge between V8, WebAssembly, FFI pointers, and bee:ai.Tensor.
+// Amber WebAssembly 2.0 Zero-Copy Shared Memory Subsystem (amber:wasm)
+// High-performance physical memory bridge between V8, WebAssembly, FFI pointers, and amber:ai.Tensor.
 
 use anyhow::{anyhow, Result};
 use rusty_v8 as v8;
@@ -86,7 +86,7 @@ fn extract_target_ptr(scope: &mut v8::PinScope, arg: v8::Local<v8::Value>) -> us
                     }
                 }
             }
-            // Check if it's bee:ai.Tensor (has .data property)
+            // Check if it's amber:ai.Tensor (has .data property)
             let data_key = v8::String::new(scope, "data").unwrap();
             if let Some(tensor_data) = obj.get(scope, data_key.into()) {
                 if tensor_data.is_array_buffer_view() || tensor_data.is_object() {
@@ -111,7 +111,7 @@ fn extract_target_ptr(scope: &mut v8::PinScope, arg: v8::Local<v8::Value>) -> us
     0
 }
 
-/// Initialize the `bee:wasm` subsystem in V8 context
+/// Initialize the `amber:wasm` subsystem in V8 context
 pub fn setup_wasm_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
     context: &v8::Local<v8::Context>,
@@ -458,18 +458,19 @@ pub fn setup_wasm_api(
             let array_buffer =
                 v8::ArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
 
-            // Compile via WebAssembly.compile(arrayBuffer)
+            // Compile synchronously from the mmap-backed buffer. WebAssembly.compile()
+            // returns a Promise that the CLI evaluate loop may not finish pumping.
             let global = scope.get_current_context().global(scope);
             let wasm_key = v8::String::new(scope, "WebAssembly").unwrap();
             if let Some(wasm_val) = global.get(scope, wasm_key.into()) {
                 if let Ok(wasm_obj) = v8::Local::<v8::Object>::try_from(wasm_val) {
-                    let compile_key = v8::String::new(scope, "compile").unwrap();
-                    if let Some(compile_val) = wasm_obj.get(scope, compile_key.into()) {
-                        if let Ok(compile_fn) = v8::Local::<v8::Function>::try_from(compile_val) {
-                            let compile_rv =
-                                compile_fn.call(scope, wasm_obj.into(), &[array_buffer.into()]);
-                            if let Some(res) = compile_rv {
-                                resolver.resolve(scope, res);
+                    let module_key = v8::String::new(scope, "Module").unwrap();
+                    if let Some(module_val) = wasm_obj.get(scope, module_key.into()) {
+                        if let Ok(module_fn) = v8::Local::<v8::Function>::try_from(module_val) {
+                            if let Some(module_obj) =
+                                module_fn.new_instance(scope, &[array_buffer.into()])
+                            {
+                                resolver.resolve(scope, module_obj.into());
                                 return;
                             }
                         }
@@ -477,7 +478,7 @@ pub fn setup_wasm_api(
                 }
             }
 
-            let err = v8::String::new(scope, "WebAssembly.compile is not available").unwrap();
+            let err = v8::String::new(scope, "WebAssembly.Module is not available").unwrap();
             let exc = v8::Exception::error(scope, err);
             resolver.reject(scope, exc);
         },
@@ -693,13 +694,13 @@ pub fn setup_wasm_api(
     );
     native_obj.set(scope, k_slice.into(), slice_zero_copy_fn.into());
 
-    let k_bee_wasm_native = v8::String::new(scope, "__bee_wasm_native").unwrap();
-    global.set(scope, k_bee_wasm_native.into(), native_obj.into());
+    let k_amber_wasm_native = v8::String::new(scope, "__amber_wasm_native").unwrap();
+    global.set(scope, k_amber_wasm_native.into(), native_obj.into());
 
     // Inject high-level user-friendly JavaScript wrapper
     let js_code = r#"
     (function() {
-        const native = globalThis.__bee_wasm_native;
+        const native = globalThis.__amber_wasm_native;
 
         // 1. Prototype extensions for WebAssembly.Memory, ArrayBuffer, TypedArrays
         if (typeof WebAssembly !== 'undefined' && WebAssembly.Memory) {
@@ -1062,10 +1063,10 @@ pub fn setup_wasm_api(
                     break;
             }
 
-            if (globalThis.__bee_ai && globalThis.__bee_ai.Tensor) {
-                return new globalThis.__bee_ai.Tensor(view, shape, dtype);
+            if (globalThis.__amber_ai && globalThis.__amber_ai.Tensor) {
+                return new globalThis.__amber_ai.Tensor(view, shape, dtype);
             }
-            // Standalone Tensor shape wrapper if bee:ai is not loaded
+            // Standalone Tensor shape wrapper if amber:ai is not loaded
             return {
                 data: view,
                 shape,
@@ -1100,7 +1101,7 @@ pub fn setup_wasm_api(
             version: '2.0.0'
         };
 
-        globalThis.__bee_wasm = wasm;
+        globalThis.__amber_wasm = wasm;
         globalThis.wasm = wasm;
     })();
     "#;

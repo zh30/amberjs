@@ -1,59 +1,77 @@
 ---
 title: "打包与编译"
-subtitle: "v1.16.0 Preview：oxc bee bundle，SEA bee compile"
+subtitle: "Stable amber bundle 与 Stable SEA amber compile"
 group: "开发者工具"
 id: "bundling-compilation"
 ---
 
-两个打包工具，都是 **Preview**：
+两个打包工具：
 
-1. **`bee bundle`** — 把本地模块图打成一个 JS 文件
-2. **`bee compile`** — 复制 `bee` 二进制并追加脚本 payload（SEA）
+1. **`amber bundle`** — **Stable**。把本地 JS/TS/JSON 图打成一个 IIFE
+2. **`amber compile`** — **Stable**。复制宿主 `amber` 并嵌入脚本 payload（SEA）
 
-契约还在收紧。不要当成 webpack / esbuild / pkg 的对等实现。
+`amber bundle` 不是 webpack / rollup / esbuild 的对等实现。完整契约：[BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md)。`amber compile` 不是 pkg、nexe 或 Bun compile。SEA 契约见 [`docs/COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md)。`amber install` 是另一份 **Stable** 子集，不是 npm 替代品：[`docs/INSTALL_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md)。
 
 ---
 
-## `bee bundle`
+## `amber bundle`
 
 ```bash
-bee bundle src/index.ts -o dist/bundle.js
-bee bundle src/index.ts -o dist/bundle.min.js --minify
+amber bundle src/index.ts -o dist/bundle.js
+amber bundle src/index.ts -o dist/bundle.min.js --minify
+amber bundle src/index.ts -o dist/bundle.js --sourcemap
 ```
 
-当前会做的事：
+契约（由 `tests/bundle_contract_tests.rs` 钉住）：
 
-- 递归跟随静态本地 import
-- 用 oxc 擦掉 `.ts` / `.tsx` 类型
-- 每个模块包进隔离的 registry（`__beejs_require__`）
-- 可选 minify
+- 单文件入口。只跟随静态 `import` / `export from` / `require("...")`
+- 内联 `.js` / `.mjs` / `.cjs` / `.jsx` / `.ts` / `.tsx` / `.mts` / `.cts` / `.json`
+- 解析不到的 bare specifier 保留为运行时 `require()`（Node 内建、未找到的包）
+- 解析不到的 `./` / `../` 以及非 JS/JSON 资源以 `error: amber bundle:` 失败，且不写 outfile
+- `--sourcemap` 写出 SourceMap v3 `<name>.map`：`sources` 列出模块，`mappings` 为空
+- `--target` 只写进文件头注释；`--tree-shake` 接受但不生效
+- `node_modules` 只读 `package.json` 的 `"main"`（不读 `"exports"`）
 
-明确不做的承诺：完整 `node_modules` 生态打包、code splitting、浏览器应用工具链。
+明确不做：code splitting、CSS/图片/Wasm 管线、动态 `import()`、完整 Node 生态打包。
 
 ---
 
-## `bee compile`
+## `amber compile`（Stable）
 
 ```bash
-bee compile app.ts -o myapp
+amber compile app.ts -o myapp
 ./myapp
 ```
 
-输出二进制布局：
+只支持 Linux、macOS、Windows 本机。产物是**这份** `amber` 的拷贝再加 trailer，不交叉编译，也不是独立于动态链接器的 freestanding 二进制。其他操作系统会以 `unsupported host OS` 失败，并且不写文件。
+
+Linux 与 Windows 的 trailer 是文件最后 32 字节。macOS 把同样的 32 字节放在 `__LINKEDIT` 之前的 `__AMBER` 段末尾，再做 ad-hoc `codesign`；签名才是文件末尾。
+
+布局：
 
 ```text
-+----------------------------------------------------------+
-|  Beejs 运行时（宿主 `bee` 的一份拷贝）                    |
-+----------------------------------------------------------+
-|  打包后的用户脚本                                        |
-+----------------------------------------------------------+
-|  payload 长度 (u64)  |  魔数 BEE_STANDALONE（16 字节）   |
-+----------------------------------------------------------+
++---------------------------------------------------------------+
+|  宿主 amber 可执行文件（原样拷贝）                              |
++---------------------------------------------------------------+
+|  UTF-8 打包脚本                                                |
++---------------------------------------------------------------+
+|  payload 长度 (u64 LE)  |  flags (u64 LE，必须为 0)            |
++---------------------------------------------------------------+
+|  魔数 AMBER_STANDALONE（16 字节）                               |
++---------------------------------------------------------------+
 ```
 
-启动时 `bee` 检查自己的 trailer。如果有 `BEE_STANDALONE`，就直接跑内嵌脚本，跳过普通 CLI 解析。
+`AMBER_STANDALONE` 是这段魔数，不是环境变量。trailer 有效时直接跑 payload，跳过 CLI，所以 `--help` 和 `--version` 是脚本参数。`process.argv[0]` 和 `process.argv[1]` 都是可执行文件路径。
 
-限制：产物体积大约是 `bee` 本身加上脚本；原生 addon 和完整 Node 模块图不在范围内。
+契约内的失败会打印以 `error: amber compile:` 开头的一行（二进制跑起来之后是 `error: amber standalone:`），并且不会留下半成品。
+
+明确限制：
+
+- 动态 `import()` 和计算出来的 `require(expr)` 会使编译失败
+- `.node` 原生插件会被拒绝，不会被嵌进去
+- 没有虚拟文件系统；worker 和 `fs` 路径都是真实磁盘
+- macOS 先插入 `__AMBER` 段，再 ad-hoc `codesign`；任一步失败则编译失败
+- 不是 pkg / nexe / Bun compile 的对等实现
 
 ---
 
@@ -61,6 +79,6 @@ bee compile app.ts -o myapp
 
 | | 状态 |
 | :--- | :--- |
-| `bee bundle` | Preview |
-| `bee compile` | Preview |
-| 测试 | `tests/bundle_compile_tests.rs` |
+| `amber bundle` | **Stable**（限制见上方契约） |
+| `amber compile` | **Stable** |
+| 测试 | `tests/bundle_contract_tests.rs`、`tests/compile_contract_tests.rs`、`tests/bundle_compile_tests.rs` |

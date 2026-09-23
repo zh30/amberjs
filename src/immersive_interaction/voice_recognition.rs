@@ -18,7 +18,7 @@ impl Default for VoiceConfig {
         Self {
             language: "en-US".to_string(),
             enable_wake_word: false,
-            wake_word: "Hey Beejs".to_string(),
+            wake_word: "Hey Amber".to_string(),
             enable_continuous: false,
         }
     }

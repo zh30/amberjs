@@ -1,7 +1,7 @@
 // Doctor Command Module
 // Stage 91 Phase 4.1 - 环境诊断命令
 //
-/// 实现 `beejs doctor` 命令，诊断开发环境问题
+/// 实现 `amberjs doctor` 命令，诊断开发环境问题
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -70,10 +70,10 @@ impl DoctorCommand {
     /// 执行所有诊断检查
     pub fn execute(&mut self) -> anyhow::Result<()> {
         let start: _ = Instant::now();
-        self.formatter.title("Beejs Environment Diagnostics");
+        self.formatter.title("Amber Environment Diagnostics");
         println!();
         // 运行所有检查
-        self.check_beejs_version();
+        self.check_amberjs_version();
         self.check_v8_engine();
         self.check_rust_toolchain();
         self.check_node_compatibility();
@@ -117,11 +117,11 @@ impl DoctorCommand {
     fn add_check(&mut self, check: DiagnosticCheck) {
         self.checks.push(check);
     }
-    fn check_beejs_version(&mut self) {
+    fn check_amberjs_version(&mut self) {
         let version: _ = env!("CARGO_PKG_VERSION");
         self.add_check(DiagnosticCheck {
-            name: "Beejs Version".to_string(),
-            description: "Check Beejs runtime version".to_string(),
+            name: "Amber Version".to_string(),
+            description: "Check Amber runtime version".to_string(),
             status: CheckStatus::Pass,
             message: Some(format!("v{}", version)),
             suggestion: None,
@@ -348,7 +348,7 @@ impl DoctorCommand {
     fn check_permissions(&mut self) {
         let cwd: _ = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         // 检查写入权限
-        let test_file: _ = cwd.join(".beejs-permission-test");
+        let test_file: _ = cwd.join(".amberjs-permission-test");
         let can_write: _ = fs::write(&test_file, "test").is_ok();
         if can_write {
             let _: _ = fs::remove_file(&test_file);
@@ -433,9 +433,9 @@ use std::time::Instant;
     #[test]
     fn test_doctor_command_checks() {
         let mut cmd = DoctorCommand::new(true);
-        cmd.check_beejs_version();
+        cmd.check_amberjs_version();
         cmd.check_v8_engine();
         assert!(cmd.checks.len() >= 2);
-        assert!(cmd.checks.iter().any(|c| c.name == "Beejs Version"));
+        assert!(cmd.checks.iter().any(|c| c.name == "Amber Version"));
     }
 }

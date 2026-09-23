@@ -9,8 +9,8 @@ import shutil
 
 def move_ai_modules():
     """移动 AI 模块到正确的位置"""
-    src_dir = "/Users/henry/code/beejs/src"
-    ai_dir = "/Users/henry/code/beejs/src/ai"
+    src_dir = "/Users/henry/code/amberjs/src"
+    ai_dir = "/Users/henry/code/amberjs/src/ai"
 
     modules = [
         "ai_memory_pool.rs",
@@ -32,7 +32,7 @@ def move_ai_modules():
 
 def create_model_interface():
     """创建缺失的 model_interface.rs"""
-    ai_dir = "/Users/henry/code/beejs/src/ai"
+    ai_dir = "/Users/henry/code/amberjs/src/ai"
     interface_file = os.path.join(ai_dir, "model_interface.rs")
 
     if not os.path.exists(interface_file):
@@ -92,8 +92,8 @@ impl ModelManager {
 def fix_instant_serialization():
     """修复 Instant 类型的序列化问题"""
     files_to_fix = [
-        "/Users/henry/code/beejs/src/ai/ai_performance_engine.rs",
-        "/Users/henry/code/beejs/src/ai/intelligent_scheduler.rs",
+        "/Users/henry/code/amberjs/src/ai/ai_performance_engine.rs",
+        "/Users/henry/code/amberjs/src/ai/intelligent_scheduler.rs",
     ]
 
     fixed_count = 0
@@ -129,7 +129,7 @@ def fix_instant_serialization():
 
 def fix_gc_event_type():
     """修复 GcEventType 枚举问题"""
-    filepath = "/Users/henry/code/beejs/src/memory/gc_optimizer_enhanced.rs"
+    filepath = "/Users/henry/code/amberjs/src/memory/gc_optimizer_enhanced.rs"
 
     if not os.path.exists(filepath):
         return 0
@@ -167,7 +167,7 @@ def fix_gc_event_type():
 
 def fix_mmap_options():
     """修复 MmapOptions 构造问题"""
-    filepath = "/Users/henry/code/beejs/src/memory/zero_copy_enhanced.rs"
+    filepath = "/Users/henry/code/amberjs/src/memory/zero_copy_enhanced.rs"
 
     if not os.path.exists(filepath):
         return 0
@@ -193,7 +193,7 @@ def fix_mmap_options():
 
 def fix_ai_hardware_features():
     """修复 AiHardwareFeatures 导入问题"""
-    filepath = "/Users/henry/code/beejs/src/ai/matrix_accelerator.rs"
+    filepath = "/Users/henry/code/amberjs/src/ai/matrix_accelerator.rs"
 
     if not os.path.exists(filepath):
         return 0

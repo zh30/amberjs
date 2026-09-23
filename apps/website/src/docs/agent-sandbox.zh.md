@@ -7,7 +7,7 @@ id: "agent-sandbox"
 
 在运行由自主 AI Agent 实时生成的代码，或在多租户云端沙箱中执行不可信任务时，仅仅限制网络或文件是不够的：恶意脚本或 Agent 幻觉可能会写出死循环（如 `while(true){}`）导致整个 CPU 跑满挂起，或者发生急速内存泄漏导致整机 OOM。
 
-Beejs 构建了专为 Agent 设计的**确定性执行沙箱与硬件级资源配额系统**。
+Amber 构建了专为 Agent 设计的**确定性执行沙箱与硬件级资源配额系统**。
 
 ---
 
@@ -25,10 +25,10 @@ Beejs 构建了专为 Agent 设计的**确定性执行沙箱与硬件级资源�
 ## 2. 详细使用与技术原理
 
 ### 2.1 CPU 超时 Watchdog 强行中断 (`--timeout`)
-在传统 JavaScript 引擎中，一旦执行进入纯 CPU 密集死循环，事件循环机制将完全失效。Beejs 采用 **Isolate 级外部看门狗监控架构**：
+在传统 JavaScript 引擎中，一旦执行进入纯 CPU 密集死循环，事件循环机制将完全失效。Amber 采用 **Isolate 级外部看门狗监控架构**：
 
 ```bash
-$ bee run --timeout 2000 infinite_loop.ts
+$ amber run --timeout 2000 infinite_loop.ts
 ```
 
 当执行超过 2000 毫秒后，独立的 Watchdog 线程将向 V8 虚拟机发送硬件中断信号，安全强制展开调用栈并退出：
@@ -41,14 +41,14 @@ Error: Execution timed out after 2000ms
 
 ```bash
 # 严格限制 V8 堆内存不能超过 128 MB
-$ bee run --max-memory 128 mem_heavy_task.ts
+$ amber run --max-memory 128 mem_heavy_task.ts
 ```
 
 ### 2.3 确定性随机回放 (`--seed`)
 在评估 Agent 决策树、A/B 测试或进行复杂模拟时，随机性不可控会导致结果无法复现。通过 `--seed` 注入种子：
 
 ```bash
-$ bee run --seed 123456789 simulation.ts
+$ amber run --seed 123456789 simulation.ts
 ```
 
 无论在何时、何种硬件平台上重新运行该命令，`Math.random()` 产生的伪随机数序列永远 100% 绝对一致。
@@ -58,7 +58,7 @@ $ bee run --seed 123456789 simulation.ts
 
 ```bash
 # 锁定到 2026-01-01 00:00:00 UTC (1767225600000 ms)
-$ bee run --freeze-time 1767225600000 test_date.ts
+$ amber run --freeze-time 1767225600000 test_date.ts
 ```
 
 脚本内调用 `Date.now()` 将恒定返回指定的毫秒数，彻底消除测试时区和当前时钟的副作用。
@@ -70,7 +70,7 @@ $ bee run --freeze-time 1767225600000 test_date.ts
 在生产 Agent 调度器中，推荐使用如下全套沙箱标志启动用户任务：
 
 ```bash
-$ bee run \
+$ amber run \
     --sandbox \
     --timeout 3000 \
     --max-memory 256 \

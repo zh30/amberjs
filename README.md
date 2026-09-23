@@ -10,10 +10,11 @@
 </p>
 
 <p align="center">
-  <a href="https://amberjs.com"><img src="https://img.shields.io/badge/docs-bee.zhanghe.dev-0f172a" alt="Docs"></a>
+  <a href="https://amberjs.com"><img src="https://img.shields.io/badge/docs-amberjs.com-0f172a" alt="Docs"></a>
   <a href="https://github.com/zh30/amberjs/releases/tag/v1.16.0"><img src="https://img.shields.io/badge/release-v1.16.0-22c55e" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
   <a href="https://github.com/zh30/amberjs/actions/workflows/ci.yml"><img src="https://github.com/zh30/amberjs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://crates.io/crates/amberjs"><img src="https://img.shields.io/crates/v/amberjs.svg" alt="crates.io"></a>
 </p>
 
 <p align="center">
@@ -56,22 +57,28 @@ Prebuilt archives: macOS (arm64, x64), Linux gnu (x64, arm64), Windows (x64 zip)
 
 ```sh
 # macOS / Linux
-curl -fsSL https://amberjs.com/install.sh | sh
+curl -fsSL https://get.amberjs.com/install.sh | sh
 
 # pin a release
-curl -fsSL https://amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
+curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
 ```
 
 Windows (PowerShell):
 
 ```powershell
-irm https://amberjs.com/install.ps1 | iex
+irm https://get.amberjs.com/install.ps1 | iex
 ```
 
 Homebrew (formula in this repo; SHA256 is rewritten on each GitHub Release):
 
 ```sh
 brew install zh30/tap/amber
+```
+
+crates.io (each GitHub `v*` tag publishes via Release Assets + `CARGO_REGISTRY_TOKEN`; install the `amber` binary):
+
+```sh
+cargo install amberjs
 ```
 
 ```sh
@@ -199,20 +206,21 @@ amber repl
 amber snapshot [build|status|clean]
 amber session <tool>           JSON-RPC over stdin
 amber mcp [tool]               MCP stdio server
+amber compile <file> [-o myapp]  Host SEA (linux/macos/windows). Contract: docs/COMPILE_CONTRACT.md
+amber install [--frozen-lockfile]  Direct package.json deps. Not npm. Contract: docs/INSTALL_CONTRACT.md
 amber --version | amber version
+amber bundle <entry> [-o dist/bundle.js] [--minify]
 ```
 
 **Preview** — present, contract still tightening:
 
 ```text
 amber serve [--https --cert --key]
-amber bundle <entry> [-o dist/bundle.js] [--minify]
-amber compile <file> [-o myapp]
 amber run --inspect / --inspect-brk
 TypeScript / TSX execution
 ```
 
-**Experimental** — do not treat as product promises: `amber debug`, `amber init` / `create` / `add` / `remove` / `install` / `prune` / `x` / `upgrade`, N-API hello `process.dlopen`, `fmt` / `lint` / `task` / `bench` / `profile` / `deploy`.
+**Experimental** — do not treat as product promises: `amber debug`, `amber init` / `create` / `add` / `remove` / `prune` / `x` / `upgrade`, N-API hello `process.dlopen`, `fmt` / `lint` / `task` / `bench` / `profile` / `deploy`. `amber install` is the Stable exception above; it is not a full npm install.
 
 Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 
@@ -226,7 +234,7 @@ Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 | TypeScript | oxc, transpile-only | loaders / `tsc` | built-in | built-in |
 | Secure defaults | opt-in `--sandbox` | none | none | permission flags |
 | Node API | incremental Preview | native | drop-in goal | compat layer |
-| Package manager | Experimental | npm | `bun` | `deno` / JSR |
+| `amber install` | Stable subset, not npm | npm | `bun install` | `deno` / JSR |
 | Test runner | built-in `amber test` | external | `bun test` | `deno test` |
 | Native AI | `amber:ai` | — | — | — |
 
@@ -238,11 +246,11 @@ On Apple M2 Max (2026-09-16), suite 2.0 URL / `fetch` / `ReadableStream` beat No
 
 ## Editors
 
-- **VS Code**: [tools/vscode-extension](tools/vscode-extension) — `bee lsp` + inspector attach. Install the local `.vsix`; Marketplace is not shipped.
-- **Zed**: [tools/zed-extension](tools/zed-extension) — Install Dev Extension; `bee` must be on `PATH` or set `lsp.bee-lsp.binary.path`.
+- **VS Code**: [extensions/vscode](extensions/vscode) — `amber lsp` + inspector attach. Install the local `.vsix`; Marketplace is not shipped.
+- **Zed**: [extensions/zed](extensions/zed) — Install as a Dev Extension; `amber` must be on `PATH`.
 
 ```sh
-bee lsp
+amber lsp
 amber run --inspect-brk app.ts
 ```
 
@@ -270,7 +278,7 @@ cargo clippy --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
 
-See [AGENTS.md](AGENTS.md) for module boundaries (`src/main.rs` is the `bee` entry; do not treat every directory under `src/` as a public API).
+See [AGENTS.md](AGENTS.md) for module boundaries (`src/main.rs` is the `amber` entry; do not treat every directory under `src/` as a public API).
 
 ---
 

@@ -454,7 +454,7 @@ impl AlertSystem {
             .map_err(|e| e.to_string())?;
         let mut stats = self.stats.lock().map_err(|e| e.to_string())?;
         let message: _ = NotificationMessage {
-            title: format!("Beejs Alert: {}", alert.severity.as_str()),
+            title: format!("Amber Alert: {}", alert.severity.as_str()),
             content: alert.message.clone(),
             severity: alert.severity.clone(),
             tags: alert.data.tags.clone(),

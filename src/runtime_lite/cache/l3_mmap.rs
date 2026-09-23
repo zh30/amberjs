@@ -59,7 +59,7 @@ pub struct L3MmapCache {
 impl L3MmapCache {
     /// Create a new L3 cache
     pub fn new() -> Self {
-        let cache_dir: _ = PathBuf::from("/tmp/beejs_l3_cache");
+        let cache_dir: _ = PathBuf::from("/tmp/amberjs_l3_cache");
         std::fs::create_dir_all(&cache_dir).unwrap_or(());
         Self {
             entries: Arc::new(Mutex::new(HashMap::new())),

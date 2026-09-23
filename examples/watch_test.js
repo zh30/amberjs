@@ -7,7 +7,7 @@ console.log(`Initial counter: ${counter}`);
 // Simulate some work
 const data = {
     timestamp: new Date().toISOString(),
-    message: "Beejs hot reload is working!"
+    message: "Amber hot reload is working!"
 };
 
 console.log("Data:", JSON.stringify(data, null, 2));

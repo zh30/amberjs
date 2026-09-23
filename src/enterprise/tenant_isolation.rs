@@ -344,7 +344,7 @@ impl TenantIsolationManager {
         security_policy: &SecurityPolicy,
     ) -> Result<String> {
         // In real implementation, this would create Kubernetes SecurityContext
-        let context_name: _ = format!("beejs-sec-{}-{}-{}", tenant_id.as_str(), security_policy.encryption_enabled, security_policy.rbac_enabled);
+        let context_name: _ = format!("amberjs-sec-{}-{}-{}", tenant_id.as_str(), security_policy.encryption_enabled, security_policy.rbac_enabled);
         Ok(context_name)
     }
 }
@@ -425,7 +425,7 @@ impl NetworkIsolator {
         policy: &NetworkPolicy,
     ) -> Result<String> {
         // Generate namespace name
-        let namespace: _ = format!("beejs-tenant-{}", tenant_id.as_str());
+        let namespace: _ = format!("amberjs-tenant-{}", tenant_id.as_str());
         // In real implementation, this would create Kubernetes Namespace with NetworkPolicy
         {
             let mut namespaces = self.namespaces.write().unwrap();
@@ -448,7 +448,7 @@ impl StorageIsolator {
         quota: &StorageQuota,
     ) -> Result<String> {
         // Generate storage class name
-        let storage_class: _ = format!("beejs-tenant-storage-{}", tenant_id.as_str());
+        let storage_class: _ = format!("amberjs-tenant-storage-{}", tenant_id.as_str());
         // In real implementation, this would create Kubernetes StorageClass
         {
             let mut storage_classes = self.storage_classes.write().unwrap();
@@ -471,7 +471,7 @@ impl ComputeIsolator {
         limits: &ResourceLimits,
     ) -> Result<String> {
         // Generate quota name
-        let quota_name: _ = format!("beejs-tenant-quota-{}", tenant_id.as_str());
+        let quota_name: _ = format!("amberjs-tenant-quota-{}", tenant_id.as_str());
         // In real implementation, this would create Kubernetes ResourceQuota
         {
             let mut quota_names = self.quota_names.write().unwrap();

@@ -1,14 +1,14 @@
-# Beejs 高并发 I/O 与空闲常驻内存专项优化计划 (对标 Bun v1.4.1)
+# Amber 高并发 I/O 与空闲常驻内存专项优化计划 (对标 Bun v1.4.1)
 
 > **对标基准**: [Bun Official v1.4.1 Idle Memory Benchmark](https://x.com/bunjavascript/status/2095696147813945347)  
-> **实测背景**: 基于实际压测复现，Beejs 在物理内存紧凑度（冷启动 ~20 MB，空闲常驻 21~23 MB）上表现出天然优势；但在高并发网络吞吐量（~100 RPS vs Bun 65,000+ RPS）和框架兼容性（Express 缺失 `tty`）上存在明显瓶颈。  
+> **实测背景**: 基于实际压测复现，Amber 在物理内存紧凑度（冷启动 ~20 MB，空闲常驻 21~23 MB）上表现出天然优势；但在高并发网络吞吐量（~100 RPS vs Bun 65,000+ RPS）和框架兼容性（Express 缺失 `tty`）上存在明显瓶颈。  
 > **核心目标**: 保持极低物理内存优势的同时，将 HTTP 吞吐量提升两个数量级至 **50,000+ RPS**，实现主动空闲物理页归还（对齐 Bun 1.4.1），并解锁 Express / Fastify 零阻碍运行。
 
 ---
 
 ## 🔍 一、现状诊断与瓶颈根因透视
 
-经过对 [`src/nodejs_core/http.rs`](file:///Users/henry/code/beejs/src/nodejs_core/http.rs) 与 [`src/runtime_minimal.rs`](file:///Users/henry/code/beejs/src/runtime_minimal.rs) 的源码级排查，性能差距的深层原因定位如下：
+经过对 [`src/nodejs_core/http.rs`](file:///Users/henry/code/amberjs/src/nodejs_core/http.rs) 与 [`src/runtime_minimal.rs`](file:///Users/henry/code/amberjs/src/runtime_minimal.rs) 的源码级排查，性能差距的深层原因定位如下：
 
 ### 1. 吞吐瓶颈：多重硬编码 Sleep 与阻塞式系统调用
 - **连接 Accept 轮询休眠**（`http.rs:2338`）：
@@ -38,11 +38,11 @@
   每个后台连接线程向主线程通过容量仅为 100 的 channel 传递请求，主线程处理完毕后，所有连接线程在全局 `Mutex<HashMap<u64, HttpResponseMessage>>` 上争抢锁。
 
 ### 3. 生态瓶颈：内置模块缺失阻断生态框架
-- Express 启动时由于依赖 `debug` 包，而 `debug` 包在 Node 规范中依赖内置的 `tty` 模块（`tty.isatty`），因 Beejs 尚未导出 `tty` 导致加载失败：
+- Express 启动时由于依赖 `debug` 包，而 `debug` 包在 Node 规范中依赖内置的 `tty` 模块（`tty.isatty`），因 Amber 尚未导出 `tty` 导致加载失败：
   `Error: Cannot find module 'tty' from '.../debug/src'`。
 
 ### 4. 内存机制：缺少主动空闲期内存紧缩（Idle Trimming）
-- Bun 1.4.1 的核心改动在于**监听事件循环进入 idle 状态**，随后主动调用内部分配器的页释放（`madvise(MADV_DONTNEED)`）并触发 GC 垃圾回收。Beejs 目前依靠 V8 默认策略，未在事件循环空闲时主动通知 V8 释放未使用的保留内存。
+- Bun 1.4.1 的核心改动在于**监听事件循环进入 idle 状态**，随后主动调用内部分配器的页释放（`madvise(MADV_DONTNEED)`）并触发 GC 垃圾回收。Amber 目前依靠 V8 默认策略，未在事件循环空闲时主动通知 V8 释放未使用的保留内存。
 
 ---
 
@@ -50,7 +50,7 @@
 
 ```mermaid
 graph TD
-    A["Beejs 专项性能与内存优化"] --> B["战役一：非阻塞异步 HTTP 引擎重构"]
+    A["Amber 专项性能与内存优化"] --> B["战役一：非阻塞异步 HTTP 引擎重构"]
     A --> C["战役二：主动空闲内存紧缩 (对齐 Bun 1.4.1)"]
     A --> D["战役三：Node.js 核心生态兼容突破"]
     A --> E["战役四：自动化性能与回归门禁"]
@@ -117,27 +117,27 @@ graph TD
 ### 战役三：Node.js 核心生态兼容突破（Express & Fastify）
 
 #### 1. 实现原生内置 `tty` 模块
-- **模块路径**：[`src/nodejs_core/tty.rs`](file:///Users/henry/code/beejs/src/nodejs_core/tty.rs)
+- **模块路径**：[`src/nodejs_core/tty.rs`](file:///Users/henry/code/amberjs/src/nodejs_core/tty.rs)
 - **核心能力**：
   - 导出 `isatty(fd: number): boolean`（通过底层系统调用 `libc::isatty` 检查终端）；
   - 导出 `ReadStream` 与 `WriteStream` 类，挂载 `fd`, `isTTY`, `columns`, `rows` 等属性；
-  - 在 [`src/nodejs_core/process.rs`](file:///Users/henry/code/beejs/src/nodejs_core/process.rs) 中为 `process.stdin`、`process.stdout`、`process.stderr` 对齐 `isTTY` 标准。
+  - 在 [`src/nodejs_core/process.rs`](file:///Users/henry/code/amberjs/src/nodejs_core/process.rs) 中为 `process.stdin`、`process.stdout`、`process.stderr` 对齐 `isTTY` 标准。
 - **验收标准**：
   - `require('express')` 顺利通过 `debug` 包检查，启动 Express HTTP 路由服务。
 
 #### 2. 完善 Stream 与网络内部管线
-- 补全 Fastify 所需的底层 `ReadableStream` 事件钩子与预分配 Buffer 参数，使 `server_fastify.js` 能够在 Beejs 上直接启动并处理流量。
+- 补全 Fastify 所需的底层 `ReadableStream` 事件钩子与预分配 Buffer 参数，使 `server_fastify.js` 能够在 Amber 上直接启动并处理流量。
 
 ---
 
 ### 战役四：自动化性能与回归门禁
 
 #### 1. 纳入日常 CI 流水线
-- 在 [`.github/workflows/ci.yml`](file:///Users/henry/code/beejs/.github/workflows/ci.yml) 中新增轻量级基准测试步骤：
+- 在 [`.github/workflows/ci.yml`](file:///Users/henry/code/amberjs/.github/workflows/ci.yml) 中新增轻量级基准测试步骤：
   ```yaml
   - name: Idle Memory and Throughput Smoke Benchmark
     run: |
-      python3 benchmarks/idle_memory/runner.py --mode quick --runtimes bee
+      python3 benchmarks/idle_memory/runner.py --mode quick --runtimes amber
   ```
 - 设定质量红线：HTTP Baseline 吞吐量不得低于基线，冷启动 RSS 不得超过 25 MB。
 
@@ -150,7 +150,7 @@ graph TD
 
 | 阶段 | 目标代号 | 核心工作内容 | 预期交付物与指标 |
 |---|---|---|---|
-| **Phase 1**<br>*(1-2 天)* | **Quick Boost** | • 剔除 `http.rs` 热路径中所有同步 `eprintln!` 日志；<br>• 移除所有 WouldBlock 的 `thread::sleep(100ms/50ms)` 轮询延迟；<br>• 实现原生内置 `tty` 模块，解除 Express 启动阻碍。 | • HTTP 吞吐量提升至 **2,000~5,000 RPS**；<br>• Express 顺利在 Beejs 上启动运行。 |
+| **Phase 1**<br>*(1-2 天)* | **Quick Boost** | • 剔除 `http.rs` 热路径中所有同步 `eprintln!` 日志；<br>• 移除所有 WouldBlock 的 `thread::sleep(100ms/50ms)` 轮询延迟；<br>• 实现原生内置 `tty` 模块，解除 Express 启动阻碍。 | • HTTP 吞吐量提升至 **2,000~5,000 RPS**；<br>• Express 顺利在 Amber 上启动运行。 |
 | **Phase 2**<br>*(3-5 天)* | **Async Engine** | • 将 HTTP 监听与读写升级为 Tokio/Mio 非阻塞事件驱动反应堆；<br>• 废除每连接 `thread::spawn`；<br>• 实现批量请求分发（Batch Pump）与零拷贝响应通道。 | • HTTP 吞吐量突破 **30,000~50,000+ RPS**；<br>• 并发连接支持提升至 1,000+。 |
 | **Phase 3**<br>*(2-3 天)* | **Memory Trimmer** | • 实现主循环事件空闲检测器（Idle Detector）；<br>• 接入 V8 `low_memory_notification` 与空闲期 GC 调度；<br>• 对接底层分配器内存紧缩（`malloc_trim` / `madvise`）。 | • 高并发后空闲常驻内存回落率达 **80%~95%**；<br>• 在空闲内存对比中全面超越 Bun 1.4.1。 |
 | **Phase 4**<br>*(1-2 天)* | **Ecosystem & Gate** | • 跑通 Fastify / Hono / Express 完整生态矩阵；<br>• CI 流水线集成性能门禁；<br>• 发布正式性能白皮书与版本。 | • 产出完整的性能白皮书；<br>• 形成自动化性能防护网。 |

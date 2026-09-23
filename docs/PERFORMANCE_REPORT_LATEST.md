@@ -1,4 +1,4 @@
-# Beejs 性能测试最新报告
+# Amber 性能测试最新报告
 **生成日期**: 2025-12-18 07:00
 **版本**: v0.1.0 (智能运行时选择器版)
 **测试平台**: macOS Darwin 25.2.0
@@ -63,11 +63,11 @@
 ### 智能运行时选择器测试
 ```bash
 # 简单脚本 (自动使用RuntimeLite)
-$ time ./beejs --eval 'console.log("Hello World")'
+$ time ./amberjs --eval 'console.log("Hello World")'
 实际时间: ~7ms (0.007s)
 
 # 复杂脚本 (自动使用完整Runtime)
-$ time ./beejs --eval 'for(let i = 0; i < 100; i++) { console.log(i); }'
+$ time ./amberjs --eval 'for(let i = 0; i < 100; i++) { console.log(i); }'
 实际时间: ~7ms (0.007s)
 ```
 
@@ -80,7 +80,7 @@ $ time ./beejs --eval 'for(let i = 0; i < 100; i++) { console.log(i); }'
 
 ```javascript
 // 测试结果
-process.version: "1.0.0-beejs"  ✅
+process.version: "1.0.0-amberjs"  ✅
 path.join('a', 'b'): "a/b"       ✅
 require('path') 模块系统          ✅
 ```
@@ -121,7 +121,7 @@ require('path') 模块系统          ✅
 ## 📈 性能对比 vs Bun
 
 ### 当前状态
-| 指标 | Beejs (优化后) | Bun | 差距 |
+| 指标 | Amber (优化后) | Bun | 差距 |
 |------|----------------|-----|------|
 | **启动时间** | ~6-7ms | ~0.0003ms | Bun快 ~20,000x |
 | **简单执行** | ~7ms | ~0.0003ms | Bun快 ~20,000x |
@@ -166,16 +166,16 @@ require('path') 模块系统          ✅
 
 ## 📝 结论
 
-Beejs v0.1.0 在智能运行时选择器优化后取得了**重大突破**：
+Amber v0.1.0 在智能运行时选择器优化后取得了**重大突破**：
 
 1. **启动时间提升99倍**: 从595ms → 6ms
 2. **测试稳定性100%**: 116/116核心库测试通过
 3. **AI优化完整**: 7/7 AI工作负载测试通过
 4. **架构创新**: 智能运行时选择器自动优化
 
-虽然与Bun仍有差距，但**智能运行时选择器的实现证明了Beejs架构的正确性**，为后续优化奠定了坚实基础。
+虽然与Bun仍有差距，但**智能运行时选择器的实现证明了Amber架构的正确性**，为后续优化奠定了坚实基础。
 
 **下一步重点**: V8绑定层优化和内存管理验证
 
 ---
-*报告生成: Beejs Performance Analyzer v0.1.0*
+*报告生成: Amber Performance Analyzer v0.1.0*

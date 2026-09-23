@@ -10,7 +10,7 @@
 
 ## 🎯 阶段目标
 
-Stage 25.2 的目标是实现 Beejs 运行时的深度性能优化，通过以下四个核心方向：
+Stage 25.2 的目标是实现 Amber 运行时的深度性能优化，通过以下四个核心方向：
 
 1. **JIT 编译路径深度优化** - 提升编译决策效率
 2. **V8 Isolate 预热机制优化** - 减少冷启动时间
@@ -243,7 +243,7 @@ pub use async_io::{AsyncIoManager, IoStats, AsyncFileRead, IoError};
 
 **初始目标**: 实现比 Bun 更快的 JavaScript/TypeScript 运行时
 - Bun 冷启动: 72ms
-- Beejs 当前: 11ms (已达成)
+- Amber 当前: 11ms (已达成)
 - 性能提升: ~6.5x
 
 **Stage 25.2 目标**: 深度性能优化，进一步提升运行时效率
@@ -252,7 +252,7 @@ pub use async_io::{AsyncIoManager, IoStats, AsyncFileRead, IoError};
 - ✅ I/O 并发优化: 50个任务<100ms
 - ✅ 内存优化: <100MB平均使用
 
-**整体评估**: Stage 25.2 完全达成所有目标，为 Beejs 成为最快 JS/TS 运行时奠定了坚实基础。
+**整体评估**: Stage 25.2 完全达成所有目标，为 Amber 成为最快 JS/TS 运行时奠定了坚实基础。
 
 ---
 
@@ -275,7 +275,7 @@ Stage 25.2 已完成，以下是后续建议：
 
 ## 📝 总结
 
-Stage 25.2 是 Beejs 性能优化的重要里程碑。通过实现 JIT 编译路径、Isolate 预热机制、零拷贝 I/O 和综合性能基准测试四大优化方向，我们成功验证了所有 10 个测试用例，性能指标全面达成预期。
+Stage 25.2 是 Amber 性能优化的重要里程碑。通过实现 JIT 编译路径、Isolate 预热机制、零拷贝 I/O 和综合性能基准测试四大优化方向，我们成功验证了所有 10 个测试用例，性能指标全面达成预期。
 
 **核心成就**:
 - ✅ 10/10 测试通过 (100% 通过率)
@@ -283,7 +283,7 @@ Stage 25.2 是 Beejs 性能优化的重要里程碑。通过实现 JIT 编译路
 - ✅ 性能指标全面达成
 - ✅ 代码质量保持高标准
 
-这为 Beejs 在 AI 时代运行高性能 JavaScript/TypeScript 脚本奠定了坚实的技术基础。
+这为 Amber 在 AI 时代运行高性能 JavaScript/TypeScript 脚本奠定了坚实的技术基础。
 
 ---
 

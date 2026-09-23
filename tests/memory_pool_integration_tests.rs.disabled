@@ -1,5 +1,5 @@
-use beejs::Runtime;
-use beejs::memory_pool::PoolConfig;
+use amberjs::Runtime;
+use amberjs::memory_pool::PoolConfig;
 
 #[test]
 fn test_memory_pool_integration() {

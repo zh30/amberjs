@@ -29,7 +29,7 @@ fn setup_process(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     // process.argv - use Array instead of Object
     let argv: _ = v8::Array::new(scope, 2);
     // In a real implementation, these would come from actual CLI args
-    let val_0: _ = v8::String::new(scope, "bee").unwrap().into();
+    let val_0: _ = v8::String::new(scope, "amber").unwrap().into();
     argv.set_index(scope, 0, val_0);
     let val_1: _ = v8::String::new(scope, "<eval>").unwrap().into();
     argv.set_index(scope, 1, val_1);
@@ -41,7 +41,7 @@ fn setup_process(scope: &mut v8::ContextScope<v8::HandleScope>) -> Result<()> {
     process.set(scope, v8::String::new(scope, "argv").unwrap().into(), argv.into())
         .map_err(|e| anyhow!("Failed to set process.argv: {}", e))?;
     // process.version
-    process.set(scope, v8::String::new(scope, "version").unwrap().into(), v8::String::new(scope, "1.0.0-bee").unwrap().into())
+    process.set(scope, v8::String::new(scope, "version").unwrap().into(), v8::String::new(scope, "1.0.0-amber").unwrap().into())
         .map_err(|e| anyhow!("Failed to set process.version: {}", e))?;
     // process.cwd()
     let cwd_func: _ = v8::FunctionTemplate::new(scope, |scope: &mut v8::PinScope, _args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {

@@ -1,4 +1,4 @@
-# Beejs 高性能 JavaScript 运行时 - 开发进度
+# Amber 高性能 JavaScript 运行时 - 开发进度
 
 ## 当前版本: v0.3.369 (2026-01-20)
 
@@ -1577,7 +1577,7 @@ try {
 #### v0.3.305 使用示例
 ```javascript
 // 创建 Blob
-const blob = new Blob(['Hello, Beejs!'], { type: 'text/plain' });
+const blob = new Blob(['Hello, Amber!'], { type: 'text/plain' });
 console.log(blob.size);  // 13
 console.log(blob.type);  // 'text/plain'
 
@@ -1759,9 +1759,9 @@ const decompressed = compressed.pipeThrough(new DecompressionStream('gzip'));
 #### v0.3.299 使用示例
 ```javascript
 // 深拷贝对象
-const original = { name: 'Beejs', version: '0.3.299' };
+const original = { name: 'Amber', version: '0.3.299' };
 const cloned = structuredClone(original);
-console.log(cloned.name); // 'Beejs'
+console.log(cloned.name); // 'Amber'
 
 // 深拷贝数组
 const arr = [1, 2, { nested: true }];
@@ -1958,7 +1958,7 @@ await writer.write('data');  // 等待异步写入完成
 
 #### v0.3.292 测试验证
 ```bash
-$ CARGO_BIN_EXE_BEEJS=./target/debug/beejs cargo test --test web_streams_api_tests
+$ CARGO_BIN_EXE_AMBER=./target/debug/amberjs cargo test --test web_streams_api_tests
 running 1 test
 test ... ok (async write tests pass)
 ```
@@ -2003,7 +2003,7 @@ const { value } = await reader.read();
 
 #### v0.3.293 测试验证
 ```bash
-$ CARGO_BIN_EXE_BEEJS=./target/debug/beejs cargo test --test web_streams_api_tests
+$ CARGO_BIN_EXE_AMBER=./target/debug/amberjs cargo test --test web_streams_api_tests
 running 59 tests
 test ... ok (all TextEncoderStream tests pass)
 ```
@@ -2116,10 +2116,10 @@ readable.pipeTo(writable, { preventClose: true }).then(() => {
 
 #### v0.3.289 测试验证
 ```bash
-$ ./beejs eval "const rs = new ReadableStream(); const ws = new WritableStream(); rs.pipeTo(ws, {preventClose: true}).then(() => console.log(ws._state))"
+$ ./amberjs eval "const rs = new ReadableStream(); const ws = new WritableStream(); rs.pipeTo(ws, {preventClose: true}).then(() => console.log(ws._state))"
 0
 
-$ ./beejs eval "const rs = new ReadableStream(); const ws = new WritableStream(); rs.pipeTo(ws).then(() => console.log(ws._state))"
+$ ./amberjs eval "const rs = new ReadableStream(); const ws = new WritableStream(); rs.pipeTo(ws).then(() => console.log(ws._state))"
 1
 ```
 
@@ -2189,7 +2189,7 @@ const reader = result.readable.getReader();
 
 #### v0.3.288 测试验证
 ```bash
-$ ./beejs eval "const rs = new ReadableStream(); console.log(typeof rs.pipeTo, typeof rs.pipeThrough)"
+$ ./amberjs eval "const rs = new ReadableStream(); console.log(typeof rs.pipeTo, typeof rs.pipeThrough)"
 function function
 ```
 
@@ -2554,8 +2554,8 @@ performance.measure('model_load', 'model_load_start', 'model_load_end');
 
 #### v0.3.235 实现细节
 - **execute_code 错误处理** (`src/runtime_minimal.rs`)
-  - 语法错误消息：[Beejs Error] SyntaxError: {message}\\nHint: 检查括号、引号或无效语法
-  - 运行时错误消息：[Beejs Error] {CODE}: {message}\\nHint: 根据错误类型提供针对性建议
+  - 语法错误消息：[Amber Error] SyntaxError: {message}\\nHint: 检查括号、引号或无效语法
+  - 运行时错误消息：[Amber Error] {CODE}: {message}\\nHint: 根据错误类型提供针对性建议
 
 #### v0.3.235 测试结果
 - ✅ cargo build --release 编译成功
@@ -3265,7 +3265,7 @@ let runtime = MinimalRuntime::new_fast()?;
 ```
 
 #### v0.3.231 测试验证
-- ✅ `cargo check -p beejs`: 编译成功
+- ✅ `cargo check -p amberjs`: 编译成功
 - ✅ `cargo test --test minimal_runtime_fast_tests`: 6/6 通过
 - ✅ 快速模式执行基本 JS 操作正常
 - ✅ 快速模式字符串、数组操作正常
@@ -3286,7 +3286,7 @@ let runtime = MinimalRuntime::new_fast()?;
 
 #### v0.3.230 新增功能
 - **Prune 命令**
-  - `beejs prune` - 清理 node_modules 中未使用的依赖
+  - `amberjs prune` - 清理 node_modules 中未使用的依赖
   - 自动识别 package.json 中声明的依赖
   - 支持 scoped packages（@org/pkg）
   - 保留 .bin 和 .cache 目录
@@ -3301,7 +3301,7 @@ let runtime = MinimalRuntime::new_fast()?;
 #### v0.3.230 使用示例
 ```bash
 # 清理未使用的依赖
-beejs prune
+amberjs prune
 
 # 输出示例
 ✂️ Pruning unused dependencies from node_modules...
@@ -3313,7 +3313,7 @@ beejs prune
 
 #### v0.3.230 测试验证
 - ✅ `cargo build`: 编译成功
-- ✅ `beejs prune --help`: 命令正常显示
+- ✅ `amberjs prune --help`: 命令正常显示
 - ✅ `cargo test --test minimal_tests`: 130/130 通过
 - ✅ `cargo test --test prune_command_tests`: 7/7 通过
 - ✅ 无 package.json 时错误提示
@@ -3338,7 +3338,7 @@ beejs prune
 
 #### v0.3.229 新增功能
 - **Install 命令**
-  - `beejs install` - 从 package.json 安装所有依赖
+  - `amberjs install` - 从 package.json 安装所有依赖
   - 自动安装 dependencies, devDependencies, optionalDependencies
   - 生成/更新 package-lock.json 锁文件
   - 显示安装的包列表
@@ -3356,18 +3356,18 @@ beejs prune
 #### v0.3.229 使用示例
 ```bash
 # 安装所有依赖
-beejs install
+amberjs install
 
 # 初始化新项目
-beejs init my-project
+amberjs init my-project
 
 # 添加带可选依赖
-beejs add fsevents --dev
+amberjs add fsevents --dev
 ```
 
 #### v0.3.229 测试验证
 - ✅ `cargo build`: 编译成功
-- ✅ `beejs install --help`: 命令正常显示
+- ✅ `amberjs install --help`: 命令正常显示
 - ✅ `cargo test --test minimal_tests`: 130/130 通过
 - ✅ `cargo test --test install_command_cli_tests`: 5/5 通过
 - ✅ `cargo test --test package_lock_tests`: 7/7 通过
@@ -3379,7 +3379,7 @@ beejs add fsevents --dev
 - `tests/install_command_cli_tests.rs`: 新增 CLI 测试文件
 
 #### v0.3.229 下一步
-- ✅ 添加 `beejs prune` 命令（清理未使用依赖）
+- ✅ 添加 `amberjs prune` 命令（清理未使用依赖）
 - 添加 Node.js Stream/Net API 兼容性
 - 性能优化：启动时间进一步优化
 
@@ -3396,37 +3396,37 @@ beejs add fsevents --dev
   - 自动生成/更新 package-lock.json
 
 - **Upgrade 命令**
-  - `beejs upgrade` - 升级所有依赖到最新版本
-  - `beejs upgrade <package>` - 升级指定包
+  - `amberjs upgrade` - 升级所有依赖到最新版本
+  - `amberjs upgrade <package>` - 升级指定包
   - 从 npm registry 获取最新版本信息
   - 比较当前版本和最新版本，提示升级
 
 #### v0.3.228 使用示例
 ```bash
 # 添加依赖（带精确版本）
-beejs add react --save-exact
+amberjs add react --save-exact
 
 # 添加为开发依赖
-beejs add typescript --dev
+amberjs add typescript --dev
 
 # 升级所有依赖
-beejs upgrade
+amberjs upgrade
 
 # 升级指定包
-beejs upgrade lodash
+amberjs upgrade lodash
 ```
 
 #### v0.3.228 测试验证
 - ✅ `cargo build`: 编译成功
-- ✅ `beejs add --help`: 参数正常显示
-- ✅ `beejs upgrade --help`: 命令正常显示
+- ✅ `amberjs add --help`: 参数正常显示
+- ✅ `amberjs upgrade --help`: 命令正常显示
 - ✅ `cargo test --test minimal_tests`: 130/130 通过
 - ✅ `cargo test --test package_lock_tests`: 7/7 通过
 - ✅ `cargo test --test install_command_tests`: 6/6 通过
 
 #### v0.3.228 下一步
-- ✅ 实现 `beejs install` 命令（从 package.json 安装所有依赖）
-- 添加 `beejs prune` 命令（清理未使用依赖）
+- ✅ 实现 `amberjs install` 命令（从 package.json 安装所有依赖）
+- 添加 `amberjs prune` 命令（清理未使用依赖）
 - ✅ 支持 optionalDependencies
 
 ---
@@ -3442,7 +3442,7 @@ beejs upgrade lodash
 
 - **包下载和缓存**
   - `download_package()` 下载 tarball 到本地缓存
-  - 缓存目录 `.beejs_cache/{package}/{version}.tgz`
+  - 缓存目录 `.amberjs_cache/{package}/{version}.tgz`
   - 避免重复下载已缓存的包
 
 - **Tarball 解压**
@@ -3483,7 +3483,7 @@ beejs upgrade lodash
 
 #### v0.3.225 新增功能
 - **bunx 子命令**
-  - 用法：`beejs bunx <package> [args]...`
+  - 用法：`amberjs bunx <package> [args]...`
   - 支持包名格式：`lodash`, `lodash@4.17.21`, `typescript@latest`
   - 自动下载包到缓存并执行 bin 入口
   - 自动传递参数给包的可执行文件
@@ -3496,23 +3496,23 @@ beejs upgrade lodash
 #### v0.3.225 使用示例
 ```bash
 # 运行 typescript 并查看版本
-beejs bunx typescript --version
+amberjs bunx typescript --version
 
 # 运行 prettier 格式化文件
-beejs bunx prettier --write src/*.js
+amberjs bunx prettier --write src/*.js
 
 # 运行特定版本的包
-beejs bunx esbuild@0.19.0 --version
+amberjs bunx esbuild@0.19.0 --version
 ```
 
 #### v0.3.225 测试验证
 - ✅ `cargo build`: 编译成功
-- ✅ `beejs bunx --help`: 帮助信息正常显示
+- ✅ `amberjs bunx --help`: 帮助信息正常显示
 - ✅ `cargo test --test minimal_tests`: 130/130 通过
 
 #### v0.3.225 下一步
 - ✅ 实现包锁定文件 package-lock.json（v0.3.226）
-- 添加 `beejs upgrade` 命令
+- 添加 `amberjs upgrade` 命令
 - 添加 `--save-exact` 精确版本安装（已部分实现）
 
 ---
@@ -3559,7 +3559,7 @@ beejs bunx esbuild@0.19.0 --version
 - ✅ `cargo build --release`: 编译成功
 
 #### v0.3.226 下一步
-- 添加 `beejs upgrade` 命令
+- 添加 `amberjs upgrade` 命令
 - 添加 `--save-exact` 精确版本安装（CLI 集成）
 
 ---
@@ -3578,25 +3578,25 @@ beejs bunx esbuild@0.19.0 --version
 - ✅ 内存优化（Memory Pool、Shared Memory、Zero Copy）
 
 **CLI 命令**
-- ✅ `beejs run <file>` - 运行脚本
-- ✅ `beejs eval <code>` - 评估代码
-- ✅ `beejs repl` - REPL 模式
-- ✅ `beejs test` - 测试运行器
-- ✅ `beejs bundle` - 打包工具
-- ✅ `beejs debug` - 调试器
-- ✅ `beejs serve` - HTTP/HTTPS 服务器
-- ✅ `beejs init` - 初始化项目
-- ✅ `beejs add <package>` - 添加依赖
-- ✅ `beejs remove <package>` - 移除依赖
-- ✅ `beejs create` - 创建项目
-- ✅ `beejs bunx <package>` - 无需安装运行包
-- ✅ `beejs version` - 版本信息
+- ✅ `amberjs run <file>` - 运行脚本
+- ✅ `amberjs eval <code>` - 评估代码
+- ✅ `amberjs repl` - REPL 模式
+- ✅ `amberjs test` - 测试运行器
+- ✅ `amberjs bundle` - 打包工具
+- ✅ `amberjs debug` - 调试器
+- ✅ `amberjs serve` - HTTP/HTTPS 服务器
+- ✅ `amberjs init` - 初始化项目
+- ✅ `amberjs add <package>` - 添加依赖
+- ✅ `amberjs remove <package>` - 移除依赖
+- ✅ `amberjs create` - 创建项目
+- ✅ `amberjs bunx <package>` - 无需安装运行包
+- ✅ `amberjs version` - 版本信息
 
 **包管理器**
 - ✅ npm registry 集成（https://registry.npmjs.org/）
 - ✅ package.json 解析
 - ✅ 依赖版本解析（^, ~, >=, <=, >, <）
-- ✅ 包下载和缓存（.beejs_cache/）
+- ✅ 包下载和缓存（.amberjs_cache/）
 - ✅ tarball 解压到 node_modules
 - ✅ package-lock.json 锁文件支持（npm lockfile v3）
 - ✅ bunx 命令（无需安装运行包）
@@ -3634,9 +3634,9 @@ beejs bunx esbuild@0.19.0 --version
 - ✅ package_lock_tests: 7/7 通过
 
 #### v0.3.227 下一步
-- 实现 `beejs upgrade` 命令（升级依赖）
+- 实现 `amberjs upgrade` 命令（升级依赖）
 - 添加 `--save-exact` 精确版本安装（CLI 集成）
-- 完善 `beejs create` 项目模板
+- 完善 `amberjs create` 项目模板
 - 性能优化：启动时间进一步优化
 - 添加更多 Node.js API 兼容（Stream, Net, etc.）
 
@@ -6485,7 +6485,7 @@ function identity<T>(value: T, defaultValue?: T): T {
 #### v0.3.111 验证
 - ✅ `cargo test --lib` 36/36 通过
 - ✅ 新增测试用例：`test_async_arrow_function_block_body`, `test_arrow_function_block_body_with_multiple_statements`
-- ✅ `beejs run examples/test_arrow_block_body.ts` 成功运行
+- ✅ `amberjs run examples/test_arrow_block_body.ts` 成功运行
 
 #### v0.3.111 代码变更
 - **修改文件**: `src/typescript/compiler.rs` (+101/-61 行)
@@ -6557,7 +6557,7 @@ function identity<T>(value: T, defaultValue?: T): T {
 
 #### v0.3.109 验证
 - ✅ `cargo test --lib` 31/31 通过
-- ✅ `beejs run examples/async_fn_test.ts` 现在可以正确编译运行
+- ✅ `amberjs run examples/async_fn_test.ts` 现在可以正确编译运行
 - ✅ 新增测试用例：`test_async_function_return_type`, `test_generic_function`
 
 #### v0.3.109 代码变更
@@ -6733,7 +6733,7 @@ function identity<T>(value: T, defaultValue?: T): T {
 
 #### v0.3.106 新增功能
 - **WebSocket CLI 集成**
-  - 添加 `--websocket-port` / `-p` 选项到 `beejs run` 命令
+  - 添加 `--websocket-port` / `-p` 选项到 `amberjs run` 命令
   - 默认端口 9999，可自定义
   - 与 `--watch` 和 `--debounce` 组合使用
 
@@ -6770,13 +6770,13 @@ function identity<T>(value: T, defaultValue?: T): T {
 #### v0.3.106 使用示例
 ```bash
 # 启动热重载模式（默认端口 9999）
-beejs run index.js --watch
+amberjs run index.js --watch
 
 # 自定义 WebSocket 端口
-beejs run index.js --watch -p 8888
+amberjs run index.js --watch -p 8888
 
 # 完整配置示例
-beejs run index.js --watch --debounce 200 -p 9999
+amberjs run index.js --watch --debounce 200 -p 9999
 ```
 
 #### v0.3.106 验证
@@ -6795,7 +6795,7 @@ beejs run index.js --watch --debounce 200 -p 9999
 
 #### v0.3.100 新增功能
 - **Watch Mode (热重载)**
-  - 添加 `--watch` 选项到 `beejs run` 命令
+  - 添加 `--watch` 选项到 `amberjs run` 命令
   - 使用 `notify_debouncer_mini` 实现高效文件监控
   - 自动检测 JS/TS/JSX/TSX 文件变化
   - 智能忽略 node_modules、.git、dist 等目录
@@ -6826,13 +6826,13 @@ beejs run index.js --watch --debounce 200 -p 9999
 #### v0.3.100 使用示例
 ```bash
 # 启动热重载模式
-beejs run index.js --watch
+amberjs run index.js --watch
 
 # 自定义去抖动时间
-beejs run index.js --watch --debounce 300
+amberjs run index.js --watch --debounce 300
 
 # 运行并退出
-beejs run index.js
+amberjs run index.js
 ```
 
 #### v0.3.100 测试结果
@@ -6841,10 +6841,10 @@ $ cargo test --lib
 running 14 tests
 test result: ok. 14 passed; 0 failed; 0 ignored
 
-$ ./target/release/beejs run --help
+$ ./target/release/amberjs run --help
 Run a script file
 
-Usage: beejs run [OPTIONS] <FILE> [ARGS]...
+Usage: amberjs run [OPTIONS] <FILE> [ARGS]...
 
 Options:
   -w, --watch                Enable watch mode (hot reload)
@@ -6880,11 +6880,11 @@ Options:
 #### v0.3.102 使用示例
 ```bash
 # 运行 TypeScript 文件
-beejs run index.ts
-beejs run index.tsx
+amberjs run index.ts
+amberjs run index.tsx
 
 # 热重载模式也支持 TypeScript
-beejs run index.ts --watch
+amberjs run index.ts --watch
 ```
 
 #### v0.3.102 下一步计划
@@ -6917,7 +6917,7 @@ test result: ok. 4 passed; 0 failed; 0 ignored
 #### v0.3.101 下一步计划
 - 实现 npm registry 集成
 - 添加包下载和缓存功能
-- 支持 `beejs add` 命令
+- 支持 `amberjs add` 命令
 
 
 ### v0.3.99 修复内建模块 require 加载问题 (2025-12-26)
@@ -6943,10 +6943,10 @@ test result: ok. 4 passed; 0 failed; 0 ignored
 
 #### v0.3.99 测试结果
 ```bash
-$ ./target/release/beejs eval "const os = require('os'); console.log(os.message);"
+$ ./target/release/amberjs eval "const os = require('os'); console.log(os.message);"
 os module available as global.os
 
-$ ./target/release/beejs eval "console.log(global.os.platform());"
+$ ./target/release/amberjs eval "console.log(global.os.platform());"
 darwin
 ```
 
@@ -8400,9 +8400,9 @@ test result: 14 passed; 7 failed; 0 ignored
 #### v0.3.46 验证
 - `cargo build` - 零错误（仅 2 个警告）
 - `cargo test --test events_module_tests` - 27 tests passed
-- `beejs eval "typeof events"` → "object"
-- `beejs eval "typeof events.EventEmitter"` → "function"
-- `beejs eval "e.emit('test')"` → true
+- `amberjs eval "typeof events"` → "object"
+- `amberjs eval "typeof events.EventEmitter"` → "function"
+- `amberjs eval "e.emit('test')"` → true
 
 ---
 ### ✨ v0.3.47 DNS 模块实现 (2025-12-25)
@@ -8436,9 +8436,9 @@ test result: 14 passed; 7 failed; 0 ignored
   - 测试各种查询功能
 
 #### v0.3.47 验证
-- `beejs eval "typeof dns"` → "object"
-- `beejs eval "dns.lookup('localhost')"` → "127.0.0.1"
-- `beejs eval "dns.getServers()"` → "8.8.8.8"
+- `amberjs eval "typeof dns"` → "object"
+- `amberjs eval "dns.lookup('localhost')"` → "127.0.0.1"
+- `amberjs eval "dns.getServers()"` → "8.8.8.8"
 
 ---
 
@@ -8485,11 +8485,11 @@ test result: 14 passed; 7 failed; 0 ignored
 #### v0.3.44 验证
 - `cargo build --release` - 零错误
 - `cargo test --test stream_module_tests` - 14 tests passed
-- `beejs eval "typeof stream"` → "object"
-- `beejs eval "typeof stream.Readable"` → "function"
-- `beejs eval "typeof stream.Writable"` → "function"
-- `beejs eval "typeof stream.Transform"` → "function"
-- `beejs eval "typeof stream.Duplex"` → "function"
+- `amberjs eval "typeof stream"` → "object"
+- `amberjs eval "typeof stream.Readable"` → "function"
+- `amberjs eval "typeof stream.Writable"` → "function"
+- `amberjs eval "typeof stream.Transform"` → "function"
+- `amberjs eval "typeof stream.Duplex"` → "function"
 
 ---
 ### ✨ v0.3.43 child_process 模块实现 (2025-12-25)
@@ -8510,9 +8510,9 @@ test result: 14 passed; 7 failed; 0 ignored
   - 在 initialize_runtime 中调用初始化
 
 #### v0.3.43 验证
-- beejs eval "typeof child_process" -> "object"
-- beejs eval "typeof child_process.spawn" -> "function"
-- beejs eval "child_process.spawn('echo').killed" -> false
+- amberjs eval "typeof child_process" -> "object"
+- amberjs eval "typeof child_process.spawn" -> "function"
+- amberjs eval "child_process.spawn('echo').killed" -> false
 
 ---
 
@@ -8547,10 +8547,10 @@ test result: 14 passed; 7 failed; 0 ignored
 #### v0.3.42 验证
 - ✅ `cargo build --release` - 零警告
 - ✅ `cargo test --test global_object_tests` - 7 tests passed
-- ✅ `beejs eval "typeof globalThis.global"` → "object"
-- ✅ `beejs eval "globalThis.global === globalThis"` → true
-- ✅ `beejs eval "globalThis.global.setTimeout === setTimeout"` → true
-- ✅ `beejs eval "Object.is(globalThis.global, globalThis)"` → true
+- ✅ `amberjs eval "typeof globalThis.global"` → "object"
+- ✅ `amberjs eval "globalThis.global === globalThis"` → true
+- ✅ `amberjs eval "globalThis.global.setTimeout === setTimeout"` → true
+- ✅ `amberjs eval "Object.is(globalThis.global, globalThis)"` → true
 
 ---
 
@@ -8612,11 +8612,11 @@ test result: 14 passed; 7 failed; 0 ignored
 #### v0.3.40 验证
 - ✅ `cargo build --release` - 零警告
 - ✅ `cargo test --test process_module_tests` - 53 tests passed
-- ✅ `beejs eval "process.ppid > 0"` → true
-- ✅ `beejs eval "process.ppid !== process.pid"` → true
-- ✅ `beejs eval "process.features.uv"` → true
-- ✅ `beejs eval "process.features.v8"` → true
-- ✅ `beejs eval "process.features.modules"` → true
+- ✅ `amberjs eval "process.ppid > 0"` → true
+- ✅ `amberjs eval "process.ppid !== process.pid"` → true
+- ✅ `amberjs eval "process.features.uv"` → true
+- ✅ `amberjs eval "process.features.v8"` → true
+- ✅ `amberjs eval "process.features.modules"` → true
 
 ---
 
@@ -8641,8 +8641,8 @@ test result: 14 passed; 7 failed; 0 ignored
 
 - ✅ **验证已实现功能**
   - process.chdir() 目录切换功能正常
-  - process.title 默认值 "beejs"
-  - process.release.name 值为 "beejs"
+  - process.title 默认值 "amberjs"
+  - process.release.name 值为 "amberjs"
 
 #### v0.3.35 技术实现
 - **umask 实现** (src/runtime_minimal.rs)
@@ -8664,14 +8664,14 @@ test result: 14 passed; 7 failed; 0 ignored
 
 #### v0.3.35 验证
 - ✅ `cargo build --release` 成功
-- ✅ `beejs eval "typeof process.umask"` → "function"
-- ✅ `beejs eval "process.umask()"` → "0022"
-- ✅ `beejs eval "process.umask(0o077)"` → "0022" (返回旧值)
-- ✅ `beejs eval "typeof process.abort"` → "function"
-- ✅ `beejs eval "typeof process.config"` → "object"
-- ✅ `beejs eval "process.config.variables.host_arch"` → "arm64"
-- ✅ `beejs eval "process.chdir(process.cwd())"` → 返回 undefined
-- ✅ `beejs eval "process.title"` → "beejs"
+- ✅ `amberjs eval "typeof process.umask"` → "function"
+- ✅ `amberjs eval "process.umask()"` → "0022"
+- ✅ `amberjs eval "process.umask(0o077)"` → "0022" (返回旧值)
+- ✅ `amberjs eval "typeof process.abort"` → "function"
+- ✅ `amberjs eval "typeof process.config"` → "object"
+- ✅ `amberjs eval "process.config.variables.host_arch"` → "arm64"
+- ✅ `amberjs eval "process.chdir(process.cwd())"` → 返回 undefined
+- ✅ `amberjs eval "process.title"` → "amberjs"
 
 
 ### ✨ v0.3.36 Timers API 增强 - Timer 对象方法 (2025-12-25)
@@ -8728,11 +8728,11 @@ test result: 14 passed; 7 failed; 0 ignored
 
 #### v0.3.36 验证
 - ✅ `cargo build --release` 成功
-- ✅ `beejs eval "const t=setTimeout(()=>{},100); typeof t"` → "object"
-- ✅ `beejs eval "const t=setTimeout(()=>{},100); typeof t.unref"` → "function"
-- ✅ `beejs eval "const t=setTimeout(()=>{},100); t.unref() === t"` → true（链式调用）
-- ✅ `beejs eval "const t=setInterval(()=>{},100); typeof t.ref"` → "function"
-- ✅ `beejs eval "const t=setImmediate(()=>{}); Number(t) > 0"` → true
+- ✅ `amberjs eval "const t=setTimeout(()=>{},100); typeof t"` → "object"
+- ✅ `amberjs eval "const t=setTimeout(()=>{},100); typeof t.unref"` → "function"
+- ✅ `amberjs eval "const t=setTimeout(()=>{},100); t.unref() === t"` → true（链式调用）
+- ✅ `amberjs eval "const t=setInterval(()=>{},100); typeof t.ref"` → "function"
+- ✅ `amberjs eval "const t=setImmediate(()=>{}); Number(t) > 0"` → true
 
 **最新状态 (2025-12-25)**: ✨ v0.3.37 os 模块实现
 
@@ -8773,19 +8773,19 @@ test result: 14 passed; 7 failed; 0 ignored
 
 #### v0.3.37 验证
 - ✅ `cargo test --test os_module_tests` - 17 tests passed
-- ✅ `beejs eval "typeof os"` → "object"
-- ✅ `beejs eval "os.platform()"` → "darwin"
-- ✅ `beejs eval "os.arch()"` → "arm64"
-- ✅ `beejs eval "os.cpus().length"` → "4"
-- ✅ `beejs eval "os.freemem() > 0"` → true
-- ✅ `beejs eval "os.totalmem() > os.freemem()"` → true
+- ✅ `amberjs eval "typeof os"` → "object"
+- ✅ `amberjs eval "os.platform()"` → "darwin"
+- ✅ `amberjs eval "os.arch()"` → "arm64"
+- ✅ `amberjs eval "os.cpus().length"` → "4"
+- ✅ `amberjs eval "os.freemem() > 0"` → true
+- ✅ `amberjs eval "os.totalmem() > os.freemem()"` → true
 
 ### ✨ v0.3.38 process 模块修复 (2025-12-25)
 **进度**: ✅ process.release | ✅ process.uptime 测试修复 | ✅ 39/39 测试通过
 
 #### v0.3.38 实现内容
 - ✅ **process.release 对象**
-  - 添加 `process.release.name = "beejs"`
+  - 添加 `process.release.name = "amberjs"`
   - 与 Node.js 兼容的 release 对象结构
   - 39 个测试用例全部通过
 
@@ -8803,9 +8803,9 @@ test result: 14 passed; 7 failed; 0 ignored
 #### v0.3.38 验证
 - ✅ `cargo build --release` - 零警告
 - ✅ `cargo test --test process_module_tests` - 39 tests passed
-- ✅ `beejs eval "typeof process.release"` → "object"
-- ✅ `beejs eval "process.release.name"` → "beejs"
-- ✅ `beejs eval "typeof process.uptime"` → "function"
+- ✅ `amberjs eval "typeof process.release"` → "object"
+- ✅ `amberjs eval "process.release.name"` → "amberjs"
+- ✅ `amberjs eval "typeof process.uptime"` → "function"
 
 ---
 
@@ -8879,7 +8879,7 @@ test result: 14 passed; 7 failed; 0 ignored
 
 #### v0.3.33 验证
 - ✅ `cargo build --release` 成功
-- ✅ `beejs --version` 输出: "beejs 0.1.6"
+- ✅ `amberjs --version` 输出: "amberjs 0.1.6"
 
 **最新状态 (2025-12-25)**: 🐛 v0.3.33 测试编译修复
 
@@ -8906,11 +8906,11 @@ test result: 14 passed; 7 failed; 0 ignored
   - `Path::parent()` 处理 `..` 遍历
 
 #### v0.3.31 测试验证
-- ✅ `path.resolve('foo', 'bar')` → `/Users/henry/code/beejs/foo/bar`
+- ✅ `path.resolve('foo', 'bar')` → `/Users/henry/code/amberjs/foo/bar`
 - ✅ `path.resolve('/absolute', 'path')` → `/absolute/path`
 - ✅ `path.resolve('/a/b', '../c')` → `/a/b/../c`
-- ✅ `path.resolve()` → `/Users/henry/code/beejs`
-- ✅ `path.resolve('test.txt')` → `/Users/henry/code/beejs/test.txt`
+- ✅ `path.resolve()` → `/Users/henry/code/amberjs`
+- ✅ `path.resolve('test.txt')` → `/Users/henry/code/amberjs/test.txt`
 
 #### v0.3.31 代码变更
 - **修改文件**: `src/runtime_minimal.rs` (+70 行)
@@ -9262,7 +9262,7 @@ const encrypted = await crypto.subtle.encrypt(
 - 通过 get_backing_store() 安全访问 ArrayBuffer 数据
 - 使用 base64 编码存储密钥材料
 - 处理 V8 Function::new 返回 Option 类型的情况
-- 添加 Beejs Buffer 兼容性支持（普通 Object 带 length 属性）
+- 添加 Amber Buffer 兼容性支持（普通 Object 带 length 属性）
 
 #### v0.3.28 测试验证
 - ✅ 31/31 KeyObjects 测试全部通过
@@ -9282,7 +9282,7 @@ const encrypted = await crypto.subtle.encrypt(
   - 测试 roundtrip 导入导出
 
 - **修改文件**: `src/runtime_minimal.rs` (+35 行)
-  - 修复 createSecretKey 对 Beejs Buffer 的兼容性问题
+  - 修复 createSecretKey 对 Amber Buffer 的兼容性问题
   - 添加普通 Object（带 length 属性）的遍历支持
   - 处理数字索引访问的字节读取
 
@@ -9907,7 +9907,7 @@ const sig2 = crypto.createSign('RSA-SHA512')
 
 #### v0.3.17 核心功能
 - ✅ **process.version** - 返回运行时版本字符串 (v20.11.0)
-- ✅ **process.versions** - 包含 v8、node、beejs 版本信息的对象
+- ✅ **process.versions** - 包含 v8、node、amberjs 版本信息的对象
 - ✅ **process.platform** - 操作系统平台 (darwin/linux/win32)
 - ✅ **process.arch** - CPU 架构 (x64/arm64)
 - ✅ **process.pid** - 进程 ID
@@ -9924,7 +9924,7 @@ const sig2 = crypto.createSign('RSA-SHA512')
 - ✅ **process.exit()** - 退出进程
 - ✅ **process.exitCode** - 退出码
 - ✅ **process.features** - 运行时特性对象
-- ✅ **process.isBeejs** - Beejs 标识 (true)
+- ✅ **process.isAmber** - Amber 标识 (true)
 - ✅ **process.browser** - 浏览器标识 (false)
 
 #### v0.3.17 技术实现
@@ -9938,7 +9938,7 @@ const sig2 = crypto.createSign('RSA-SHA512')
 ```javascript
 // 版本信息
 console.log(process.version);           // v20.11.0
-console.log(process.versions.beejs);    // 0.3.17
+console.log(process.versions.amberjs);    // 0.3.17
 
 // 平台信息
 console.log(process.platform);          // darwin
@@ -9946,7 +9946,7 @@ console.log(process.arch);              // arm64
 
 // 进程信息
 console.log(process.pid);               // 12345
-console.log(process.title);             // beejs
+console.log(process.title);             // amberjs
 
 // 环境变量
 console.log(process.env.PATH);
@@ -10441,7 +10441,7 @@ const fs = require('fs/promises');
 const content = await fs.readFile('test.txt', 'utf8');
 
 // 写入文件
-await fs.writeFile('output.txt', 'Hello, Beejs!');
+await fs.writeFile('output.txt', 'Hello, Amber!');
 
 // 追加文件
 await fs.appendFile('output.txt', ' appended text');
@@ -10771,7 +10771,7 @@ const files = await fs.readdir('/path/to/dir');
 
 - ✅ **与现有 API 集成**
   - 与 setTimeout/setInterval 形成完整的定时器 API 套件
-  - 填补 Beejs 与 Node.js API 的重要差距
+  - 填补 Amber 与 Node.js API 的重要差距
   - 为异步流程控制提供基础支持
 
 ---
@@ -11102,9 +11102,9 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
   - 测试覆盖所有核心功能和使用场景
 
 - ✅ **实际功能验证成功**
-  - 文件读写操作完全正常：`fs.writeFile('./test.txt', 'Hello from Beejs!')` → `File written successfully`
+  - 文件读写操作完全正常：`fs.writeFile('./test.txt', 'Hello from Amber!')` → `File written successfully`
   - 文件存在检查：`fs.exists('./Cargo.toml')` → `true`
-  - 文件读取：`fs.readFile('./test.txt', 'utf8')` → `Hello from Beejs!`
+  - 文件读取：`fs.readFile('./test.txt', 'utf8')` → `Hello from Amber!`
   - 目录操作：`fs.readdir('.')` → 返回完整文件列表数组
   - 文件统计：`fs.stat('./test.txt')` → 返回包含 size、isFile、isDirectory、mtime 的对象
   - 文件删除：`fs.unlink('./test.txt')` → `File deleted`
@@ -11124,8 +11124,8 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 
 #### v0.1.7 功能验证结果
 - ✅ **fs.exists('./Cargo.toml')** → `true`
-- ✅ **fs.writeFile('./test.txt', 'Hello from Beejs!')** → `File written successfully`
-- ✅ **fs.readFile('./test.txt', 'utf8')** → `Hello from Beejs!`
+- ✅ **fs.writeFile('./test.txt', 'Hello from Amber!')** → `File written successfully`
+- ✅ **fs.readFile('./test.txt', 'utf8')** → `Hello from Amber!`
 - ✅ **fs.stat('./test.txt')** → `[object Object]` (包含 size、isFile、isDirectory、mtime)
 - ✅ **fs.readdir('.')** → 完整文件列表数组
 - ✅ **fs.unlink('./test.txt')** → `File deleted`
@@ -11278,7 +11278,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 - ✅ **bundle命令**: TypeScript文件成功打包
   ```
   🐝 Bundling JavaScript/TypeScript...
-  Hello, Beejs
+  Hello, Amber
   ✅ Bundle created: /tmp/test_bundle.js
   📦 Bundle size: 9 bytes
   ```
@@ -11288,7 +11288,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
   🐝 Debugging script: /tmp/test_simple_ts.ts
   🔍 Debug mode enabled
   📄 File content: [显示源码]
-  Hello, Beejs
+  Hello, Amber
   ✅ Execution successful
   Result: undefined
   ```
@@ -11470,14 +11470,14 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 
 ---
 
-**上一状态 (2025-12-23 06:37)**: 🎉 Beejs v0.1.4 重大突破！CLI工具修复完成！8/8测试全部通过！Web API全面增强！性能超 340 万 ops/sec！
+**上一状态 (2025-12-23 06:37)**: 🎉 Amber v0.1.4 重大突破！CLI工具修复完成！8/8测试全部通过！Web API全面增强！性能超 340 万 ops/sec！
 
 ### 🎉 v0.1.4 CLI工具修复与Web API增强完成 (2025-12-23 06:37)
 **进度**: ✅ V8初始化优化 | ✅ CLI工具完全修复 | ✅ 8/8测试通过 | ✅ Web API全面增强 | ✅ 性能基准测试 | ✅ 版本更新
 
 #### v0.1.4 CLI工具修复重大成果 (2025-12-23 06:37)
 - ✅ **CLI工具完全修复**
-  - 更新 beejs.rs 使用 MinimalRuntime 替代禁用的 runtime_core
+  - 更新 amberjs.rs 使用 MinimalRuntime 替代禁用的 runtime_core
   - 修复 run/eval/repl/version/stats/test 所有命令
   - 支持 JavaScript 文件执行和内联代码执行
   - REPL 交互式解释器功能完善
@@ -11520,12 +11520,12 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 
 #### v0.1.4 功能验证
 - ✅ **CLI命令测试**:
-  - `beejs version` - 显示版本信息 ✅
-  - `beejs run test.js` - 执行 JavaScript 文件 ✅
-  - `beejs eval "1+1"` - 执行内联代码 ✅
-  - `beejs repl` - 交互式 REPL ✅
-  - `beejs stats` - 运行时统计 ✅
-  - `beejs test` - 简单测试套件 ✅
+  - `amberjs version` - 显示版本信息 ✅
+  - `amberjs run test.js` - 执行 JavaScript 文件 ✅
+  - `amberjs eval "1+1"` - 执行内联代码 ✅
+  - `amberjs repl` - 交互式 REPL ✅
+  - `amberjs stats` - 运行时统计 ✅
+  - `amberjs test` - 简单测试套件 ✅
 
 - ✅ **Web API测试**:
   - console.log/info/debug/warn/error - 完整支持 ✅
@@ -11533,7 +11533,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
   - Date/Math/JSON 对象 - V8 内置支持验证 ✅
 
 #### v0.1.4 代码变更
-- **修改文件**: src/bin/beejs.rs (完全重构)
+- **修改文件**: src/bin/amberjs.rs (完全重构)
 - **新增功能**: setup_web_apis() 方法
 - **增强功能**: setup_console() 扩展 info/debug 支持
 - **测试优化**: 串行执行避免并发问题
@@ -11685,7 +11685,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
   - 安全的类型转换 (to_rust_string_lossy)
   - 线程安全的V8隔离 (OwnedIsolate)
 
-- ✅ **TDD测试套件完整通过** (tests/beejs_core_tests.rs)
+- ✅ **TDD测试套件完整通过** (tests/amberjs_core_tests.rs)
   - ✅ test_minimal_runtime_initialization - 运行时初始化测试
   - ✅ test_javascript_execution - JavaScript执行测试 (1+1=2)
   - ✅ test_typescript_compilation - TypeScript编译测试 (跳过)
@@ -11730,7 +11730,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 
 #### v0.1.3代码统计
 - **新增文件**: 1个 (src/runtime_minimal.rs)
-- **修改文件**: 5个 (lib.rs, main.rs, Cargo.toml, tests/beejs_core_tests.rs)
+- **修改文件**: 5个 (lib.rs, main.rs, Cargo.toml, tests/amberjs_core_tests.rs)
 - **代码行数**: +356行, -1042行 (净减少686行)
 - **测试用例**: 6个核心测试
 - **自动化工具**: 禁用复杂模块，专注核心
@@ -12124,7 +12124,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
   - 清理未使用的导入
 
 - ✅ **V8 引擎功能验证**
-  - 创建独立测试项目：`/tmp/beejs_v8_test/`
+  - 创建独立测试项目：`/tmp/amberjs_v8_test/`
   - 验证 V8 引擎工作正常
   - 8 项核心测试全部通过
     - ✅ 简单算术 (1 + 1 = 2)
@@ -12188,7 +12188,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
   - 性能测试
   - 类型转换和堆栈跟踪测试
 
-- ✅ **完整 CLI 工具** (src/bin/beejs.rs, 300+ 行)
+- ✅ **完整 CLI 工具** (src/bin/amberjs.rs, 300+ 行)
   - run: 执行 JavaScript 文件
   - eval: 执行内联代码
   - repl: 交互式 REPL
@@ -12828,7 +12828,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 **进度**: ✅ TDD测试套件创建 | ✅ v8导入修复 | ✅ 基础类型导入批量修复 | ✅ 重复导入清理 | ✅ 311+文件修改 | ✅ 275+错误修复
 
 #### v0.1.2 TDD + 编译错误修复重大成果 (2025-12-23 04:30)
-- ✅ **TDD测试套件创建** (tests/beejs_core_functionality_tests.rs)
+- ✅ **TDD测试套件创建** (tests/amberjs_core_functionality_tests.rs)
   - 10个核心功能测试用例：V8运行时初始化、JS执行、TS编译、错误处理、性能基准
   - 测试驱动开发流程：红色(测试) → 绿色(实现) → 蓝色(重构)
   - 完整的测试工具函数：临时文件创建、结果验证、性能阈值检查
@@ -12848,8 +12848,8 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
   - 优化导入结构，提高代码整洁度
 
 - ✅ **main.rs 类型导入完善**
-  - 添加：std::time::{Duration, Instant}, std::path::PathBuf, beejs::runtime_lite::RuntimeLite
-  - 添加：beejs::cli::info_command::InfoCommand, beejs::cli::doctor_command::DoctorCommand
+  - 添加：std::time::{Duration, Instant}, std::path::PathBuf, amberjs::runtime_lite::RuntimeLite
+  - 添加：amberjs::cli::info_command::InfoCommand, amberjs::cli::doctor_command::DoctorCommand
   - 清理重复导入，保持代码整洁
 
 #### v0.1.2 修复统计
@@ -12912,7 +12912,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 
 - ✅ **process Web API 添加**
   - process.version: 显示当前版本 "0.1.4"
-  - process.platform: 显示平台 "beejs"
+  - process.platform: 显示平台 "amberjs"
   - process.arch: 显示架构 "unknown"
   - 完整的 V8 上下文集成
 
@@ -12936,7 +12936,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 #### v0.1.4 功能验证结果
 - ✅ **异步测试**: setTimeout 延迟0立即执行 ✅
   ```
-  === Beejs v0.1.4 测试 ===
+  === Amber v0.1.4 测试 ===
   算术: 8
   console.log 测试
   异步测试        <-- setTimeout 立即执行
@@ -12947,7 +12947,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 
 - ✅ **Web API 测试**: process 对象正常工作 ✅
   - process.version: "0.1.4" ✅
-  - process.platform: "beejs" ✅
+  - process.platform: "amberjs" ✅
   - Math.PI: 3.141592653589793 ✅
 
 - ✅ **异步模式提示**: 延迟>0 显示异步模式 ✅
@@ -13009,7 +13009,7 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 #### v0.3.3 验证结果
 - ✅ `cargo check` 通过
 - ✅ `cargo test --lib` 通过 (8/8 测试)
-- ✅ `beejs eval "console.log('Hello from Beejs!')"` 正常工作
+- ✅ `amberjs eval "console.log('Hello from Amber!')"` 正常工作
 
 #### 当前状态
 - **编译状态**: ✅ 零错误 (仅 4 个警告)
@@ -13097,9 +13097,9 @@ fetch('https://httpbin.org/json').json()  // 返回: 实际 JSON 数据
 
 #### v0.3.6 验证命令
 ```bash
-./beejs eval "const fs = require('fs'); fs.readFile('/tmp/test.txt', 'utf8', (err, data) => { console.log(err || data); });"
-./beejs eval "const fs = require('fs'); fs.writeFile('/tmp/test.txt', 'Hello!', (err) => { console.log(err || 'done'); });"
-./beejs eval "const fs = require('fs'); fs.appendFile('/tmp/test.txt', ' World', (err) => { console.log(err || 'done'); });"
+./amberjs eval "const fs = require('fs'); fs.readFile('/tmp/test.txt', 'utf8', (err, data) => { console.log(err || data); });"
+./amberjs eval "const fs = require('fs'); fs.writeFile('/tmp/test.txt', 'Hello!', (err) => { console.log(err || 'done'); });"
+./amberjs eval "const fs = require('fs'); fs.appendFile('/tmp/test.txt', ' World', (err) => { console.log(err || 'done'); });"
 ```
 
 ---
@@ -13208,8 +13208,8 @@ timer.ref();
 
 #### v0.3.39 验证结果
 - ✅ `cargo build --release` 成功
-- ✅ `beejs eval "typeof process.memoryUsage"` → "function"
-- ✅ `beejs eval "JSON.stringify(process.memoryUsage())"` → 正确对象
+- ✅ `amberjs eval "typeof process.memoryUsage"` → "function"
+- ✅ `amberjs eval "JSON.stringify(process.memoryUsage())"` → 正确对象
 - ✅ `cargo test --test process_module_tests` → 44/44 通过
 - ✅ `cargo test --lib` → 8/8 通过
 
@@ -13284,9 +13284,9 @@ console.log(`Memory increase: ${after - before} bytes`);
 #### v0.3.41 验证
 - ✅ `cargo build --release` 成功
 - ✅ `cargo test --test process_module_tests` → 59/59 通过
-- ✅ `beejs eval "typeof process.hrtime.bigint"` → "function"
-- ✅ `beejs eval "typeof process.hrtime.bigint()"` → "bigint"
-- ✅ `beejs eval "process.hrtime.bigint() > 1700000000000000000n"` → true
+- ✅ `amberjs eval "typeof process.hrtime.bigint"` → "function"
+- ✅ `amberjs eval "typeof process.hrtime.bigint()"` → "bigint"
+- ✅ `amberjs eval "process.hrtime.bigint() > 1700000000000000000n"` → true
 
 #### v0.3.41 使用示例
 ```javascript
@@ -13671,7 +13671,7 @@ pipeline(r, t, w, (err) => {
 
 #### v0.3.79 验证
 - ✅ `cargo build --release` 成功
-- ✅ 二进制版本: beejs 0.1.6
+- ✅ 二进制版本: amberjs 0.1.6
 
 ### ✨ v0.3.81 简化 stream 回调处理 (2025-12-26)
 **进度**: ✅ 回调处理简化 | ✅ 68/68 测试通过 | ✅ 编译成功
@@ -14727,7 +14727,7 @@ console.log(p.name);  // "Alice"
 **进度**: TypeScript 编译器增强 | ✅ 已提交
 
 #### v0.3.195 问题背景
-- Beejs 运行时主要支持 CommonJS 模块格式
+- Amber 运行时主要支持 CommonJS 模块格式
 - ESM 语法（import/export）在 V8 中无法直接执行
 - 需要将 ESM 语法转换为 CommonJS 才能在运行时执行
 
@@ -15132,7 +15132,7 @@ console.log(p.name);  // "Alice"
 - **错误处理测试修复**
   - `test_empty_code_execution`: 空代码执行返回 "undefined" 而非空字符串（符合 JavaScript 规范）
   - `test_long_input_handling`: 使用更可靠的字符串重复测试替代长变量名测试
-  - `test_json_parse_error`: 改为测试有效 JSON 解析（Beejs 的 JSON 实现比较宽容）
+  - `test_json_parse_error`: 改为测试有效 JSON 解析（Amber 的 JSON 实现比较宽容）
 
 - **V8 快照预热测试修复**
   - `test_warmup_builtins`: 使用 `lib.rs` 的全局 `initialize_v8()` 函数避免 V8 重复初始化
@@ -15141,7 +15141,7 @@ console.log(p.name);  // "Alice"
 #### v0.3.236 实现细节
 - **错误处理测试更新** (`tests/error_handling_tests.rs`)
   - 更新 3 个测试用例以匹配实际运行时行为
-  - 添加注释说明 Beejs JSON 实现的宽容特性
+  - 添加注释说明 Amber JSON 实现的宽容特性
 
 - **V8 初始化修复** (`src/v8_snapshot/manager.rs:79-84`)
   - 使用 `crate::initialize_v8()` 替代独立的 V8 初始化逻辑

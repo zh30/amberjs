@@ -1,9 +1,9 @@
-#!/usr/bin/env bee
+#!/usr/bin/env amber
 
 //! WebAssembly vs V8 性能对比基准测试
-//! 展示 Beejs 的 WebAssembly 集成性能优势
+//! 展示 Amber 的 WebAssembly 集成性能优势
 
-console.log("🚀 Beejs WebAssembly vs V8 性能基准测试\n");
+console.log("🚀 Amber WebAssembly vs V8 性能基准测试\n");
 console.log("=" .repeat(60));
 
 // 测试用例1: 简单算术运算

@@ -1,7 +1,7 @@
-# Beejs 性能优化总结报告
+# Amber 性能优化总结报告
 
 ## 项目概述
-Beejs 是一个高性能 JavaScript/TypeScript 运行时，使用 Rust 和 V8 实现，目标是超越 Bun 的性能，为 AI 时代提供更高效的 JS/TS 脚本执行能力。
+Amber 是一个高性能 JavaScript/TypeScript 运行时，使用 Rust 和 V8 实现，目标是超越 Bun 的性能，为 AI 时代提供更高效的 JS/TS 脚本执行能力。
 
 ## 本次优化成果
 
@@ -73,7 +73,7 @@ Beejs 是一个高性能 JavaScript/TypeScript 运行时，使用 Rust 和 V8 �
 
 ## 当前性能指标
 
-| 指标 | Beejs | Bun | 改进 |
+| 指标 | Amber | Bun | 改进 |
 |------|-------|-----|------|
 | 启动时间 | 45ms | 72ms | **37.5%** |
 | 执行速度 | 1250 ops/sec | 980 ops/sec | **27.6%** |
@@ -149,7 +149,7 @@ Beejs 是一个高性能 JavaScript/TypeScript 运行时，使用 Rust 和 V8 �
 
 ## 结论
 
-Beejs 已经成功实现了超越 Bun 的性能目标 (29.10% 提升)，在以下方面表现卓越:
+Amber 已经成功实现了超越 Bun 的性能目标 (29.10% 提升)，在以下方面表现卓越:
 
 1. **启动时间优化** - 37.5% 改进，Runtime 创建仅需 84.79µs
 2. **执行速度提升** - 复杂计算提升 35.7%

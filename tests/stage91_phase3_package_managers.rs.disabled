@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use super::beejs::ecosystem::package_managers::*;
+    use super::amberjs::ecosystem::package_managers::*;
     use std::path::PathBuf;
     use tempfile::TempDir;
 
@@ -13,7 +13,7 @@ mod tests {
         let config = PackageManagerConfig {
             manager_type: PackageManagerType::Npm,
             registry_url: "https://registry.npmjs.org/".to_string(),
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
             timeout_ms: 30000,
             retry_count: 3,
             auth_token: None,
@@ -38,7 +38,7 @@ mod tests {
         let config = PackageManagerConfig {
             manager_type: PackageManagerType::Yarn,
             registry_url: "https://registry.yarnpkg.com/".to_string(),
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
             timeout_ms: 30000,
             retry_count: 3,
             auth_token: None,
@@ -63,7 +63,7 @@ mod tests {
         let config = PackageManagerConfig {
             manager_type: PackageManagerType::Pnpm,
             registry_url: "https://registry.npmjs.org/".to_string(),
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
             timeout_ms: 30000,
             retry_count: 3,
             auth_token: None,

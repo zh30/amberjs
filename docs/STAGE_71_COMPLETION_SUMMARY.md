@@ -1,7 +1,7 @@
 # Stage 71 完成总结报告
 
 ## 项目概述
-**项目**: Beejs 高性能 JavaScript/TypeScript 运行时  
+**项目**: Amber 高性能 JavaScript/TypeScript 运行时  
 **阶段**: Stage 71 - V8 快照预热与启动优化系统  
 **完成日期**: 2025-12-21  
 **状态**: ✅ 全部任务完成

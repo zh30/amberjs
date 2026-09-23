@@ -1,12 +1,6 @@
-// Beejs Package Manager
-// 高性能包管理器，支持 npm/yarn 兼容
-//
-// 主要功能：
-// - package.json 解析和验证
-// - npm registry 集成
-// - 依赖解析和版本管理
-// - 包下载和缓存
-// - node_modules 结构管理
+// Installer used by `amber install`.
+// The user-facing Stable subset is `docs/INSTALL_CONTRACT.md`.
+// This is not an npm, yarn, or pnpm implementation.
 
 #[allow(unused)]
 use anyhow::{anyhow, Result};
@@ -31,6 +25,9 @@ use tar::Archive;
 #[allow(unused)]
 use tempfile::{NamedTempFile, TempDir};
 
+/// stderr prefix for contracted `amber install` failures.
+pub const INSTALL_ERROR_PREFIX: &str = "error: amber install:";
+
 #[allow(unused_imports)]
 /// Package manager configuration
 #[derive(Debug, Clone)]
@@ -44,7 +41,7 @@ impl Default for PackageManagerConfig {
     fn default() -> Self {
         Self {
             registry_url: "https://registry.npmjs.org/".to_string(),
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
             node_modules_dir: PathBuf::from("node_modules"),
             timeout_secs: 30,
         }
@@ -359,7 +356,12 @@ fn validate_package_archive_path(path: &Path, entry_type: tar::EntryType) -> Res
     Ok(relative_path)
 }
 
-fn verify_package_tarball(
+/// Hash a downloaded tarball before `amber install` unpacks it.
+///
+/// Prefer SRI `integrity` when it is non-empty. Otherwise use a hex SHA-1
+/// `shasum`. Missing both is a hard failure.
+#[doc(hidden)]
+pub fn verify_package_tarball(
     tarball_path: &Path,
     integrity: Option<&str>,
     shasum: Option<&str>,
@@ -447,7 +449,12 @@ fn verify_sha1_shasum(tarball_path: &Path, shasum: &str) -> Result<()> {
     }
 }
 
-fn validate_locked_dependency_dist(
+/// Compare a lock entry with registry dist metadata before download.
+///
+/// Version, non-empty `resolved`, and non-empty `integrity` must agree.
+/// An empty lock field is not compared. See `docs/INSTALL_CONTRACT.md`.
+#[doc(hidden)]
+pub fn validate_locked_dependency_dist(
     name: &str,
     version: &str,
     locked: Option<&LockedDependency>,
@@ -737,7 +744,7 @@ impl PackageManager {
             .parent()
             .ok_or_else(|| anyhow!("Package target has no parent: {}", target_dir.display()))?;
         let staging_root = tempfile::Builder::new()
-            .prefix(".beejs-package-")
+            .prefix(".amberjs-package-")
             .tempdir_in(target_parent)
             .map_err(|e| anyhow!("Failed to create package staging directory: {}", e))?;
         let staging_dir = staging_root.path().join("package");
@@ -935,7 +942,7 @@ impl PackageManager {
         integrity: Option<&str>,
         tarball_url: Option<&str>,
     ) -> Result<()> {
-        let meta_path = package_dir.join(".beejs-integrity.json");
+        let meta_path = package_dir.join(".amberjs-integrity.json");
         check_fs_write_permission(&meta_path)?;
         let meta = serde_json::json!({
             "integrity": integrity,
@@ -951,7 +958,7 @@ impl PackageManager {
     }
 
     fn read_package_integrity_meta(&self, package_dir: &Path) -> (Option<String>, Option<String>) {
-        let meta_path = package_dir.join(".beejs-integrity.json");
+        let meta_path = package_dir.join(".amberjs-integrity.json");
         let Ok(content) = fs::read_to_string(&meta_path) else {
             return (None, None);
         };
@@ -1576,7 +1583,7 @@ impl PackageManager {
         }
 
         let lock = PackageLock {
-            name: format!("@beejs/temp-{}", package_name),
+            name: format!("@amberjs/temp-{}", package_name),
             version: "0.0.0".to_string(),
             lockfile_version: 3,
             requires: true,
@@ -1783,7 +1790,7 @@ mod tests {
         let temp_dir: _ = TempDir::new().unwrap();
         std::env::set_current_dir(temp_dir.path()).unwrap();
         let config: _ = PackageManagerConfig {
-            cache_dir: PathBuf::from(".beejs_cache"),
+            cache_dir: PathBuf::from(".amberjs_cache"),
             node_modules_dir: PathBuf::from("node_modules"),
             ..Default::default()
         };

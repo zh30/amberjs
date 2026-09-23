@@ -1,4 +1,4 @@
-use beejs::Runtime;
+use amberjs::Runtime;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
@@ -180,7 +180,7 @@ fn test_module_exports() {
             isEven: (n) => n % 2 === 0
         };
 
-        utils.greet("Beejs");
+        utils.greet("Amber");
     "#;
 
     let result = runtime.execute_code(code);

@@ -83,13 +83,13 @@ pub async fn create_fallback_manager_with_strategies() -> FallbackManager {
 pub struct FallbackUtils;
 impl FallbackUtils {
     /// 检查功能是否应该降级
-    pub fn should_fallback(error: &crate::error::BeejsError) -> bool {
+    pub fn should_fallback(error: &crate::error::AmberError) -> bool {
         match error {
-            crate::error::BeejsError::V8Error(_) => true,
-            crate::error::BeejsError::MultiLanguageError(_) => true,
-            crate::error::BeejsError::PlatformError(_) => true,
-            crate::error::BeejsError::PerformanceError(_) => true,
-            crate::error::BeejsError::NetworkError(_) => true,
+            crate::error::AmberError::V8Error(_) => true,
+            crate::error::AmberError::MultiLanguageError(_) => true,
+            crate::error::AmberError::PlatformError(_) => true,
+            crate::error::AmberError::PerformanceError(_) => true,
+            crate::error::AmberError::NetworkError(_) => true,
             _ => false,
         }
     }
@@ -196,8 +196,8 @@ mod tests {
     }
     #[test]
     fn test_should_fallback() {
-        let v8_error: _ = crate::error::BeejsError::V8Error("Test".to_string());
-        let config_error: _ = crate::error::BeejsError::ConfigurationError("Test".to_string());
+        let v8_error: _ = crate::error::AmberError::V8Error("Test".to_string());
+        let config_error: _ = crate::error::AmberError::ConfigurationError("Test".to_string());
         assert!(FallbackUtils::should_fallback(&v8_error));
         assert!(!FallbackUtils::should_fallback(&config_error));
     }

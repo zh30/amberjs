@@ -547,20 +547,20 @@ impl RuntimeConfigManager {
         info!("从环境变量加载配置");
         let mut config = RuntimeConfig::default();
         // 从环境变量读取配置（如果有的话）
-        if let Ok(env) = std::env::var("BEEJS_ENVIRONMENT") {
+        if let Ok(env) = std::env::var("AMBER_ENVIRONMENT") {
             config.runtime.environment = env;
         }
-        if let Ok(heap_size) = std::env::var("BEEJS_V8_MAX_HEAP_SIZE") {
+        if let Ok(heap_size) = std::env::var("AMBER_V8_MAX_HEAP_SIZE") {
             if let Ok(size) = heap_size.parse::<usize>() {
                 config.v8.max_heap_size_mb = size;
             }
         }
-        if let Ok(pool_size) = std::env::var("BEEJS_MEMORY_POOL_SIZE") {
+        if let Ok(pool_size) = std::env::var("AMBER_MEMORY_POOL_SIZE") {
             if let Ok(size) = pool_size.parse::<usize>() {
                 config.memory.pool_size_mb = size;
             }
         }
-        if let Ok(log_level) = std::env::var("BEEJS_LOG_LEVEL") {
+        if let Ok(log_level) = std::env::var("AMBER_LOG_LEVEL") {
             config.logging.log_level = log_level;
         }
         *self.config.write().await = config;
@@ -829,7 +829,7 @@ impl Default for RuntimeConfig {
         Self {
             runtime: RuntimeConfigSection {
                 environment: "development".to_string(),
-                instance_id: format!("beejs-{}", uuid::Uuid::new_v4()),
+                instance_id: format!("amberjs-{}", uuid::Uuid::new_v4()),
                 startup_time_ms: 0,
                 version: env!("CARGO_PKG_VERSION").to_string(),
             },
@@ -923,7 +923,7 @@ mod tests {
     async fn test_config_save_and_load() {
         let mut manager = RuntimeConfigManager::new();
         let temp_dir: _ = std::env::temp_dir();
-        let config_path: _ = temp_dir.join("beejs_config_test.json");
+        let config_path: _ = temp_dir.join("amberjs_config_test.json");
         // 更新配置
         manager.update_config_value("v8.max_heap_size_mb", 1024).await.unwrap();
         // 保存配置

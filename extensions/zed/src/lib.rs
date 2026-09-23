@@ -1,17 +1,17 @@
-//! Zed extension that starts Beejs `bee lsp`.
+//! Zed extension that starts Amber `amber lsp`.
 
 mod command;
 
 pub use command::{
     assemble_lsp_command, build_language_server_command, candidate_binary_names,
-    resolve_bee_binary, LspLaunch, WhichLookup,
+    resolve_amber_binary, LspLaunch, WhichLookup,
 };
 
 use zed_extension_api::{self as zed, LanguageServerId, Result, Worktree};
 
-struct BeejsLspExtension;
+struct AmberLspExtension;
 
-impl zed::Extension for BeejsLspExtension {
+impl zed::Extension for AmberLspExtension {
     fn new() -> Self {
         Self
     }
@@ -21,7 +21,7 @@ impl zed::Extension for BeejsLspExtension {
         _language_server_id: &LanguageServerId,
         worktree: &Worktree,
     ) -> Result<zed::Command> {
-        let settings = zed::settings::LspSettings::for_worktree("bee-lsp", worktree).ok();
+        let settings = zed::settings::LspSettings::for_worktree("amber-lsp", worktree).ok();
         let binary = settings.as_ref().and_then(|s| s.binary.as_ref());
         let configured = binary.and_then(|b| b.path.as_deref());
         let extra_owned = binary.and_then(|b| b.arguments.clone()).unwrap_or_default();
@@ -46,4 +46,4 @@ impl zed::Extension for BeejsLspExtension {
     }
 }
 
-zed::register_extension!(BeejsLspExtension);
+zed::register_extension!(AmberLspExtension);

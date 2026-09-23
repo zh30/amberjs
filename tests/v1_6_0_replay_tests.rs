@@ -1,6 +1,6 @@
-// Tests for Beejs v1.6.0 Deterministic Agent Replay Engine (`bee:replay`)
+// Tests for Amber v1.6.0 Deterministic Agent Replay Engine (`amber:replay`)
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]
@@ -8,7 +8,7 @@ use serial_test::serial;
 fn test_replay_module_resolution_and_exports() {
     let mut runtime = MinimalRuntime::new().expect("Failed to create MinimalRuntime");
     let code = r#"
-        const replay = require('bee:replay');
+        const replay = require('amber:replay');
         const replayAlias = require('replay');
         if (typeof replay.startRecording !== 'function') throw new Error('Missing startRecording');
         if (typeof replay.stopRecording !== 'function') throw new Error('Missing stopRecording');
@@ -30,14 +30,14 @@ fn test_replay_module_resolution_and_exports() {
 fn test_agent_step_recording_and_trace_export() {
     let mut runtime = MinimalRuntime::new().expect("Failed to create MinimalRuntime");
     let code = r#"
-        const replay = require('bee:replay');
+        const replay = require('amber:replay');
         replay.reset();
 
         replay.startRecording({ script: 'agent_task.js' });
         if (!replay.isRecording()) throw new Error('Should be in recording mode');
 
         // Execute 3 agent steps
-        const step1 = replay.step('search_kb', { query: 'Beejs v1.6' }, () => {
+        const step1 = replay.step('search_kb', { query: 'Amber v1.6' }, () => {
             return { documents: ['doc1.md', 'doc2.md'] };
         });
         if (step1.documents.length !== 2) throw new Error('Step 1 output mismatch');
@@ -73,7 +73,7 @@ fn test_agent_step_recording_and_trace_export() {
 fn test_deterministic_offline_replay_and_step_playback() {
     let mut runtime = MinimalRuntime::new().expect("Failed to create MinimalRuntime");
     let code = r#"
-        const replay = require('bee:replay');
+        const replay = require('amber:replay');
         replay.reset();
 
         const mockTrace = {
@@ -135,7 +135,7 @@ fn test_deterministic_offline_replay_and_step_playback() {
 fn test_replay_divergence_detection_on_step_mismatch() {
     let mut runtime = MinimalRuntime::new().expect("Failed to create MinimalRuntime");
     let code = r#"
-        const replay = require('bee:replay');
+        const replay = require('amber:replay');
         replay.reset();
 
         const mockTrace = {

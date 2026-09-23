@@ -1,8 +1,8 @@
-# Beejs Stage 78 实施计划 - WebAssembly 极致优化
+# Amber Stage 78 实施计划 - WebAssembly 极致优化
 
 ## 项目概述
 
-**目标**: 在 Stage 77 WebAssembly 完整集成的基础上，实现 WebAssembly 极致性能优化，将 Beejs 打造成 AI 时代最快的 JavaScript/TypeScript 运行时
+**目标**: 在 Stage 77 WebAssembly 完整集成的基础上，实现 WebAssembly 极致性能优化，将 Amber 打造成 AI 时代最快的 JavaScript/TypeScript 运行时
 
 **核心价值**:
 - 🚀 极致性能: WebAssembly 执行性能提升 10-50x（相比 Stage 77）
@@ -17,7 +17,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   Beejs Runtime                              │
+│                   Amber Runtime                              │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ V8 Engine    │  │ Wasmtime VM  │  │ SIMD/Threads     │  │
@@ -575,4 +575,4 @@ impl AIOptimizer {
 
 ---
 
-**结论**: Stage 78 将把 Beejs 的 WebAssembly 性能推向极致，通过 SIMD/Threads 优化、零拷贝 I/O、AI 工作负载专用优化等先进技术，实现 10-50x 的性能提升。这将确保 Beejs 在 AI 时代 JavaScript/TypeScript 运行时领域的绝对领先地位。
+**结论**: Stage 78 将把 Amber 的 WebAssembly 性能推向极致，通过 SIMD/Threads 优化、零拷贝 I/O、AI 工作负载专用优化等先进技术，实现 10-50x 的性能提升。这将确保 Amber 在 AI 时代 JavaScript/TypeScript 运行时领域的绝对领先地位。

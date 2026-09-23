@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Beejs Hot Reload Demo</title>
+  <title>Amber Hot Reload Demo</title>
   <style>
     * {
       box-sizing: border-box;
@@ -90,7 +90,7 @@
       border-radius: 4px;
       font-family: 'Fira Code', monospace;
     }
-    .bee {
+    .amber {
       font-size: 4em;
       margin-bottom: 20px;
     }
@@ -98,8 +98,8 @@
 </head>
 <body>
   <div class="container">
-    <div class="bee">🐝</div>
-    <h1>Beejs Hot Reload</h1>
+    <div class="amber">🐝</div>
+    <h1>Amber Hot Reload</h1>
 
     <div class="status">
       <div class="status-item">
@@ -123,7 +123,7 @@
     <div class="info">
       <h3>How to Use</h3>
       <ul>
-        <li>1. Run: <code>bee run demo-hot-reload.js --watch</code></li>
+        <li>1. Run: <code>amber run demo-hot-reload.js --watch</code></li>
         <li>2. Open this page in a browser</li>
         <li>3. Edit <code>demo-hot-reload.js</code> and save</li>
         <li>4. Page will auto-reload on file changes</li>
@@ -131,11 +131,11 @@
     </div>
   </div>
 
-  <!-- Beejs Hot Reload Client -->
+  <!-- Amber Hot Reload Client -->
   <script src="hot-reload-client.js"></script>
   <script>
     // Initialize hot reload
-    const hotReload = new BeejsHotReload({
+    const hotReload = new AmberHotReload({
       port: 9999,
       host: 'localhost',
       onConnect: (event) => {
@@ -158,9 +158,9 @@
     });
 
     // Track reload count in sessionStorage
-    let reloadCount = sessionStorage.getItem('beejsReloadCount') || 0;
+    let reloadCount = sessionStorage.getItem('amberjsReloadCount') || 0;
     reloadCount = parseInt(reloadCount) + 1;
-    sessionStorage.setItem('beejsReloadCount', reloadCount);
+    sessionStorage.setItem('amberjsReloadCount', reloadCount);
     document.getElementById('reload-count').textContent = reloadCount;
   </script>
 </body>

@@ -1,108 +1,108 @@
-# Beejs Docker Compose Configuration
-# This compose file provides a complete Beejs development environment
+# Amber Docker Compose Configuration
+# This compose file provides a complete Amber development environment
 
 version: '3.8'
 
 services:
-  # Beejs Runtime Service
-  beejs-runtime:
+  # Amber Runtime Service
+  amberjs-runtime:
     build:
       context: .
       target: development
       dockerfile: tools/ci-cd-integrations/docker/Dockerfile
-    image: beejs/runtime:dev
-    container_name: beejs-dev
+    image: amberjs/runtime:dev
+    container_name: amberjs-dev
     volumes:
       - .:/app
-      - beejs-cache:/app/node_modules
+      - amberjs-cache:/app/node_modules
     ports:
       - "3000:3000"  # Application port
       - "9229:9229"  # Debug port
     environment:
-      - BEEJS_ENV=development
-      - BEEJS_DEBUG=true
+      - AMBER_ENV=development
+      - AMBER_DEBUG=true
       - NODE_ENV=development
     command: >
       sh -c "
-        echo '🐝 Starting Beejs development server...' &&
-        bee run --watch src/index.js
+        echo '🐝 Starting Amber development server...' &&
+        amber run --watch src/index.js
       "
     networks:
-      - beejs-network
+      - amberjs-network
     restart: unless-stopped
 
   # Test Runner Service
-  beejs-test:
+  amberjs-test:
     build:
       context: .
       target: test
       dockerfile: tools/ci-cd-integrations/docker/Dockerfile
-    image: beejs/runtime:test
-    container_name: beejs-test
+    image: amberjs/runtime:test
+    container_name: amberjs-test
     volumes:
       - .:/app
-      - beejs-cache:/app/node_modules
+      - amberjs-cache:/app/node_modules
       - test-results:/tmp
     environment:
-      - BEEJS_ENV=test
+      - AMBER_ENV=test
       - NODE_ENV=test
     command: >
       sh -c "
-        echo '🧪 Running Beejs tests...' &&
-        bee test --reporter=json --output=/tmp/test-results.json &&
+        echo '🧪 Running Amber tests...' &&
+        amber test --reporter=json --output=/tmp/test-results.json &&
         cat /tmp/test-results.json
       "
     networks:
-      - beejs-network
+      - amberjs-network
     depends_on:
       - redis
       - postgres
 
   # Build Service
-  beejs-build:
+  amberjs-build:
     build:
       context: .
       target: build
       dockerfile: tools/ci-cd-integrations/docker/Dockerfile
-    image: beejs/runtime:build
-    container_name: beejs-build
+    image: amberjs/runtime:build
+    container_name: amberjs-build
     volumes:
       - .:/app
-      - beejs-cache:/app/node_modules
+      - amberjs-cache:/app/node_modules
       - build-artifacts:/app/dist
     environment:
-      - BEEJS_ENV=production
+      - AMBER_ENV=production
       - NODE_ENV=production
     command: >
       sh -c "
         echo '🔨 Building application...' &&
-        bee bundle src/index.js --outfile=dist/bundle.js --minify &&
+        amber bundle src/index.js --outfile=dist/bundle.js --minify &&
         echo '✅ Build complete' &&
         ls -lah dist/
       "
     networks:
-      - beejs-network
+      - amberjs-network
 
   # Production Service
-  beejs-prod:
+  amberjs-prod:
     build:
       context: .
       target: production
       dockerfile: tools/ci-cd-integrations/docker/Dockerfile
-    image: beejs/runtime:latest
-    container_name: beejs-prod
+    image: amberjs/runtime:latest
+    container_name: amberjs-prod
     ports:
       - "3000:3000"
     environment:
-      - BEEJS_ENV=production
+      - AMBER_ENV=production
       - NODE_ENV=production
       - PORT=3000
-    command: ["bee", "start"]
+    command: ["amber", "start"]
     networks:
-      - beejs-network
+      - amberjs-network
     restart: always
     healthcheck:
-      test: ["CMD", "bee", "--version"]
+      test: ["CMD", "amber", "--version"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -110,34 +110,34 @@ services:
   # Supporting Services
   redis:
     image: redis:7-alpine
-    container_name: beejs-redis
+    container_name: amberjs-redis
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
     networks:
-      - beejs-network
+      - amberjs-network
     restart: unless-stopped
 
   postgres:
     image: postgres:15-alpine
-    container_name: beejs-postgres
+    container_name: amberjs-postgres
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_DB=beejs
-      - POSTGRES_USER=beejs
-      - POSTGRES_PASSWORD=beejs123
+      - POSTGRES_DB=amberjs
+      - POSTGRES_USER=amberjs
+      - POSTGRES_PASSWORD=amberjs123
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - beejs-network
+      - amberjs-network
     restart: unless-stopped
 
   # Monitoring
   prometheus:
     image: prom/prometheus:latest
-    container_name: beejs-prometheus
+    container_name: amberjs-prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -150,25 +150,25 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
     networks:
-      - beejs-network
+      - amberjs-network
     restart: unless-stopped
 
   grafana:
     image: grafana/grafana:latest
-    container_name: beejs-grafana
+    container_name: amberjs-grafana
     ports:
       - "3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=beejs123
+      - GF_SECURITY_ADMIN_PASSWORD=amberjs123
     volumes:
       - grafana-data:/var/lib/grafana
     networks:
-      - beejs-network
+      - amberjs-network
     restart: unless-stopped
 
 # Volumes
 volumes:
-  beejs-cache:
+  amberjs-cache:
     driver: local
   test-results:
     driver: local
@@ -185,7 +185,7 @@ volumes:
 
 # Networks
 networks:
-  beejs-network:
+  amberjs-network:
     driver: bridge
     ipam:
       config:

@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod timer_tests {
-    use beejs::nodejs_core::timers::{
+    use amberjs::nodejs_core::timers::{
         get_next_timer_id, get_timer_epoch, TimerMetadata, TimerType, TIMER_METADATA,
     };
     use serial_test::serial;

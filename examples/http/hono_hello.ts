@@ -1,4 +1,4 @@
-// Hono-style router over Node `http`. After `bee add hono @hono/node-server`
+// Hono-style router over Node `http`. After `amber add hono @hono/node-server`
 // this file can be replaced with the official adapter; this 50-line version
 // is the P1 acceptance path that does not require npm.
 const http = require('http');

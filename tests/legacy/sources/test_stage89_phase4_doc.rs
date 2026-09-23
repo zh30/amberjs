@@ -1,4 +1,4 @@
-// This file is part of the Beejs project
+// This file is part of the Amber project
 // Use of this source code is governed by a BSD-style license
 // that can be found in the LICENSE file.
 
@@ -139,5 +139,5 @@ fn main() {
     println!("  • 支持模块索引和搜索");
     println!("  • 零配置自动化生成");
 
-    println!("\n✨ API 文档生成系统已就绪，可以为 Beejs 项目生成企业级 API 文档！");
+    println!("\n✨ API 文档生成系统已就绪，可以为 Amber 项目生成企业级 API 文档！");
 }

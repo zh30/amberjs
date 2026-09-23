@@ -91,11 +91,11 @@ impl VersionManager {
         // 2. 配置全球分发节点
         // 3. 返回访问端点
         let endpoints: _ = CDNEndpoints {
-            primary: format!("https://cdn.beejs.dev/modules/{}/latest", module.name),
+            primary: format!("https://cdn.amberjs.dev/modules/{}/latest", module.name),
             mirrors: vec![
-                format!("https://cdn-us.beejs.dev/modules/{}/latest", module.name),
-                format!("https://cdn-eu.beejs.dev/modules/{}/latest", module.name),
-                format!("https://cdn-asia.beejs.dev/modules/{}/latest", module.name),
+                format!("https://cdn-us.amberjs.dev/modules/{}/latest", module.name),
+                format!("https://cdn-eu.amberjs.dev/modules/{}/latest", module.name),
+                format!("https://cdn-asia.amberjs.dev/modules/{}/latest", module.name),
             ],
         };
         println!("Distributed {}@{} to CDN", module.name, module.module_id.version);

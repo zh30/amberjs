@@ -1,4 +1,4 @@
-// Enhanced Buffer API and process tests for Beejs runtime
+// Enhanced Buffer API and process tests for Amber runtime
 // v0.2.9: Buffer API enhancements and process.memoryUsage
 
 use serial_test::serial;
@@ -7,7 +7,7 @@ use serial_test::serial;
 #[serial]
 fn test_buffer_from_string_encoding() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.from('Hello', 'utf8');
         buf.length;
@@ -24,7 +24,7 @@ fn test_buffer_from_string_encoding() {
 #[serial]
 fn test_buffer_alloc_zero_fill() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.alloc(10);
         buf.length === 10;
@@ -41,7 +41,7 @@ fn test_buffer_alloc_zero_fill() {
 #[serial]
 fn test_buffer_alloc_fill() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.alloc(5, 0x41);
         buf.toString('hex');
@@ -58,7 +58,7 @@ fn test_buffer_alloc_fill() {
 #[serial]
 fn test_buffer_write() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.alloc(10);
         const bytesWritten = buf.write('Hello', 0, 5, 'utf8');
@@ -76,7 +76,7 @@ fn test_buffer_write() {
 #[serial]
 fn test_buffer_to_string() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.from('Test string', 'utf8');
         const str = buf.toString('utf8');
@@ -94,7 +94,7 @@ fn test_buffer_to_string() {
 #[serial]
 fn test_buffer_to_string_hex() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.from('ABC', 'utf8');
         buf.toString('hex');
@@ -111,7 +111,7 @@ fn test_buffer_to_string_hex() {
 #[serial]
 fn test_buffer_concat_multiple() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf1 = Buffer.from('Hello', 'utf8');
         const buf2 = Buffer.from(' ', 'utf8');
@@ -131,7 +131,7 @@ fn test_buffer_concat_multiple() {
 #[serial]
 fn test_buffer_is_buffer() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.from('test', 'utf8');
         Buffer.isBuffer(buf);
@@ -148,7 +148,7 @@ fn test_buffer_is_buffer() {
 #[serial]
 fn test_buffer_is_buffer_false() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         Buffer.isBuffer('not a buffer');
     "#;
@@ -164,7 +164,7 @@ fn test_buffer_is_buffer_false() {
 #[serial]
 fn test_buffer_byte_length() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const len = Buffer.byteLength('Hello', 'utf8');
         len;
@@ -181,7 +181,7 @@ fn test_buffer_byte_length() {
 #[serial]
 fn test_buffer_byte_length_multibyte() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         // Chinese characters are 3 bytes in UTF-8
         const len = Buffer.byteLength('你好', 'utf8');
@@ -199,7 +199,7 @@ fn test_buffer_byte_length_multibyte() {
 #[serial]
 fn test_buffer_slice() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.from('Hello World', 'utf8');
         const sliced = buf.slice(0, 5);
@@ -217,7 +217,7 @@ fn test_buffer_slice() {
 #[serial]
 fn test_buffer_slice_negative() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.from('Hello World', 'utf8');
         const sliced = buf.slice(-5);
@@ -235,7 +235,7 @@ fn test_buffer_slice_negative() {
 #[serial]
 fn test_buffer_copy() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf1 = Buffer.from('Hello', 'utf8');
         const buf2 = Buffer.alloc(5);
@@ -250,7 +250,7 @@ fn test_buffer_copy() {
 #[serial]
 fn test_buffer_index_of() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const buf = Buffer.from('Hello World', 'utf8');
         const index = buf.indexOf('World');
@@ -264,7 +264,7 @@ fn test_buffer_index_of() {
 #[serial]
 fn test_process_memory_usage() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const mem = process.memoryUsage();
         typeof mem.heapTotal;
@@ -281,7 +281,7 @@ fn test_process_memory_usage() {
 #[serial]
 fn test_process_memory_usage_properties() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const mem = process.memoryUsage();
         mem.heapTotal !== undefined && mem.heapUsed !== undefined;
@@ -298,7 +298,7 @@ fn test_process_memory_usage_properties() {
 #[serial]
 fn test_process_uptime() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const uptime = process.uptime();
         typeof uptime;
@@ -315,7 +315,7 @@ fn test_process_uptime() {
 #[serial]
 fn test_process_hrtime() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const time = process.hrtime();
         Array.isArray(time);
@@ -332,7 +332,7 @@ fn test_process_hrtime() {
 #[serial]
 fn test_process_release_name() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.release.name;
     "#;
@@ -348,7 +348,7 @@ fn test_process_release_name() {
 #[serial]
 fn test_process_arch() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.arch;
     "#;
@@ -360,7 +360,7 @@ fn test_process_arch() {
 #[serial]
 fn test_process_platform() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.platform;
     "#;
@@ -376,7 +376,7 @@ fn test_process_platform() {
 #[serial]
 fn test_process_version_v8() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.versions.v8;
     "#;
@@ -392,7 +392,7 @@ fn test_process_version_v8() {
 #[serial]
 fn test_global_this_buffer_properties() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof globalThis.Buffer.from;
     "#;

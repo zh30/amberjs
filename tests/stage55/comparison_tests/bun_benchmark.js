@@ -2,7 +2,7 @@
 
 /**
  * Bun 性能对比测试
- * 用于与 Beejs 进行性能对比
+ * 用于与 Amber 进行性能对比
  */
 
 const { exec } = require('child_process');

@@ -1,4 +1,4 @@
-// Performance analyzer for measuring and analyzing Beejs runtime performance
+// Performance analyzer for measuring and analyzing Amber runtime performance
 // This module provides tools to measure execution time, cache hit rates,
 // and other performance metrics.
 
@@ -93,7 +93,7 @@ impl PerformanceAnalyzer {
     /// Print a formatted performance report
     pub fn print_report(&self) {
         let report: _ = self.generate_report();
-        println!("\n=== Beejs Performance Analysis Report ===");
+        println!("\n=== Amber Performance Analysis Report ===");
         println!("Total executions: {}", report.total_executions);
         println!("Average execution time: {:.3}ms", report.average_time_ms);
         println!("Min execution time: {:.3}ms", report.min_time_ms);
