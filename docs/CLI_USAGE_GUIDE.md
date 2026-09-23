@@ -157,7 +157,20 @@ amber serve --host localhost --port 3443 --https --cert cert.pem --key key.pem
 
 `--https` 使用 rustls 做 HTTP/1.1 TLS。必须同时提供存在的 `--cert` 与 `--key` PEM；缺文件或无法解析时以非 0 退出，不会打印成功监听横幅。不在本版本做 HTTP/2。无 `--https` 时行为仍是明文 HTTP。
 
-## 项目与包管理
+## Install（Stable 子集）
+
+`amber install` 读取当前目录的 `package.json`，安装直接 `dependencies` / `devDependencies`，并在 `package-lock.json` 顶层 `dependencies` 上核对版本、`resolved` 和 `integrity`。失败诊断以 `error: amber install:` 开头。完整契约见 [INSTALL_CONTRACT.md](INSTALL_CONTRACT.md)。
+
+```bash
+amber install
+amber install --frozen-lockfile
+```
+
+这不是 npm、yarn 或 pnpm 的替代品。不执行生命周期脚本，不安装 `peerDependencies`，不读 `yarn.lock` / `pnpm-lock.yaml`，也不使用 lockfile 的 `packages` 字段。`--frozen-lockfile` 在 lock 缺失或直接依赖版本不匹配时失败，并且不重写 lock。
+
+## 项目与包管理（Experimental）
+
+`amber add` / `remove` / `prune` / `upgrade` / `init` / `x` 不在上面的 Stable 契约里。
 
 ```bash
 amber init my-app
@@ -166,7 +179,6 @@ amber create my-ts-app ts
 amber add lodash
 amber add lodash@4.17.21 --save-exact
 amber add vitest --dev
-amber install
 amber prune
 amber remove lodash
 amber upgrade
@@ -174,8 +186,6 @@ amber bunx <package>
 ```
 
 `amber create` 的当前参数顺序是 `<name> [template]`；历史文档中的 `amber create ts my-ts-app` 形式仍会被兼容为 TypeScript 模板项目。
-
-包管理能力仍处于轻量实现阶段，遇到 npm 生态边界时应以实际命令结果为准。
 
 ## Watch
 

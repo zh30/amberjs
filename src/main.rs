@@ -337,7 +337,11 @@ enum Command {
         /// Package name to remove
         package: String,
     },
-    /// Install dependencies from package.json
+    /// Install dependencies from package.json.
+    ///
+    /// Stable subset of the npm registry: direct dependencies and
+    /// devDependencies, with package-lock.json `dependencies` pins.
+    /// Not an npm, yarn, or pnpm replacement. See docs/INSTALL_CONTRACT.md.
     Install {
         #[command(flatten)]
         permissions: PermissionCliOptions,
@@ -851,6 +855,16 @@ fn bundle_cli_fail(err: impl std::fmt::Display) -> ! {
     std::process::exit(1);
 }
 
+fn install_cli_fail(err: impl std::fmt::Display) -> ! {
+    let msg = err.to_string();
+    if msg.contains(amberjs::package_manager::INSTALL_ERROR_PREFIX) {
+        eprintln!("{msg}");
+    } else {
+        eprintln!("{} {msg}", amberjs::package_manager::INSTALL_ERROR_PREFIX);
+    }
+    std::process::exit(1);
+}
+
 fn check_file_read_permission(path: &Path) -> Result<()> {
     amberjs::permissions::check_global_permission(
         amberjs::permissions::PermissionKind::FileSystem,
@@ -951,6 +965,71 @@ fn validate_frozen_lockfile(package_data: &serde_json::Value, lock_path: &Path) 
         }
     }
 
+    Ok(())
+}
+
+fn run_install_command(permissions: &PermissionCliOptions, frozen_lockfile: bool) -> Result<()> {
+    apply_permission_cli_options(permissions)?;
+    println!("📦 Installing dependencies from package.json...");
+
+    let package_json_path = std::path::Path::new("package.json");
+    if !package_json_path.exists() {
+        return Err(anyhow!(
+            "package.json not found in current directory. Run 'amber init' first."
+        ));
+    }
+
+    check_file_read_permission(package_json_path)?;
+    let content = std::fs::read_to_string(package_json_path)
+        .map_err(|e| anyhow!("Failed to read package.json: {}", e))?;
+
+    let package_data: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| anyhow!("Failed to parse package.json: {}", e))?;
+    let lock_path = std::path::Path::new("package-lock.json");
+    if frozen_lockfile {
+        validate_frozen_lockfile(&package_data, lock_path)?;
+    } else if lock_path.exists() {
+        check_file_read_permission(lock_path)?;
+        check_file_write_permission(lock_path)?;
+    } else {
+        check_file_write_permission(lock_path)?;
+    }
+
+    let config = amberjs::package_manager::PackageManagerConfig::default();
+    let pm = amberjs::package_manager::PackageManager::new(config)
+        .map_err(|e| anyhow!("Failed to create package manager: {}", e))?;
+
+    let package_json = pm
+        .parse_package_json(package_json_path)
+        .map_err(|e| anyhow!("Failed to parse package.json: {}", e))?;
+
+    println!("  Project: {}@{}", package_json.name, package_json.version);
+
+    let results = pm
+        .install_dependencies(&package_json)
+        .map_err(|e| anyhow!("Failed to install dependencies: {}", e))?;
+
+    println!("✅ Installed {} dependencies", results.len());
+
+    for result in &results {
+        println!("  - {}@{}", result.package.name, result.package.version);
+    }
+
+    // Frozen mode validated the lock before any install and must not rewrite it.
+    if frozen_lockfile {
+        println!("✅ Verified frozen package-lock.json");
+    } else if let Some(project_name) = package_data.get("name").and_then(|n| n.as_str()) {
+        let project_version = package_data
+            .get("version")
+            .and_then(|v| v.as_str())
+            .unwrap_or("1.0.0");
+
+        pm.generate_package_lock(lock_path, project_name, project_version)?;
+        println!("✅ Generated package-lock.json");
+    }
+
+    println!("\n📦 node_modules directory ready!");
+    println!("💡 Run 'amber run <script>' to execute scripts");
     Ok(())
 }
 
@@ -5449,86 +5528,9 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
             permissions,
             frozen_lockfile,
         }) => {
-            apply_permission_cli_options(&permissions)?;
-            println!("📦 Installing dependencies from package.json...");
-
-            // Check if package.json exists
-            let package_json_path = std::path::Path::new("package.json");
-            if !package_json_path.exists() {
-                return Err(anyhow!(
-                    "package.json not found in current directory. Run 'amber init' first."
-                ));
+            if let Err(err) = run_install_command(&permissions, frozen_lockfile) {
+                install_cli_fail(err);
             }
-
-            // Read package.json
-            check_file_read_permission(package_json_path)?;
-            let content = std::fs::read_to_string(package_json_path)
-                .map_err(|e| anyhow!("Failed to read package.json: {}", e))?;
-
-            // Parse package.json
-            let package_data: serde_json::Value = serde_json::from_str(&content)
-                .map_err(|e| anyhow!("Failed to parse package.json: {}", e))?;
-            let lock_path = std::path::Path::new("package-lock.json");
-            if frozen_lockfile {
-                validate_frozen_lockfile(&package_data, lock_path)?;
-            } else if lock_path.exists() {
-                check_file_read_permission(lock_path)?;
-                check_file_write_permission(lock_path)?;
-            } else {
-                check_file_write_permission(lock_path)?;
-            }
-
-            // Create package manager
-            let config = amberjs::package_manager::PackageManagerConfig::default();
-            let pm = amberjs::package_manager::PackageManager::new(config)
-                .map_err(|e| anyhow!("Failed to create package manager: {}", e))?;
-
-            // Parse package.json using PackageManager's method
-            let package_json = pm
-                .parse_package_json(package_json_path)
-                .map_err(|e| anyhow!("Failed to parse package.json: {}", e))?;
-
-            println!("  Project: {}@{}", package_json.name, package_json.version);
-
-            // Install all dependencies
-            match pm.install_dependencies(&package_json) {
-                Ok(results) => {
-                    println!("✅ Installed {} dependencies", results.len());
-
-                    // Show installed packages
-                    for result in &results {
-                        println!("  - {}@{}", result.package.name, result.package.version);
-                    }
-
-                    // Generate/update package-lock.json unless frozen mode made it read-only.
-                    if frozen_lockfile {
-                        println!("✅ Verified frozen package-lock.json");
-                    } else if let Some(project_name) =
-                        package_data.get("name").and_then(|n| n.as_str())
-                    {
-                        let project_version = package_data
-                            .get("version")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("1.0.0");
-
-                        if lock_path.exists() {
-                            // Update existing lock file
-                            pm.generate_package_lock(lock_path, project_name, project_version)?;
-                        } else {
-                            // Generate new lock file
-                            pm.generate_package_lock(lock_path, project_name, project_version)?;
-                        }
-                        println!("✅ Generated package-lock.json");
-                    }
-
-                    println!("\n📦 node_modules directory ready!");
-                    println!("💡 Run 'amber run <script>' to execute scripts");
-                }
-                Err(e) => {
-                    return Err(anyhow!("Failed to install dependencies: {}", e));
-                }
-            }
-
             return Ok(());
         }
         Some(Command::Prune { permissions }) => {

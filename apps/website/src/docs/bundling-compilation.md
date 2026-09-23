@@ -10,7 +10,7 @@ Two packaging tools:
 1. **`amber bundle`** — **Stable**. Pack a local JS/TS/JSON graph into one IIFE
 2. **`amber compile`** — **Stable**. Copy the host `amber` binary and embed a script payload (SEA)
 
-`amber bundle` is not webpack / rollup / esbuild parity. Full contract: [BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md). `amber compile` is not pkg, nexe, or Bun compile. The SEA contract is [`docs/COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md). `amber install` stays Preview.
+`amber bundle` is not webpack / rollup / esbuild parity. Full contract: [BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md). `amber compile` is not pkg, nexe, or Bun compile. The SEA contract is [`docs/COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md). `amber install` is a separate **Stable** subset, not an npm replacement: [`docs/INSTALL_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md).
 
 ---
 

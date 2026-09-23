@@ -53,7 +53,7 @@ Closest cousins: Deno (V8 + Rust, permissioned) and Bun (all-in-one CLI). Amber 
 | `amber bundle` | **Stable** | Local JS/TS/JSON graph → one IIFE. Limits in [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) |
 | `amber compile` | **Stable** | Host SEA. Trailer `AMBER_STANDALONE`. Not pkg/nexe/Bun |
 | `amber:wasm` | **Preview** | Zero-copy Memory / ArrayBuffer |
-| Package manager (`init`/`install`/`x`) | **Experimental** | Lightweight; not npm-complete |
+| `amber install` | **Stable** | Direct `package.json` deps and lock `dependencies` pins. Not npm/yarn/pnpm. `add` / `init` / `x` stay Experimental |
 | Node API surface | **Preview** | Per-API. Conformance 5.0 is **55/55** |
 
 The only user-facing capability map is [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) in the repo. Historical stage reports are not product promises.

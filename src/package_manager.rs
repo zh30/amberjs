@@ -1,12 +1,6 @@
-// Amber Package Manager
-// 高性能包管理器，支持 npm/yarn 兼容
-//
-// 主要功能：
-// - package.json 解析和验证
-// - npm registry 集成
-// - 依赖解析和版本管理
-// - 包下载和缓存
-// - node_modules 结构管理
+// Installer used by `amber install`.
+// The user-facing Stable subset is `docs/INSTALL_CONTRACT.md`.
+// This is not an npm, yarn, or pnpm implementation.
 
 #[allow(unused)]
 use anyhow::{anyhow, Result};
@@ -30,6 +24,9 @@ use std::process::Command;
 use tar::Archive;
 #[allow(unused)]
 use tempfile::{NamedTempFile, TempDir};
+
+/// stderr prefix for contracted `amber install` failures.
+pub const INSTALL_ERROR_PREFIX: &str = "error: amber install:";
 
 #[allow(unused_imports)]
 /// Package manager configuration
@@ -359,7 +356,12 @@ fn validate_package_archive_path(path: &Path, entry_type: tar::EntryType) -> Res
     Ok(relative_path)
 }
 
-fn verify_package_tarball(
+/// Hash a downloaded tarball before `amber install` unpacks it.
+///
+/// Prefer SRI `integrity` when it is non-empty. Otherwise use a hex SHA-1
+/// `shasum`. Missing both is a hard failure.
+#[doc(hidden)]
+pub fn verify_package_tarball(
     tarball_path: &Path,
     integrity: Option<&str>,
     shasum: Option<&str>,
@@ -447,7 +449,12 @@ fn verify_sha1_shasum(tarball_path: &Path, shasum: &str) -> Result<()> {
     }
 }
 
-fn validate_locked_dependency_dist(
+/// Compare a lock entry with registry dist metadata before download.
+///
+/// Version, non-empty `resolved`, and non-empty `integrity` must agree.
+/// An empty lock field is not compared. See `docs/INSTALL_CONTRACT.md`.
+#[doc(hidden)]
+pub fn validate_locked_dependency_dist(
     name: &str,
     version: &str,
     locked: Option<&LockedDependency>,
