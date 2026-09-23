@@ -147,7 +147,7 @@ wat = "1.0"
 
 # Stage 27.1: Embedded builtins dependencies
 md5 = "0.8"
-sha1 = "0.10"
+sha1 = "0.11"
 
 # Stage 27.3/28: Additional dependencies
 async-trait = "0.1"
@@ -208,7 +208,7 @@ git2 = { version = "0.18", optional = true }
 
 # Stage 84: Security & Compliance dependencies
 rust-crypto = "0.2"
-sha2 = "0.10"  # v0.3.354: SHA-256/384/512 for crypto.subtle.digest
+sha2 = "0.11"  # v0.3.354: SHA-256/384/512; 0.11 aligns digest with sha1 0.11
 ring = "0.17"
 untrusted = "0.9"  # For ring ECDSA verification
 jsonwebtoken = "9.0"
