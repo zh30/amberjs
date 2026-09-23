@@ -23,6 +23,16 @@ id: "cli-usage"
 | `amber session <tool>` | JSON-RPC over stdin for agent hosts |
 | `amber mcp [tool]` | MCP stdio server |
 | `amber --version` / `amber version` | Version |
+| `amber bundle <entry>` | Local JS/TS/JSON graph → one JS file. Limits: [bundle & compile](/docs/bundling-compilation) |
+| `amber compile <file> [-o myapp]` | Host SEA binary. Contract: [COMPILE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md) |
+| `amber install [--frozen-lockfile]` | Direct `package.json` deps and lock `dependencies` pins. Not npm/yarn/pnpm. Contract: [INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md) |
+
+`amber compile` copies this machine's `amber` and writes a bundled script plus an `AMBER_STANDALONE` trailer. Linux and Windows append it. macOS stores it in a `__AMBER` segment before `__LINKEDIT`, then ad-hoc `codesign`. Dynamic `import()`, computed `require()`, and `.node` addons fail the compile. `AMBER_STANDALONE` is not an environment variable. Not pkg/nexe/Bun parity.
+
+```bash
+amber compile app.ts -o myapp
+./myapp
+```
 
 ### `amber run`
 
@@ -61,18 +71,14 @@ Present in the default binary; the contract is still tightening.
 | Command | What it does |
 | :--- | :--- |
 | `amber serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
-| `amber bundle <entry>` | oxc module graph → one JS file |
-| `amber compile <file>` | Append payload + `AMBER_STANDALONE` trailer to a copy of `amber` |
 | TypeScript / TSX | oxc type-strip, not `tsc` |
 | `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
 
 ```bash
 amber serve app.js --host 127.0.0.1 --port 3000
-amber bundle src/index.ts -o dist/bundle.js --minify
-amber compile app.ts -o myapp
 ```
 
-Details: [bundle & compile](/docs/bundling-compilation).
+`amber bundle` and `amber compile` are **Stable**: [bundle & compile](/docs/bundling-compilation). `amber install` is **Stable** for the subset in [INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md). It does not replace npm, yarn, or pnpm.
 
 ---
 
@@ -80,7 +86,9 @@ Details: [bundle & compile](/docs/bundling-compilation).
 
 Do **not** treat these as product promises. They exist on the CLI; behavior may be incomplete.
 
-`debug`, `record`, `replay`, `init`, `create`, `add`, `remove`, `install`, `prune`, `x`, `upgrade`, `fmt`, `lint`, `bench`, `compile` extras, `types`, `task`, `profile`, `lsp`, `deploy`.
+`debug`, `record`, `replay`, `init`, `create`, `add`, `remove`, `prune`, `x`, `upgrade`, `fmt`, `lint`, `bench`, `types`, `task`, `profile`, `lsp`, `deploy`.
+
+`amber install` is not in this list. It is the Stable command above, and it is not a full package-manager replacement.
 
 Chrome DevTools attach should use `amber run --inspect`, not `amber debug`.
 

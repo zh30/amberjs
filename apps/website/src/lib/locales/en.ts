@@ -346,7 +346,7 @@ export const en: TranslationSchema = {
           {
             id: "bundling-compilation",
             label: "Bundler 2.0 & SEA Compiler",
-            badge: "Preview",
+            badge: "Stable",
           },
           {
             id: "testing-benchmarking",
