@@ -141,7 +141,7 @@ impl AsyncZeroCopy {
     fn create_memory_map(data: &[u8]) -> Result<Mmap, ZeroCopyError> {
         // 创建临时文件
         let temp_file: _ = std::env::temp_dir()
-            .join(format!("beejs_async_zero_copy_{}", std::process::id()));
+            .join(format!("amberjs_async_zero_copy_{}", std::process::id()));
         let file: _ = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
@@ -182,7 +182,7 @@ impl Drop for AsyncZeroCopy {
     fn drop(&mut self) {
         // 清理临时文件
         let temp_file: _ = std::env::temp_dir()
-            .join(format!("beejs_async_zero_copy_{}", std::process::id()));
+            .join(format!("amberjs_async_zero_copy_{}", std::process::id()));
         let _: _ = std::fs::remove_file(temp_file);
     }
 }

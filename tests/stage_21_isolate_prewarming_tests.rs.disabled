@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::*;
+    use amberjs::*;
     use std::sync::Arc;
     use std::time::Instant;
 
@@ -54,7 +54,7 @@ mod tests {
     #[test]
     fn test_isolate_prewarmer_creation() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -81,7 +81,7 @@ mod tests {
     #[test]
     fn test_isolate_prewarming_basic() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_isolate_prewarming_aggressive() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn test_acquire_return_prewarmed_isolates() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -202,7 +202,7 @@ mod tests {
     #[test]
     fn test_statistics_tracking() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn test_print_statistics() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -273,7 +273,7 @@ mod tests {
     #[test]
     fn test_clear_prewarmed_isolates() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn test_prewarming_performance_benchmark() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -342,7 +342,7 @@ mod tests {
     #[test]
     fn test_compiled_snippets_precompilation() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -374,7 +374,7 @@ mod tests {
     #[test]
     fn test_config_zero_max_prewarm() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -395,7 +395,7 @@ mod tests {
     #[test]
     fn test_multiple_prewarm_cycles() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }
@@ -428,7 +428,7 @@ mod tests {
     #[test]
     fn test_hit_rate_calculation() {
         // Skip test if V8 is not available
-        if !beejs::is_v8_available() {
+        if !amberjs::is_v8_available() {
             eprintln!("Skipping test: V8 not available");
             return;
         }

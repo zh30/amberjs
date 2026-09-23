@@ -65,7 +65,7 @@ def fix_all_sync_imports(file_path):
 
 def main():
     """主函数"""
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
 
     # 查找所有 Rust 文件
     rust_files = list(src_dir.rglob('*.rs'))

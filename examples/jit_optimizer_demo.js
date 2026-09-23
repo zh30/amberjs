@@ -1,4 +1,4 @@
-// Beejs JIT Optimizer Demo
+// Amber JIT Optimizer Demo
 // This script demonstrates the JIT optimization capabilities
 
 // Simple code - should be optimized quickly

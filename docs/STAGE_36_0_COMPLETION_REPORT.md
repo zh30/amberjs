@@ -1,4 +1,4 @@
-# Beejs Stage 36.0 完成报告 - CLI 增强功能
+# Amber Stage 36.0 完成报告 - CLI 增强功能
 
 ## 🎯 任务概览
 
@@ -51,15 +51,15 @@ pub struct FileWatcher {
 - **自动解析**: package.json 文件读取和解析
 - **支持功能**:
   - Scripts 字段解析和执行
-  - beejs 专用配置（entry、optimize、target、watch、env）
+  - amberjs 专用配置（entry、optimize、target、watch、env）
   - 脚本命令解析（支持引号和参数）
   - 包验证和错误检查
   - ScriptExecutor 工具类，支持 npm scripts 运行
 
-**支持的 beejs 配置**:
+**支持的 amberjs 配置**:
 ```json
 {
-  "beejs": {
+  "amberjs": {
     "entry": "src/index.ts",
     "optimize": "speed",
     "target": "es2020",
@@ -78,12 +78,12 @@ pub struct FileWatcher {
 ### 4. CLI 统一接口 ✅
 - **增强 CLI**: `EnhancedArgs` 结构体，统一所有功能
 - **支持模式**:
-  - 脚本执行: `beejs script.js`
-  - 监控模式: `beejs --watch script.js`
-  - 评估模式: `beejs --eval "console.log('hello')"`
-  - 测试模式: `beejs --test`
-  - REPL 模式: `beejs --repl` 或直接 `beejs`
-  - 脚本运行: `beejs --run start`
+  - 脚本执行: `amberjs script.js`
+  - 监控模式: `amberjs --watch script.js`
+  - 评估模式: `amberjs --eval "console.log('hello')"`
+  - 测试模式: `amberjs --test`
+  - REPL 模式: `amberjs --repl` 或直接 `amberjs`
+  - 脚本运行: `amberjs --run start`
 - **向后兼容**: 保留基础 CLI 作为备选
 - **性能优化**: 异步运行时，零阻塞操作
 
@@ -96,7 +96,7 @@ pub struct FileWatcher {
   - REPL 历史记录
   - REPL 错误处理
   - package.json 读取 scripts
-  - package.json beejs 配置解析
+  - package.json amberjs 配置解析
   - package.json 脚本执行
   - CLI 参数解析
   - CLI watch 模式
@@ -244,7 +244,7 @@ STAGE_36_0_COMPLETION_REPORT.md             # 完成报告 (本文档)
 
 ## 📝 总结
 
-Stage 36.0 成功实现了 Beejs CLI 的重大增强：
+Stage 36.0 成功实现了 Amber CLI 的重大增强：
 
 1. **功能完整性**: 从最小化 CLI 升级为功能齐全的开发工具
 2. **用户体验**: 提供现代化开发工作流所需的所有功能
@@ -252,7 +252,7 @@ Stage 36.0 成功实现了 Beejs CLI 的重大增强：
 4. **向后兼容**: 保持与现有 CLI 的兼容性
 5. **测试覆盖**: 11个测试用例，100%通过率
 
-这些改进使 Beejs 成为一个真正可用于生产环境的 JavaScript/TypeScript 运行时，为 AI 时代的高性能脚本执行奠定了坚实基础。
+这些改进使 Amber 成为一个真正可用于生产环境的 JavaScript/TypeScript 运行时，为 AI 时代的高性能脚本执行奠定了坚实基础。
 
 ---
 

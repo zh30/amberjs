@@ -127,7 +127,7 @@ def main():
     print("\n步骤 5: 测试基本功能...")
     test_script = "test_basic_functionality.js"
     if Path(test_script).exists():
-        stdout, stderr, code = run_command(f"./bee {test_script}")
+        stdout, stderr, code = run_command(f"./amber {test_script}")
         if code == 0:
             print("✓ 基本功能测试通过")
         else:

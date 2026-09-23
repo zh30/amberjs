@@ -1,4 +1,4 @@
-// Alerting system for Beejs runtime
+// Alerting system for Amber runtime
 //
 // This module provides an alerting system that can monitor metrics,
 // detect anomalies, and send notifications via various channels.
@@ -364,13 +364,13 @@ impl Default for AlertingSystem {
 /// Built-in alert rules
 pub struct BuiltInAlertRules;
 impl BuiltInAlertRules {
-    /// Get default alert rules for Beejs
+    /// Get default alert rules for Amber
     pub fn get_default_rules() -> Vec<AlertRule> {
         vec![
             AlertRule {
                 id: "high_error_rate".to_string(),
                 name: "High Error Rate".to_string(),
-                metric_name: "beejs_script_error_rate_percent".to_string(),
+                metric_name: "amberjs_script_error_rate_percent".to_string(),
                 condition: AlertCondition::GreaterThan(10.0),
                 threshold: 10.0,
                 duration: Duration::from_secs(60),
@@ -381,7 +381,7 @@ impl BuiltInAlertRules {
             AlertRule {
                 id: "high_memory_usage".to_string(),
                 name: "High Memory Usage".to_string(),
-                metric_name: "beejs_memory_usage_bytes".to_string(),
+                metric_name: "amberjs_memory_usage_bytes".to_string(),
                 condition: AlertCondition::GreaterThan(1073741824.0), // 1GB
                 threshold: 1073741824.0,
                 duration: Duration::from_secs(120),
@@ -392,7 +392,7 @@ impl BuiltInAlertRules {
             AlertRule {
                 id: "high_latency".to_string(),
                 name: "High Script Latency".to_string(),
-                metric_name: "beejs_script_execution_duration_seconds".to_string(),
+                metric_name: "amberjs_script_execution_duration_seconds".to_string(),
                 condition: AlertCondition::GreaterThan(1.0), // 1 second
                 threshold: 1.0,
                 duration: Duration::from_secs(60),

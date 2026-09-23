@@ -1,10 +1,10 @@
-# Beejs Stage 30.1 完成报告
+# Amber Stage 30.1 完成报告
 
 ## 🎉 重大成就
 
 **Stage 30.1: JIT 编译器深度优化已全面完成！**
 
-Beejs 现在具备企业级的 JIT 编译器优化能力，通过激进内联、死代码消除、循环展开和逃逸分析四大核心技术，实现 50%+ 的性能提升。
+Amber 现在具备企业级的 JIT 编译器优化能力，通过激进内联、死代码消除、循环展开和逃逸分析四大核心技术，实现 50%+ 的性能提升。
 
 ---
 
@@ -274,7 +274,7 @@ fn determine_escape_level(&self, escape_path: &EscapePath) -> EscapeLevel {
 
 ### 性能指标对比
 
-| 特性 | Beejs Stage 30.1 | Bun | 优势 |
+| 特性 | Amber Stage 30.1 | Bun | 优势 |
 |------|------------------|-----|------|
 | JIT 优化深度 | 50层内联 | 10-15层 | **3-5x** |
 | 死代码消除 | ✅ 完整静态分析 | ⚠️ 基础检测 | **显著优势** |
@@ -283,7 +283,7 @@ fn determine_escape_level(&self, escape_path: &EscapePath) -> EscapeLevel {
 | 启动时间 | < 1ms | 2-3ms | **2-3x** |
 | 内存效率 | < 50MB | 80-100MB | **50%** |
 
-**结论**: Beejs Stage 30.1 在 JIT 优化深度和广度上全面超越 Bun，成为真正的下一代高性能 JS/TS 运行时。
+**结论**: Amber Stage 30.1 在 JIT 优化深度和广度上全面超越 Bun，成为真正的下一代高性能 JS/TS 运行时。
 
 ---
 
@@ -372,7 +372,7 @@ fn determine_escape_level(&self, escape_path: &EscapePath) -> EscapeLevel {
 
 ## 🎯 结论
 
-**Stage 30.1 是 Beejs JIT 编译器优化的重大里程碑！**
+**Stage 30.1 是 Amber JIT 编译器优化的重大里程碑！**
 
 通过激进内联、死代码消除、循环展开、逃逸分析四大核心技术的精心实施，我们成功实现了：
 
@@ -385,9 +385,9 @@ fn determine_escape_level(&self, escape_path: &EscapePath) -> EscapeLevel {
 - ✅ 23个测试 100% 通过
 - ✅ 全面超越 Bun 性能
 
-**现在，Beejs 已经具备生产级的 JIT 优化能力！**
+**现在，Amber 已经具备生产级的 JIT 优化能力！**
 
-下一步的 Stage 30.2 将进一步优化内存管理，使 Beejs 成为真正的极致性能运行时。
+下一步的 Stage 30.2 将进一步优化内存管理，使 Amber 成为真正的极致性能运行时。
 
 ---
 

@@ -1,40 +1,40 @@
-# Beejs 快速开始指南
+# Amber 快速开始指南
 
-本文档描述 Beejs v0.1 当前公开 CLI。命令行为以 `Cargo.toml`、
+本文档描述 Amber v0.1 当前公开 CLI。命令行为以 `Cargo.toml`、
 `src/main.rs` 和可执行测试为准。
 
 ## 安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zh30/beejs/main/install.sh | sh
-bee --version
+curl -fsSL https://raw.githubusercontent.com/zh30/amberjs/main/install.sh | sh
+amber --version
 ```
 
 从源码构建：
 
 ```bash
-git clone https://github.com/zh30/beejs.git
-cd beejs
+git clone https://github.com/zh30/amberjs.git
+cd amberjs
 cargo build --release
-./target/release/bee --version
+./target/release/amber --version
 ```
 
 ## 常用命令
 
 ```bash
-bee --help
-bee version
-bee eval "1 + 1"
-bee run examples/basics/hello_world.js
-bee run examples/basics/typescript_demo.ts
-bee repl
-bee test examples/testing/math.test.js
+amber --help
+amber version
+amber eval "1 + 1"
+amber run examples/basics/hello_world.js
+amber run examples/basics/typescript_demo.ts
+amber repl
+amber test examples/testing/math.test.js
 ```
 
 `--verbose` 是全局参数，需要放在子命令前：
 
 ```bash
-bee --verbose run examples/basics/hello_world.js
+amber --verbose run examples/basics/hello_world.js
 ```
 
 ## 第一个脚本
@@ -42,14 +42,14 @@ bee --verbose run examples/basics/hello_world.js
 创建 `hello.js`：
 
 ```javascript
-console.log("Hello from Beejs!");
+console.log("Hello from Amber!");
 console.log("Rust + V8 runtime");
 ```
 
 运行：
 
 ```bash
-bee run hello.js
+amber run hello.js
 ```
 
 ## TypeScript
@@ -58,25 +58,25 @@ bee run hello.js
 再交给 V8 执行：
 
 ```bash
-bee run examples/basics/typescript_demo.ts
+amber run examples/basics/typescript_demo.ts
 ```
 
 ## 测试
 
 ```bash
-bee test
-bee test examples/testing/math.test.js
-bee test examples/testing/math.test.js --test-name-pattern "adds"
-bee test examples/testing/math.test.js --bail
-bee test examples/testing/math.test.js --timeout 10
+amber test
+amber test examples/testing/math.test.js
+amber test examples/testing/math.test.js --test-name-pattern "adds"
+amber test examples/testing/math.test.js --bail
+amber test examples/testing/math.test.js --timeout 10
 ```
 
 ## Bundle 和 Server
 
 ```bash
-bee bundle src/index.js --outfile dist/bundle.js
-bee bundle src/index.js --outfile dist/bundle.js --minify
-bee serve --host localhost --port 3000
+amber bundle src/index.js --outfile dist/bundle.js
+amber bundle src/index.js --outfile dist/bundle.js --minify
+amber serve --host localhost --port 3000
 ```
 
 ## 开发验证
@@ -90,5 +90,5 @@ cargo test --test timers_enhanced_tests
 
 ## 版本定位
 
-Beejs v0.1 适合运行仓库示例、验证脚本工作流和参与 Node/Web API 兼容层开发。
+Amber v0.1 适合运行仓库示例、验证脚本工作流和参与 Node/Web API 兼容层开发。
 性能数字必须来自当前可复现的 benchmark 命令；不要把历史阶段报告当作当前事实。

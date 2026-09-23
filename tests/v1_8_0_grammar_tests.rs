@@ -1,4 +1,4 @@
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]
@@ -7,7 +7,7 @@ fn test_grammar_partial_json_repair() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { parsePartialJSON } = require('bee:grammar');
+    const { parsePartialJSON } = require('amber:grammar');
 
     // 1. Unclosed object & string
     const r1 = parsePartialJSON('{"name": "Alice", "status": "work');
@@ -40,7 +40,7 @@ fn test_grammar_incremental_stream_decoder() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createStreamDecoder } = require('bee:grammar');
+    const { createStreamDecoder } = require('amber:grammar');
 
     const snapshots = [];
     const decoder = createStreamDecoder({
@@ -83,7 +83,7 @@ fn test_grammar_sse_chunk_parser() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { parseSSEChunk } = require('bee:grammar');
+    const { parseSSEChunk } = require('amber:grammar');
 
     const sseRaw = `
 event: delta
@@ -131,7 +131,7 @@ fn test_grammar_constrained_token_acceptance() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { createChoiceGrammar, createRegexGrammar, createJSONGrammar } = require('bee:grammar');
+    const { createChoiceGrammar, createRegexGrammar, createJSONGrammar } = require('amber:grammar');
 
     // 1. Choice grammar
     const choice = createChoiceGrammar(['approve', 'reject', 'defer']);

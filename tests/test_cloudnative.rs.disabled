@@ -1,8 +1,8 @@
 //! Cloud-native tests
 //! Tests for Kubernetes and service mesh integration
 
-use beejs::cloudnative::{CloudNativeRuntime, K8sRuntime, K8sConfig, ServiceMesh, ServiceMeshConfig, ServiceMeshType};
-use beejs::enterprise::ComplianceFramework;
+use amberjs::cloudnative::{CloudNativeRuntime, K8sRuntime, K8sConfig, ServiceMesh, ServiceMeshConfig, ServiceMeshType};
+use amberjs::enterprise::ComplianceFramework;
 
 #[tokio::test]
 async fn test_k8s_runtime() {
@@ -35,15 +35,15 @@ async fn test_service_mesh() {
     let mesh = ServiceMesh::new(config).unwrap();
 
     // Register a service
-    let service = beejs::cloudnative::ServiceInfo {
+    let service = amberjs::cloudnative::ServiceInfo {
         name: "test-service".to_string(),
         namespace: "default".to_string(),
         endpoints: vec![
-            beejs::cloudnative::ServiceEndpoint {
+            amberjs::cloudnative::ServiceEndpoint {
                 address: "10.0.0.1".to_string(),
                 port: 8080,
                 weight: 100,
-                health: beejs::cloudnative::HealthStatus::Healthy,
+                health: amberjs::cloudnative::HealthStatus::Healthy,
             },
         ],
         labels: std::collections::HashMap::new(),
@@ -52,7 +52,7 @@ async fn test_service_mesh() {
 
     mesh.discovery.register_service(service).await.unwrap();
 
-    let request = beejs::cloudnative::MeshRequest {
+    let request = amberjs::cloudnative::MeshRequest {
         service: "test-service".to_string(),
         method: "GET".to_string(),
         path: "/api/test".to_string(),
@@ -114,15 +114,15 @@ async fn test_service_discovery() {
 
     let mesh = ServiceMesh::new(config).unwrap();
 
-    let service = beejs::cloudnative::ServiceInfo {
+    let service = amberjs::cloudnative::ServiceInfo {
         name: "backend".to_string(),
         namespace: "default".to_string(),
         endpoints: vec![
-            beejs::cloudnative::ServiceEndpoint {
+            amberjs::cloudnative::ServiceEndpoint {
                 address: "backend.default.svc".to_string(),
                 port: 8080,
                 weight: 100,
-                health: beejs::cloudnative::HealthStatus::Healthy,
+                health: amberjs::cloudnative::HealthStatus::Healthy,
             },
         ],
         labels: std::collections::HashMap::new(),

@@ -1465,7 +1465,7 @@ fn tls_config_from_server_object(
             &HttpsServerConfig::default(),
         )),
         Err(error) => {
-            eprintln!("[Beejs] Failed to load TLS certificate: {error}");
+            eprintln!("[Amber] Failed to load TLS certificate: {error}");
             None
         }
     }
@@ -1711,7 +1711,7 @@ fn http_server_close_callback(
     this.set(scope, listening_key.into(), listening_val.into());
 
     // 打印关闭信息
-    eprintln!("[Beejs] HTTP Server closed");
+    eprintln!("[Amber] HTTP Server closed");
 
     retval.set(this.into());
 }
@@ -1760,7 +1760,7 @@ fn http_request_callback(
             let undefined: _ = v8::undefined(scope);
             req_obj.set(scope, resolved_addr_key.into(), undefined.into());
             // 可以在控制台输出错误（可选）
-            eprintln!("[Beejs] DNS resolution warning for '{}': {}", hostname, e);
+            eprintln!("[Amber] DNS resolution warning for '{}': {}", hostname, e);
         }
     }
 
@@ -2117,7 +2117,7 @@ fn http_req_end_callback(
     let connection_acquired = acquire_http_connection(&host, port as u16);
     if !connection_acquired {
         eprintln!(
-            "[Beejs] HTTP connection pool exhausted for {}:{}, active: {}",
+            "[Amber] HTTP connection pool exhausted for {}:{}, active: {}",
             host,
             port,
             get_connection_pool_stats()
@@ -2149,7 +2149,7 @@ fn http_req_end_callback(
             resp.body,
         ),
         Err(e) => {
-            eprintln!("[Beejs] HTTP request failed: {}", e);
+            eprintln!("[Amber] HTTP request failed: {}", e);
             (200, "OK".to_string(), vec![], vec![])
         }
     };
@@ -3194,7 +3194,7 @@ static HTTP_TOKIO_RUNTIME: Lazy<tokio::runtime::Runtime> = Lazy::new(|| {
         .max(2);
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(num_threads)
-        .thread_name("beejs-http-tokio")
+        .thread_name("amberjs-http-tokio")
         .enable_all()
         .build()
         .expect("Failed to create HTTP Tokio runtime")
@@ -3268,14 +3268,14 @@ fn run_http_server(server_state: Arc<HttpServerState>, _handler_code: String) {
             l
         }
         Err(e) => {
-            eprintln!("[Beejs] Failed to bind to {}: {}", addr, e);
+            eprintln!("[Amber] Failed to bind to {}: {}", addr, e);
             server_state.listening.store(false, Ordering::SeqCst);
             return;
         }
     };
 
     if let Err(e) = std_listener.set_nonblocking(true) {
-        eprintln!("[Beejs] Failed to set non-blocking on listener: {}", e);
+        eprintln!("[Amber] Failed to set non-blocking on listener: {}", e);
         server_state.listening.store(false, Ordering::SeqCst);
         return;
     }
@@ -3284,7 +3284,7 @@ fn run_http_server(server_state: Arc<HttpServerState>, _handler_code: String) {
         return;
     }
 
-    eprintln!("[Beejs] HTTP Server listening on {}", addr);
+    eprintln!("[Amber] HTTP Server listening on {}", addr);
 
     let rt = get_http_tokio_runtime();
     let state_clone = server_state.clone();
@@ -3293,7 +3293,7 @@ fn run_http_server(server_state: Arc<HttpServerState>, _handler_code: String) {
         let tokio_listener = match tokio::net::TcpListener::from_std(std_listener) {
             Ok(l) => l,
             Err(e) => {
-                eprintln!("[Beejs] Failed to convert listener to Tokio: {}", e);
+                eprintln!("[Amber] Failed to convert listener to Tokio: {}", e);
                 state_clone.listening.store(false, Ordering::SeqCst);
                 return;
             }
@@ -3314,7 +3314,7 @@ fn run_http_server(server_state: Arc<HttpServerState>, _handler_code: String) {
                                             handle_tokio_connection(TokioServerIo::Tls(tls_stream), state).await;
                                         }
                                         Err(e) => {
-                                            eprintln!("[Beejs] TLS handshake failed: {}", e);
+                                            eprintln!("[Amber] TLS handshake failed: {}", e);
                                         }
                                     }
                                 } else {
@@ -3326,7 +3326,7 @@ fn run_http_server(server_state: Arc<HttpServerState>, _handler_code: String) {
                             if !state_clone.listening.load(Ordering::SeqCst) {
                                 break;
                             }
-                            eprintln!("[Beejs] Accept failed: {}", e);
+                            eprintln!("[Amber] Accept failed: {}", e);
                             tokio::time::sleep(Duration::from_millis(5)).await;
                         }
                     }
@@ -3336,7 +3336,7 @@ fn run_http_server(server_state: Arc<HttpServerState>, _handler_code: String) {
                 }
             }
         }
-        eprintln!("[Beejs] HTTP Server stopped");
+        eprintln!("[Amber] HTTP Server stopped");
     });
 }
 
@@ -3406,7 +3406,7 @@ fn handle_same_port_websocket_upgrade<S: Read + Write>(stream: S, request_data: 
                 Err(_) => break,
             }
         },
-        Err(error) => eprintln!("[Beejs] WebSocket upgrade failed: {error}"),
+        Err(error) => eprintln!("[Amber] WebSocket upgrade failed: {error}"),
     }
 }
 
@@ -3530,7 +3530,7 @@ async fn handle_tokio_connection(mut stream: TokioServerIo, _server_state: Arc<H
         }
 
         if !message_channel_used {
-            let fallback_body = "Beejs HTTP server dispatcher unavailable";
+            let fallback_body = "Amber HTTP server dispatcher unavailable";
             let response_data = format!(
                 "HTTP/1.1 503 Service Unavailable\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                 fallback_body.len(),
@@ -4081,7 +4081,7 @@ pub fn process_http_request_in_v8_inner<'a>(
             if r.is_none() && tc_scope.has_caught() {
                 if let Some(exc) = tc_scope.exception() {
                     let msg = exc.to_rust_string_lossy(tc_scope);
-                    eprintln!("[Beejs HTTP Dispatch Error] {}", msg);
+                    eprintln!("[Amber HTTP Dispatch Error] {}", msg);
                 }
             }
             r
@@ -4165,7 +4165,7 @@ pub fn process_http_request_in_v8_inner<'a>(
         if r.is_none() && tc_scope.has_caught() {
             if let Some(exc) = tc_scope.exception() {
                 let msg = exc.to_rust_string_lossy(tc_scope);
-                eprintln!("[Beejs HTTP Handler Error] {}", msg);
+                eprintln!("[Amber HTTP Handler Error] {}", msg);
             }
         }
         r
@@ -4461,7 +4461,7 @@ pub fn create_tls_server_config(
     Arc::new(tls_config)
 }
 
-/// rustls server config for `bee serve --https` (HTTP/1.1 only).
+/// rustls server config for `amber serve --https` (HTTP/1.1 only).
 pub fn try_create_tls_server_config_http11(
     cert: &TlsCertificate,
 ) -> Result<Arc<rustls::ServerConfig>, String> {

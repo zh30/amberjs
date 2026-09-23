@@ -12,7 +12,7 @@
 // # Examples
 //
 // ```rust
-// use beejs::observability::visualization::{
+// use amberjs::observability::visualization::{
 //     LineChartBuilder, BarChartBuilder, PieChartBuilder,
 //     TopologyGraphBuilder, DependencyGraphBuilder
 // };

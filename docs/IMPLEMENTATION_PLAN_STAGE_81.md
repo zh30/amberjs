@@ -1,4 +1,4 @@
-# Beejs Stage 81 实施计划 - AI 增强平台
+# Amber Stage 81 实施计划 - AI 增强平台
 
 ## 项目概述
 
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  Beejs AI 增强平台                           │
+│                  Amber AI 增强平台                           │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ AI 代码生成  │  │ 智能调试     │  │ 自动性能优化     │  │
@@ -324,13 +324,13 @@
 ### 1. AI 代码生成器实现示例
 
 ```rust
-pub struct BeejsAiCodeGenerator {
+pub struct AmberAiCodeGenerator {
     model: Arc<LanguageModel>,
     context_cache: Arc<ContextCache>,
     code_db: Arc<CodeDatabase>,
 }
 
-impl BeejsAiCodeGenerator {
+impl AmberAiCodeGenerator {
     pub async fn generate_from_prompt(
         &self,
         prompt: &str,
@@ -398,13 +398,13 @@ impl BeejsAiCodeGenerator {
 ### 2. 智能调试器实现示例
 
 ```rust
-pub struct BeejsSmartDebugger {
+pub struct AmberSmartDebugger {
     error_classifier: Arc<ErrorClassifier>,
     fix_generator: Arc<FixGenerator>,
     knowledge_base: Arc<DebugKnowledgeBase>,
 }
 
-impl BeejsSmartDebugger {
+impl AmberSmartDebugger {
     pub async fn diagnose_and_fix(
         &self,
         error: &RuntimeError,
@@ -458,13 +458,13 @@ impl BeejsSmartDebugger {
 ### 3. 自动性能优化器实现示例
 
 ```rust
-pub struct BeejsAutoOptimizer {
+pub struct AmberAutoOptimizer {
     profiler: Arc<AdvancedProfiler>,
     optimizer: Arc<CodeOptimizer>,
     validator: Arc<OptimizationValidator>,
 }
 
-impl BeejsAutoOptimizer {
+impl AmberAutoOptimizer {
     pub async fn analyze_and_optimize(
         &self,
         source: &str,
@@ -520,13 +520,13 @@ impl BeejsAutoOptimizer {
 ### 4. 预测性扩展器实现示例
 
 ```rust
-pub struct BeejsPredictiveScaler {
+pub struct AmberPredictiveScaler {
     predictor: Arc<TimeSeriesPredictor>,
     monitor: Arc<ResourceMonitor>,
     scaler: Arc<AutoScaler>,
 }
 
-impl BeejsPredictiveScaler {
+impl AmberPredictiveScaler {
     pub async fn predict_and_scale(
         &self,
         prediction_window: Duration,
@@ -673,4 +673,4 @@ impl BeejsPredictiveScaler {
 
 ---
 
-**结论**: Stage 81 将把 Beejs 提升为真正的 AI 驱动开发平台，通过智能代码生成、调试建议、性能优化和预测性扩展，让 AI 成为开发者的智能伙伴，大幅提升开发效率和代码质量。这将使 Beejs 在 AI 时代占据领导地位。
+**结论**: Stage 81 将把 Amber 提升为真正的 AI 驱动开发平台，通过智能代码生成、调试建议、性能优化和预测性扩展，让 AI 成为开发者的智能伙伴，大幅提升开发效率和代码质量。这将使 Amber 在 AI 时代占据领导地位。

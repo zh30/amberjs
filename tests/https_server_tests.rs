@@ -133,7 +133,7 @@ mod https_server_tests {
         // HTTPS requests use the same headers as HTTP
         let headers = vec![
             "Host: example.com",
-            "User-Agent: Beejs/0.1.0",
+            "User-Agent: Amber/0.1.0",
             "Accept: */*",
             "Connection: keep-alive",
         ];
@@ -149,7 +149,7 @@ mod https_server_tests {
         assert_eq!(header_map.get("Host"), Some(&"example.com".to_string()));
         assert_eq!(
             header_map.get("User-Agent"),
-            Some(&"Beejs/0.1.0".to_string())
+            Some(&"Amber/0.1.0".to_string())
         );
         assert_eq!(
             header_map.get("Connection"),

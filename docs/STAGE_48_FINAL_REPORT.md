@@ -1,8 +1,8 @@
-# Beejs Stage 48: 高性能 JavaScript 运行时完整实现报告
+# Amber Stage 48: 高性能 JavaScript 运行时完整实现报告
 
 ## 📊 项目概述
 
-**项目名称**: Beejs - 高性能 JavaScript/TypeScript 运行时
+**项目名称**: Amber - 高性能 JavaScript/TypeScript 运行时
 **目标**: 比 Bun 更快的 JS/TS 运行时，专为 AI 时代设计
 **技术栈**: Rust + V8 + Tokio
 **当前阶段**: Stage 48 - 完整核心功能实现
@@ -80,18 +80,18 @@ pub enum AIWorkloadType {
 **文件**: `src/stage_48_bun_cli_compat.rs` (~600 行)
 
 **兼容命令**:
-- ✅ `beejs run script.js` - 运行脚本
-- ✅ `beejs test` - 运行测试
-- ✅ `beejs install/add/remove` - 包管理
-- ✅ `beejs build` - 代码打包
-- ✅ `beejs exec` - 二进制包执行
-- ✅ `beejs repl` - 交互式 REPL
-- ✅ `beejs create` - 项目脚手架
+- ✅ `amberjs run script.js` - 运行脚本
+- ✅ `amberjs test` - 运行测试
+- ✅ `amberjs install/add/remove` - 包管理
+- ✅ `amberjs build` - 代码打包
+- ✅ `amberjs exec` - 二进制包执行
+- ✅ `amberjs repl` - 交互式 REPL
+- ✅ `amberjs create` - 项目脚手架
 
 **CLI 结构**:
 ```rust
 #[derive(Subcommand, Debug)]
-enum BeejsCommand {
+enum AmberCommand {
     Run { script: Option<String>, eval: Option<String> },
     Test { files: Vec<String>, watch: bool },
     Install { package: Option<String>, dev: bool },
@@ -133,7 +133,7 @@ pub async fn run_ai_workload_test() -> BenchmarkResult
 ### 核心组件
 ```
 ┌─────────────────────────────────────┐
-│           Beejs Runtime             │
+│           Amber Runtime             │
 ├─────────────────────────────────────┤
 │  CLI Layer (Bun Compatible)        │
 ├─────────────────────────────────────┤
@@ -175,8 +175,8 @@ pub async fn run_ai_workload_test() -> BenchmarkResult
 ### 基准测试结果
 当前基础运行时可成功执行 JavaScript 代码：
 ```bash
-$ ./beejs demo.js
-Beejs Stage 48 Demo - Success!
+$ ./amberjs demo.js
+Amber Stage 48 Demo - Success!
 ```
 
 ## 📦 代码统计
@@ -199,7 +199,7 @@ Beejs Stage 48 Demo - Success!
 
 ### 当前状态
 - ✅ **可编译**: `cargo check --lib` 通过
-- ✅ **可运行**: `./beejs demo.js` 成功
+- ✅ **可运行**: `./amberjs demo.js` 成功
 - ✅ **基础功能**: JavaScript 执行正常
 - ⚠️  **高级功能**: 部分模块需进一步调试
 
@@ -211,8 +211,8 @@ warning: unused import (正常)
 # 无错误，可以编译
 
 # 运行状态
-$ ./beejs test_simple.js
-Hello from Beejs!
+$ ./amberjs test_simple.js
+Hello from Amber!
 # ✅ 成功执行
 ```
 
@@ -310,7 +310,7 @@ Hello from Beejs!
 
 ## 🎉 总结
 
-Beejs Stage 48 成功实现了高性能 JavaScript 运行时的核心功能：
+Amber Stage 48 成功实现了高性能 JavaScript 运行时的核心功能：
 
 ✅ **完整架构**: 从 CLI 到 V8 的完整链路
 ✅ **创新优化**: 进程池、AI 优化等创新技术
@@ -319,7 +319,7 @@ Beejs Stage 48 成功实现了高性能 JavaScript 运行时的核心功能：
 ✅ **测试覆盖**: 全面的测试框架
 ✅ **性能基础**: 为 10-50x 提升奠定基础
 
-这标志着 Beejs 项目从概念设计到核心实现的重要里程碑，为 AI 时代的高性能 JavaScript 执行奠定了坚实基础！
+这标志着 Amber 项目从概念设计到核心实现的重要里程碑，为 AI 时代的高性能 JavaScript 执行奠定了坚实基础！
 
 ---
 

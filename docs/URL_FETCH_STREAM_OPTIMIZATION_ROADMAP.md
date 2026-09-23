@@ -2,7 +2,7 @@
 
 > **目标**: 针对全景基准 2.0 暴露的三项短板，采用递归自我改进 (RSI) 逐项突破。每项独立分支、独立基准、独立合并。
 >
-> **基线环境**: Beejs 1.15.0 vs Node.js v22.22.3 vs Bun 1.4.1，Apple M2 Max。数据来自 `benchmarks/COMPREHENSIVE_BENCHMARK_REPORT.md`（提交 `289e192c`）。
+> **基线环境**: Amber 1.15.0 vs Node.js v22.22.3 vs Bun 1.4.1，Apple M2 Max。数据来自 `benchmarks/COMPREHENSIVE_BENCHMARK_REPORT.md`（提交 `289e192c`）。
 
 ---
 
@@ -10,9 +10,9 @@
 
 | 任务编号 | 优化维度 | 对标 | 初始差距 | 核心突破思路 | 分支 | 实测与状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **TASK-URL** | WHATWG `URL` / `URLSearchParams` 构造与查询串吞吐 | Node 12.38 ms | Beejs 234.21 ms（慢 **19.6x**） | 去掉 BeeURL 二次包装；用 JIT 友好的 `url_fast.js` 解析绝对 URL | `feat/rsi-url-native` | **已完成**：8.17 ms，比 Node 快 **1.51x**（相对基线提升 28.7x）。Conformance 55/55 |
-| **TASK-FETCH** | `fetch()` 串行客户端 GET | Node 18.19 ms / 100 req | Beejs 1451.62 ms（慢 **43.7x**） | 字符串 GET 走线程局部 HTTP/1.1 keep-alive，避免 Tokio `block_on` | `feat/rsi-fetch-fastpath` | **已完成**：8.22 ms，比 Node 快 **2.21x**（相对基线提升 176x）。Conformance 55/55 |
-| **TASK-STREAM** | `ReadableStream` 生产/消费 5k chunk | Node 1.28 ms | Beejs 4.53 ms（慢 **4.4x**） | 默认 enqueue/read 热路径改 JS 实现，避免每 chunk 一次 Rust FFI | `feat/rsi-stream-js-hotpath` | **已完成**：0.95 ms，比 Node 快 **1.35x**（相对基线提升 4.8x）。Conformance 55/55 |
+| **TASK-URL** | WHATWG `URL` / `URLSearchParams` 构造与查询串吞吐 | Node 12.38 ms | Amber 234.21 ms（慢 **19.6x**） | 去掉 BeeURL 二次包装；用 JIT 友好的 `url_fast.js` 解析绝对 URL | `feat/rsi-url-native` | **已完成**：8.17 ms，比 Node 快 **1.51x**（相对基线提升 28.7x）。Conformance 55/55 |
+| **TASK-FETCH** | `fetch()` 串行客户端 GET | Node 18.19 ms / 100 req | Amber 1451.62 ms（慢 **43.7x**） | 字符串 GET 走线程局部 HTTP/1.1 keep-alive，避免 Tokio `block_on` | `feat/rsi-fetch-fastpath` | **已完成**：8.22 ms，比 Node 快 **2.21x**（相对基线提升 176x）。Conformance 55/55 |
+| **TASK-STREAM** | `ReadableStream` 生产/消费 5k chunk | Node 1.28 ms | Amber 4.53 ms（慢 **4.4x**） | 默认 enqueue/read 热路径改 JS 实现，避免每 chunk 一次 Rust FFI | `feat/rsi-stream-js-hotpath` | **已完成**：0.95 ms，比 Node 快 **1.35x**（相对基线提升 4.8x）。Conformance 55/55 |
 
 ---
 
@@ -42,7 +42,7 @@
 对每一项严格按下列循环：
 
 1. `git checkout -b feat/rsi-<item>`
-2. 记录改动前微基准（Beejs / Node / Bun）
+2. 记录改动前微基准（Amber / Node / Bun）
 3. 针对 FFI、block_on、隐藏类、多余分配设计突破方案
 4. 落地实现；`tests/conformance` 保持 55/55
 5. 复测对应 workload，必须有实质性提升（至少明显缩小与 Node 的倍数差）
@@ -61,7 +61,7 @@
 
 ```bash
 # URL
-./target/release/bee run benchmarks/comprehensive_bench.js   # 看第 16 项
+./target/release/amber run benchmarks/comprehensive_bench.js   # 看第 16 项
 node benchmarks/comprehensive_bench.js
 
 # Fetch + SQLite（需 Phase 5 本地 HTTP）

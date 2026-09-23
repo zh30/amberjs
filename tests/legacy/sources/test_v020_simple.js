@@ -1,7 +1,7 @@
-// Beejs v0.2.0 简化功能测试
+// Amber v0.2.0 简化功能测试
 // 测试当前已支持的功能
 
-console.log('=== Beejs v0.2.0 简化功能测试 ===');
+console.log('=== Amber v0.2.0 简化功能测试 ===');
 
 // 1. 基础 JavaScript 执行
 console.log('\n--- 基础功能测试 ---');

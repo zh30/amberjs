@@ -1,6 +1,6 @@
-# Beejs Documentation
+# Amber Documentation
 
-Start here when deciding what Beejs can do today and where it is headed:
+Start here when deciding what Amber can do today and where it is headed:
 
 - [Current Scope](CURRENT_SCOPE.md): Stable, Preview, Experimental, and Historical capability boundaries.
 - [v1.9.1 implementation plan](IMPLEMENTATION_PLAN_v1.9.1.md): P0–P2 infrastructure second wave (Windows artifacts, Homebrew SHA, HTTPS serve, inspector, N-API hello, CI honesty). Plan only; not current product fact.

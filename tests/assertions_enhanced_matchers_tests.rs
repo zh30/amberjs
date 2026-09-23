@@ -10,7 +10,7 @@
 // - toStrictEqual: Strict equality checking
 // - toBeGreaterThanOrEqual / toBeLessThanOrEqual: Boundary comparisons
 
-use beejs::testing::assertions::*;
+use amberjs::testing::assertions::*;
 
 /// Test toBeTruthy matcher - basic values
 #[test]

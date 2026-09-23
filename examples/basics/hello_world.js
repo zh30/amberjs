@@ -1,6 +1,6 @@
 // Module: examples/basics/hello_world.js
-// Hello World example for Beejs runtime
-console.log("Hello from Beejs!");
+// Hello World example for Amber runtime
+console.log("Hello from Amber!");
 console.log("This is a JavaScript/TypeScript runtime built with Rust and V8");
 
 // Basic arithmetic
@@ -13,7 +13,7 @@ function greet(name) {
     return `Hello, ${name}!`;
 }
 
-console.log(greet("Beejs"));
+console.log(greet("Amber"));
 
 // Object example
 const user = {

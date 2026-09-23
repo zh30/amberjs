@@ -1,7 +1,7 @@
 //! Stage 27.4 AI 模型集成测试套件
 //! 测试 LLM 推理优化、模型缓存、推理加速和多模型管理功能
 
-use beejs::*;
+use amberjs::*;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 

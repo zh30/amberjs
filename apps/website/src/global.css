@@ -136,7 +136,7 @@
   color: var(--code-fg);
 }
 
-.prose-bee {
+.prose-amber {
   --tw-prose-body: var(--text-secondary);
   --tw-prose-headings: var(--text-primary);
   --tw-prose-links: var(--text-primary);

@@ -79,7 +79,7 @@ test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 ```
 
 #### 3.2 实际使用测试
-- ✅ 成功构建 beejs 二进制文件
+- ✅ 成功构建 amberjs 二进制文件
 - ✅ profile 命令帮助信息正常显示
 - ✅ 实际脚本执行成功
 - ✅ 性能报告成功生成
@@ -89,24 +89,24 @@ test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 #### 4.1 基本用法
 ```bash
 # 基本性能分析
-beejs profile script.js
+amberjs profile script.js
 
 # 详细模式
-beejs profile --detailed script.js
+amberjs profile --detailed script.js
 
 # 指定输出格式
-beejs profile --format json script.js
+amberjs profile --format json script.js
 
 # 指定输出目录
-beejs profile --dir /tmp/profiles script.js
+amberjs profile --dir /tmp/profiles script.js
 
 # 自定义参数
-beejs profile --duration 30 --sampling-rate 500 script.js arg1 arg2
+amberjs profile --duration 30 --sampling-rate 500 script.js arg1 arg2
 ```
 
 #### 4.2 实际运行结果
 ```bash
-$ ./beejs profile test_profile_demo.js
+$ ./amberjs profile test_profile_demo.js
 
 === 性能分析摘要报告 ===
 
@@ -196,7 +196,7 @@ AdvancedProfiler (monitor/profiler/mod.rs)
 
 ## 总结
 
-Stage 76 Phase 3 成功实现了 Beejs 性能分析器的 CLI 集成，为用户提供了强大的性能分析工具。通过完整的测试驱动开发，我们确保了代码质量和功能正确性。
+Stage 76 Phase 3 成功实现了 Amber 性能分析器的 CLI 集成，为用户提供了强大的性能分析工具。通过完整的测试驱动开发，我们确保了代码质量和功能正确性。
 
 **关键成就**:
 1. 完整的 CLI 子命令系统

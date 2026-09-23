@@ -1,5 +1,5 @@
 // Tests for ECDH deriveKey and deriveBits (v0.3.365)
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]
@@ -382,7 +382,7 @@ fn test_ecdh_derivebits_rejects_invalid_peer_public_key_material() {
                 type: 'public',
                 algorithm: { name: 'ECDH', namedCurve: 'P-256' },
                 usages: [],
-                __beejs_key_data__: new Uint8Array([1, 2, 3, 4]).buffer
+                __amberjs_key_data__: new Uint8Array([1, 2, 3, 4]).buffer
             };
             try {
                 await crypto.subtle.deriveBits(

@@ -1,6 +1,6 @@
-# Beejs 基础设施与能力待办清单
+# Amber 基础设施与能力待办清单
 
-> 目标：把 Beejs 从「项目 CI + 能发 GitHub Release」补成一套语言运行时该有的配套设施，并把还裸着的运行时能力收口。  
+> 目标：把 Amber 从「项目 CI + 能发 GitHub Release」补成一套语言运行时该有的配套设施，并把还裸着的运行时能力收口。  
 > 事实来源：当前默认构建、`.github/workflows/`、`install.sh`、`Cargo.toml`、`src/main.rs`、`docs/GITHUB_ACTIONS_RUNTIME_INFRASTRUCTURE.md`。不引用历史 `STAGE_*` 报告。  
 > 状态：必须卡（1–12）已在本仓库落地。线上 `v*` Release / GHCR / Homebrew 安装仍需推 tag 与 secret，本地不可验证。第二波 P0–P2 见 [IMPLEMENTATION_PLAN_v1.9.1.md](./IMPLEMENTATION_PLAN_v1.9.1.md)。
 
@@ -8,11 +8,11 @@
 
 | 能力 | 现状 |
 |---|---|
-| PR 门禁 | `ci.yml`：`fmt`、clippy `-D warnings`、`cargo test`、Node conformance、`bee test examples/testing` |
+| PR 门禁 | `ci.yml`：`fmt`、clippy `-D warnings`、`cargo test`、Node conformance、`amber test examples/testing` |
 | `v*` GitHub Release | `release-assets.yml`：非 draft，notes + SHA-256，linux x86_64 / macOS arm64 / macOS Intel（`macos-15-intel`） |
-| 安装脚本 | `install.sh` 从 GitHub Release 拉 `bee-${VERSION}-${TARGET}.tar.gz`（仅 macOS + Linux x86_64） |
-| WinterTC 第一批 | `DOMException`、`navigator`、`URLPattern`、queuing strategies、`ReadableStream.from`、`bee:sockets` TCP、`wintercg`/`wintertc` exports、`import.meta.main/env/resolve`；`tests/wintertc_compliance_tests.rs` |
-| 工具链入口 | `bee fmt` / `lint` / `bench` / `compile` / `types` / `task` / `lsp` / `run --inspect` 已有命令表面 |
+| 安装脚本 | `install.sh` 从 GitHub Release 拉 `amber-${VERSION}-${TARGET}.tar.gz`（仅 macOS + Linux x86_64） |
+| WinterTC 第一批 | `DOMException`、`navigator`、`URLPattern`、queuing strategies、`ReadableStream.from`、`amber:sockets` TCP、`wintercg`/`wintertc` exports、`import.meta.main/env/resolve`；`tests/wintertc_compliance_tests.rs` |
+| 工具链入口 | `amber fmt` / `lint` / `bench` / `compile` / `types` / `task` / `lsp` / `run --inspect` 已有命令表面 |
 
 评估结论（详见 [GITHUB_ACTIONS_RUNTIME_INFRASTRUCTURE.md](./GITHUB_ACTIONS_RUNTIME_INFRASTRUCTURE.md)）：**尚未达到完整的「语言运行时配套设施」水准。** 下面就是把缺口一次做完的清单。
 
@@ -42,10 +42,10 @@ flowchart LR
 - **缺口**：Release 没有 `x86_64-pc-windows-msvc`，也没有 `.zip`。`install.sh` 直接 `unsupported OS`。
 - **要做**：
   - `release-assets.yml` 增加 `windows-latest` + `x86_64-pc-windows-msvc`。
-  - 产物命名 `bee-${TAG}-x86_64-pc-windows-msvc.zip`（内含 `bee.exe`）。
+  - 产物命名 `amber-${TAG}-x86_64-pc-windows-msvc.zip`（内含 `amber.exe`）。
   - `scripts/generate_release_notes.py` 的平台探测补 Windows。
   - `tests/release_workflow_tests.rs` 断言 Windows 矩阵存在、禁止再出现已退役 runner。
-- **验收**：tag 工作流 YAML 含 Windows job；本地 `cargo build --release` 在 Windows 或 cross 能产出 `bee.exe`。
+- **验收**：tag 工作流 YAML 含 Windows job；本地 `cargo build --release` 在 Windows 或 cross 能产出 `amber.exe`。
 
 ### 0.2 Linux aarch64 预编译产物
 
@@ -80,7 +80,7 @@ flowchart LR
 ### 1.2 Windows CI 冒烟
 
 - **缺口**：`checks` 只 Ubuntu；`release-build` 只有 ubuntu + macos。
-- **要做**：`ci.yml` 增加 `windows-latest`：`cargo build --release` + `bee --version` + `bee eval "1+1"`。
+- **要做**：`ci.yml` 增加 `windows-latest`：`cargo build --release` + `amber --version` + `amber eval "1+1"`。
 - **验收**：PR 上出现 Windows 检查；失败阻断合并。
 
 ### 1.3 macOS 不只做 release smoke
@@ -109,9 +109,9 @@ flowchart LR
 
 ### 2.1 GHCR 发布容器
 
-- **缺口**：`docker.yml` 仅 `workflow_dispatch`，`load: true`，tag `beejs:ci`，不登录、不 push。
+- **缺口**：`docker.yml` 仅 `workflow_dispatch`，`load: true`，tag `amberjs:ci`，不登录、不 push。
 - **要做**：
-  - `v*` tag 与 `main` 构建并推 `ghcr.io/zh30/beejs:${tag}` 与 `:latest`。
+  - `v*` tag 与 `main` 构建并推 `ghcr.io/zh30/amberjs:${tag}` 与 `:latest`。
   - 多架构至少 `linux/amd64`；有 0.2 后再加 `linux/arm64`。
   - 保留 `--version` smoke。
 - **验收**：推 tag 后 GHCR 出现带 checksum 的 image；`docker.yml` 不再是唯一、且仅手动的路径。
@@ -126,7 +126,7 @@ flowchart LR
 
 - **缺口**：无 Homebrew / Scoop / winget。语言运行时通常至少有一条 OS 包管理器。
 - **要做**（三选一做完，另外两条可开 issue）：
-  1. Homebrew tap：`brew install zh30/tap/bee` 指向 GitHub Release。
+  1. Homebrew tap：`brew install zh30/tap/amber` 指向 GitHub Release。
   2. `winget` manifest 跟 Windows zip。
   3. Scoop bucket。
 - **验收**：README 安装区有一条非 `curl | sh` 的官方安装命令，且指向当前 `v*` 产物。
@@ -158,7 +158,7 @@ flowchart LR
 ### 3.4 官网 WinterTC 文档
 
 - **缺口**：`website/` 无 wintertc 词条。
-- **要做**：`website/src/docs/wintertc-compliance.md` + `.zh.md`，locales 导航，API 手册挂 `DOMException` / `URLPattern` / `bee:sockets`。
+- **要做**：`website/src/docs/wintertc-compliance.md` + `.zh.md`，locales 导航，API 手册挂 `DOMException` / `URLPattern` / `amber:sockets`。
 - **验收**：`cd website && npm run build` 通过；侧栏能点到。
 
 ---
@@ -168,13 +168,13 @@ flowchart LR
 ### 4.1 发布物签名
 
 - **缺口**：Release 只有 SHA-256 文本，无 Sigstore/cosign。
-- **要做**：`release-assets.yml` 对每个 `bee-*.tar.gz` / `.zip` cosign sign-blob；`checksums.txt` 旁放 `.sig`。
+- **要做**：`release-assets.yml` 对每个 `amber-*.tar.gz` / `.zip` cosign sign-blob；`checksums.txt` 旁放 `.sig`。
 - **验收**：Release 资产含签名；文档有 `cosign verify-blob` 示例。
 
 ### 4.2 SBOM
 
 - **缺口**：无 CycloneDX / SPDX。
-- **要做**：发布 job 生成 `bee-${TAG}.cdx.json` 并挂到 Release。
+- **要做**：发布 job 生成 `amber-${TAG}.cdx.json` 并挂到 Release。
 - **验收**：Release 附件含 SBOM。
 
 ### 4.3 CodeQL
@@ -195,16 +195,16 @@ flowchart LR
 - **要做**：rusty_v8 0.22 能接多少接多少；至少 `Debugger.paused` / `Runtime.evaluate` 打到 isolate。`--inspect-brk` 在用户脚本第一句停住。
 - **验收**：集成测试覆盖 `/json/version` 与 pause/resume；文档给出 VS Code `attach` 配置。
 
-### 5.2 `bee serve` HTTPS 与 fetch handler
+### 5.2 `amber serve` HTTPS 与 fetch handler
 
 - **缺口**：HTTPS 分支打印提示后 `return Ok(())`，不监听。
 - **要做**：要么实现 rustls terminator，要么 CLI 对 `--https` 以错误码退出并指向外部 terminator；HTTP 路径保持跑用户 `fetch` handler。
-- **验收**：`bee serve --https` 不再假装成功。
+- **验收**：`amber serve --https` 不再假装成功。
 
 ### 5.3 VS Code 扩展对齐当前二进制
 
-- **缺口**：`tools/vscode-extension/README.md` 仍写 `beejs-team` 与 `v0.1.0` linux-x64 包名。
-- **要做**：调试配置走 `bee run --inspect-brk`；README 资产名与 `release-assets.yml` 一致；能本地 `vsce package`。
+- **缺口**：`tools/vscode-extension/README.md` 仍写 `amberjs-team` 与 `v0.1.0` linux-x64 包名。
+- **要做**：调试配置走 `amber run --inspect-brk`；README 资产名与 `release-assets.yml` 一致；能本地 `vsce package`。
 - **验收**：扩展 README 的下载 URL 能在当前 Release 命名规则下拼出来。
 
 ### 5.4 N-API 加载器（明确范围）
@@ -233,7 +233,7 @@ flowchart LR
 | 5 | CI 点名 WinterTC + macOS tests | 1.3 + 1.4 | 必须 | 已落地 |
 | 6 | Dependabot + cargo-audit | 1.5 | 必须 | 已落地 |
 | 7 | GHCR 在 `v*` 推镜像 | 2.1 | 必须 | workflow 已落地；live push 待 tag |
-| 8 | Homebrew 或 winget 一条通道 | 2.3 | 必须 | `Formula/bee.rb` 已落地 |
+| 8 | Homebrew 或 winget 一条通道 | 2.3 | 必须 | `Formula/amber.rb` 已落地 |
 | 9 | Sockets TLS + `import.meta.resolve` + unhandledrejection | 3.1–3.3 | 必须 | 已落地 |
 | 10 | 官网 WinterTC 文档 | 3.4 | 必须 | 已落地 |
 | 11 | cosign + SBOM | 4.1–4.2 | 必须 | workflow 已落地；live 待 tag |

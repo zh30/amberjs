@@ -5,7 +5,7 @@ group: "Agent 与高级特性"
 id: "import-maps-native"
 ---
 
-随着前端现代化的推进以及跨平台原生 C/C++ 扩展的需求，Beejs 提供了对 **WICG 导入映射 (Import Maps)** 与 **Node-API 原生扩展动态加载 (Native Addons)** 的深度支持。
+随着前端现代化的推进以及跨平台原生 C/C++ 扩展的需求，Amber 提供了对 **WICG 导入映射 (Import Maps)** 与 **Node-API 原生扩展动态加载 (Native Addons)** 的深度支持。
 
 ---
 
@@ -32,15 +32,15 @@ WICG Import Maps 是浏览器和现代 JavaScript 运行时的一项标准规范
 
 ```bash
 # 运行时直接根据映射表解析导入
-$ bee run --import-map import_map.json app.ts
+$ amber run --import-map import_map.json app.ts
 
 # 打包时自动应用重映射
-$ bee bundle app.ts -o dist/bundle.js --import-map import_map.json
+$ amber bundle app.ts -o dist/bundle.js --import-map import_map.json
 ```
 
 在你的代码中：
 ```typescript
-// 直接导入裸模块名称，Beejs 会自动将其重映射到 ./vendor/lodash.js
+// 直接导入裸模块名称，Amber 会自动将其重映射到 ./vendor/lodash.js
 import _ from 'lodash';
 import Button from 'components/Button.tsx';
 ```
@@ -52,7 +52,7 @@ import Button from 'components/Button.tsx';
 在高性能科学计算、硬件交互或底层系统集成场景中，许多 npm 依赖包包含预编译的 `.node` C/C++ 原生共享库。
 
 ### 2.1 原生扩展支持机制
-Beejs 在底层实现了与 Node.js 一致的 `process.dlopen` 接口：
+Amber 在底层实现了与 Node.js 一致的 `process.dlopen` 接口：
 
 ```typescript
 // 直接调用底层动态库加载
@@ -62,7 +62,7 @@ console.log(addonModule.exports.calculate());
 ```
 
 ### 2.2 CommonJS 自动派发
-当在代码中使用 `require()` 引用 `.node` 文件时，Beejs 的模块解析器会自动拦截并将其委派给动态链接器（Unix `libc::dlopen` / `libc::dlsym`）：
+当在代码中使用 `require()` 引用 `.node` 文件时，Amber 的模块解析器会自动拦截并将其委派给动态链接器（Unix `libc::dlopen` / `libc::dlsym`）：
 
 ```javascript
 // 自动调用 process.dlopen 加载 native addon

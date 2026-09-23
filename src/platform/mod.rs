@@ -28,8 +28,8 @@ impl CrossPlatformRuntime {
         Ok(())
     }
     /// Initialize WASM runtime
-    pub fn init_wasm(&mut self, bee_api: Arc<dyn BeeWasmAPI>) -> Result<()> {
-        self.wasm = Some(WASMRuntime::new(bee_api)?);
+    pub fn init_wasm(&mut self, amber_api: Arc<dyn BeeWasmAPI>) -> Result<()> {
+        self.wasm = Some(WASMRuntime::new(amber_api)?);
         Ok(())
     }
     /// Execute code on specified platform
@@ -114,8 +114,8 @@ mod tests {
             .await;
         assert!(result.is_ok());
         // Initialize WASM runtime
-        let bee_api: _ = Arc::new(MockBeeWasmAPI);
-        runtime.init_wasm(bee_api).unwrap();
+        let amber_api: _ = Arc::new(MockBeeWasmAPI);
+        runtime.init_wasm(amber_api).unwrap();
         // Test WASM execution
         let result: _ = runtime
             .execute("wasm", "function main() { return 'Hello WASM'; }")
@@ -131,8 +131,8 @@ mod tests {
         let platforms: _ = runtime.supported_platforms();
         assert!(platforms.contains(&"ios".to_string()));
         assert!(platforms.contains(&"android".to_string()));
-        let bee_api: _ = Arc::new(MockBeeWasmAPI);
-        runtime.init_wasm(bee_api).unwrap();
+        let amber_api: _ = Arc::new(MockBeeWasmAPI);
+        runtime.init_wasm(amber_api).unwrap();
         let platforms: _ = runtime.supported_platforms();
         assert!(platforms.contains(&"wasm".to_string()));
     }

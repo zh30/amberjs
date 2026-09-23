@@ -10,7 +10,7 @@ fn test_test_name_pattern_filter() {
     // The actual integration with CLI is tested in CLI integration tests
 
     // Test include pattern matching
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.include("timeout".to_string());
 
     assert!(filter.matches("test_timeout_basic", "suite1"));
@@ -21,7 +21,7 @@ fn test_test_name_pattern_filter() {
 #[test]
 fn test_test_exclude_pattern_filter() {
     // Test exclude pattern matching
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.exclude("slow".to_string());
 
     assert!(!filter.matches("test_slow_operation", "suite1"));
@@ -31,7 +31,7 @@ fn test_test_exclude_pattern_filter() {
 #[test]
 fn test_test_only_flag() {
     // Test only_tests flag - only runs tests that match include patterns
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.only_tests = true;
     filter.include("critical".to_string());
 
@@ -42,7 +42,7 @@ fn test_test_only_flag() {
 #[test]
 fn test_test_skip_flag() {
     // Test skip_tests flag - skips tests that match exclude patterns
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.skip_tests = true;
     filter.exclude("wip".to_string());
 
@@ -53,7 +53,7 @@ fn test_test_skip_flag() {
 #[test]
 fn test_multiple_include_patterns() {
     // Test multiple include patterns - OR semantics
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.include("auth".to_string());
     filter.include("user".to_string());
 
@@ -65,7 +65,7 @@ fn test_multiple_include_patterns() {
 #[test]
 fn test_multiple_exclude_patterns() {
     // Test multiple exclude patterns - OR semantics for exclusion
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.exclude("debug".to_string());
     filter.exclude("temp".to_string());
 
@@ -77,7 +77,7 @@ fn test_multiple_exclude_patterns() {
 #[test]
 fn test_empty_filter_matches_all() {
     // Test that an empty filter matches all tests
-    let filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let filter = amberjs::testing::enhanced_runner::TestFilter::new();
 
     assert!(filter.matches("any_test", "any_suite"));
     assert!(filter.matches("another_test", "another_suite"));
@@ -86,7 +86,7 @@ fn test_empty_filter_matches_all() {
 #[test]
 fn test_suite_name_also_matched() {
     // Test that suite name is also considered in pattern matching
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.include("auth".to_string());
 
     assert!(filter.matches("test_login", "auth_suite"));
@@ -96,7 +96,7 @@ fn test_suite_name_also_matched() {
 
 #[test]
 fn test_filter_patterns_are_regexes() {
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.include(r"^test_(auth|user)_\d+$".to_string());
 
     assert!(filter.matches("test_auth_42", "suite1"));
@@ -107,7 +107,7 @@ fn test_filter_patterns_are_regexes() {
 
 #[test]
 fn test_exclude_patterns_are_regexes() {
-    let mut filter = beejs::testing::enhanced_runner::TestFilter::new();
+    let mut filter = amberjs::testing::enhanced_runner::TestFilter::new();
     filter.exclude(r"^test_slow_\d+$".to_string());
 
     assert!(!filter.matches("test_slow_42", "suite1"));

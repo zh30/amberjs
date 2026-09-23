@@ -1,17 +1,20 @@
-//! Production-grade Module Bundler 2.0 for Beejs (`bee bundle`).
+//! `amber bundle` module graph bundler (oxc).
 //!
-//! Features:
-//! - Recursive module dependency graph discovery
-//! - Scope isolation with standard runtime module registry
-//! - Support for both ES modules and CommonJS interop
-//! - Fast TypeScript/TSX transpile integration
-//! - AST-level minification and SourceMap v3 generation
+//! Stable contract (see `docs/BUNDLE_CONTRACT.md`):
+//! - Single file entry; recursive static `import` / `export from` / `require("...")`
+//! - Local JS/TS/JSON inlined; unresolved bare specifiers stay runtime `require()`
+//! - Unresolved relative specifiers and non-JS/JSON assets fail with stable diagnostics
+//! - Optional oxc minify; SourceMap v3 is a source inventory (`mappings` is empty)
 
 use anyhow::{anyhow, Result};
 use oxc::allocator::Allocator;
+use oxc::ast::ast::{
+    BindingPattern, Declaration, ExportDefaultDeclarationKind, ImportDeclarationSpecifier,
+    ImportOrExportKind, ModuleDeclaration, ModuleExportName,
+};
 use oxc::codegen::Codegen;
 use oxc::parser::Parser;
-use oxc::span::SourceType;
+use oxc::span::{GetSpan, SourceType, Span};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -41,33 +44,80 @@ struct BundledModule {
     processed_code: String,
 }
 
+/// Prefix for every `amber bundle` diagnostic. CLI and tests pin this string.
+pub const BUNDLE_ERROR_PREFIX: &str = "error: amber bundle:";
+
+const BUNDLED_EXTENSIONS: &[&str] = &["js", "mjs", "cjs", "jsx", "ts", "tsx", "mts", "cts", "json"];
+
+fn bundle_err(message: impl std::fmt::Display) -> anyhow::Error {
+    let text = message.to_string();
+    if text.starts_with(BUNDLE_ERROR_PREFIX) {
+        anyhow!(text)
+    } else {
+        anyhow!("{} {}", BUNDLE_ERROR_PREFIX, text)
+    }
+}
+
+/// Relative specifiers that must resolve at bundle time (not runtime externals).
+pub fn is_relative_specifier(specifier: &str) -> bool {
+    specifier.starts_with("./")
+        || specifier.starts_with("../")
+        || specifier == "."
+        || specifier == ".."
+}
+
+/// File types the bundler will inline. Anything else is an unsupported asset.
+pub fn is_supported_bundle_module(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            BUNDLED_EXTENSIONS
+                .iter()
+                .any(|allowed| ext.eq_ignore_ascii_case(allowed))
+        })
+        .unwrap_or(false)
+}
+
+fn is_local_path_specifier(specifier: &str) -> bool {
+    is_relative_specifier(specifier) || Path::new(specifier).is_absolute()
+}
+
+fn resolve_existing_candidate(direct: &Path) -> Option<PathBuf> {
+    if direct.is_file() {
+        return Some(direct.to_path_buf());
+    }
+
+    for ext in ["ts", "tsx", "js", "mjs", "cjs", "jsx", "json"] {
+        let with_ext = direct.with_extension(ext);
+        if with_ext.is_file() {
+            return Some(with_ext);
+        }
+    }
+
+    if direct.is_dir() {
+        for ext in ["ts", "tsx", "js", "mjs", "json"] {
+            let index = direct.join(format!("index.{}", ext));
+            if index.is_file() {
+                return Some(index);
+            }
+        }
+    }
+
+    None
+}
+
 /// Resolves a module specifier relative to the importing file.
 pub fn resolve_module_path(from_file: &Path, specifier: &str) -> Option<PathBuf> {
     let parent = from_file.parent().unwrap_or_else(|| Path::new("."));
 
     if specifier.starts_with('.') {
-        let direct = parent.join(specifier);
-        if direct.is_file() {
-            return Some(direct);
-        }
+        return resolve_existing_candidate(&parent.join(specifier));
+    }
 
-        // Try extensions: .ts, .tsx, .js, .mjs, .cjs, .jsx, .json
-        for ext in ["ts", "tsx", "js", "mjs", "cjs", "jsx", "json"] {
-            let with_ext = direct.with_extension(ext);
-            if with_ext.is_file() {
-                return Some(with_ext);
-            }
-        }
-
-        // Try index file in directory
-        if direct.is_dir() {
-            for ext in ["ts", "tsx", "js", "mjs", "json"] {
-                let index = direct.join(format!("index.{}", ext));
-                if index.is_file() {
-                    return Some(index);
-                }
-            }
-        }
+    // Import-map remaps and absolute filesystem paths
+    let as_path = PathBuf::from(specifier);
+    if as_path.is_absolute() {
+        return resolve_existing_candidate(&as_path);
     }
 
     // Try node_modules resolution
@@ -110,6 +160,10 @@ fn scan_import_specifiers_fallback(source: &str) -> Vec<String> {
 
     for line in source.lines() {
         let trimmed = line.trim();
+        // Type-only imports are erased; do not require those files to exist.
+        if trimmed.starts_with("import type ") || trimmed.starts_with("export type ") {
+            continue;
+        }
 
         // import ... from "..." or export ... from "..."
         if (trimmed.starts_with("import ") || trimmed.starts_with("export "))
@@ -194,285 +248,539 @@ pub fn scan_import_specifiers(source: &str) -> Vec<String> {
     specifiers
 }
 
+#[derive(Debug, Default)]
+struct ModuleAnalysis {
+    /// Locally declared export names, including `"default"` when present.
+    local_exports: HashSet<String>,
+    /// `(exported_name, specifier, name_in_source)` for `export { x as y } from`
+    reexports: Vec<(String, String, String)>,
+    /// Specifiers of `export * from "..."` (not `export * as ns`).
+    export_stars: Vec<String>,
+    /// `(imported_name, specifier)` for value named imports that must exist.
+    named_imports: Vec<(String, String)>,
+}
+
+struct SpanReplace {
+    start: u32,
+    end: u32,
+    text: String,
+}
+
+fn span_text(source: &str, span: Span) -> String {
+    let start = span.start as usize;
+    let end = (span.end as usize).min(source.len());
+    if start >= end || start >= source.len() {
+        String::new()
+    } else {
+        source[start..end].to_string()
+    }
+}
+
+fn export_name(name: &ModuleExportName<'_>) -> String {
+    name.name().to_string()
+}
+
+fn collect_binding_names(pat: &BindingPattern<'_>, out: &mut Vec<String>) {
+    match pat {
+        BindingPattern::BindingIdentifier(id) => out.push(id.name.to_string()),
+        BindingPattern::ObjectPattern(obj) => {
+            for prop in &obj.properties {
+                collect_binding_names(&prop.value, out);
+            }
+            if let Some(rest) = &obj.rest {
+                collect_binding_names(&rest.argument, out);
+            }
+        }
+        BindingPattern::ArrayPattern(arr) => {
+            for element in &arr.elements {
+                if let Some(pat) = element {
+                    collect_binding_names(pat, out);
+                }
+            }
+            if let Some(rest) = &arr.rest {
+                collect_binding_names(&rest.argument, out);
+            }
+        }
+        BindingPattern::AssignmentPattern(assign) => collect_binding_names(&assign.left, out),
+    }
+}
+
+fn require_expr(dep_map: &HashMap<String, usize>, specifier: &str) -> String {
+    if let Some(&dep_id) = dep_map.get(specifier) {
+        format!("__amberjs_require__({})", dep_id)
+    } else {
+        format!("require('{}')", specifier.replace('\'', "\\'"))
+    }
+}
+
+fn remap_requires(source: &str, dep_map: &HashMap<String, usize>) -> String {
+    let mut processed = source.to_string();
+    for (spec, dep_id) in dep_map {
+        let target = format!("__amberjs_require__({})", dep_id);
+        processed = processed.replace(&format!("require('{}')", spec), &target);
+        processed = processed.replace(&format!("require(\"{}\")", spec), &target);
+    }
+    processed
+}
+
+fn apply_span_replacements(source: &str, mut replacements: Vec<SpanReplace>) -> String {
+    replacements.sort_by(|a, b| b.start.cmp(&a.start).then(b.end.cmp(&a.end)));
+    let mut out = source.to_string();
+    for replacement in replacements {
+        let start = replacement.start as usize;
+        let end = replacement.end as usize;
+        if start <= end && end <= out.len() {
+            out.replace_range(start..end, &replacement.text);
+        }
+    }
+    out
+}
+
+fn default_interop(tmp: &str, local: &str) -> String {
+    format!(
+        "const {local} = ({tmp} && {tmp}.__esModule && {tmp}.default !== undefined) ? {tmp}.default : {tmp};"
+    )
+}
+
 /// Rewrites imports and exports inside a module to reference the registry function.
+///
+/// Uses oxc spans so multiline / same-line import and export forms keep following
+/// statements intact. Also records named exports for later validation.
 fn transform_module_code(
     source: &str,
     _file_path: &Path,
     dep_map: &HashMap<String, usize>,
-) -> String {
-    let mut lines = Vec::new();
-    lines.push("Object.defineProperty(module.exports, '__esModule', { value: true });".to_string());
+) -> (String, ModuleAnalysis) {
+    let mut analysis = ModuleAnalysis::default();
+    let mut replacements = Vec::new();
+    let mut exports_to_assign: Vec<(String, String)> = Vec::new();
+    let mut req_counter = 0usize;
 
-    let mut exports_to_assign: Vec<(String, String)> = Vec::new(); // (export_key, local_ident)
+    let allocator = Allocator::default();
+    let parser_ret = Parser::new(&allocator, source, SourceType::ts()).parse();
 
-    for line in source.lines() {
-        let trimmed = line.trim();
-
-        // Rewrite `import def, { a, b } from "specifier"` or `import { a, b } from "specifier"`
-        if trimmed.starts_with("import ") && trimmed.contains(" from ") {
-            if let Some(from_idx) = trimmed.rfind(" from ") {
-                let import_clause = trimmed[7..from_idx].trim();
-                let spec_part = trimmed[from_idx + 6..].trim().trim_end_matches(';');
-                let spec = spec_part.trim_matches('\'').trim_matches('"');
-                let target_call = if let Some(&dep_id) = dep_map.get(spec) {
-                    format!("__beejs_require__({})", dep_id)
-                } else {
-                    format!("require('{}')", spec)
-                };
-
-                if import_clause.starts_with("* as ") {
-                    let ns = import_clause.strip_prefix("* as ").unwrap().trim();
-                    lines.push(format!("const {} = {};", ns, target_call));
+    for stmt in &parser_ret.program.body {
+        let Some(decl) = stmt.as_module_declaration() else {
+            continue;
+        };
+        match decl {
+            ModuleDeclaration::ImportDeclaration(import_decl) => {
+                if import_decl.import_kind == ImportOrExportKind::Type {
+                    replacements.push(SpanReplace {
+                        start: import_decl.span.start,
+                        end: import_decl.span.end,
+                        text: String::new(),
+                    });
                     continue;
-                } else if import_clause.starts_with('{') {
-                    // e.g. import { a, b as c } from "..."
-                    let cleaned = import_clause
-                        .trim_start_matches('{')
-                        .trim_end_matches('}')
-                        .split(',')
-                        .map(|s| {
-                            let part = s.trim();
-                            if part.contains(" as ") {
-                                let mut pieces = part.split(" as ");
-                                let orig = pieces.next().unwrap().trim();
-                                let alias = pieces.next().unwrap().trim();
-                                format!("{}: {}", orig, alias)
-                            } else {
-                                part.to_string()
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    lines.push(format!("const {{ {} }} = {};", cleaned, target_call));
-                    continue;
-                } else if !import_clause.contains('{') {
-                    // Default import: import foo from "..."
-                    let var_name = import_clause.trim();
-                    lines.push(format!(
-                        "const __req_{} = {}; const {} = (__req_{} && __req_{}.__esModule && __req_{}.default !== undefined) ? __req_{}.default : __req_{};",
-                        var_name, target_call, var_name, var_name, var_name, var_name, var_name, var_name
-                    ));
-                    continue;
-                } else {
-                    // Combined: import def, { a, b } from "..."
-                    let mut parts = import_clause.splitn(2, ',');
-                    let def_part = parts.next().unwrap().trim();
-                    let named_part = parts.next().unwrap_or("").trim();
-                    lines.push(format!("const __req_comb = {};", target_call));
-                    lines.push(format!(
-                        "const {} = (__req_comb && __req_comb.__esModule && __req_comb.default !== undefined) ? __req_comb.default : __req_comb;",
-                        def_part
-                    ));
-                    if named_part.starts_with('{') {
-                        let cleaned = named_part
-                            .trim_start_matches('{')
-                            .trim_end_matches('}')
-                            .split(',')
-                            .map(|s| {
-                                let part = s.trim();
-                                if part.contains(" as ") {
-                                    let mut pieces = part.split(" as ");
-                                    let orig = pieces.next().unwrap().trim();
-                                    let alias = pieces.next().unwrap().trim();
-                                    format!("{}: {}", orig, alias)
-                                } else {
-                                    part.to_string()
-                                }
-                            })
-                            .collect::<Vec<_>>()
-                            .join(", ");
-                        lines.push(format!("const {{ {} }} = __req_comb;", cleaned));
+                }
+                let spec = import_decl.source.value.to_string();
+                let req = require_expr(dep_map, &spec);
+                match &import_decl.specifiers {
+                    None => {
+                        replacements.push(SpanReplace {
+                            start: import_decl.span.start,
+                            end: import_decl.span.end,
+                            text: format!("{};", req),
+                        });
                     }
-                    continue;
+                    Some(specifiers) => {
+                        req_counter += 1;
+                        let tmp = format!("__amber_req_{}", req_counter);
+                        let mut parts = vec![format!("const {} = {}", tmp, req)];
+                        for specifier in specifiers {
+                            match specifier {
+                                ImportDeclarationSpecifier::ImportSpecifier(named) => {
+                                    if named.import_kind == ImportOrExportKind::Type {
+                                        continue;
+                                    }
+                                    let imported = export_name(&named.imported);
+                                    let local = named.local.name.to_string();
+                                    analysis
+                                        .named_imports
+                                        .push((imported.clone(), spec.clone()));
+                                    parts.push(format!("const {} = {}.{}", local, tmp, imported));
+                                }
+                                ImportDeclarationSpecifier::ImportDefaultSpecifier(default) => {
+                                    let local = default.local.name.to_string();
+                                    parts.push(default_interop(&tmp, &local));
+                                }
+                                ImportDeclarationSpecifier::ImportNamespaceSpecifier(ns) => {
+                                    let local = ns.local.name.to_string();
+                                    parts.push(format!("const {} = {}", local, tmp));
+                                }
+                            }
+                        }
+                        replacements.push(SpanReplace {
+                            start: import_decl.span.start,
+                            end: import_decl.span.end,
+                            text: format!("{};", parts.join("; ")),
+                        });
+                    }
                 }
             }
-        }
-
-        // Rewrite side-effect import: import "specifier";
-        if trimmed.starts_with("import ")
-            && !trimmed.starts_with("import(")
-            && !trimmed.contains(" from ")
-        {
-            let spec_part = trimmed
-                .strip_prefix("import ")
-                .unwrap()
-                .trim_end_matches(';');
-            let spec = spec_part.trim_matches('\'').trim_matches('"');
-            if let Some(&dep_id) = dep_map.get(spec) {
-                lines.push(format!("__beejs_require__({});", dep_id));
-                continue;
-            } else {
-                lines.push(format!("require('{}');", spec));
-                continue;
+            ModuleDeclaration::ExportDeclaration(export_decl) => match &export_decl.declaration {
+                Declaration::VariableDeclaration(var) => {
+                    let mut names = Vec::new();
+                    for declarator in &var.declarations {
+                        collect_binding_names(&declarator.id, &mut names);
+                    }
+                    for name in names {
+                        analysis.local_exports.insert(name.clone());
+                        exports_to_assign.push((name.clone(), name));
+                    }
+                    replacements.push(SpanReplace {
+                        start: export_decl.span.start,
+                        end: export_decl.span.end,
+                        text: span_text(source, var.span),
+                    });
+                }
+                Declaration::FunctionDeclaration(func) => {
+                    if let Some(id) = &func.id {
+                        let name = id.name.to_string();
+                        analysis.local_exports.insert(name.clone());
+                        exports_to_assign.push((name.clone(), name));
+                    }
+                    replacements.push(SpanReplace {
+                        start: export_decl.span.start,
+                        end: export_decl.span.end,
+                        text: span_text(source, func.span()),
+                    });
+                }
+                Declaration::ClassDeclaration(class) => {
+                    if let Some(id) = &class.id {
+                        let name = id.name.to_string();
+                        analysis.local_exports.insert(name.clone());
+                        exports_to_assign.push((name.clone(), name));
+                    }
+                    replacements.push(SpanReplace {
+                        start: export_decl.span.start,
+                        end: export_decl.span.end,
+                        text: span_text(source, class.span()),
+                    });
+                }
+                _ => {
+                    replacements.push(SpanReplace {
+                        start: export_decl.span.start,
+                        end: export_decl.span.end,
+                        text: String::new(),
+                    });
+                }
+            },
+            ModuleDeclaration::ExportNamedDeclaration(named) => {
+                if named.export_kind != ImportOrExportKind::Type {
+                    for specifier in &named.specifiers {
+                        if specifier.export_kind == ImportOrExportKind::Type {
+                            continue;
+                        }
+                        let exported = export_name(&specifier.exported);
+                        let local = export_name(&specifier.local);
+                        analysis.local_exports.insert(exported.clone());
+                        exports_to_assign.push((exported, local));
+                    }
+                }
+                replacements.push(SpanReplace {
+                    start: named.span.start,
+                    end: named.span.end,
+                    text: String::new(),
+                });
             }
-        }
-
-        // Rewrite `export default function foo(...) { ... }`
-        if trimmed.starts_with("export default function ") {
-            let decl = trimmed.strip_prefix("export default ").unwrap();
-            lines.push(decl.to_string());
-            let rest = decl.strip_prefix("function ").unwrap().trim();
-            if let Some(ident) = rest.split(['(', ' ']).next() {
-                if !ident.is_empty() {
-                    exports_to_assign.push(("default".to_string(), ident.to_string()));
+            ModuleDeclaration::ExportFromDeclaration(export_from) => {
+                if export_from.export_kind == ImportOrExportKind::Type {
+                    replacements.push(SpanReplace {
+                        start: export_from.span.start,
+                        end: export_from.span.end,
+                        text: String::new(),
+                    });
                     continue;
                 }
+                let spec = export_from.source.value.to_string();
+                let req = require_expr(dep_map, &spec);
+                req_counter += 1;
+                let tmp = format!("__amber_req_{}", req_counter);
+                let mut parts = vec![format!("const {} = {}", tmp, req)];
+                for specifier in &export_from.specifiers {
+                    if specifier.export_kind == ImportOrExportKind::Type {
+                        continue;
+                    }
+                    let exported = export_name(&specifier.exported);
+                    let local = export_name(&specifier.local);
+                    analysis
+                        .reexports
+                        .push((exported.clone(), spec.clone(), local.clone()));
+                    parts.push(format!("module.exports.{} = {}.{}", exported, tmp, local));
+                }
+                replacements.push(SpanReplace {
+                    start: export_from.span.start,
+                    end: export_from.span.end,
+                    text: format!("{};", parts.join("; ")),
+                });
             }
-            continue;
-        }
-
-        // Rewrite `export default class Foo { ... }`
-        if trimmed.starts_with("export default class ") {
-            let decl = trimmed.strip_prefix("export default ").unwrap();
-            lines.push(decl.to_string());
-            let rest = decl.strip_prefix("class ").unwrap().trim();
-            if let Some(ident) = rest.split(['{', ' ']).next() {
-                if !ident.is_empty() {
-                    exports_to_assign.push(("default".to_string(), ident.to_string()));
+            ModuleDeclaration::ExportAllDeclaration(export_all) => {
+                if export_all.export_kind == ImportOrExportKind::Type {
+                    replacements.push(SpanReplace {
+                        start: export_all.span.start,
+                        end: export_all.span.end,
+                        text: String::new(),
+                    });
                     continue;
                 }
-            }
-            continue;
-        }
-
-        // Rewrite `export default expr;`
-        if trimmed.starts_with("export default ") {
-            let expr = trimmed
-                .strip_prefix("export default ")
-                .unwrap()
-                .trim_end_matches(';');
-            lines.push(format!("module.exports.default = {};", expr));
-            continue;
-        }
-
-        // Rewrite `export const foo = ...;` or `export let/var foo = ...;`
-        if trimmed.starts_with("export const ")
-            || trimmed.starts_with("export let ")
-            || trimmed.starts_with("export var ")
-        {
-            let decl = trimmed.strip_prefix("export ").unwrap();
-            lines.push(decl.to_string());
-            let rest = decl
-                .strip_prefix("const ")
-                .or_else(|| decl.strip_prefix("let "))
-                .or_else(|| decl.strip_prefix("var "))
-                .unwrap()
-                .trim();
-            if let Some(ident) = rest.split([' ', '=', ':']).next() {
-                exports_to_assign.push((ident.to_string(), ident.to_string()));
-            }
-            continue;
-        }
-
-        // Rewrite `export function foo(...)` or `export async function foo(...)`
-        if trimmed.starts_with("export function ") || trimmed.starts_with("export async function ")
-        {
-            let decl = trimmed.strip_prefix("export ").unwrap();
-            lines.push(decl.to_string());
-            let rest = if decl.starts_with("async function ") {
-                decl.strip_prefix("async function ").unwrap().trim()
-            } else {
-                decl.strip_prefix("function ").unwrap().trim()
-            };
-            if let Some(ident) = rest.split(['(', ' ']).next() {
-                exports_to_assign.push((ident.to_string(), ident.to_string()));
-            }
-            continue;
-        }
-
-        // Rewrite `export class Bar`
-        if trimmed.starts_with("export class ") {
-            let decl = trimmed.strip_prefix("export ").unwrap();
-            lines.push(decl.to_string());
-            let rest = decl.strip_prefix("class ").unwrap().trim();
-            if let Some(ident) = rest.split(['{', ' ']).next() {
-                exports_to_assign.push((ident.to_string(), ident.to_string()));
-            }
-            continue;
-        }
-
-        // Rewrite `export { a, b as c };`
-        if trimmed.starts_with("export {") && !trimmed.contains(" from ") {
-            let cleaned = trimmed
-                .trim_start_matches("export")
-                .trim()
-                .trim_start_matches('{')
-                .trim_end_matches('}')
-                .trim_end_matches(';');
-            for item in cleaned.split(',') {
-                let part = item.trim();
-                if part.is_empty() {
-                    continue;
-                }
-                if part.contains(" as ") {
-                    let mut pieces = part.split(" as ");
-                    let orig = pieces.next().unwrap().trim();
-                    let alias = pieces.next().unwrap().trim();
-                    exports_to_assign.push((alias.to_string(), orig.to_string()));
+                let spec = export_all.source.value.to_string();
+                let req = require_expr(dep_map, &spec);
+                if let Some(exported) = &export_all.exported {
+                    let name = export_name(exported);
+                    analysis.local_exports.insert(name.clone());
+                    replacements.push(SpanReplace {
+                        start: export_all.span.start,
+                        end: export_all.span.end,
+                        text: format!("module.exports.{} = {};", name, req),
+                    });
                 } else {
-                    exports_to_assign.push((part.to_string(), part.to_string()));
+                    analysis.export_stars.push(spec);
+                    replacements.push(SpanReplace {
+                        start: export_all.span.start,
+                        end: export_all.span.end,
+                        text: format!("Object.assign(module.exports, {});", req),
+                    });
                 }
             }
-            continue;
-        }
-
-        // Rewrite `export * from "..."`
-        if trimmed.starts_with("export * from ") {
-            let spec_part = trimmed
-                .strip_prefix("export * from ")
-                .unwrap()
-                .trim_end_matches(';');
-            let spec = spec_part.trim_matches('\'').trim_matches('"');
-            if let Some(&dep_id) = dep_map.get(spec) {
-                lines.push(format!(
-                    "Object.assign(module.exports, __beejs_require__({}));",
-                    dep_id
-                ));
-            } else {
-                lines.push(format!(
-                    "Object.assign(module.exports, require('{}'));",
-                    spec
-                ));
+            ModuleDeclaration::ExportDefaultDeclaration(export_default) => {
+                analysis.local_exports.insert("default".to_string());
+                match &export_default.declaration {
+                    ExportDefaultDeclarationKind::FunctionDeclaration(func) => {
+                        if let Some(id) = &func.id {
+                            exports_to_assign.push(("default".to_string(), id.name.to_string()));
+                            replacements.push(SpanReplace {
+                                start: export_default.span.start,
+                                end: export_default.span.end,
+                                text: span_text(source, func.span()),
+                            });
+                        } else {
+                            replacements.push(SpanReplace {
+                                start: export_default.span.start,
+                                end: export_default.span.end,
+                                text: format!(
+                                    "module.exports.default = {};",
+                                    span_text(source, func.span())
+                                ),
+                            });
+                        }
+                    }
+                    ExportDefaultDeclarationKind::ClassDeclaration(class) => {
+                        if let Some(id) = &class.id {
+                            exports_to_assign.push(("default".to_string(), id.name.to_string()));
+                            replacements.push(SpanReplace {
+                                start: export_default.span.start,
+                                end: export_default.span.end,
+                                text: span_text(source, class.span()),
+                            });
+                        } else {
+                            replacements.push(SpanReplace {
+                                start: export_default.span.start,
+                                end: export_default.span.end,
+                                text: format!(
+                                    "module.exports.default = {};",
+                                    span_text(source, class.span())
+                                ),
+                            });
+                        }
+                    }
+                    other => {
+                        replacements.push(SpanReplace {
+                            start: export_default.span.start,
+                            end: export_default.span.end,
+                            text: format!(
+                                "module.exports.default = {};",
+                                span_text(source, other.span())
+                            ),
+                        });
+                    }
+                }
             }
-            continue;
-        }
-
-        // Remap any require("spec") calls matching dep_map
-        let mut processed_line = line.to_string();
-        for (spec, dep_id) in dep_map {
-            let p1 = format!("require('{}')", spec);
-            let t1 = format!("__beejs_require__({})", dep_id);
-            if processed_line.contains(&p1) {
-                processed_line = processed_line.replace(&p1, &t1);
+            ModuleDeclaration::TSExportAssignment(ts_export) => {
+                replacements.push(SpanReplace {
+                    start: ts_export.span.start,
+                    end: ts_export.span.end,
+                    text: String::new(),
+                });
             }
-            let p2 = format!("require(\"{}\")", spec);
-            let t2 = format!("__beejs_require__({})", dep_id);
-            if processed_line.contains(&p2) {
-                processed_line = processed_line.replace(&p2, &t2);
+            ModuleDeclaration::TSNamespaceExportDeclaration(ts_export) => {
+                replacements.push(SpanReplace {
+                    start: ts_export.span.start,
+                    end: ts_export.span.end,
+                    text: String::new(),
+                });
             }
         }
-        lines.push(processed_line);
     }
 
-    // Append exported bindings at the end of the module function body
+    let rewritten = apply_span_replacements(source, replacements);
+    let remapped = remap_requires(&rewritten, dep_map);
+
+    let mut lines = vec![
+        "Object.defineProperty(module.exports, '__esModule', { value: true });".to_string(),
+        remapped,
+    ];
     for (key, local) in exports_to_assign {
         lines.push(format!("module.exports.{} = {};", key, local));
     }
 
-    lines.join("\n")
+    (lines.join("\n"), analysis)
+}
+
+fn resolve_module_exports(
+    module_id: usize,
+    analyses: &[ModuleAnalysis],
+    dep_maps: &[HashMap<String, usize>],
+    cache: &mut [Option<HashSet<String>>],
+    visiting: &mut HashSet<usize>,
+) -> HashSet<String> {
+    if let Some(cached) = cache.get(module_id).and_then(|entry| entry.as_ref()) {
+        return cached.clone();
+    }
+    if !visiting.insert(module_id) {
+        return analyses
+            .get(module_id)
+            .map(|analysis| analysis.local_exports.clone())
+            .unwrap_or_default();
+    }
+
+    let mut exports = analyses
+        .get(module_id)
+        .map(|analysis| analysis.local_exports.clone())
+        .unwrap_or_default();
+    if let (Some(analysis), Some(dep_map)) = (analyses.get(module_id), dep_maps.get(module_id)) {
+        for (exported, specifier, _local) in &analysis.reexports {
+            exports.insert(exported.clone());
+            let _ = specifier;
+        }
+        for specifier in &analysis.export_stars {
+            if let Some(&dep_id) = dep_map.get(specifier) {
+                let nested = resolve_module_exports(dep_id, analyses, dep_maps, cache, visiting);
+                for name in nested {
+                    if name != "default" {
+                        exports.insert(name);
+                    }
+                }
+            }
+        }
+    }
+
+    visiting.remove(&module_id);
+    if let Some(slot) = cache.get_mut(module_id) {
+        *slot = Some(exports.clone());
+    }
+    exports
+}
+
+fn validate_named_bindings(
+    modules: &[PathBuf],
+    analyses: &[ModuleAnalysis],
+    dep_maps: &[HashMap<String, usize>],
+) -> Result<()> {
+    let mut cache = vec![None; analyses.len()];
+    for (module_id, analysis) in analyses.iter().enumerate() {
+        let dep_map = dep_maps.get(module_id);
+        for (imported, specifier) in &analysis.named_imports {
+            let Some(&dep_id) = dep_map.and_then(|map| map.get(specifier)) else {
+                continue;
+            };
+            let mut visiting = HashSet::new();
+            let exports =
+                resolve_module_exports(dep_id, analyses, dep_maps, &mut cache, &mut visiting);
+            if !exports.contains(imported) {
+                return Err(bundle_err(format!(
+                    "missing export '{}' from '{}' (imported by {})",
+                    imported,
+                    specifier,
+                    modules
+                        .get(module_id)
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| module_id.to_string())
+                )));
+            }
+        }
+        for (exported, specifier, local) in &analysis.reexports {
+            let Some(&dep_id) = dep_map.and_then(|map| map.get(specifier)) else {
+                continue;
+            };
+            let mut visiting = HashSet::new();
+            let exports =
+                resolve_module_exports(dep_id, analyses, dep_maps, &mut cache, &mut visiting);
+            if !exports.contains(local) {
+                return Err(bundle_err(format!(
+                    "missing export '{}' from '{}' (cannot re-export '{}' in {})",
+                    local,
+                    specifier,
+                    exported,
+                    modules
+                        .get(module_id)
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| module_id.to_string())
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn resolve_bundle_dep(
+    from_file: &Path,
+    specifier: &str,
+    import_map: Option<&crate::tooling::import_map::ImportMap>,
+) -> Result<Option<PathBuf>> {
+    let remapped = import_map.and_then(|im| im.resolve(specifier, Some(from_file)));
+    let mapped = remapped.clone().unwrap_or_else(|| specifier.to_string());
+
+    if let Some(resolved) = resolve_module_path(from_file, &mapped) {
+        if !is_supported_bundle_module(&resolved) {
+            return Err(bundle_err(format!(
+                "unsupported module '{}' (bundled files must be js, mjs, cjs, jsx, ts, tsx, mts, cts, or json)",
+                resolved.display()
+            )));
+        }
+        return Ok(Some(resolved));
+    }
+
+    let must_resolve = is_relative_specifier(specifier)
+        || is_local_path_specifier(&mapped)
+        || remapped
+            .as_deref()
+            .map(is_local_path_specifier)
+            .unwrap_or(false);
+    if must_resolve {
+        return Err(bundle_err(format!(
+            "cannot resolve '{}' from {}",
+            specifier,
+            from_file.display()
+        )));
+    }
+
+    Ok(None)
 }
 
 /// Builds the production bundle from the entry file.
 pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
     if !options.entry.exists() {
-        return Err(anyhow!(
-            "Entry file '{}' not found",
+        return Err(bundle_err(format!(
+            "entry file not found: {}",
             options.entry.display()
-        ));
+        )));
+    }
+    if !options.entry.is_file() {
+        return Err(bundle_err(format!(
+            "entry must be a file: {}",
+            options.entry.display()
+        )));
+    }
+    if !is_supported_bundle_module(&options.entry) {
+        return Err(bundle_err(format!(
+            "unsupported module '{}' (bundled files must be js, mjs, cjs, jsx, ts, tsx, mts, cts, or json)",
+            options.entry.display()
+        )));
     }
 
     let import_map = if let Some(ref map_path) = options.import_map {
-        Some(crate::tooling::import_map::ImportMap::load(map_path)?)
+        Some(crate::tooling::import_map::ImportMap::load(map_path).map_err(|e| bundle_err(e))?)
     } else {
         None
     };
@@ -496,21 +804,20 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
         path_to_id.insert(canonical.clone(), id);
         modules.push(current_path.clone());
 
-        // Read source and find dependencies
-        if let Ok(source) = fs::read_to_string(&current_path) {
-            for specifier in scan_import_specifiers(&source) {
-                let actual_specifier = if let Some(ref im) = import_map {
-                    im.resolve(&specifier, Some(&current_path))
-                        .unwrap_or_else(|| specifier.clone())
-                } else {
-                    specifier.clone()
-                };
-                if let Some(resolved) = resolve_module_path(&current_path, &actual_specifier) {
-                    let res_canonical =
-                        resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
-                    if !visited.contains(&res_canonical) {
-                        queue.push(resolved);
-                    }
+        let source = fs::read_to_string(&current_path).map_err(|e| {
+            bundle_err(format!(
+                "failed to read '{}': {}",
+                current_path.display(),
+                e
+            ))
+        })?;
+        for specifier in scan_import_specifiers(&source) {
+            if let Some(resolved) =
+                resolve_bundle_dep(&current_path, &specifier, import_map.as_ref())?
+            {
+                let res_canonical = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
+                if !visited.contains(&res_canonical) {
+                    queue.push(resolved);
                 }
             }
         }
@@ -518,20 +825,16 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
 
     // 2. Process and transform each module
     let mut bundled_modules = Vec::new();
+    let mut module_analyses = Vec::new();
+    let mut module_dep_maps = Vec::new();
     for (id, path) in modules.iter().enumerate() {
         let source = fs::read_to_string(path)
-            .map_err(|e| anyhow!("Failed to read module '{}': {}", path.display(), e))?;
+            .map_err(|e| bundle_err(format!("failed to read '{}': {}", path.display(), e)))?;
 
         // Map specifiers to module IDs first
         let mut dep_map = HashMap::new();
         for specifier in scan_import_specifiers(&source) {
-            let actual_specifier = if let Some(ref im) = import_map {
-                im.resolve(&specifier, Some(path))
-                    .unwrap_or_else(|| specifier.clone())
-            } else {
-                specifier.clone()
-            };
-            if let Some(resolved) = resolve_module_path(path, &actual_specifier) {
+            if let Some(resolved) = resolve_bundle_dep(path, &specifier, import_map.as_ref())? {
                 let res_canonical = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
                 if let Some(&dep_id) = path_to_id.get(&res_canonical) {
                     dep_map.insert(specifier, dep_id);
@@ -541,22 +844,32 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
 
         // Transform ESM imports/exports
         let is_json = path.extension().map_or(false, |ext| ext == "json");
-        let transformed = if is_json {
-            format!("module.exports = {};", source.trim())
+        let (transformed, analysis) = if is_json {
+            (
+                format!("module.exports = {};", source.trim()),
+                ModuleAnalysis::default(),
+            )
         } else {
             transform_module_code(&source, path, &dep_map)
         };
+        module_analyses.push(analysis);
+        module_dep_maps.push(dep_map);
 
         // If TS/TSX, transpile to JavaScript
         let file_str = path.to_string_lossy();
         let js_code = if is_json {
             transformed
-        } else if path
-            .extension()
-            .map_or(false, |ext| ext == "ts" || ext == "tsx" || ext == "mts")
-        {
+        } else if path.extension().map_or(false, |ext| {
+            ext == "ts" || ext == "tsx" || ext == "mts" || ext == "cts"
+        }) {
             crate::typescript::compile_typescript(&transformed, &file_str)
-                .map_err(|e| anyhow!("TS compilation failed for '{}': {}", path.display(), e))?
+                .map_err(|e| {
+                    bundle_err(format!(
+                        "TypeScript compile failed for '{}': {}",
+                        path.display(),
+                        e
+                    ))
+                })?
                 .js_code
         } else {
             transformed
@@ -569,19 +882,21 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
         });
     }
 
+    validate_named_bindings(&modules, &module_analyses, &module_dep_maps)?;
+
     // 3. Assemble the runtime module registry wrapper
     let mut bundle = String::new();
-    bundle.push_str("// Beejs Production Bundle 2.0 (oxc engine)\n");
+    bundle.push_str("// Amber Production Bundle 2.0 (oxc engine)\n");
     bundle.push_str("// Target: ");
     bundle.push_str(&options.target);
     bundle.push_str("\n\n(function(modules) {\n");
     bundle.push_str("  var installed = {};\n");
-    bundle.push_str("  function __beejs_require__(id) {\n");
+    bundle.push_str("  function __amberjs_require__(id) {\n");
     bundle.push_str("    if (installed[id]) return installed[id].exports;\n");
     bundle.push_str("    var module = installed[id] = { exports: {} };\n");
     bundle.push_str("    if (modules[id] !== undefined) {\n");
     bundle.push_str(
-        "      modules[id].call(module.exports, module, module.exports, __beejs_require__);\n",
+        "      modules[id].call(module.exports, module, module.exports, __amberjs_require__);\n",
     );
     bundle.push_str("      return module.exports;\n");
     bundle.push_str("    }\n");
@@ -590,13 +905,13 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
     bundle.push_str("    }\n");
     bundle.push_str("    throw new Error(\"Cannot find module '\" + id + \"'\");\n");
     bundle.push_str("  }\n");
-    bundle.push_str("  return __beejs_require__(0);\n");
+    bundle.push_str("  return __amberjs_require__(0);\n");
     bundle.push_str("})({\n");
 
     for m in &bundled_modules {
         bundle.push_str(&format!("  // [{}] {}\n", m.id, m.path.display()));
         bundle.push_str(&format!(
-            "  {}: function(module, exports, __beejs_require__) {{\n",
+            "  {}: function(module, exports, __amberjs_require__) {{\n",
             m.id
         ));
         for line in m.processed_code.lines() {
@@ -656,14 +971,19 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
     if let Some(ref out_path) = options.outfile {
         if let Some(parent) = out_path.parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)?;
+                fs::create_dir_all(parent).map_err(|e| {
+                    bundle_err(format!("failed to write '{}': {}", out_path.display(), e))
+                })?;
             }
         }
-        fs::write(out_path, &final_code)?;
+        fs::write(out_path, &final_code)
+            .map_err(|e| bundle_err(format!("failed to write '{}': {}", out_path.display(), e)))?;
 
         if let Some(ref map_str) = map_content {
             let map_path = out_path.with_extension("map");
-            fs::write(map_path, map_str)?;
+            fs::write(&map_path, map_str).map_err(|e| {
+                bundle_err(format!("failed to write '{}': {}", map_path.display(), e))
+            })?;
         }
     }
 
@@ -718,7 +1038,105 @@ mod tests {
 
         let output = bundle_project(&options).expect("bundle_project");
         assert_eq!(output.module_count, 2);
-        assert!(output.code.contains("__beejs_require__"));
+        assert!(output.code.contains("__amberjs_require__"));
         assert!(outfile.exists());
+    }
+
+    fn opts(entry: PathBuf) -> BundleOptions {
+        BundleOptions {
+            entry,
+            outfile: None,
+            minify: false,
+            sourcemap: false,
+            target: "es2022".to_string(),
+            import_map: None,
+        }
+    }
+
+    #[test]
+    fn test_missing_entry_stable_error() {
+        let dir = tempdir().expect("tempdir");
+        let err = bundle_project(&opts(dir.path().join("missing.js")))
+            .unwrap_err()
+            .to_string();
+        assert!(err.starts_with(BUNDLE_ERROR_PREFIX), "{err}");
+        assert!(err.contains("entry file not found"), "{err}");
+    }
+
+    #[test]
+    fn test_missing_relative_stable_error() {
+        let dir = tempdir().expect("tempdir");
+        let entry = dir.path().join("entry.js");
+        fs::write(&entry, "import { x } from './missing.js';\n").expect("write");
+        let err = bundle_project(&opts(entry)).unwrap_err().to_string();
+        assert!(err.starts_with(BUNDLE_ERROR_PREFIX), "{err}");
+        assert!(err.contains("cannot resolve './missing.js'"), "{err}");
+    }
+
+    #[test]
+    fn test_unsupported_css_stable_error() {
+        let dir = tempdir().expect("tempdir");
+        let css = dir.path().join("style.css");
+        fs::write(&css, "body { color: red; }\n").expect("write css");
+        let entry = dir.path().join("entry.js");
+        fs::write(&entry, "import './style.css';\n").expect("write entry");
+        let err = bundle_project(&opts(entry)).unwrap_err().to_string();
+        assert!(err.starts_with(BUNDLE_ERROR_PREFIX), "{err}");
+        assert!(err.contains("unsupported module"), "{err}");
+        assert!(err.contains("style.css"), "{err}");
+    }
+
+    #[test]
+    fn test_bare_specifier_stays_external() {
+        let dir = tempdir().expect("tempdir");
+        let entry = dir.path().join("entry.js");
+        fs::write(
+            &entry,
+            "const fs = require('fs');\nconsole.log(typeof fs);\n",
+        )
+        .expect("write");
+        let output = bundle_project(&opts(entry)).expect("bundle");
+        assert_eq!(output.module_count, 1);
+        assert!(output.code.contains("require('fs')"), "{}", output.code);
+        assert!(!output.code.contains("__amberjs_require__(1)"));
+    }
+
+    #[test]
+    fn test_type_only_import_does_not_require_file() {
+        let dir = tempdir().expect("tempdir");
+        let entry = dir.path().join("entry.ts");
+        fs::write(
+            &entry,
+            "import type { Foo } from './missing-types';\nexport const n = 1;\n",
+        )
+        .expect("write");
+        let output = bundle_project(&opts(entry)).expect("type-only import should not fail");
+        assert_eq!(output.module_count, 1);
+    }
+
+    #[test]
+    fn test_import_map_bare_to_local_file() {
+        let dir = tempdir().expect("tempdir");
+        let label = dir.path().join("label.js");
+        fs::write(&label, "export const message = 'mapped';\n").expect("write label");
+        let map = dir.path().join("import_map.json");
+        fs::write(&map, r#"{ "imports": { "label": "./label.js" } }"#).expect("write map");
+        let entry = dir.path().join("entry.js");
+        fs::write(
+            &entry,
+            "import { message } from 'label';\nconsole.log(message);\n",
+        )
+        .expect("write entry");
+        let output = bundle_project(&BundleOptions {
+            entry,
+            outfile: None,
+            minify: false,
+            sourcemap: false,
+            target: "es2022".to_string(),
+            import_map: Some(map),
+        })
+        .expect("import map bundle");
+        assert_eq!(output.module_count, 2);
+        assert!(output.code.contains("mapped"));
     }
 }

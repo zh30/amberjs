@@ -1,4 +1,4 @@
-// Observability module for Beejs runtime
+// Observability module for Amber runtime
 //
 // This module provides comprehensive monitoring and observability features including:
 // - Prometheus metrics export
@@ -8,7 +8,7 @@
 // # Examples
 //
 // ```rust
-// use beejs::observability::{
+// use amberjs::observability::{
 //     PrometheusExporter, StructuredLogger,
 //     ObservabilityConfig, ObservableMetrics
 // };
@@ -100,7 +100,7 @@ impl ObservableSystem {
         // Initialize structured logging first
         if config.enable_structured_logging {
             system.structured_logger =
-                Some(StructuredLogger::new(config.log_level, "beejs".to_string()));
+                Some(StructuredLogger::new(config.log_level, "amberjs".to_string()));
             info!("Structured logging initialized");
         }
         // Initialize Prometheus exporter

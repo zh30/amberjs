@@ -1,9 +1,9 @@
-// Hot Reload Tests for Beejs Runtime
+// Hot Reload Tests for Amber Runtime
 
-use beejs::permissions::{
+use amberjs::permissions::{
     global_resource_broker, PermissionAction, PermissionKind, ResourceBroker, ResourceId,
 };
-use beejs::watcher::{FileChangeType, HotReloader, WatcherConfig, WatcherConfigBuilder};
+use amberjs::watcher::{FileChangeType, HotReloader, WatcherConfig, WatcherConfigBuilder};
 use serial_test::serial;
 use std::path::Path;
 use tempfile::TempDir;
@@ -92,7 +92,7 @@ fn test_should_watch_ignore_dirs() {
     assert!(!reloader.should_watch(Path::new(".git/hooks/pre-commit.js")));
     assert!(!reloader.should_watch(Path::new("dist/bundle.js")));
     assert!(!reloader.should_watch(Path::new("build/app.js")));
-    assert!(!reloader.should_watch(Path::new(".beejs-cache/compiled.js")));
+    assert!(!reloader.should_watch(Path::new(".amberjs-cache/compiled.js")));
 
     // Should watch files in normal directories
     assert!(reloader.should_watch(Path::new("src/index.js")));

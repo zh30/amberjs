@@ -1,7 +1,7 @@
 // Init Command Module
 // Stage 91 Phase 4.1 - 项目初始化命令
 //
-/// 实现 `bee init` 命令，用于快速初始化项目
+/// 实现 `amber init` 命令，用于快速初始化项目
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
@@ -57,7 +57,7 @@ impl Default for InitConfig {
     fn default() -> Self {
         Self {
             project_dir: ".".to_string(),
-            project_name: "my-beejs-app".to_string(),
+            project_name: "my-amberjs-app".to_string(),
             template: ProjectTemplate::Basic,
             git_init: true,
             install_deps: false,
@@ -79,7 +79,7 @@ impl InitCommand {
     }
     /// 执行 init 命令
     pub fn execute(&self) -> anyhow::Result<()> {
-        self.formatter.title("Beejs Project Initialization");
+        self.formatter.title("Amber Project Initialization");
         let project_path: _ = Path::new(&self.config.project_dir);
         // 1. 创建项目目录
         self.formatter
@@ -148,26 +148,26 @@ impl InitCommand {
         };
         let scripts: _ = match self.config.template {
             ProjectTemplate::Basic => serde_json::json!({
-                "start": "bee run src/index.js",
-                "dev": "bee run --watch src/index.js",
-                "test": "bee test"
+                "start": "amber run src/index.js",
+                "dev": "amber run --watch src/index.js",
+                "test": "amber test"
             }),
             ProjectTemplate::TypeScript => serde_json::json!({
-                "start": "bee run src/index.ts",
-                "dev": "bee run --watch src/index.ts",
-                "build": "bee bundle src/index.ts --outfile dist/index.js",
-                "test": "bee test"
+                "start": "amber run src/index.ts",
+                "dev": "amber run --watch src/index.ts",
+                "build": "amber bundle src/index.ts --outfile dist/index.js",
+                "test": "amber test"
             }),
             ProjectTemplate::WebApi => serde_json::json!({
-                "start": "bee run src/index.ts",
-                "dev": "bee run --watch src/index.ts",
-                "build": "bee bundle src/index.ts --outfile dist/server.js",
-                "test": "bee test"
+                "start": "amber run src/index.ts",
+                "dev": "amber run --watch src/index.ts",
+                "build": "amber bundle src/index.ts --outfile dist/server.js",
+                "test": "amber test"
             }),
             ProjectTemplate::CliTool => serde_json::json!({
-                "start": "bee run src/cli.js",
-                "build": "bee bundle src/cli.js --outfile dist/cli.js --target node",
-                "test": "bee test"
+                "start": "amber run src/cli.js",
+                "build": "amber bundle src/cli.js --outfile dist/cli.js --target node",
+                "test": "amber test"
             }),
         };
         serde_json::json!({
@@ -192,9 +192,9 @@ impl InitCommand {
         }
     }
     fn generate_basic_template(&self, path: &Path) -> anyhow::Result<()> {
-        let index_content: _ = r#"// Beejs - Basic JavaScript Project
-// Created with `bee init`
-console.log("🚀 Welcome to Beejs!");
+        let index_content: _ = r#"// Amber - Basic JavaScript Project
+// Created with `amber init`
+console.log("🚀 Welcome to Amber!");
 console.log("Edit src/index.js to get started.");
 // Example: Define a simple function
 function greet(name) {
@@ -214,8 +214,8 @@ main();
         fs::write(path.join("src/index.js"), index_content)?;
         // 创建示例测试文件
         let test_content: _ = r#"// Example test file
-// Run with: bee test
-import { describe, it, expect } from 'bee:test';
+// Run with: amber test
+import { describe, it, expect } from 'amber:test';
 describe('Basic Tests', () => {
     it('should pass a simple test', () => {
         expect(1 + 1).toBe(2);
@@ -229,8 +229,8 @@ describe('Basic Tests', () => {
         Ok(())
     }
     fn generate_typescript_template(&self, path: &Path) -> anyhow::Result<()> {
-        let index_content: _ = r#"// Beejs - TypeScript Project
-// Created with `bee init --template typescript`
+        let index_content: _ = r#"// Amber - TypeScript Project
+// Created with `amber init --template typescript`
 interface User {
     id: number;
     name: string;
@@ -240,7 +240,7 @@ function greet(user: User): string {
     return `Hello, ${user.name}! Your email is ${user.email}`;
 }
 async function main(): Promise<void> {
-    console.log("🚀 Welcome to Beejs TypeScript!");
+    console.log("🚀 Welcome to Amber TypeScript!");
     const user: User = {
         id: 1,
         name: "Developer",
@@ -254,7 +254,7 @@ main().catch(console.error);
         fs::write(path.join("src/index.ts"), index_content)?;
         // 创建 TypeScript 测试文件
         let test_content: _ = r#"// TypeScript test file
-import { describe, it, expect } from 'bee:test';
+import { describe, it, expect } from 'amber:test';
 interface Calculator {
     add(a: number, b: number): number;
 }
@@ -275,8 +275,8 @@ describe('TypeScript Tests', () => {
         Ok(())
     }
     fn generate_webapi_template(&self, path: &Path) -> anyhow::Result<()> {
-        let index_content: _ = r#"// Beejs - Web API Server
-// Created with `bee init --template web-api`
+        let index_content: _ = r#"// Amber - Web API Server
+// Created with `amber init --template web-api`
 interface Route {
     method: string;
     path: string;
@@ -286,7 +286,7 @@ const routes: Route[] = [
     {
         method: 'GET',
         path: '/',
-        handler: () => new Response(JSON.stringify({ message: 'Welcome to Beejs API!' }), {
+        handler: () => new Response(JSON.stringify({ message: 'Welcome to Amber API!' }), {
             headers: { 'Content-Type': 'application/json' }
         })
     },
@@ -312,17 +312,17 @@ const routes: Route[] = [
     }
 ];
 const PORT = Number(process.env.PORT) || 3000;
-console.log(`🚀 Starting Beejs API server on port ${PORT}...`);
+console.log(`🚀 Starting Amber API server on port ${PORT}...`);
 console.log(`📍 Health check: http://localhost:${PORT}/health`);
 console.log(`📍 API endpoint: http://localhost:${PORT}/api/users`);
-// Note: This is a template. Actual server implementation depends on Beejs HTTP module.
+// Note: This is a template. Actual server implementation depends on Amber HTTP module.
 console.log('\n✅ Server template ready!');
-console.log('💡 Implement HTTP server using Beejs fetch/serve APIs.');
+console.log('💡 Implement HTTP server using Amber fetch/serve APIs.');
 "#;
         fs::write(path.join("src/index.ts"), index_content)?;
         // 创建 API 测试
         let test_content: _ = r#"// API endpoint tests
-import { describe, it, expect } from 'bee:test';
+import { describe, it, expect } from 'amber:test';
 describe('API Tests', () => {
     it('should return valid JSON structure', () => {
         const response = { message: 'test' };
@@ -339,9 +339,9 @@ describe('API Tests', () => {
         Ok(())
     }
     fn generate_cli_template(&self, path: &Path) -> anyhow::Result<()> {
-        let cli_content: _ = r#"#!/usr/bin/env bee
-// Beejs - CLI Tool Template
-// Created with `bee init --template cli-tool`
+        let cli_content: _ = r#"#!/usr/bin/env amber
+// Amber - CLI Tool Template
+// Created with `amber init --template cli-tool`
 const args = process.argv.slice(2);
 const command = args[0];
 function printHelp() {
@@ -393,7 +393,7 @@ switch (command) {
         fs::write(path.join("src/cli.js"), cli_content)?;
         // CLI 测试
         let test_content: _ = r#"// CLI command tests
-import { describe, it, expect } from 'bee:test';
+import { describe, it, expect } from 'amber:test';
 describe('CLI Commands', () => {
     it('should parse version flag', () => {
         const flags = ['-v', '--version', 'version'];
@@ -424,7 +424,7 @@ describe('CLI Commands', () => {
                 "outDir": "./dist",
                 "rootDir": "./src",
                 "lib": ["ESNext"],
-                "types": ["beejs"]
+                "types": ["amberjs"]
             },
             "include": ["src/**/*"],
             "exclude": ["node_modules", "dist"]
@@ -459,7 +459,7 @@ npm-debug.log*
 coverage/
 # Cache
 .cache/
-.beejs-cache/
+.amberjs-cache/
 "#;
         fs::write(path.join(".gitignore"), gitignore_content)?;
         Ok(())
@@ -498,18 +498,18 @@ coverage/
         };
         self.formatter.numbered_item(
             1,
-            &format!("{}bee run src/index.{}", project_dir, self.main_ext()),
+            &format!("{}amber run src/index.{}", project_dir, self.main_ext()),
         );
         self.formatter
             .numbered_item(2, "Edit src/ files to build your project");
         self.formatter
-            .numbered_item(3, "Run tests with: bee test");
+            .numbered_item(3, "Run tests with: amber test");
         println!();
         self.formatter.info(&format!(
             "Template: {} ({})",
             self.template_name(),
             self.config.template.description()));
-        self.formatter.info("Documentation: https://beejs.dev/docs");
+        self.formatter.info("Documentation: https://amberjs.dev/docs");
         println!();
     }
     fn main_ext(&self) -> &'static str {
@@ -522,7 +522,7 @@ coverage/
 /// 交互式 init (从终端获取输入)
 pub fn interactive_init(formatter: &OutputFormatter) -> anyhow::Result<InitConfig> {
     formatter.print_banner();
-    formatter.title("Create a new Beejs project");
+    formatter.title("Create a new Amber project");
     let mut config = InitConfig::default();
     // 1. 项目名称
     print!("  Project name ({}): ", config.project_name);

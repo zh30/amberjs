@@ -2,7 +2,7 @@
 // 测试 http.request() 发送真实 HTTP 请求
 // 注意：end() 调用会触发真实网络请求，这里使用模拟方式测试属性设置
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

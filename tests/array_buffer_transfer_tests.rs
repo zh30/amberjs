@@ -1,4 +1,4 @@
-// ArrayBuffer Transfer API Tests for Beejs
+// ArrayBuffer Transfer API Tests for Amber
 // v0.3.311: Tests for zero-copy ArrayBuffer detach and transfer operations
 // Critical for AI workloads that need to pass large buffers efficiently
 
@@ -7,16 +7,17 @@ mod array_buffer_transfer_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_bee").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     /// Test 1: Basic ArrayBuffer creation
     #[test]
     fn test_array_buffer_creation() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -26,7 +27,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -44,7 +45,7 @@ mod array_buffer_transfer_tests {
     /// Test 2: transferToAttached basic functionality
     #[test]
     fn test_transfer_to_attached_basic() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -56,7 +57,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -79,7 +80,7 @@ mod array_buffer_transfer_tests {
     /// Test 3: transferToAttached with zero-sized buffer - throws error as considered already detached
     #[test]
     fn test_transfer_zero_sized_buffer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -93,7 +94,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Zero-sized buffers are considered already detached
@@ -107,7 +108,7 @@ mod array_buffer_transfer_tests {
     /// Test 4: detachArrayBuffer basic functionality
     #[test]
     fn test_detach_array_buffer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -117,7 +118,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -130,7 +131,7 @@ mod array_buffer_transfer_tests {
     /// Test 5: transferToAttached with invalid argument
     #[test]
     fn test_transfer_invalid_argument() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -143,7 +144,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -156,7 +157,7 @@ mod array_buffer_transfer_tests {
     /// Test 6: detachArrayBuffer with invalid argument
     #[test]
     fn test_detach_invalid_argument() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -169,7 +170,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -182,7 +183,7 @@ mod array_buffer_transfer_tests {
     /// Test 7: Accessing detached buffer throws error
     #[test]
     fn test_access_detached_buffer_throws() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -197,7 +198,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -210,7 +211,7 @@ mod array_buffer_transfer_tests {
     /// Test 8: Multiple buffers can be transferred independently
     #[test]
     fn test_multiple_buffer_transfer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -222,7 +223,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -235,7 +236,7 @@ mod array_buffer_transfer_tests {
     /// Test 9: Large buffer transfer (AI workload simulation)
     #[test]
     fn test_large_buffer_transfer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -247,7 +248,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -265,7 +266,7 @@ mod array_buffer_transfer_tests {
     /// Test 10: structuredClone still works for deep cloning (transfer not yet implemented in structuredClone)
     #[test]
     fn test_structured_clone_deep_clone() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const buffer = new ArrayBuffer(50);
                 const original = { data: buffer, name: 'test' };
@@ -277,7 +278,7 @@ mod array_buffer_transfer_tests {
                 original.data.byteLength === 50 && cloned.data.byteLength === 50 && original.data !== cloned.data
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -300,7 +301,7 @@ mod array_buffer_transfer_tests {
     /// Test 11: transferFromAttached basic functionality
     #[test]
     fn test_transfer_from_attached() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -314,7 +315,7 @@ mod array_buffer_transfer_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(

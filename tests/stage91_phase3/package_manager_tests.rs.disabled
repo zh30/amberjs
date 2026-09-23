@@ -1,7 +1,7 @@
 //! 包管理器集成测试
 //! Stage 91 Phase 3.1 - 包管理器兼容性测试
 
-use beejs::ecosystem::package_managers::*;
+use amberjs::ecosystem::package_managers::*;
 use std::collections::HashMap;
 
 #[cfg(test)]
@@ -14,7 +14,7 @@ mod tests {
         let config = PackageManagerConfig {
             manager_type: PackageManagerType::Npm,
             registry_url: "https://registry.npmjs.org/".to_string(),
-            cache_dir: std::path::PathBuf::from(".beejs_cache"),
+            cache_dir: std::path::PathBuf::from(".amberjs_cache"),
             timeout_ms: 10000,
             retry_count: 3,
             auth_token: None,
@@ -45,7 +45,7 @@ mod tests {
         let config = PackageManagerConfig {
             manager_type: PackageManagerType::Yarn,
             registry_url: "https://registry.yarnpkg.com/".to_string(),
-            cache_dir: std::path::PathBuf::from(".beejs_cache"),
+            cache_dir: std::path::PathBuf::from(".amberjs_cache"),
             timeout_ms: 10000,
             retry_count: 3,
             auth_token: None,
@@ -56,7 +56,7 @@ mod tests {
         let yarn = YarnCompatibility::new(config);
 
         // 测试 Yarn 初始化
-        let temp_dir = std::env::temp_dir().join("beejs_yarn_test");
+        let temp_dir = std::env::temp_dir().join("amberjs_yarn_test");
         std::fs::create_dir_all(&temp_dir)?;
         std::env::set_current_dir(&temp_dir)?;
 
@@ -72,7 +72,7 @@ mod tests {
         let config = PackageManagerConfig {
             manager_type: PackageManagerType::Pnpm,
             registry_url: "https://registry.npmjs.org/".to_string(),
-            cache_dir: std::path::PathBuf::from(".beejs_cache"),
+            cache_dir: std::path::PathBuf::from(".amberjs_cache"),
             timeout_ms: 10000,
             retry_count: 3,
             auth_token: None,

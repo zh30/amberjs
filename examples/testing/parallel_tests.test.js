@@ -1,7 +1,7 @@
 /**
- * Beejs 测试框架 - 并行测试示例
+ * Amber 测试框架 - 并行测试示例
  *
- * 演示如何使用 Beejs 的并行测试执行功能
+ * 演示如何使用 Amber 的并行测试执行功能
  * 显著加速大型测试套件的执行
  */
 
@@ -13,10 +13,10 @@ describe("并行测试示例", () => {
     });
 
     test("测试 2: 字符串操作", () => {
-        const str = "Hello Beejs";
-        expect(str).toContain("Beejs");
+        const str = "Hello Amber";
+        expect(str).toContain("Amber");
         expect(str.length).toBe(11);
-        expect(str.toUpperCase()).toBe("HELLO BEEJS");
+        expect(str.toUpperCase()).toBe("HELLO AMBER");
     });
 
     test("测试 3: 数组操作", () => {
@@ -61,7 +61,7 @@ describe("并行测试示例", () => {
 
     test("测试 9: 长度断言", () => {
         expect([1, 2, 3, 4, 5]).toHaveLength(5);
-        expect("Beejs").toHaveLength(5);
+        expect("Amber").toHaveLength(5);
         expect(Object.keys({ a: 1, b: 2 })).toHaveLength(2);
     });
 
@@ -132,10 +132,10 @@ describe("并发测试 - 资源竞争", () => {
  * 运行并行测试
  *
  * 使用命令:
- * bee test examples/testing/parallel_tests.test.js
+ * amber test examples/testing/parallel_tests.test.js
  *
  * 或者使用并行执行:
- * BEEJS_PARALLEL_WORKERS=4 bee test examples/testing/parallel_tests.test.js
+ * AMBER_PARALLEL_WORKERS=4 amber test examples/testing/parallel_tests.test.js
  *
  * 性能对比:
  * - 顺序执行: ~500ms

@@ -159,7 +159,7 @@ fn clone_engine(&self) -> Box<dyn InferenceEngine> {
 
 ## 🚀 预期成果
 
-Stage 54.4 完成后，Beejs 将具备：
+Stage 54.4 完成后，Amber 将具备：
 
 1. ✅ **完整的 AI 推理引擎** - 所有 trait 方法实现
 2. ✅ **生产就绪的代码** - 无编译错误

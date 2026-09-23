@@ -1,11 +1,11 @@
-// Beejs 性能基准测试演示
-// 展示 Beejs 的高性能特性
+// Amber 性能基准测试演示
+// 展示 Amber 的高性能特性
 
-console.log("=== Beejs 性能基准测试 ===\n");
+console.log("=== Amber 性能基准测试 ===\n");
 
 // 1. 启动时间测试
 console.log("🚀 启动时间测试");
-console.log("Beejs 启动时间: 11ms (vs Bun 72ms)");
+console.log("Amber 启动时间: 11ms (vs Bun 72ms)");
 console.log("性能提升: 84.72% ✅\n");
 
 // 2. 内存使用测试
@@ -29,7 +29,7 @@ const memoryTime = Date.now() - startMemory;
 
 console.log(`   创建 ${memoryIterations} 个对象`);
 console.log(`   耗时: ${memoryTime}ms`);
-console.log(`   Beejs 内存使用: 82MB (vs Bun 102MB)`);
+console.log(`   Amber 内存使用: 82MB (vs Bun 102MB)`);
 console.log(`   内存优化: 19.6% ✅\n`);
 
 // 3. 执行速度测试
@@ -64,7 +64,7 @@ const fibTime = Date.now() - startFib;
 
 console.log(`   fibonacci(${fibIterations}) = ${fibResult}`);
 console.log(`   耗时: ${fibTime}ms`);
-console.log(`   Beejs JIT 优化后性能提升 66.7% ✅\n`);
+console.log(`   Amber JIT 优化后性能提升 66.7% ✅\n`);
 
 // 4. 并发能力测试
 console.log("🔄 并发能力测试");
@@ -89,13 +89,13 @@ const concurrentTime = Date.now() - startConcurrent;
 console.log(`   执行 ${concurrentTasks} 个任务`);
 console.log(`   耗时: ${concurrentTime}ms`);
 console.log(`   吞吐量: ${(concurrentTasks / (concurrentTime / 1000)).toFixed(0)} tasks/sec`);
-console.log(`   Beejs 并发能力: 11,200 scripts (vs Bun 8,200)`);
+console.log(`   Amber 并发能力: 11,200 scripts (vs Bun 8,200)`);
 console.log(`   并发提升: 36.6% ✅\n`);
 
 // 5. 字符串处理测试
 console.log("📝 字符串处理测试");
 const stringIterations = 100000;
-let testString = "Beejs高性能JavaScript运行时";
+let testString = "Amber高性能JavaScript运行时";
 
 const startString = Date.now();
 for (let i = 0; i < stringIterations; i++) {
@@ -162,7 +162,7 @@ console.log(`   吞吐量: ${(arrayIterations / arrayTime).toFixed(0)} ops/sec\n
 
 // 性能总结
 console.log("=== 性能基准测试总结 ===");
-console.log("\n✅ Beejs 核心优势:");
+console.log("\n✅ Amber 核心优势:");
 console.log("   1. 🚀 启动时间: 11ms (比 Bun 快 84.72%)");
 console.log("   2. 💾 内存效率: 82MB (比 Bun 少 19.6%)");
 console.log("   3. ⚡ 并发能力: 11,200 scripts (比 Bun 多 36.6%)");

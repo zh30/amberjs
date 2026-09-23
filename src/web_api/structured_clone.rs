@@ -7,7 +7,7 @@ use anyhow::Result;
 use rusty_v8 as v8;
 
 /// Internal key for storing the clone function in global
-const CLONE_FUNC_KEY: &str = "__beejs_internal_clone_func";
+const CLONE_FUNC_KEY: &str = "__amberjs_internal_clone_func";
 
 /// Setup the internal clone function in the global object
 fn setup_internal_clone_func(

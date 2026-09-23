@@ -1,7 +1,7 @@
 /**
- * Beejs 调试器 - 断点调试示例
+ * Amber 调试器 - 断点调试示例
  *
- * 演示如何使用 Beejs 的高级断点功能
+ * 演示如何使用 Amber 的高级断点功能
  * 包括条件断点、命中次数断点、日志断点等
  */
 
@@ -101,7 +101,7 @@ async function processAsyncData() {
 
 // 主函数
 function main() {
-    console.log("=== Beejs 断点调试示例 ===\n");
+    console.log("=== Amber 断点调试示例 ===\n");
 
     // 示例 1: 递归函数调试
     console.log("示例 1: 递归函数调试");
@@ -142,7 +142,7 @@ function main() {
  * 调试器使用指南
  *
  * 1. 启动调试模式:
- *    bee debug examples/debugging/breakpoint_debug.js
+ *    amber debug examples/debugging/breakpoint_debug.js
  *
  * 2. 断点类型:
  *
@@ -184,13 +184,13 @@ function main() {
  *
  * 5. VS Code 集成:
  *
- *    安装 "Beejs Debugger" 扩展
+ *    安装 "Amber Debugger" 扩展
  *    配置 .vscode/launch.json:
  *
  *    {
- *      "type": "beejs",
+ *      "type": "amberjs",
  *      "request": "launch",
- *      "name": "Debug Beejs",
+ *      "name": "Debug Amber",
  *      "program": "${workspaceFolder}/examples/debugging/breakpoint_debug.js"
  *    }
  */

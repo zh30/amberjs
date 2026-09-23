@@ -1,0 +1,169 @@
+# Amber GitHub Actions Integration
+# This workflow runs tests using Amber runtime
+
+name: Amber Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  AMBER_VERSION: 'latest'
+
+jobs:
+  test:
+    name: Test with Amber
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install Amber Runtime
+      run: |
+        # Download and install Amber
+        curl -L https://github.com/amberjs-team/amberjs/releases/download/v0.1.0/amber-linux-x64.tar.gz -o amber.tar.gz
+        tar -xzf amber.tar.gz
+        chmod +x amber
+        sudo mv amber /usr/local/bin/
+
+    - name: Verify Amber Installation
+      run: |
+        amber --version
+        amber --help
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        # Install project dependencies if any
+        if [ -f package.json ]; then
+          npm install
+        fi
+
+    - name: Run Amber Tests
+      run: |
+        echo "Running Amber test suite..."
+        amber test --reporter=json --output=test-results.json
+
+    - name: Run Performance Benchmarks
+      run: |
+        echo "Running performance benchmarks..."
+        amber run benchmarks/comprehensive_benchmark.js
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: amberjs-test-results-${{ matrix.node-version }}
+        path: test-results.json
+
+    - name: Upload Performance Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: amberjs-performance-reports-${{ matrix.node-version }}
+        path: performance-*.json
+
+  build:
+    name: Build with Amber
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Amber Runtime
+      run: |
+        curl -L https://github.com/amberjs-team/amberjs/releases/download/v0.1.0/amber-linux-x64.tar.gz -o amber.tar.gz
+        tar -xzf amber.tar.gz
+        chmod +x amber
+        sudo mv amber /usr/local/bin/
+
+    - name: Build Application
+      run: |
+        echo "Building application with Amber..."
+        # Example: Build TypeScript
+        if [ -f tsconfig.json ]; then
+          amber run build.ts
+        fi
+
+        # Example: Bundle JavaScript
+        if [ -f src/index.js ]; then
+          amber bundle src/index.js --outfile dist/bundle.js
+        fi
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: dist/
+
+  lint:
+    name: Lint with Amber
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Amber Runtime
+      run: |
+        curl -L https://github.com/amberjs-team/amberjs/releases/download/v0.1.0/amber-linux-x64.tar.gz -o amber.tar.gz
+        tar -xzf amber.tar.gz
+        chmod +x amber
+        sudo mv amber /usr/local/bin/
+
+    - name: Run Linting
+      run: |
+        echo "Running linter..."
+        # Example: Lint JavaScript/TypeScript
+        if [ -f .eslintrc.js ]; then
+          amber run node_modules/.bin/eslint src/ --format=json --output-file=eslint-results.json
+        fi
+
+    - name: Upload Lint Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lint-results
+        path: eslint-results.json
+
+  security:
+    name: Security Scan with Amber
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Amber Runtime
+      run: |
+        curl -L https://github.com/amberjs-team/amberjs/releases/download/v0.1.0/amber-linux-x64.tar.gz -o amber.tar.gz
+        tar -xzf amber.tar.gz
+        chmod +x amber
+        sudo mv amber /usr/local/bin/
+
+    - name: Run Security Scan
+      run: |
+        echo "Running security scan..."
+        # Example: Scan for vulnerabilities
+        amber run scripts/security-scan.js
+
+    - name: Upload Security Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-report
+        path: security-report.json

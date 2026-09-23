@@ -574,7 +574,7 @@ mod tests {
     fn path_prefix_allow_beats_wildcard_deny() {
         let mut broker = ResourceBroker::default();
         broker.deny_all();
-        let root = std::env::temp_dir().join("beejs-jail-prefix");
+        let root = std::env::temp_dir().join("amberjs-jail-prefix");
         let _ = std::fs::create_dir_all(root.join("child"));
         broker.allow(
             PermissionKind::FileSystem,

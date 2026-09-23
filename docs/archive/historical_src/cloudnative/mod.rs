@@ -1,5 +1,5 @@
 // Cloud-Native Module
-// Provides Kubernetes and service mesh integration for Beejs runtime
+// Provides Kubernetes and service mesh integration for Amber runtime
 pub mod k8s_runtime;
 pub mod service_mesh;
 pub use k8s_runtime::*;

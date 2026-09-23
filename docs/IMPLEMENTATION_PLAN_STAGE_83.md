@@ -1,4 +1,4 @@
-# Beejs Stage 83 实施计划 - 企业级部署与运维
+# Amber Stage 83 实施计划 - 企业级部署与运维
 
 ## 项目概述
 
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Beejs 企业级部署平台                            │
+│                   Amber 企业级部署平台                            │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ Kubernetes  │  │ 多租户      │  │ 自动化运维       │  │
@@ -48,7 +48,7 @@
 ### 2. 关键组件
 
 #### 2.1 Kubernetes Operator
-- **职责**: 自动化管理 Beejs 集群生命周期
+- **职责**: 自动化管理 Amber 集群生命周期
 - **特性**:
   - 自定义资源定义 (CRD)
   - 自动化部署和升级
@@ -89,19 +89,19 @@
 **功能要求**:
 1. **Operator 框架**
    ```rust
-   pub struct BeejsOperator {
+   pub struct AmberOperator {
        client: kube::Client,
        config: OperatorConfig,
-       reconciler: Arc<BeejsReconciler>,
+       reconciler: Arc<AmberReconciler>,
    }
 
    pub async fn run(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
        // 启动 Operator
    }
 
-   pub async fn reconcile_beejs_cluster(
+   pub async fn reconcile_amberjs_cluster(
        &self,
-       cluster: &BeejsCluster,
+       cluster: &AmberCluster,
    ) -> Result<ReconcileResult, Error> {
        // 集群状态协调
    }
@@ -111,14 +111,14 @@
    ```rust
    #[derive(CustomResource, Clone, Debug, Deserialize, Serialize, JsonSchema)]
    #[kube(
-       group = "beejs.io",
+       group = "amberjs.io",
        version = "v1",
-       kind = "BeejsCluster",
-       plural = "beejsclusters",
+       kind = "AmberCluster",
+       plural = "amberjsclusters",
        shortname = "bc",
        namespaced
    )]
-   pub struct BeejsClusterSpec {
+   pub struct AmberClusterSpec {
        pub version: String,
        pub nodes: usize,
        pub config: ClusterConfig,
@@ -131,7 +131,7 @@
 - `test_failover_recovery()`: 测试故障转移
 
 #### 任务 1.2: Helm Chart 优化
-**文件**: `k8s/helm/beejs/` (优化现有)
+**文件**: `k8s/helm/amberjs/` (优化现有)
 
 **功能要求**:
 1. **Chart 模板**
@@ -310,7 +310,7 @@
        k8s_client: Arc<kube::Client>,
    }
 
-   pub async fn evaluate_scaling(&self, cluster: &BeejsCluster) -> Result<ScalingAction> {
+   pub async fn evaluate_scaling(&self, cluster: &AmberCluster) -> Result<ScalingAction> {
        // 评估扩缩容需求
    }
 
@@ -328,27 +328,27 @@
 ### 1. K8s Operator 实现示例
 
 ```rust
-pub struct BeejsKubernetesOperator {
+pub struct AmberKubernetesOperator {
     client: kube::Client,
-    informers: Arc<BeejsInformerFactory>,
+    informers: Arc<AmberInformerFactory>,
 }
 
-impl BeejsKubernetesOperator {
+impl AmberKubernetesOperator {
     pub async fn start(self) -> Result<(), kube::Error> {
         // 启动所有 Informer
-        let beejs_informer = self.informers.beejs_cluster().await?;
+        let amberjs_informer = self.informers.amberjs_cluster().await?;
         let nodes_informer = self.informers.nodes().await?;
 
         // 启动 Reconcile 循环
         tokio::try_join!(
-            self.reconcile_clusters(beejs_informer),
+            self.reconcile_clusters(amberjs_informer),
             self.monitor_nodes(nodes_informer)
         )?;
 
         Ok(())
     }
 
-    async fn reconcile_clusters(&self, mut stream: impl Stream<Item = BeejsCluster>) -> Result<()> {
+    async fn reconcile_clusters(&self, mut stream: impl Stream<Item = AmberCluster>) -> Result<()> {
         while let Some(cluster) = stream.next().await {
             let result = self.reconcile_cluster(&cluster).await?;
             if result.requires_requeue() {
@@ -501,4 +501,4 @@ impl TenantIsolationManager {
 
 ---
 
-**结论**: Stage 83 将把 Beejs 提升为完全的企业级解决方案，通过 Kubernetes 集成、多租户支持、企业级监控和自动化运维，为大型企业提供生产就绪的 JavaScript/TypeScript 运行时平台，使 Beejs 成为企业级应用开发的首选平台。
+**结论**: Stage 83 将把 Amber 提升为完全的企业级解决方案，通过 Kubernetes 集成、多租户支持、企业级监控和自动化运维，为大型企业提供生产就绪的 JavaScript/TypeScript 运行时平台，使 Amber 成为企业级应用开发的首选平台。

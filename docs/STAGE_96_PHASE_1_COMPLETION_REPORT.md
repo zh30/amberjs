@@ -7,7 +7,7 @@
 
 ## 📋 阶段概述
 
-Stage 96 Phase 1 专注于 V8 API 兼容性完善，通过实现强大的兼容性检查器和 API 适配层，为 Beejs 运行时提供企业级的稳定性和兼容性保障。
+Stage 96 Phase 1 专注于 V8 API 兼容性完善，通过实现强大的兼容性检查器和 API 适配层，为 Amber 运行时提供企业级的稳定性和兼容性保障。
 
 ## ✅ 完成的任务
 
@@ -181,7 +181,7 @@ tests/
 
 ### 检查 V8 兼容性
 ```rust
-use beejs::v8_engine::{V8CompatibilityChecker, V8APIAdapter};
+use amberjs::v8_engine::{V8CompatibilityChecker, V8APIAdapter};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -204,7 +204,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
 ### 使用 API 适配器
 ```rust
-use beejs::v8_engine::{V8APIAdapter, AdapterConfig};
+use amberjs::v8_engine::{V8APIAdapter, AdapterConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -331,7 +331,7 @@ Stage 96 Phase 1 成功实现了 V8 API 兼容性的全面提升：
 - 📊 **性能优化**: < 2% 平均性能影响
 - 📚 **文档完善**: 完整的使用示例和 API 文档
 
-这个阶段为 Beejs 运行时提供了企业级的 V8 兼容性保障，为后续的企业级功能集成奠定了坚实基础。
+这个阶段为 Amber 运行时提供了企业级的 V8 兼容性保障，为后续的企业级功能集成奠定了坚实基础。
 
 **状态**: ✅ Stage 96 Phase 1 圆满完成
 **版本**: v0.1.0 (Stage 96 Phase 1 Complete)

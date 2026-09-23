@@ -1,11 +1,11 @@
 //! 基准测试运行器
 //!
-//! 这个工具用于自动化运行 Beejs 的基准测试套件，包括 AI 工作负载、
+//! 这个工具用于自动化运行 Amber 的基准测试套件，包括 AI 工作负载、
 //! 企业场景、长期稳定性和并发负载测试。支持配置管理、指标收集、
 //! 结果报告和 CI/CD 集成。
 
-use beejs::runtime_lite::Runtime;
-use beejs::performance_analyzer::PerformanceAnalyzer;
+use amberjs::runtime_lite::Runtime;
+use amberjs::performance_analyzer::PerformanceAnalyzer;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;

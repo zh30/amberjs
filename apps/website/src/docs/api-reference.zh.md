@@ -1,40 +1,40 @@
 ---
-title: "Beejs 全量 API 核心速查手册"
-subtitle: "涵盖 Beejs 原生模块 (bee:*)、Node.js 兼容层与现代 Web 标准的完整 API 字典"
+title: "Amber 全量 API 核心速查手册"
+subtitle: "涵盖 Amber 原生模块 (amber:*)、Node.js 兼容层与现代 Web 标准的完整 API 字典"
 group: "参考与规范"
 id: "api-reference"
 ---
 
-Beejs 运行时提供三层相互贯通的 API 体系结构：
-1. **Beejs 原生核心模块 (`bee:*`)**：专为自治 AI Agent、可靠持久状态、流式语法自愈及沙箱安全打造的高性能内置模块。
+Amber 运行时提供三层相互贯通的 API 体系结构：
+1. **Amber 原生核心模块 (`amber:*`)**：专为自治 AI Agent、可靠持久状态、流式语法自愈及沙箱安全打造的高性能内置模块。
 2. **Node.js 兼容层 (`node:*`)**：100% 通过 51 项 Node.js 官方一致性测试套件，提供对主流 npm 包的开箱即用支持。
 3. **W3C / WHATWG Web 平台标准**：与现代浏览器、Cloudflare Workers、Deno 统一的跨端标准接口（`fetch`、`WebCrypto`、`Streams` 等）。
 
 ---
 
-## 1. Beejs 原生核心 API 参考 (`bee:*`)
+## 1. Amber 原生核心 API 参考 (`amber:*`)
 
-所有 Beejs 原生模块均支持规范协议前缀 `bee:<module>` 或无前缀短名导入（例如 `import { open } from 'bee:kv'` 或 `const { open } = require('kv')`）。
+所有 Amber 原生模块均支持规范协议前缀 `amber:<module>` 或无前缀短名导入（例如 `import { open } from 'amber:kv'` 或 `const { open } = require('kv')`）。
 
 ```
-                                [ Beejs 原生架构全景 ]
+                                [ Amber 原生架构全景 ]
    +------------------------------------+------------------------------------+
    |       自治 AI Agent 核心子系统       |          运行时与系统底座           |
    |   ---------------------------      |   ------------------------         |
-   |   • bee:ai        (张量与 LLM)     |   • bee:kv        (ACID 状态存储)  |
-   |   • bee:bus       (多 Agent 总线)   |   • bee:sandbox   (加固微飞地)     |
-   |   • bee:grammar   (流式语法自愈)    |   • bee:security  (零信任权限控制)  |
-   |   • bee:checkpoint(时间旅行快照)    |   • bee:db        (嵌入式 SQLite)  |
-   |   • bee:tools     (工具与 OpenAPI)  |   • bee:vector    (向量检索引擎)    |
-   |   • bee:replay    (确定性回放)      |   • bee:wasm      (零拷贝 Wasm 2.0)|
-   |   • bee:weights   (模型权重加载)    |   • bee:ffi       (原生 C ABI 接口)|
-   |   • bee:mcp       (MCP 2.0 协议)   |   • bee:std       (官方现代标准库)  |
+   |   • amber:ai        (张量与 LLM)     |   • amber:kv        (ACID 状态存储)  |
+   |   • amber:bus       (多 Agent 总线)   |   • amber:sandbox   (加固微飞地)     |
+   |   • amber:grammar   (流式语法自愈)    |   • amber:security  (零信任权限控制)  |
+   |   • amber:checkpoint(时间旅行快照)    |   • amber:db        (嵌入式 SQLite)  |
+   |   • amber:tools     (工具与 OpenAPI)  |   • amber:vector    (向量检索引擎)    |
+   |   • amber:replay    (确定性回放)      |   • amber:wasm      (零拷贝 Wasm 2.0)|
+   |   • amber:weights   (模型权重加载)    |   • amber:ffi       (原生 C ABI 接口)|
+   |   • amber:mcp       (MCP 2.0 协议)   |   • amber:std       (官方现代标准库)  |
    +------------------------------------+------------------------------------+
 ```
 
-### 1.1 `bee:ai` — 端侧张量计算与 Agent 管道
+### 1.1 `amber:ai` — 端侧张量计算与 Agent 管道
 ```typescript
-import { Tensor, LLM, AgentPipeline, embed, embedBatch, generate, generateStream, cosineSimilarity } from 'bee:ai';
+import { Tensor, LLM, AgentPipeline, embed, embedBatch, generate, generateStream, cosineSimilarity } from 'amber:ai';
 ```
 | 方法 / 类型 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
@@ -47,9 +47,9 @@ import { Tensor, LLM, AgentPipeline, embed, embedBatch, generate, generateStream
 
 ---
 
-### 1.2 `bee:bus` — 多 Agent 消息总线与 PubSub 网格
+### 1.2 `amber:bus` — 多 Agent 消息总线与 PubSub 网格
 ```typescript
-import { createBus, getDefaultBus, subscribe, once, unsubscribe, publish, broadcast, request, reply, use, topicMatches } from 'bee:bus';
+import { createBus, getDefaultBus, subscribe, once, unsubscribe, publish, broadcast, request, reply, use, topicMatches } from 'amber:bus';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
@@ -64,9 +64,9 @@ import { createBus, getDefaultBus, subscribe, once, unsubscribe, publish, broadc
 
 ---
 
-### 1.3 `bee:grammar` — 流式结构化输出与 Token 语法引擎
+### 1.3 `amber:grammar` — 流式结构化输出与 Token 语法引擎
 ```typescript
-import { parsePartialJSON, createStreamDecoder, parseSSEChunk, createGrammar, createChoiceGrammar, createRegexGrammar, createJSONGrammar } from 'bee:grammar';
+import { parsePartialJSON, createStreamDecoder, parseSSEChunk, createGrammar, createChoiceGrammar, createRegexGrammar, createJSONGrammar } from 'amber:grammar';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
@@ -79,9 +79,9 @@ import { parsePartialJSON, createStreamDecoder, parseSSEChunk, createGrammar, cr
 
 ---
 
-### 1.4 `bee:checkpoint` — Agent 状态检查点与时间旅行回退
+### 1.4 `amber:checkpoint` — Agent 状态检查点与时间旅行回退
 ```typescript
-import { createCheckpointManager, getDefaultManager, save, restore, get, list, diff, fork, clear } from 'bee:checkpoint';
+import { createCheckpointManager, getDefaultManager, save, restore, get, list, diff, fork, clear } from 'amber:checkpoint';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
@@ -89,14 +89,14 @@ import { createCheckpointManager, getDefaultManager, save, restore, get, list, d
 | `restore(id)` | `(id: string) => any` | 提取并回退状态至指定历史检查点，支持出错推倒重来。 |
 | `diff(fromId, toId)` | `(fromId: string, toId: string) => StateDiff` | 计算两个检查点之间的深层结构增量 `{ added, modified: { from, to }, deleted }`。 |
 | `fork(fromId, branchName)` | `(fromId: string, branchName: string) => CheckpointManager` | 基于某一历史节点派生全新投机探索分支（Tree-of-Thought），不污染主线。 |
-| `persist(kvStore, prefix?)` | `(kvStore: KVStore, prefix?: string) => number` | 将内存检查点血缘树批量写入 `bee:kv` 磁盘 WAL 日志。 |
-| `restoreFromKV(kvStore, prefix?)` | `(kvStore: KVStore, prefix?: string) => number` | 从 `bee:kv` 持久化存储中重新灌入完整历史检查点。 |
+| `persist(kvStore, prefix?)` | `(kvStore: KVStore, prefix?: string) => number` | 将内存检查点血缘树批量写入 `amber:kv` 磁盘 WAL 日志。 |
+| `restoreFromKV(kvStore, prefix?)` | `(kvStore: KVStore, prefix?: string) => number` | 从 `amber:kv` 持久化存储中重新灌入完整历史检查点。 |
 
 ---
 
-### 1.5 `bee:kv` — 持久化键值存储与可靠状态引擎
+### 1.5 `amber:kv` — 持久化键值存储与可靠状态引擎
 ```typescript
-import { open, openInMemory, KVStore } from 'bee:kv';
+import { open, openInMemory, KVStore } from 'amber:kv';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
@@ -112,9 +112,9 @@ import { open, openInMemory, KVStore } from 'bee:kv';
 
 ---
 
-### 1.6 `bee:tools` — 工具自动合成与 OpenAPI 编译器
+### 1.6 `amber:tools` — 工具自动合成与 OpenAPI 编译器
 ```typescript
-import { compileSchemaTool, fromOpenAPI, parseToolCalls, registerTools, AgentTool } from 'bee:tools';
+import { compileSchemaTool, fromOpenAPI, parseToolCalls, registerTools, AgentTool } from 'amber:tools';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
@@ -125,9 +125,9 @@ import { compileSchemaTool, fromOpenAPI, parseToolCalls, registerTools, AgentToo
 
 ---
 
-### 1.7 `bee:sandbox` — 加固微飞地与合规审计日志
+### 1.7 `amber:sandbox` — 加固微飞地与合规审计日志
 ```typescript
-import { createEnclave, startAuditLog, stopAuditLog, getAuditLogPath, isEnabled, enable, disable } from 'bee:sandbox';
+import { createEnclave, startAuditLog, stopAuditLog, getAuditLogPath, isEnabled, enable, disable } from 'amber:sandbox';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
@@ -138,34 +138,34 @@ import { createEnclave, startAuditLog, stopAuditLog, getAuditLogPath, isEnabled,
 
 ---
 
-### 1.8 `bee:replay` — 确定性 Agent 回放引擎
+### 1.8 `amber:replay` — 确定性 Agent 回放引擎
 ```typescript
-import { startRecording, stopRecording, loadTrace, step, isRecording, isReplaying, getTraceStats } from 'bee:replay';
+import { startRecording, stopRecording, loadTrace, step, isRecording, isReplaying, getTraceStats } from 'amber:replay';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
 | `startRecording(opts)` | `(opts: { script?: string, outputPath?: string }) => void` | 进入录制状态，自动拦截时间戳、随机数与单步工具调用出入参。 |
-| `stopRecording(path?)` | `(path?: string) => AgentTrace` | 结束录制并将完整轨迹写为 `.bee-trace.json` 文件。 |
+| `stopRecording(path?)` | `(path?: string) => AgentTrace` | 结束录制并将完整轨迹写为 `.amber-trace.json` 文件。 |
 | `loadTrace(traceOrPath)` | `(trace: string \| object) => void` | 载入历史执行轨迹并进入离线确定性重放模式。 |
 | `step(name, input, fn)` | `(name: string, input: any, fn: (input) => any) => any` | 录制时执行真实逻辑；回放时直接注入历史快照返回值并校验分歧。 |
 
 ---
 
-### 1.9 `bee:weights` — 原生 GGUF / SafeTensors 权重加载
+### 1.9 `amber:weights` — 原生 GGUF / SafeTensors 权重加载
 ```typescript
-import { readGGUFMetadata, readSafeTensorsMetadata, loadTensor } from 'bee:weights';
+import { readGGUFMetadata, readSafeTensorsMetadata, loadTensor } from 'amber:weights';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
 | `readGGUFMetadata(filePath)` | `(path: string) => GGUFMetadata` | 亚毫秒级解析 GGUF (v2/v3) 文件的张量头部与元数据 KV。 |
 | `readSafeTensorsMetadata(filePath)`| `(path: string) => SafeTensorsMetadata` | 解析 HuggingFace SafeTensors 文件头部索引。 |
-| `loadTensor(filePath, tensorName)` | `(path: string, name: string) => LoadedTensor` | 基于 `mmap` 零拷贝将权重切片映射为 TypedArray，直通 `bee:ai.Tensor`。 |
+| `loadTensor(filePath, tensorName)` | `(path: string, name: string) => LoadedTensor` | 基于 `mmap` 零拷贝将权重切片映射为 TypedArray，直通 `amber:ai.Tensor`。 |
 
 ---
 
-### 1.10 `bee:security` & `bee:permissions` — 企业级能力安全控制
+### 1.10 `amber:security` & `amber:permissions` — 企业级能力安全控制
 ```typescript
-import { permissions, createSandboxPolicy, attenuate } from 'bee:security';
+import { permissions, createSandboxPolicy, attenuate } from 'amber:security';
 ```
 | 方法 | 类型签名 | 核心功能说明 |
 | :--- | :--- | :--- |
@@ -177,10 +177,10 @@ import { permissions, createSandboxPolicy, attenuate } from 'bee:security';
 
 ---
 
-### 1.11 `bee:db` 与 `bee:vector` — 嵌入式数据库与向量底座
+### 1.11 `amber:db` 与 `amber:vector` — 嵌入式数据库与向量底座
 ```typescript
-import { Database } from 'bee:db';
-import { VectorDB } from 'bee:vector';
+import { Database } from 'amber:db';
+import { VectorDB } from 'amber:vector';
 
 // SQLite
 const db = Database.open('./app.db');
@@ -196,31 +196,31 @@ const matches = vecDb.search(queryEmbedding, { limit: 5 });
 
 ---
 
-### 1.12 `bee:std` — 现代化官方标准库
+### 1.12 `amber:std` — 现代化官方标准库
 ```typescript
-import { config } from 'bee:std/dotenv';
-import { colors, table } from 'bee:std/cli';
-import { walkDir, ensureDir } from 'bee:std/fs';
-import { uuid, signJwt, verifyJwt } from 'bee:std/crypto';
-import { assert, assertEquals } from 'bee:std/assert';
+import { config } from 'amber:std/dotenv';
+import { colors, table } from 'amber:std/cli';
+import { walkDir, ensureDir } from 'amber:std/fs';
+import { uuid, signJwt, verifyJwt } from 'amber:std/crypto';
+import { assert, assertEquals } from 'amber:std/assert';
 
 config({ path: '.env' });
-console.log(colors.cyan('Beejs 标准库环境就绪'));
+console.log(colors.cyan('Amber 标准库环境就绪'));
 ```
 
 ---
 
-### 1.13 `bee:wasm`, `bee:ffi` 与 `bee:pool` — 原生互通与隔离池
+### 1.13 `amber:wasm`, `amber:ffi` 与 `amber:pool` — 原生互通与隔离池
 ```typescript
-// WebAssembly 2.0 共享内存桥接 (bee:wasm)
-import { compile, instantiate, MemoryView } from 'bee:wasm';
+// WebAssembly 2.0 共享内存桥接 (amber:wasm)
+import { compile, instantiate, MemoryView } from 'amber:wasm';
 
-// 原生 C ABI FFI (bee:ffi)
-import { dlopen, CString, types } from 'bee:ffi';
+// 原生 C ABI FFI (amber:ffi)
+import { dlopen, CString, types } from 'amber:ffi';
 const lib = dlopen('libm.dylib', { sin: { args: [types.f64], returns: types.f64 } });
 
-// 多租户隔离池 (bee:pool)
-import { IsolatePool } from 'bee:pool';
+// 多租户隔离池 (amber:pool)
+import { IsolatePool } from 'amber:pool';
 const pool = new IsolatePool({ size: 8, memoryLimitMb: 128 });
 const output = await pool.execute('1 + 1');
 ```
@@ -229,7 +229,7 @@ const output = await pool.execute('1 + 1');
 
 ## 2. Node.js 核心兼容模块速查 (`node:*`)
 
-Beejs 在 51 项 Node.js 官方测试套件中达到 100% 满分通过率：
+Amber 在 51 项 Node.js 官方测试套件中达到 100% 满分通过率：
 
 | 核心模块 | 协议前缀规范 | 主要支持 API | 状态 |
 | :--- | :--- | :--- | :---: |

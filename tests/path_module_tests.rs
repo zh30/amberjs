@@ -1,6 +1,6 @@
 // Tests for path module (v0.3.32)
 // Tests for path.join, path.dirname, path.basename, path.extname, path.resolve
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

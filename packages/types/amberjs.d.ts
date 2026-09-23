@@ -2,11 +2,11 @@
  * Amberjs Runtime Type Definitions
  * Version: 1.0.0
  *
- * Comprehensive TypeScript declarations for Beejs runtime built-in APIs,
+ * Comprehensive TypeScript declarations for Amber runtime built-in APIs,
  * global objects, and native agentic AI modules.
  */
 
-declare module "bee:ai" {
+declare module "amber:ai" {
   /**
    * High-performance, zero-copy n-dimensional Tensor backed by TypedArray.
    */
@@ -204,7 +204,7 @@ declare module "bee:ai" {
   }
 }
 
-declare module "bee:bench" {
+declare module "amber:bench" {
   export interface BenchOptions {
     warmup?: number;
     iterations?: number;
@@ -214,9 +214,9 @@ declare module "bee:bench" {
 }
 
 /**
- * Beejs Runtime Global Namespace
+ * Amber Runtime Global Namespace
  */
-declare namespace bee {
+declare namespace amber {
   export const version: string;
 
   /**
@@ -236,7 +236,7 @@ declare namespace bee {
   };
 }
 
-declare module "bee:db" {
+declare module "amber:db" {
   export interface DatabaseOptions {
     readonly?: boolean;
   }
@@ -265,14 +265,14 @@ declare module "bee:db" {
     close(): void;
   }
 
-  export { VectorDB } from "bee:vector";
+  export { VectorDB } from "amber:vector";
 }
 
-declare module "bee:sqlite" {
-  export * from "bee:db";
+declare module "amber:sqlite" {
+  export * from "amber:db";
 }
 
-declare module "bee:vector" {
+declare module "amber:vector" {
   export type VectorMetric = "cosine" | "euclidean" | "dot";
 
   export interface VectorDBOptions {
@@ -319,7 +319,7 @@ declare module "bee:vector" {
   export function dotProduct(a: Float32Array | number[], b: Float32Array | number[]): number;
 }
 
-declare module "bee:std/dotenv" {
+declare module "amber:std/dotenv" {
   export interface DotenvConfigOptions {
     path?: string;
     override?: boolean;
@@ -334,7 +334,7 @@ declare module "bee:std/dotenv" {
   export function config(options?: DotenvConfigOptions): DotenvResult;
 }
 
-declare module "bee:std/cli" {
+declare module "amber:std/cli" {
   export const colors: {
     reset: (s: string) => string;
     bold: (s: string) => string;
@@ -363,7 +363,7 @@ declare module "bee:std/cli" {
   export function prompt(question: string, defaultValue?: string): Promise<string>;
 }
 
-declare module "bee:std/fs" {
+declare module "amber:std/fs" {
   export interface FileEntry {
     path: string;
     name: string;
@@ -384,7 +384,7 @@ declare module "bee:std/fs" {
   export function ensureFile(file: string): void;
 }
 
-declare module "bee:std/crypto" {
+declare module "amber:std/crypto" {
   export interface JWTSignOptions {
     expiresIn?: number | string;
     algorithm?: "HS256";
@@ -400,22 +400,22 @@ declare module "bee:std/crypto" {
   export function uuidv7(): string;
 }
 
-declare module "bee:std/assert" {
+declare module "amber:std/assert" {
   export function assert(condition: unknown, message?: string): asserts condition;
   export function assertEquals<T>(actual: unknown, expected: T, message?: string): asserts actual is T;
   export function assertNotEquals(actual: unknown, expected: unknown, message?: string): void;
   export function assertThrows(fn: () => unknown, expectedError?: string | RegExp, message?: string): void;
 }
 
-declare module "bee:std" {
-  export * as dotenv from "bee:std/dotenv";
-  export * as cli from "bee:std/cli";
-  export * as fs from "bee:std/fs";
-  export * as crypto from "bee:std/crypto";
-  export { assert, assertEquals, assertNotEquals, assertThrows } from "bee:std/assert";
+declare module "amber:std" {
+  export * as dotenv from "amber:std/dotenv";
+  export * as cli from "amber:std/cli";
+  export * as fs from "amber:std/fs";
+  export * as crypto from "amber:std/crypto";
+  export { assert, assertEquals, assertNotEquals, assertThrows } from "amber:std/assert";
 }
 
-declare module "bee:mcp" {
+declare module "amber:mcp" {
   export interface ToolDefinition {
     name: string;
     description?: string;
@@ -485,7 +485,7 @@ declare module "bee:mcp" {
   }
 }
 
-declare module "bee:vfs" {
+declare module "amber:vfs" {
   export function isEnabled(): boolean;
   export function isCow(): boolean;
   export function enable(cow?: boolean): void;
@@ -495,11 +495,11 @@ declare module "bee:vfs" {
   export function snapshot(): { enabled: boolean; cow: boolean; files: Record<string, string> };
 }
 
-declare module "bee:sandbox" {
-  export * from "bee:vfs";
+declare module "amber:sandbox" {
+  export * from "amber:vfs";
 }
 
-declare module "bee:ffi" {
+declare module "amber:ffi" {
   export type FFIType =
     | "void"
     | "bool"
@@ -580,10 +580,10 @@ declare module "bee:ffi" {
 }
 
 declare module "ffi" {
-  export * from "bee:ffi";
+  export * from "amber:ffi";
 }
 
-declare module "bee:pool" {
+declare module "amber:pool" {
   export interface IsolatePoolOptions {
     minIsolates?: number;
     maxIsolates?: number;
@@ -611,10 +611,10 @@ declare module "bee:pool" {
 }
 
 declare module "pool" {
-  export * from "bee:pool";
+  export * from "amber:pool";
 }
 
-declare module "bee:wasm" {
+declare module "amber:wasm" {
   export interface MemoryViewOptions {
     target: any;
     byteLength?: number;
@@ -665,10 +665,10 @@ declare module "bee:wasm" {
 }
 
 declare module "wasm" {
-  export * from "bee:wasm";
+  export * from "amber:wasm";
 }
 
-declare module "bee:replay" {
+declare module "amber:replay" {
   export interface RecordOptions {
     script?: string;
     outputPath?: string;
@@ -695,10 +695,10 @@ declare module "bee:replay" {
 }
 
 declare module "replay" {
-  export * from "bee:replay";
+  export * from "amber:replay";
 }
 
-declare module "bee:weights" {
+declare module "amber:weights" {
   export interface GGUFTensorInfo {
     name: string;
     shape: number[];
@@ -743,10 +743,10 @@ declare module "bee:weights" {
 }
 
 declare module "weights" {
-  export * from "bee:weights";
+  export * from "amber:weights";
 }
 
-declare module "bee:security" {
+declare module "amber:security" {
   export interface PermissionDescriptor {
     name: "read" | "write" | "net" | "listen" | "env" | "run";
     path?: string;
@@ -810,11 +810,11 @@ declare module "bee:security" {
 }
 
 declare module "security" {
-  export * from "bee:security";
+  export * from "amber:security";
 }
 
-declare module "bee:permissions" {
-  import { PermissionDescriptor, PermissionStatus, PermissionListResult } from "bee:security";
+declare module "amber:permissions" {
+  import { PermissionDescriptor, PermissionStatus, PermissionListResult } from "amber:security";
   export function query(descriptor: PermissionDescriptor): PermissionStatus;
   export function has(descriptor: PermissionDescriptor): boolean;
   export function list(): PermissionListResult;
@@ -822,10 +822,10 @@ declare module "bee:permissions" {
 }
 
 declare module "permissions" {
-  export * from "bee:permissions";
+  export * from "amber:permissions";
 }
 
-declare module "bee:kv" {
+declare module "amber:kv" {
   export interface KVSetOptions {
     ttlMs?: number;
   }
@@ -870,10 +870,10 @@ declare module "bee:kv" {
 }
 
 declare module "kv" {
-  export * from "bee:kv";
+  export * from "amber:kv";
 }
 
-declare module "bee:tools" {
+declare module "amber:tools" {
   export interface JSONSchemaProperty {
     type: "string" | "number" | "integer" | "boolean" | "array" | "object";
     description?: string;
@@ -942,10 +942,10 @@ declare module "bee:tools" {
 }
 
 declare module "tools" {
-  export * from "bee:tools";
+  export * from "amber:tools";
 }
 
-declare module "bee:sandbox" {
+declare module "amber:sandbox" {
   export interface EnclaveOptions {
     context?: Record<string, unknown>;
   }
@@ -967,10 +967,10 @@ declare module "bee:sandbox" {
 }
 
 declare module "sandbox" {
-  export * from "bee:sandbox";
+  export * from "amber:sandbox";
 }
 
-declare module "bee:bus" {
+declare module "amber:bus" {
   export interface Message<TPayload = any> {
     id: string;
     topic: string;
@@ -1075,10 +1075,10 @@ declare module "bee:bus" {
 }
 
 declare module "bus" {
-  export * from "bee:bus";
+  export * from "amber:bus";
 }
 
-declare module "bee:grammar" {
+declare module "amber:grammar" {
   export interface SSEMessage {
     event: string;
     data: string;
@@ -1130,10 +1130,10 @@ declare module "bee:grammar" {
 }
 
 declare module "grammar" {
-  export * from "bee:grammar";
+  export * from "amber:grammar";
 }
 
-declare module "bee:checkpoint" {
+declare module "amber:checkpoint" {
   export interface Checkpoint<TState = any> {
     id: string;
     parent_id?: string;
@@ -1204,13 +1204,13 @@ declare module "bee:checkpoint" {
 }
 
 declare module "checkpoint" {
-  export * from "bee:checkpoint";
+  export * from "amber:checkpoint";
 }
 
 /**
  * WinterTC Sockets API (TC55 proposal-sockets-api)
  */
-declare module "bee:sockets" {
+declare module "amber:sockets" {
   export interface SocketInfo {
     remoteAddress: string;
     localAddress: string;
@@ -1248,11 +1248,11 @@ declare module "bee:sockets" {
 }
 
 declare module "sockets" {
-  export * from "bee:sockets";
+  export * from "amber:sockets";
 }
 
 declare module "wintertc:sockets" {
-  export * from "bee:sockets";
+  export * from "amber:sockets";
 }
 
 // Global WinterTC Web APIs
@@ -1348,92 +1348,92 @@ declare class CountQueuingStrategy {
 }
 
 declare function connect(
-  address: string | import("bee:sockets").SocketAddress,
-  options?: import("bee:sockets").SocketOptions
-): import("bee:sockets").Socket;
+  address: string | import("amber:sockets").SocketAddress,
+  options?: import("amber:sockets").SocketOptions
+): import("amber:sockets").Socket;
 
 declare function reportError(error: any): void;
 
 
 /** Amber module aliases */
 declare module "amber:ai" {
-  export * from "bee:ai";
+  export * from "amber:ai";
 }
 declare module "amber:bench" {
-  export * from "bee:bench";
+  export * from "amber:bench";
 }
 declare module "amber:bus" {
-  export * from "bee:bus";
+  export * from "amber:bus";
 }
 declare module "amber:checkpoint" {
-  export * from "bee:checkpoint";
+  export * from "amber:checkpoint";
 }
 declare module "amber:db" {
-  export * from "bee:db";
+  export * from "amber:db";
 }
 declare module "amber:ffi" {
-  export * from "bee:ffi";
+  export * from "amber:ffi";
 }
 declare module "amber:grammar" {
-  export * from "bee:grammar";
+  export * from "amber:grammar";
 }
 declare module "amber:kv" {
-  export * from "bee:kv";
+  export * from "amber:kv";
 }
 declare module "amber:mcp" {
-  export * from "bee:mcp";
+  export * from "amber:mcp";
 }
 declare module "amber:permissions" {
-  export * from "bee:permissions";
+  export * from "amber:permissions";
 }
 declare module "amber:pool" {
-  export * from "bee:pool";
+  export * from "amber:pool";
 }
 declare module "amber:replay" {
-  export * from "bee:replay";
+  export * from "amber:replay";
 }
 declare module "amber:sandbox" {
-  export * from "bee:sandbox";
+  export * from "amber:sandbox";
 }
 declare module "amber:security" {
-  export * from "bee:security";
+  export * from "amber:security";
 }
 declare module "amber:sockets" {
-  export * from "bee:sockets";
+  export * from "amber:sockets";
 }
 declare module "amber:sqlite" {
-  export * from "bee:sqlite";
+  export * from "amber:sqlite";
 }
 declare module "amber:std" {
-  export * from "bee:std";
+  export * from "amber:std";
 }
 declare module "amber:std/assert" {
-  export * from "bee:std/assert";
+  export * from "amber:std/assert";
 }
 declare module "amber:std/cli" {
-  export * from "bee:std/cli";
+  export * from "amber:std/cli";
 }
 declare module "amber:std/crypto" {
-  export * from "bee:std/crypto";
+  export * from "amber:std/crypto";
 }
 declare module "amber:std/dotenv" {
-  export * from "bee:std/dotenv";
+  export * from "amber:std/dotenv";
 }
 declare module "amber:std/fs" {
-  export * from "bee:std/fs";
+  export * from "amber:std/fs";
 }
 declare module "amber:tools" {
-  export * from "bee:tools";
+  export * from "amber:tools";
 }
 declare module "amber:vector" {
-  export * from "bee:vector";
+  export * from "amber:vector";
 }
 declare module "amber:vfs" {
-  export * from "bee:vfs";
+  export * from "amber:vfs";
 }
 declare module "amber:wasm" {
-  export * from "bee:wasm";
+  export * from "amber:wasm";
 }
 declare module "amber:weights" {
-  export * from "bee:weights";
+  export * from "amber:weights";
 }

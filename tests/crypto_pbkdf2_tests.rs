@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
-fn beejs_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_bee"))
+fn amberjs_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
 fn run_js_test(code: &str) -> String {
@@ -16,14 +16,14 @@ fn run_js_test(code: &str) -> String {
     let test_file = temp_dir.path().join("test.js");
     fs::write(&test_file, code).unwrap();
 
-    let output = Command::new(beejs_path())
+    let output = Command::new(amberjs_path())
         .arg("run")
         .arg(&test_file)
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    // Parse output - skip the "🐝 Running Beejs on:" line and "Result:" line
+    // Parse output - skip the "🐝 Running Amber on:" line and "Result:" line
     let lines: Vec<&str> = stdout
         .lines()
         .filter(|line| !line.starts_with("🐝") && !line.starts_with("Result:"))
@@ -36,11 +36,11 @@ fn run_js_test_with_stderr(code: &str) -> (String, String) {
     let test_file = temp_dir.path().join("test.js");
     fs::write(&test_file, code).unwrap();
 
-    let output = Command::new(beejs_path())
+    let output = Command::new(amberjs_path())
         .arg("run")
         .arg(&test_file)
         .output()
-        .expect("Failed to execute bee");
+        .expect("Failed to execute amber");
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
@@ -512,7 +512,7 @@ fn test_pbkdf2_sync_known_vector_sha256() {
     let code = r#"
 const expected = '120fb6cffcf8b32c43e7225256c4f837a86548c92ccc35480805987cb70be17b';
 const result = crypto.pbkdf2Sync('password', 'salt', 1, 32, 'sha256');
-// Convert Uint8Array to hex string using Array.from for beejs compatibility
+// Convert Uint8Array to hex string using Array.from for amberjs compatibility
 const resultHex = Array.from(result).map(b => b.toString(16).padStart(2, '0')).join('');
 console.log(resultHex === expected ? 'PASS' : 'FAIL');
 console.log('Expected: ' + expected);

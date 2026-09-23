@@ -2,12 +2,12 @@
 
 ## 项目定位
 
-Beejs 是一个用 Rust 和 V8 构建的 JavaScript/TypeScript 运行时。当前仓库同时包含核心运行时代码、历史阶段实现、性能基准、修复脚本、文档站点和大量阶段报告。做代码修改时以 `Cargo.toml`、`src/lib.rs` 和实际测试结果为准；`README.md` 与 `docs/STAGE_*` 中的部分性能或阶段描述可能是历史目标或阶段总结。
+Amber（crate `amberjs`，CLI `amber`）是一个用 Rust 和 V8 构建的 JavaScript/TypeScript 运行时。当前仓库同时包含核心运行时代码、历史阶段实现、性能基准、修复脚本、文档站点和大量阶段报告。做代码修改时以 `Cargo.toml`、`src/lib.rs` 和实际测试结果为准；`README.md` 与 `docs/STAGE_*` 中的部分性能或阶段描述可能是历史目标或阶段总结。对外品牌用 Amber / Amberjs，不要再写 Amber 或 `amber` 命令。
 
 ## 关键源码与模块边界
 
-- `src/main.rs` 是当前 Cargo 启用的 `beejs` 二进制入口；`Cargo.toml` 中的 `[[bin]]` 指向这里。
-- `src/bin/beejs.rs` 仍存在，但不是当前默认二进制入口。除非明确迁移 CLI，否则不要把它当作主入口。
+- `src/main.rs` 是当前 Cargo 启用的 `amber` 二进制入口；`Cargo.toml` 中的 `[[bin]]` 指向这里。
+- 不要再把 `amber` / `amberjs` 当作默认 CLI 或 crate 名。历史 `amber:*` 模块前缀仍是运行时别名，用户文档应写 `amber:*`。
 - `src/lib.rs` 是库模块启用状态的事实来源。仓库里许多目录和 `.rs` 文件存在但被注释、feature-gate 或保留为阶段产物；不要仅因文件存在就假设它参与默认构建。
 - `src/runtime_minimal.rs` 是当前 CLI 主要使用的 V8 执行运行时。
 - `src/nodejs_core/` 提供 Node.js 兼容层，包括 `fs`、`crypto`、`stream`、`events`、`net`、`http`、`buffer`、`path`、`os`、`url`、`dns`、`process`、`timers`、`performance`、`readline`、CommonJS `require` 等。
@@ -25,7 +25,7 @@ Beejs 是一个用 Rust 和 V8 构建的 JavaScript/TypeScript 运行时。当�
 - `docs/`：架构、计划、阶段报告、API 和用户文档。阶段报告不一定反映当前可编译模块。
 - `tools/`：Rust/TypeScript 辅助工具，如 benchmark runner、debug adapter、VS Code extension。
 - `scripts/` 与根目录大量 `fix_*.py`、`*_benchmark.*`：历史修复和实验脚本。不要把新的长期代码放在根目录。
-- `website/`：独立的 Vite/React/Tailwind 文档站点，使用自己的 `package.json`。
+- `apps/website/`：官方站点（Vite/React/Tailwind），部署到 `amberjs.com`。
 - `monitoring/`、`dashboards/`、`k8s/`、`config/`、`configs/`：部署、监控和环境配置。
 
 ## 构建与运行命令
@@ -49,7 +49,7 @@ make lint
 make clean
 ```
 
-注意：`make run file=...` 仍按旧形式调用 `./target/release/bee $(file) --verbose`，而当前 CLI 使用 `bee run <file>` 子命令。做 CLI 验证时优先使用 `cargo run -- run <file>` 或 `./target/release/bee run <file>`。
+注意：`make run file=...` 可能仍按旧形式调用二进制。做 CLI 验证时优先使用 `cargo run -- run <file>` 或 `./target/release/amber run <file>`。
 
 ## 测试与质量检查
 
@@ -70,16 +70,16 @@ cargo clippy --all-targets -- -D warnings
 
 ## Website
 
-`website/` 是单独的前端项目：
+官方站点在 `apps/website/`：
 
 ```bash
-cd website
+cd apps/website
 npm run dev
 npm run build
 npm run deploy:dry-run
 ```
 
-不要手动编辑 `website/dist/`、`website/node_modules/` 或时间戳类生成文件，除非任务明确要求处理构建产物。
+不要手动编辑 `apps/website/dist/`、`apps/website/node_modules/` 或时间戳类生成文件，除非任务明确要求处理构建产物。
 
 ## 编码约定
 
@@ -107,7 +107,7 @@ npm run deploy:dry-run
 
 ### Issue tracker
 
-Issues and PRDs are tracked in GitHub Issues for `zh30/beejs`. See `docs/agents/issue-tracker.md`.
+Issues and PRDs are tracked in GitHub Issues for `zh30/amberjs`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

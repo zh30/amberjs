@@ -36,7 +36,7 @@ def fix_unused_imports(file_path):
 
 def main():
     """主函数"""
-    src_dir = '/Users/henry/code/beejs/src'
+    src_dir = '/Users/henry/code/amberjs/src'
 
     # 查找所有 Rust 文件
     for root, dirs, files in os.walk(src_dir):

@@ -28,7 +28,7 @@ pub fn setup_navigator_api(
     // 1. userAgent conforming to ECMA-429 Section 7 & RFC 7231: product token
     let user_agent_key = v8::String::new(scope, "userAgent").unwrap();
     let version = env!("CARGO_PKG_VERSION");
-    let user_agent_str = format!("Beejs/{}", version);
+    let user_agent_str = format!("Amber/{}", version);
     let user_agent_val = v8::String::new(scope, &user_agent_str).unwrap();
     navigator_obj.set(scope, user_agent_key.into(), user_agent_val.into());
 

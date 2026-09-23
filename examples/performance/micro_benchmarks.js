@@ -1,11 +1,11 @@
 /**
- * Beejs 性能测试 - 微基准测试
+ * Amber 性能测试 - 微基准测试
  *
- * 展示 Beejs 在各种操作上的极致性能
+ * 展示 Amber 在各种操作上的极致性能
  * 与 Bun、Node.js 的对比
  */
 
-console.log("=== Beejs 微基准测试 ===\n");
+console.log("=== Amber 微基准测试 ===\n");
 
 // 性能测试辅助函数
 function benchmark(name, fn, iterations = 1000000) {
@@ -261,7 +261,7 @@ benchmark("数组分配", () => {
 
 // 性能对比总结
 console.log("\n=== 性能对比总结 ===\n");
-console.log("Beejs 在以下方面表现出色:");
+console.log("Amber 在以下方面表现出色:");
 console.log("✅ 算术运算: 比 Bun 快 100-1000x");
 console.log("✅ 字符串操作: 比 Bun 快 50-200x");
 console.log("✅ 数组操作: 比 Bun 快 20-100x");
@@ -273,10 +273,10 @@ console.log("\n测试完成! 🎉");
  * 运行基准测试
  *
  * 命令:
- * bee run examples/performance/micro_benchmarks.js
+ * amber run examples/performance/micro_benchmarks.js
  *
  * 输出示例:
- * === Beejs 微基准测试 ===
+ * === Amber 微基准测试 ===
  *
  * --- 1. 基础算术运算 ---
  *

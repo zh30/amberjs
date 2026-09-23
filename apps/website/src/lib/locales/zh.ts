@@ -1,5 +1,5 @@
 import type { TranslationSchema } from "./types";
-import { BEEJS_VERSION } from "../version";
+import { AMBER_VERSION } from "../version";
 
 export const zh: TranslationSchema = {
   nav: {
@@ -14,7 +14,7 @@ export const zh: TranslationSchema = {
     run: "运行",
     running: "运行中",
     language: "语言",
-    note: "在浏览器里执行（和当前标签页同一个引擎），不是 bee 二进制。Amber 无法把 V8 塞进 WASM。TypeScript 的检查与编译由 Monaco（VS Code 编辑器）完成。",
+    note: "在浏览器里执行（和当前标签页同一个引擎），不是 amber 二进制。Amber 无法把 V8 塞进 WASM。TypeScript 的检查与编译由 Monaco（VS Code 编辑器）完成。",
     output: "输出",
     empty: "点运行后在这里看 console 输出。",
     loading: "正在加载编辑器…",
@@ -36,9 +36,9 @@ export const zh: TranslationSchema = {
   footer: {
     statusLabel: "系统状态",
     statusValue: "运行中",
-    stage: BEEJS_VERSION,
+    stage: AMBER_VERSION,
     contact: "联系",
-    email: "support@bee.zhanghe.dev",
+    email: "support@amberjs.com",
     rights: "保留所有权利。",
     builtWith: "基于 Rust & V8 构建",
     docs: "文档手册",
@@ -47,7 +47,7 @@ export const zh: TranslationSchema = {
     copyright: `© ${new Date().getFullYear()} Amber. 基于 MIT 协议开源。`,
   },
   home: {
-    heroBadge: BEEJS_VERSION,
+    heroBadge: AMBER_VERSION,
     heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream 热路径",
     heroBanner:
       "Amber v1.16.0：Wasm 2.0、amber bundle / compile，以及 URL / fetch / ReadableStream 热路径。",
@@ -56,7 +56,7 @@ export const zh: TranslationSchema = {
     heroTitleAccent: "JavaScript & TypeScript 运行时",
     heroTitleSuffix: "",
     heroSubtitle:
-      "一个二进制：bee。跑脚本、Jest 风格测试、MCP 工具和 bee:ai 张量，可选能力沙箱。不是 Node.js 替代品。Node Conformance 5.0 为 55/55。",
+      "一个二进制：amber。跑脚本、Jest 风格测试、MCP 工具和 amber:ai 张量，可选能力沙箱。不是 Node.js 替代品。Node Conformance 5.0 为 55/55。",
     ctaPrimary: "查阅文档手册",
     ctaSecondary: "硬核性能实测",
     ctaNotes: "发布日志",
@@ -87,15 +87,15 @@ export const zh: TranslationSchema = {
         category: "core",
         title: "URL + URLSearchParams（20k）",
         desc: "WHATWG URL 解析与 search 参数改写",
-        beeValue: "7.28 ms",
-        beeOps: "137 ops/s",
+        amberValue: "7.28 ms",
+        amberOps: "137 ops/s",
         bunValue: "15.41 ms",
         bunOps: "65 ops/s",
         nodeValue: "12.54 ms",
         nodeOps: "80 ops/s",
         multiplier: "比 Node 快 1.72x · 比 Bun 快 2.12x",
-        isBeeWinner: true,
-        beeBar: 100,
+        isAmberWinner: true,
+        amberBar: 100,
         bunBar: 47,
         nodeBar: 58,
       },
@@ -104,15 +104,15 @@ export const zh: TranslationSchema = {
         category: "io",
         title: "fetch 连续 100 次 GET",
         desc: "对本地服务器的 HTTP/1.1 keep-alive GET",
-        beeValue: "6.51 ms",
-        beeOps: "154 ops/s",
+        amberValue: "6.51 ms",
+        amberOps: "154 ops/s",
         bunValue: "4.25 ms",
         bunOps: "235 ops/s",
         nodeValue: "17.00 ms",
         nodeOps: "59 ops/s",
         multiplier: "比 Node 快 2.61x · Bun 仍更快",
-        isBeeWinner: false,
-        beeBar: 65,
+        isAmberWinner: false,
+        amberBar: 65,
         bunBar: 100,
         nodeBar: 25,
       },
@@ -121,15 +121,15 @@ export const zh: TranslationSchema = {
         category: "core",
         title: "EventEmitter emit（50k）",
         desc: "同步监听器分发",
-        beeValue: "0.40 ms",
-        beeOps: "2,508 ops/s",
+        amberValue: "0.40 ms",
+        amberOps: "2,508 ops/s",
         bunValue: "0.83 ms",
         bunOps: "1,205 ops/s",
         nodeValue: "0.48 ms",
         nodeOps: "2,083 ops/s",
         multiplier: "比 Node 快 1.21x · 比 Bun 快 2.07x",
-        isBeeWinner: true,
-        beeBar: 100,
+        isAmberWinner: true,
+        amberBar: 100,
         bunBar: 48,
         nodeBar: 83,
       },
@@ -138,15 +138,15 @@ export const zh: TranslationSchema = {
         category: "io",
         title: "ReadableStream 5k chunks",
         desc: "生产并消费字节流",
-        beeValue: "0.92 ms",
-        beeOps: "1,091 ops/s",
+        amberValue: "0.92 ms",
+        amberOps: "1,091 ops/s",
         bunValue: "0.32 ms",
         bunOps: "3,125 ops/s",
         nodeValue: "1.16 ms",
         nodeOps: "862 ops/s",
         multiplier: "比 Node 快 1.26x · Bun 仍更快",
-        isBeeWinner: false,
-        beeBar: 35,
+        isAmberWinner: false,
+        amberBar: 35,
         bunBar: 100,
         nodeBar: 28,
       },
@@ -155,15 +155,15 @@ export const zh: TranslationSchema = {
         category: "core",
         title: "CLI 冷启动（eval 1+1）",
         desc: "进程拉起、isolate、求值、退出（20 次均值）",
-        beeValue: "18.47 ms",
-        beeOps: "均值；P95 仍有抖动",
+        amberValue: "18.47 ms",
+        amberOps: "均值；P95 仍有抖动",
         bunValue: "8.03 ms",
         bunOps: "冷启动最快",
         nodeValue: "27.53 ms",
         nodeOps: "比 Amber 慢 1.49x",
         multiplier: "比 Node 快 1.49x · Bun 仍更快",
-        isBeeWinner: false,
-        beeBar: 43,
+        isAmberWinner: false,
+        amberBar: 43,
         bunBar: 100,
         nodeBar: 29,
       },
@@ -172,15 +172,15 @@ export const zh: TranslationSchema = {
         category: "io",
         title: "Express 5.x（32 连接，5 秒）",
         desc: "autocannon 吞吐 — 越高越好",
-        beeValue: "68.0k req/s",
-        beeOps: "平均 0.02 ms",
+        amberValue: "68.0k req/s",
+        amberOps: "平均 0.02 ms",
         bunValue: "64.6k req/s",
         bunOps: "平均 0.02 ms",
         nodeValue: "18.9k req/s",
         nodeOps: "平均 1.17 ms",
         multiplier: "比 Node 快 3.59x · 比 Bun 快 1.05x",
-        isBeeWinner: true,
-        beeBar: 100,
+        isAmberWinner: true,
+        amberBar: 100,
         bunBar: 95,
         nodeBar: 28,
       },
@@ -228,7 +228,7 @@ export const zh: TranslationSchema = {
     features: [
       {
         title: "一个二进制",
-        desc: "run、eval、repl、test、session、mcp 都在 `bee` 里。TypeScript 是 oxc 类型擦除，不是 tsc。",
+        desc: "run、eval、repl、test、session、mcp 都在 `amber` 里。TypeScript 是 oxc 类型擦除，不是 tsc。",
       },
       {
         title: "能力沙箱",
@@ -243,7 +243,7 @@ export const zh: TranslationSchema = {
         desc: "amber test 支持 describe / test / expect。--parallel 会被拒绝：isolate 不能跨线程共享。",
       },
       {
-        title: "进程内 bee:ai",
+        title: "进程内 amber:ai",
         desc: 'Tensor、LLM、AgentPipeline，不需要 Python sidecar。Cargo feature = "ai" 是空的，不是产品级 LLM。',
       },
       {
@@ -262,11 +262,11 @@ export const zh: TranslationSchema = {
       },
       {
         title: "oxc 转译与代码质量引擎",
-        desc: "采用超高速 Rust AST 引擎，以亚毫秒级速度擦除类型，并提供内置极速格式化 (bee fmt) 与静态检查 (bee lint)。",
+        desc: "采用超高速 Rust AST 引擎，以亚毫秒级速度擦除类型，并提供内置极速格式化 (amber fmt) 与静态检查 (amber lint)。",
       },
       {
         title: "现代 Web 服务与并发架构",
-        desc: "原生支持标准 Fetch API 应用服务 (bee serve)，并具备无锁多 Worker 线程池并发模型。",
+        desc: "原生支持标准 Fetch API 应用服务 (amber serve)，并具备无锁多 Worker 线程池并发模型。",
       },
       {
         title: "Agent 确定性沙箱与资源配额",
@@ -278,10 +278,10 @@ export const zh: TranslationSchema = {
       },
       {
         title: "开发者体验与调试协议 (CDP & LSP)",
-        desc: "包含升级版交互终端 (bee repl)、Chrome DevTools 远程调试以及语言服务器 (bee lsp)。",
+        desc: "包含升级版交互终端 (amber repl)、Chrome DevTools 远程调试以及语言服务器 (amber lsp)。",
       },
     ],
-    ctaTitle: "装上 bee，跑一段代码。",
+    ctaTitle: "装上 amber，跑一段代码。",
     ctaSubtitle:
       "v1.16.0 预编译包覆盖 macOS、Linux、Windows。一条 curl（或 irm）。",
     ctaButton: "查看安装手册",
@@ -310,11 +310,11 @@ export const zh: TranslationSchema = {
           { id: "v8-isolate-pool", label: "运行时与 V8 架构" },
           {
             id: "isolate-pool",
-            label: "多租户 IsolatePool (bee:pool)",
+            label: "多租户 IsolatePool (amber:pool)",
             badge: "v1.4",
           },
           { id: "jit-optimization", label: "TypeScript 6.0 与 TSX" },
-          { id: "ai-engine", label: "原生 AI 引擎 (bee:ai)", badge: "AI" },
+          { id: "ai-engine", label: "原生 AI 引擎 (amber:ai)", badge: "AI" },
           {
             id: "ai-embeddings",
             label: "零依赖原生 Embedding 与语义向量",
@@ -332,7 +332,7 @@ export const zh: TranslationSchema = {
           {
             id: "bundling-compilation",
             label: "打包器 2.0 与 SEA 独立二进制",
-            badge: "Preview",
+            badge: "Stable",
           },
           {
             id: "testing-benchmarking",
@@ -351,12 +351,12 @@ export const zh: TranslationSchema = {
         items: [
           {
             id: "embedded-db",
-            label: "嵌入式数据与向量引擎 (bee:db & bee:vector)",
+            label: "嵌入式数据与向量引擎 (amber:db & amber:vector)",
             badge: "DB",
           },
           {
             id: "standard-library",
-            label: "现代官方标准库 (bee:std)",
+            label: "现代官方标准库 (amber:std)",
             badge: "Std",
           },
           {
@@ -366,7 +366,7 @@ export const zh: TranslationSchema = {
           },
           {
             id: "deployment-docker",
-            label: "全自动部署与容器编排 (bee deploy)",
+            label: "全自动部署与容器编排 (amber deploy)",
             badge: "Deploy",
           },
           {
@@ -386,52 +386,52 @@ export const zh: TranslationSchema = {
           },
           {
             id: "agent-replay",
-            label: "确定性 Agent 回放引擎 (bee:replay)",
+            label: "确定性 Agent 回放引擎 (amber:replay)",
             badge: "v1.6",
           },
           {
             id: "model-weights",
-            label: "原生 GGUF / SafeTensors 权重加载 (bee:weights)",
+            label: "原生 GGUF / SafeTensors 权重加载 (amber:weights)",
             badge: "v1.6",
           },
           {
             id: "capability-security",
-            label: "企业级能力安全控制 (bee:security)",
+            label: "企业级能力安全控制 (amber:security)",
             badge: "v1.6",
           },
           {
             id: "kv-store",
-            label: "持久化 KV 与可靠状态引擎 (bee:kv)",
+            label: "持久化 KV 与可靠状态引擎 (amber:kv)",
             badge: "v1.7",
           },
           {
             id: "tool-synthesis",
-            label: "工具自动合成与 OpenAPI 编译器 (bee:tools)",
+            label: "工具自动合成与 OpenAPI 编译器 (amber:tools)",
             badge: "v1.7",
           },
           {
             id: "hardened-sandbox",
-            label: "加固执行沙箱与合规审计日志 (bee:sandbox)",
+            label: "加固执行沙箱与合规审计日志 (amber:sandbox)",
             badge: "v1.7",
           },
           {
             id: "agent-bus",
-            label: "多 Agent 消息总线与 PubSub (bee:bus)",
+            label: "多 Agent 消息总线与 PubSub (amber:bus)",
             badge: "v1.8",
           },
           {
             id: "streaming-grammar",
-            label: "流式结构化自愈与 Token 语法 (bee:grammar)",
+            label: "流式结构化自愈与 Token 语法 (amber:grammar)",
             badge: "v1.8",
           },
           {
             id: "agent-checkpoint",
-            label: "Agent 状态检查点与回退 (bee:checkpoint)",
+            label: "Agent 状态检查点与回退 (amber:checkpoint)",
             badge: "v1.8",
           },
           {
             id: "mcp-protocol",
-            label: "Model Context Protocol 2.0 (bee:mcp)",
+            label: "Model Context Protocol 2.0 (amber:mcp)",
             badge: "v1.3",
           },
           {
@@ -441,17 +441,17 @@ export const zh: TranslationSchema = {
           },
           {
             id: "ffi-native",
-            label: "原生 C ABI 外部接口 (bee:ffi)",
+            label: "原生 C ABI 外部接口 (amber:ffi)",
             badge: "v1.4",
           },
           {
             id: "wasm-interop",
-            label: "Wasm 2.0 零拷贝互通 (bee:wasm)",
+            label: "Wasm 2.0 零拷贝互通 (amber:wasm)",
             badge: "v1.16",
           },
           {
             id: "slm-inference",
-            label: "端侧 SLM 与约束 JSON 解码 (bee:ai)",
+            label: "端侧 SLM 与约束 JSON 解码 (amber:ai)",
             badge: "v1.4",
           },
           {
@@ -486,7 +486,7 @@ export const zh: TranslationSchema = {
         title: "概览",
         subtitle: "Rust + V8 构建的 JavaScript 和 TypeScript 运行时。",
         body: [
-          "Amber v1.16.0 是 Rust + V8 的 JavaScript/TypeScript 运行时，一个二进制：bee。Node Conformance 5.0 为 55/55 fixtures —— 这不是 drop-in Node 兼容。",
+          "Amber v1.16.0 是 Rust + V8 的 JavaScript/TypeScript 运行时，一个二进制：amber。Node Conformance 5.0 为 55/55 fixtures —— 这不是 drop-in Node 兼容。",
           "仓库仍保留历史阶段报告和 feature-gated 模块。这些资料适合了解设计背景，但公开发布承诺以默认 Cargo 构建为准。",
         ],
         cards: [
@@ -507,7 +507,7 @@ export const zh: TranslationSchema = {
           "预编译发布产物当前覆盖 macOS x86_64、macOS arm64 和 Linux x86_64。其他平台可通过 Rust 从源码构建。",
         ],
         code: [
-          "$ curl -fsSL https://amberjs.com/install.sh | sh",
+          "$ curl -fsSL https://get.amberjs.com/install.sh | sh",
           "$ amber --version",
         ],
       },
@@ -518,7 +518,7 @@ export const zh: TranslationSchema = {
         code: [
           'console.log("Hello from Amber");',
           "amber run hello.js",
-          'bee eval "1 + 1"',
+          'amber eval "1 + 1"',
         ],
       },
       "v8-isolate-pool": {
@@ -529,8 +529,8 @@ export const zh: TranslationSchema = {
         ],
         list: [
           "用 amber run 执行 JavaScript 文件",
-          "用 bee eval 执行片段",
-          "用 bee repl 进入交互式终端",
+          "用 amber eval 执行片段",
+          "用 amber repl 进入交互式终端",
         ],
       },
       "jit-optimization": {
@@ -561,19 +561,19 @@ export const zh: TranslationSchema = {
         title: "Serve 模式",
         subtitle: "健康检查 stub，不是应用服务器。",
         body: [
-          'bee serve 用 tiny_http 绑定端口并返回固定 {"ok":true}，不执行用户脚本。应用 HTTP 请用 http.createServer 和 amber run。',
+          'amber serve 用 tiny_http 绑定端口并返回固定 {"ok":true}，不执行用户脚本。应用 HTTP 请用 http.createServer 和 amber run。',
         ],
-        code: ["$ bee serve --host localhost --port 3000"],
+        code: ["$ amber serve --host localhost --port 3000"],
       },
       "cli-usage": {
         title: "CLI 用法",
         subtitle: "核心命令。",
         list: [
           "amber run <file> - 执行 JavaScript 或 TypeScript 文件",
-          "bee eval <code> - 执行 JavaScript 片段",
+          "amber eval <code> - 执行 JavaScript 片段",
           "amber test [file] - 运行内置或文件测试",
           "amber bundle <entry> - 写出生产 bundle",
-          "bee serve - 健康检查 stub（固定 JSON，不跑用户脚本）",
+          "amber serve - 健康检查 stub（固定 JSON，不跑用户脚本）",
           "amber install - 从 package.json 安装依赖",
         ],
       },
@@ -582,10 +582,10 @@ export const zh: TranslationSchema = {
         subtitle:
           "Amber 原生子系统 (amber:*)、Node.js 核心及 Web 标准 API 规范。",
         body: [
-          "默认 bee 二进制手册：CLI、Node/Web API（按 API 计，Conformance 5.0 为 55/55 fixtures）、bee:ai、沙箱，以及 Preview 打包。",
+          "默认 amber 二进制手册：CLI、Node/Web API（按 API 计，Conformance 5.0 为 55/55 fixtures）、amber:ai、沙箱，以及 Preview 打包。",
         ],
         list: [
-          "Amber 原生子系统 (bee:ai, bee:db, bee:vector, bee:bus, bee:grammar, bee:checkpoint 等)",
+          "Amber 原生子系统 (amber:ai, amber:db, amber:vector, amber:bus, amber:grammar, amber:checkpoint 等)",
           "Node.js 兼容层 (fs, net, http, crypto, stream, worker_threads 等 51 个核心模块)",
           "Web 标准 API (fetch, WebCrypto, Streams, WebSocket, Worker, structuredClone)",
         ],
@@ -608,8 +608,8 @@ export const zh: TranslationSchema = {
           "集成 SQLite 3 与基于 Rust 的高维向量相似度检索，提供零外部依赖的数据管理与本地 RAG 检索底座。",
         ],
         list: [
-          "bee:db - 嵌入式 SQLite 数据库",
-          "bee:vector - 高性能向量检索数据库",
+          "amber:db - 嵌入式 SQLite 数据库",
+          "amber:vector - 高性能向量检索数据库",
         ],
       },
       "standard-library": {
@@ -619,11 +619,11 @@ export const zh: TranslationSchema = {
           "提供 dotenv、终端样式与表格交互、高级文件系统遍历与拷贝、UUID/JWT 密码学、深度相等断言。",
         ],
         list: [
-          "bee:std/dotenv",
-          "bee:std/cli",
-          "bee:std/fs",
-          "bee:std/crypto",
-          "bee:std/assert",
+          "amber:std/dotenv",
+          "amber:std/cli",
+          "amber:std/fs",
+          "amber:std/crypto",
+          "amber:std/assert",
         ],
       },
       "package-manager-dlx": {
@@ -640,7 +640,7 @@ export const zh: TranslationSchema = {
         body: [
           "自动化分析项目入口，输出生产级多阶段 Dockerfile、极简 compose 文件与云原生 k8s 配置。",
         ],
-        code: ["$ bee deploy --target docker", "$ bee deploy --target k8s"],
+        code: ["$ amber deploy --target docker", "$ amber deploy --target k8s"],
       },
       "ide-extension": {
         title: "VS Code 官方编辑器插件",

@@ -7,7 +7,7 @@ id: "agent-sandbox"
 
 When running untrusted scripts or executing autonomous AI Agent code, basic I/O sandboxing is insufficient: runaway loops like `while(true){}` can pin the host CPU at 100%, and unconstrained memory allocations can trigger system-wide OOM panics.
 
-Beejs provides an **Agent-native deterministic sandbox and hardware-grade resource quota architecture**.
+Amber provides an **Agent-native deterministic sandbox and hardware-grade resource quota architecture**.
 
 ---
 
@@ -25,10 +25,10 @@ Beejs provides an **Agent-native deterministic sandbox and hardware-grade resour
 ## 2. Usage & Technical Deep-Dive
 
 ### 2.1 CPU Watchdog Hard Interrupt (`--timeout`)
-In typical JavaScript runtimes, a tight CPU-bound infinite loop completely stalls the single event loop. Beejs introduces an **external watchdog thread architecture**:
+In typical JavaScript runtimes, a tight CPU-bound infinite loop completely stalls the single event loop. Amber introduces an **external watchdog thread architecture**:
 
 ```bash
-$ bee run --timeout 2000 infinite_loop.ts
+$ amber run --timeout 2000 infinite_loop.ts
 ```
 
 If execution exceeds 2000 milliseconds, the watchdog thread forcibly terminates V8 execution:
@@ -41,14 +41,14 @@ Prevents Agent scripts from leaking or allocating unbounded buffers:
 
 ```bash
 # Strictly cap V8 heap at 128 MB
-$ bee run --max-memory 128 mem_heavy_task.ts
+$ amber run --max-memory 128 mem_heavy_task.ts
 ```
 
 ### 2.3 Deterministic Seed PRNG (`--seed`)
 Agent evaluation and benchmark replay require reproducible randomness. Supplying `--seed` guarantees deterministic outputs:
 
 ```bash
-$ bee run --seed 123456789 simulation.ts
+$ amber run --seed 123456789 simulation.ts
 ```
 
 Across any machine or platform, `Math.random()` will yield the exact identical sequence of values.
@@ -58,7 +58,7 @@ Pin the global clock to avoid wall-clock drift:
 
 ```bash
 # Pin to 2026-01-01 00:00:00 UTC (1767225600000 ms)
-$ bee run --freeze-time 1767225600000 test_date.ts
+$ amber run --freeze-time 1767225600000 test_date.ts
 ```
 
 `Date.now()` will permanently return the specified value.
@@ -70,7 +70,7 @@ $ bee run --freeze-time 1767225600000 test_date.ts
 Recommended invocation flags for running untrusted Agent tasks:
 
 ```bash
-$ bee run \
+$ amber run \
     --sandbox \
     --timeout 3000 \
     --max-memory 256 \

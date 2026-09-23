@@ -1,9 +1,9 @@
-// Beejs v1.6.0: Native GGUF & SafeTensors Model Weight Loader (`bee:weights`)
+// Amber v1.6.0: Native GGUF & SafeTensors Model Weight Loader (`amber:weights`)
 //
 // High-performance, zero-dependency binary parser and tensor loader:
 // - Direct parsing of GGUF (v2/v3) binary metadata, KV dictionaries, and tensor infos
 // - Direct parsing of SafeTensors 8-byte LE header and JSON tensor descriptor
-// - Zero-copy memory mapping for tensor slicing and `bee:ai.Tensor` instantiation
+// - Zero-copy memory mapping for tensor slicing and `amber:ai.Tensor` instantiation
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -398,7 +398,7 @@ pub fn parse_safetensors_file(path: &Path) -> Result<SafeTensorsMetadata, String
     })
 }
 
-/// Sets up the `bee:weights` API in V8 Context
+/// Sets up the `amber:weights` API in V8 Context
 pub fn setup_weights_api(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
@@ -669,9 +669,9 @@ pub fn setup_weights_api(
     let key = v8::String::new(scope, "loadTensor").unwrap();
     weights_obj.set(scope, key.into(), load_tensor_fn.into());
 
-    // Register globally as `__bee_weights` and `weights`
+    // Register globally as `__amber_weights` and `weights`
     let global = context.global(scope);
-    let weights_key = v8::String::new(scope, "__bee_weights").unwrap();
+    let weights_key = v8::String::new(scope, "__amber_weights").unwrap();
     global.set(scope, weights_key.into(), weights_obj.into());
     let weights_plain = v8::String::new(scope, "weights").unwrap();
     global.set(scope, weights_plain.into(), weights_obj.into());

@@ -36,7 +36,7 @@ def fix_empty_imports(file_path):
 
 def main():
     """主函数"""
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
     fixed_count = 0
 
     print("🔧 修复空导入语法错误")

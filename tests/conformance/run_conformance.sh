@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Node conformance scorecard runner for Beejs.
+# Node conformance scorecard runner for Amber.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
-if [[ -n "${BEE_BIN:-}" ]]; then
-  BEE=("$BEE_BIN")
-elif [[ -x ./target/release/bee ]]; then
-  BEE=(./target/release/bee)
-elif [[ -x ./target/debug/bee ]]; then
-  BEE=(./target/debug/bee)
+if [[ -n "${AMBER_BIN:-}" ]]; then
+  AMBER=("$AMBER_BIN")
+elif [[ -x ./target/release/amber ]]; then
+  AMBER=(./target/release/amber)
+elif [[ -x ./target/debug/amber ]]; then
+  AMBER=(./target/debug/amber)
 else
-  BEE=(cargo run --quiet --)
+  AMBER=(cargo run --quiet --)
 fi
 
 FIXTURE_DIR="$ROOT/tests/conformance/fixtures"
@@ -29,8 +29,8 @@ if [[ ${#fixtures[@]} -eq 0 ]]; then
   exit 1
 fi
 
-echo "Beejs Node conformance scorecard"
-echo "Binary: ${BEE[*]}"
+echo "Amber Node conformance scorecard"
+echo "Binary: ${AMBER[*]}"
 echo "Fixtures: ${#fixtures[@]}"
 echo
 
@@ -52,9 +52,9 @@ for fixture in "${fixtures[@]}"; do
   fi
   # macOS bash 3.2 + `set -u` treats empty "${arr[@]}" as unbound.
   if [[ ${#extra[@]} -gt 0 ]]; then
-    run_cmd=("${BEE[@]}" run "${extra[@]}" "$fixture")
+    run_cmd=("${AMBER[@]}" run "${extra[@]}" "$fixture")
   else
-    run_cmd=("${BEE[@]}" run "$fixture")
+    run_cmd=("${AMBER[@]}" run "$fixture")
   fi
   if command -v timeout >/dev/null 2>&1; then
     if timeout 30 "${run_cmd[@]}" >"$out" 2>"$err"; then
@@ -102,7 +102,7 @@ echo
 echo "Summary: $PASS/$TOTAL passed (${RATE}%)"
 
 {
-  echo "# Beejs Node conformance scorecard"
+  echo "# Amber Node conformance scorecard"
   echo
   echo "Generated: $(date -u +%Y-%m-%dT%H:%MZ)"
   echo

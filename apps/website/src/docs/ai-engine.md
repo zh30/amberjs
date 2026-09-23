@@ -1,5 +1,5 @@
 ---
-title: "Native AI Engine (bee:ai)"
+title: "Native AI Engine (amber:ai)"
 subtitle: "Eliminating Python glue layers: direct zero-copy tensors, streaming LLM inference, and agent pipelines in V8"
 group: "Core Systems"
 id: "ai-engine"
@@ -13,7 +13,7 @@ JavaScript developers traditionally face frustrating compromises:
 - **Subprocess Python IPC**: Communicating with Python via stdio or HTTP incurs serialization overhead, doubles memory footprints, and complicates deployments.
 - **Fragile node-gyp Addons**: Native C++ plugins frequently fail to build across architectures, break in container environments, and trigger memory leaks.
 
-Beejs introduces the built-in **`bee:ai`** module: written in Rust at the host layer with SIMD optimizations, interfacing directly with V8 through zero-copy `Float32Array` buffers.
+Amber introduces the built-in **`amber:ai`** module: written in Rust at the host layer with SIMD optimizations, interfacing directly with V8 through zero-copy `Float32Array` buffers.
 
 ---
 
@@ -22,7 +22,7 @@ Beejs introduces the built-in **`bee:ai`** module: written in Rust at the host l
 Import directly without third-party dependencies:
 
 ```typescript
-import { Tensor, LLM, AgentPipeline } from 'bee:ai';
+import { Tensor, LLM, AgentPipeline } from 'amber:ai';
 ```
 
 ---
@@ -93,7 +93,7 @@ Build deterministic AI agents with structured tool calling and state tracking:
 
 ```typescript
 // agent_example.ts
-import { AgentPipeline } from 'bee:ai';
+import { AgentPipeline } from 'amber:ai';
 
 const agent = new AgentPipeline({
   name: 'DevOps Assistant',
@@ -130,12 +130,12 @@ console.log('Agent Response:', response.content);
 
 ## 3. Deterministic Sandboxing for Testing
 
-AI decision loops frequently display non-deterministic variance that complicates debugging. Beejs provides CLI flags for reproducible agent evaluation:
+AI decision loops frequently display non-deterministic variance that complicates debugging. Amber provides CLI flags for reproducible agent evaluation:
 
 - **`--seed <UINT64>`**: Seeds the pseudo-random number generator (`Math.random()` and `crypto.getRandomValues()`).
 - **`--freeze-time <ISO_STRING>`**: Locks the virtual clock (`Date.now()`, `new Date()`, `performance.now()`).
 
 ```bash
 # Replay agent runs with pinned random seed and virtual clock
-bee run --seed 42 --freeze-time "2026-09-07T08:00:00Z" agent_example.ts
+amber run --seed 42 --freeze-time "2026-09-07T08:00:00Z" agent_example.ts
 ```

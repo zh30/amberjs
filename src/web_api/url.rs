@@ -209,6 +209,7 @@ pub fn setup_url_api(
     Ok(())
 }
 /// URL constructor callback
+#[allow(dead_code)]
 fn url_constructor_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -257,6 +258,7 @@ fn url_constructor_callback(
     }
 }
 /// URLSearchParams constructor callback
+#[allow(dead_code)]
 fn url_search_params_constructor_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,

@@ -8,20 +8,20 @@
 
 #[cfg(test)]
 mod v8_api_compatibility_tests {
-    use beejs::Beejs;
+    use amberjs::Amber;
     use std::path::Path;
 
     /// Test that the runtime can be initialized
     #[test]
     fn test_runtime_initialization() {
-        let runtime = Beejs::new();
+        let runtime = Amber::new();
         assert!(runtime.is_ok(), "Runtime should initialize successfully");
     }
 
     /// Test basic JavaScript execution
     #[test]
     fn test_basic_js_execution() {
-        let runtime = Beejs::new().unwrap();
+        let runtime = Amber::new().unwrap();
         let result = runtime.run_script("1 + 1", "test.js");
         assert!(result.is_ok(), "Should execute basic JavaScript");
     }
@@ -29,7 +29,7 @@ mod v8_api_compatibility_tests {
     /// Test Node.js core modules can be loaded
     #[test]
     fn test_nodejs_core_modules() {
-        let runtime = Beejs::new().unwrap();
+        let runtime = Amber::new().unwrap();
         let result = runtime.run_script(
             "const os = require('os'); os.platform();",
             "test.js"
@@ -41,7 +41,7 @@ mod v8_api_compatibility_tests {
     /// Test crypto module functionality
     #[test]
     fn test_crypto_module() {
-        let runtime = Beejs::new().unwrap();
+        let runtime = Amber::new().unwrap();
         let result = runtime.run_script(
             "const crypto = require('crypto'); crypto.randomBytes(16);",
             "test.js"
@@ -52,7 +52,7 @@ mod v8_api_compatibility_tests {
     /// Test stream API
     #[test]
     fn test_stream_api() {
-        let runtime = Beejs::new().unwrap();
+        let runtime = Amber::new().unwrap();
         let result = runtime.run_script(
             "const { Readable } = require('stream'); new Readable();",
             "test.js"
@@ -63,7 +63,7 @@ mod v8_api_compatibility_tests {
     /// Test events API
     #[test]
     fn test_events_api() {
-        let runtime = Beejs::new().unwrap();
+        let runtime = Amber::new().unwrap();
         let result = runtime.run_script(
             "const EventEmitter = require('events'); new EventEmitter();",
             "test.js"
@@ -74,7 +74,7 @@ mod v8_api_compatibility_tests {
     /// Test URL API
     #[test]
     fn test_url_api() {
-        let runtime = Beejs::new().unwrap();
+        let runtime = Amber::new().unwrap();
         let result = runtime.run_script(
             "const { URL } = require('url'); new URL('https://example.com');",
             "test.js"
@@ -85,7 +85,7 @@ mod v8_api_compatibility_tests {
     /// Performance regression test
     #[test]
     fn test_performance_regression() {
-        let runtime = Beejs::new().unwrap();
+        let runtime = Amber::new().unwrap();
         
         // Simple benchmark
         let start = std::time::Instant::now();

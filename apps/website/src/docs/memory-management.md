@@ -7,7 +7,7 @@ id: "memory-management"
 
 ## 1. V8 Generational Heap & Garbage Collection
 
-In Beejs, every V8 Isolate operates with its own dedicated heap memory space. Understanding the generational garbage collection lifecycle is essential for building stable, high-throughput backend services:
+In Amber, every V8 Isolate operates with its own dedicated heap memory space. Understanding the generational garbage collection lifecycle is essential for building stable, high-throughput backend services:
 
 ```text
 +─────────────────────────────────────────────────────────────+
@@ -52,8 +52,8 @@ console.log({
 
 In modern network applications (HTTP gateways, WebSockets, protocol serialization, file transfers), CPU time is predominantly spent on byte array allocation, filling, copying, and slicing.
 
-### Why is Beejs Buffer the Fastest?
-In standardized benchmarks measuring 100,000 64KB buffer operations, Beejs completes in just **2.09ms**, outperforming Node.js (4.80ms) and Bun (2.50ms):
+### Why is Amber Buffer the Fastest?
+In standardized benchmarks measuring 100,000 64KB buffer operations, Amber completes in just **2.09ms**, outperforming Node.js (4.80ms) and Bun (2.50ms):
 
 1. **Hardware Vectorization (SIMD)**:
    - On x86_64: Automatically unlocks **AVX2 / SSE4.2** instruction sets.

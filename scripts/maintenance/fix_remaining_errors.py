@@ -9,7 +9,7 @@ import re
 def fix_ai_hardware_features():
     """修复 AiHardwareFeatures 类型问题"""
     # 检查是否存在定义
-    simd_file = "/Users/henry/code/beejs/src/wasm/simd_engine.rs"
+    simd_file = "/Users/henry/code/amberjs/src/wasm/simd_engine.rs"
     if not os.path.exists(simd_file):
         print("❌ simd_engine.rs 不存在")
         return 0
@@ -27,7 +27,7 @@ def fix_ai_hardware_features():
 
 def fix_duplicate_ai_mod():
     """修复重复的 ai 模块定义"""
-    lib_file = "/Users/henry/code/beejs/src/lib.rs"
+    lib_file = "/Users/henry/code/amberjs/src/lib.rs"
 
     with open(lib_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -60,8 +60,8 @@ def fix_duplicate_ai_mod():
 def fix_duration_operations():
     """修复 Duration 运算问题"""
     files_to_fix = [
-        "/Users/henry/code/beejs/src/ai/ai_performance_engine.rs",
-        "/Users/henry/code/beejs/src/ai/intelligent_scheduler.rs",
+        "/Users/henry/code/amberjs/src/ai/ai_performance_engine.rs",
+        "/Users/henry/code/amberjs/src/ai/intelligent_scheduler.rs",
     ]
 
     fixed_count = 0
@@ -103,7 +103,7 @@ def fix_duration_operations():
 
 def fix_tensor_optimizer_optimize():
     """修复 TensorOptimizer::optimize 方法调用"""
-    filepath = "/Users/henry/code/beejs/src/ai/ai_performance_engine.rs"
+    filepath = "/Users/henry/code/amberjs/src/ai/ai_performance_engine.rs"
 
     if not os.path.exists(filepath):
         return 0

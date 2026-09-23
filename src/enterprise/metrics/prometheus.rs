@@ -1,4 +1,4 @@
-// Prometheus Metrics Integration for Beejs
+// Prometheus Metrics Integration for Amber
 // 实现 Prometheus 指标收集和导出功能
 
 
@@ -630,7 +630,7 @@ use std::time::{Duration, Instant};
         let config: _ = PrometheusConfig {
             port: 9090,
             path: "/metrics".to_string(),
-            namespace: "beejs".to_string(),
+            namespace: "amberjs".to_string(),
             custom_metrics: true,
             histogram_buckets: vec![0.1, 0.5, 1.0],
         };
@@ -642,7 +642,7 @@ use std::time::{Duration, Instant};
         let config: _ = PrometheusConfig {
             port: 9090,
             path: "/metrics".to_string(),
-            namespace: "beejs".to_string(),
+            namespace: "amberjs".to_string(),
             custom_metrics: true,
             histogram_buckets: vec![0.1, 0.5, 1.0],
         };
@@ -657,15 +657,15 @@ use std::time::{Duration, Instant};
             .block_on(manager.collect_and_export());
         assert!(output.is_ok());
         let text: _ = output.unwrap();
-        assert!(text.contains("beejs_executions_total"));
-        assert!(text.contains("beejs_execution_errors_total"));
+        assert!(text.contains("amberjs_executions_total"));
+        assert!(text.contains("amberjs_execution_errors_total"));
     }
     #[test]
     fn test_record_jit_compilation() {
         let config: _ = PrometheusConfig {
             port: 9090,
             path: "/metrics".to_string(),
-            namespace: "beejs".to_string(),
+            namespace: "amberjs".to_string(),
             custom_metrics: true,
             histogram_buckets: vec![0.1, 0.5, 1.0],
         };
@@ -679,6 +679,6 @@ use std::time::{Duration, Instant};
             .block_on(manager.collect_and_export());
         assert!(output.is_ok());
         let text: _ = output.unwrap();
-        assert!(text.contains("beejs_jit_compilation_time_seconds"));
+        assert!(text.contains("amberjs_jit_compilation_time_seconds"));
     }
 }

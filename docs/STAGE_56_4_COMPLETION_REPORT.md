@@ -2,9 +2,9 @@
 
 ## 📋 阶段概述
 
-Stage 56.4 专注于实现 Beejs 的测试运行器功能，提供类似 Jest 的测试体验，支持 test() / describe() API、断言库、测试发现和并行执行。
+Stage 56.4 专注于实现 Amber 的测试运行器功能，提供类似 Jest 的测试体验，支持 test() / describe() API、断言库、测试发现和并行执行。
 
-**目标**: 构建完整的测试运行系统，使 Beejs 具备 Bun 和 Jest 兼容的测试能力。
+**目标**: 构建完整的测试运行系统，使 Amber 具备 Bun 和 Jest 兼容的测试能力。
 
 ## ✅ 完成功能
 
@@ -213,7 +213,7 @@ pub fn register_testing_api(scope: &mut v8::HandleScope, global: v8::Local<v8::O
 
 ## 📝 总结
 
-Stage 56.4 成功实现了 Beejs 的测试运行器核心框架：
+Stage 56.4 成功实现了 Amber 的测试运行器核心框架：
 
 1. **完整的测试框架** - Jest 兼容的 API 和功能
 2. **高性能执行** - 并行测试和优化算法
@@ -221,7 +221,7 @@ Stage 56.4 成功实现了 Beejs 的测试运行器核心框架：
 4. **模块化设计** - 易于扩展和维护
 5. **完整的 CLI 集成** - 无缝的命令行体验
 
-这个框架为 Beejs 提供了与 Bun 和 Jest 相似的测试能力，为 AI 时代的高性能 JS/TS 脚本开发奠定了坚实基础。
+这个框架为 Amber 提供了与 Bun 和 Jest 相似的测试能力，为 AI 时代的高性能 JS/TS 脚本开发奠定了坚实基础。
 
 **状态**: ✅ Stage 56.4 核心架构完成
 **最后更新**: 2025-12-19

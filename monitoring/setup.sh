@@ -1,10 +1,10 @@
 #!/bin/bash
-# Beejs Monitoring Setup Script
-# This script sets up a complete monitoring stack for Beejs runtime
+# Amber Monitoring Setup Script
+# This script sets up a complete monitoring stack for Amber runtime
 
 set -e
 
-echo "🚀 Beejs Monitoring Stack Setup"
+echo "🚀 Amber Monitoring Stack Setup"
 echo "================================"
 echo ""
 
@@ -60,10 +60,10 @@ echo "  🚨 AlertManager: http://localhost:9093"
 echo "  💻 Node Exporter: http://localhost:9100"
 echo ""
 echo "Next steps:"
-echo "1. Configure Beejs to expose metrics on port 3000"
-echo "2. Import the Beejs dashboard in Grafana (if not auto-imported)"
+echo "1. Configure Amber to expose metrics on port 3000"
+echo "2. Import the Amber dashboard in Grafana (if not auto-imported)"
 echo "3. Configure alert destinations in AlertManager"
-echo "4. Run your Beejs workloads and monitor performance"
+echo "4. Run your Amber workloads and monitor performance"
 echo ""
 echo "To stop the monitoring stack:"
 echo "  docker-compose down"

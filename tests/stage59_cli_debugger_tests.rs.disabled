@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 use clap::Parser;
-use beejs::cli::commands::{CliApp, SubCommand};
+use amberjs::cli::commands::{CliApp, SubCommand};
 
 #[cfg(test)]
 mod tests {
@@ -13,7 +13,7 @@ mod tests {
     #[test]
     fn test_debug_script_command_parsing() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "test.js"
         ];
@@ -22,7 +22,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { file, break_at, port, web } => {
+                amberjs::cli::commands::DebugCommand::Script { file, break_at, port, web } => {
                     assert_eq!(file, PathBuf::from("test.js"));
                     assert_eq!(break_at, None);
                     assert_eq!(port, 9229);
@@ -39,7 +39,7 @@ mod tests {
     #[test]
     fn test_debug_script_with_breakpoint() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "app.js",
             "--break-at", "10"
@@ -48,7 +48,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { file, break_at, .. } => {
+                amberjs::cli::commands::DebugCommand::Script { file, break_at, .. } => {
                     assert_eq!(file, PathBuf::from("app.js"));
                     assert_eq!(break_at, Some(10));
                 }
@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn test_debug_script_with_port() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "server.js",
             "--port", "9229"
@@ -72,7 +72,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { file, port, .. } => {
+                amberjs::cli::commands::DebugCommand::Script { file, port, .. } => {
                     assert_eq!(file, PathBuf::from("server.js"));
                     assert_eq!(port, 9229);
                 }
@@ -87,7 +87,7 @@ mod tests {
     #[test]
     fn test_debug_with_web_ui() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "web-app.js",
             "--web"
@@ -96,7 +96,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { file, web, .. } => {
+                amberjs::cli::commands::DebugCommand::Script { file, web, .. } => {
                     assert_eq!(file, PathBuf::from("web-app.js"));
                     assert_eq!(web, true);
                 }
@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn test_debug_attach_command() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "--attach", "1234"
         ];
@@ -119,7 +119,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Attach { pid, port } => {
+                amberjs::cli::commands::DebugCommand::Attach { pid, port } => {
                     assert_eq!(pid, 1234);
                     assert_eq!(port, 9229);
                 }
@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn test_debug_attach_with_port() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "--attach", "5678",
             "--port", "9229"
@@ -143,7 +143,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Attach { pid, port } => {
+                amberjs::cli::commands::DebugCommand::Attach { pid, port } => {
                     assert_eq!(pid, 5678);
                     assert_eq!(port, 9229);
                 }
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn test_debug_inspect_command() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "--inspect"
         ];
@@ -166,7 +166,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Inspect { port, web } => {
+                amberjs::cli::commands::DebugCommand::Inspect { port, web } => {
                     assert_eq!(port, 9229);
                     assert_eq!(web, false);
                 }
@@ -181,7 +181,7 @@ mod tests {
     #[test]
     fn test_debug_inspect_with_port() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "--inspect",
             "--port", "8080"
@@ -190,7 +190,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Inspect { port, .. } => {
+                amberjs::cli::commands::DebugCommand::Inspect { port, .. } => {
                     assert_eq!(port, 8080);
                 }
                 _ => panic!("Expected DebugCommand::Inspect"),
@@ -204,7 +204,7 @@ mod tests {
     #[test]
     fn test_debug_inspect_with_web() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "--inspect",
             "--web"
@@ -213,7 +213,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Inspect { web, .. } => {
+                amberjs::cli::commands::DebugCommand::Inspect { web, .. } => {
                     assert_eq!(web, true);
                 }
                 _ => panic!("Expected DebugCommand::Inspect"),
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_debug_script_full_parameters() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "complex-app.js",
             "--break-at", "25",
@@ -238,7 +238,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { file, break_at, port, web } => {
+                amberjs::cli::commands::DebugCommand::Script { file, break_at, port, web } => {
                     assert_eq!(file, PathBuf::from("complex-app.js"));
                     assert_eq!(break_at, Some(25));
                     assert_eq!(port, 9229);
@@ -255,7 +255,7 @@ mod tests {
     #[test]
     fn test_debug_typescript_file() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "app.ts",
             "--break-at", "15"
@@ -264,7 +264,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { file, break_at, .. } => {
+                amberjs::cli::commands::DebugCommand::Script { file, break_at, .. } => {
                     assert_eq!(file, PathBuf::from("app.ts"));
                     assert_eq!(break_at, Some(15));
                 }
@@ -279,7 +279,7 @@ mod tests {
     #[test]
     fn test_default_debug_port() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "script.js"
         ];
@@ -287,7 +287,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { port, .. } => {
+                amberjs::cli::commands::DebugCommand::Script { port, .. } => {
                     assert_eq!(port, 9229);
                 }
                 _ => panic!("Expected DebugCommand::Script"),
@@ -301,7 +301,7 @@ mod tests {
     #[test]
     fn test_debug_multiline_script() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "src/components/Button.tsx",
             "--break-at", "42"
@@ -310,7 +310,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { file, break_at, .. } => {
+                amberjs::cli::commands::DebugCommand::Script { file, break_at, .. } => {
                     assert_eq!(file, PathBuf::from("src/components/Button.tsx"));
                     assert_eq!(break_at, Some(42));
                 }
@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn test_debug_session_configuration() {
         let args = vec![
-            "beejs",
+            "amberjs",
             "debug",
             "worker.js",
             "--port", "9229",
@@ -335,7 +335,7 @@ mod tests {
 
         if let Some(SubCommand::Debug(debug_cmd)) = app.command {
             match debug_cmd {
-                beejs::cli::commands::DebugCommand::Script { file, break_at, port, web } => {
+                amberjs::cli::commands::DebugCommand::Script { file, break_at, port, web } => {
                     assert_eq!(file, PathBuf::from("worker.js"));
                     assert_eq!(break_at, None);
                     assert_eq!(port, 9229);

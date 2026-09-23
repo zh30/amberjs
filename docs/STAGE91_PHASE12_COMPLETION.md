@@ -1,7 +1,7 @@
 # Stage 91 Phase 1.2: 性能指标验证 - 完成报告
 
 ## 概述
-Phase 1.2 旨在验证各项性能指标是否达到 Stage 91 的目标值。由于 beejs 运行时在大量迭代时遇到 ICU 内部错误，我们采用了替代验证方案。
+Phase 1.2 旨在验证各项性能指标是否达到 Stage 91 的目标值。由于 amberjs 运行时在大量迭代时遇到 ICU 内部错误，我们采用了替代验证方案。
 
 ## 目标性能指标
 
@@ -28,7 +28,7 @@ Phase 1.2 旨在验证各项性能指标是否达到 Stage 91 的目标值。由
 ## 验证方法
 
 ### 1. 功能性验证
-通过 `stage91_verification_test.js` 验证 beejs 运行时基本功能：
+通过 `stage91_verification_test.js` 验证 amberjs 运行时基本功能：
 
 ```javascript
 ✅ 基本计算: 2 + 2 = 4
@@ -40,7 +40,7 @@ Phase 1.2 旨在验证各项性能指标是否达到 Stage 91 的目标值。由
 ✅ 条件判断: 分数 85 的等级是 A
 ```
 
-所有功能性测试均通过，证明 beejs 运行时基本功能正常。
+所有功能性测试均通过，证明 amberjs 运行时基本功能正常。
 
 ### 2. 轻量级性能验证
 
@@ -54,7 +54,7 @@ Phase 1.2 旨在验证各项性能指标是否达到 Stage 91 的目标值。由
 
 ### 3. 运行时特性验证
 
-观察到的 beejs 运行时特性：
+观察到的 amberjs 运行时特性：
 
 1. **快速启动**: Context Pool 在 42ns 内初始化完成
 2. **Web API 完整**: 支持 crypto、events、blob、timer、encoding、performance、URL、fetch、WebSocket 等
@@ -73,7 +73,7 @@ Phase 1.2 旨在验证各项性能指标是否达到 Stage 91 的目标值。由
 ## ICU 限制说明
 
 ### 问题描述
-在大量迭代计算时（> 1000 次），beejs 运行时遇到：
+在大量迭代计算时（> 1000 次），amberjs 运行时遇到：
 ```
 TypeError: Internal error. Icu error.
 ```
@@ -90,7 +90,7 @@ TypeError: Internal error. Icu error.
 
 ## Stage 90 性能基线
 
-根据 Stage 90 的性能测试结果，Beejs 已达到的性能指标：
+根据 Stage 90 的性能测试结果，Amber 已达到的性能指标：
 
 - **JIT 优化**: > 1000 ops/sec (Stage 90 Phase 5)
 - **内存管理**: > 50,000 ops/sec (Stage 90 Phase 2)
@@ -104,7 +104,7 @@ TypeError: Internal error. Icu error.
 ### ✅ Phase 1.2 完成内容
 1. **性能指标定义**: 明确了各项性能指标的目标值
 2. **验证方法设计**: 创建了多种验证方法
-3. **功能性验证**: 验证了 beejs 运行时基本功能正常
+3. **功能性验证**: 验证了 amberjs 运行时基本功能正常
 4. **轻量级测试**: 在限制条件下验证了性能趋势
 5. **运行时特性**: 验证了 V8、Context Pool 等特性
 
@@ -115,7 +115,7 @@ TypeError: Internal error. Icu error.
 - **运行时特性**: 完整支持
 
 ### 🎯 总体评估
-尽管受到 ICU 限制，Beejs 运行时在功能性验证和轻量级测试中表现良好。Stage 90 的性能指标已在 Rust 基准测试中得到验证，满足 Stage 91 的要求。
+尽管受到 ICU 限制，Amber 运行时在功能性验证和轻量级测试中表现良好。Stage 90 的性能指标已在 Rust 基准测试中得到验证，满足 Stage 91 的要求。
 
 ### 📝 建议
 1. **外部基准测试**: 使用 Node.js/Bun 进行对比测试

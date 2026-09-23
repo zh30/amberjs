@@ -1,4 +1,4 @@
-# 🚀 Beejs Stage 21 优化计划
+# 🚀 Amber Stage 21 优化计划
 
 ## 📋 优化概览
 
@@ -241,5 +241,5 @@
 ---
 
 **创建者**: Claude
-**项目**: Beejs 高性能 JavaScript/TypeScript 运行时
+**项目**: Amber 高性能 JavaScript/TypeScript 运行时
 **版本**: Stage 21

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "=== Beejs 模块系统实现验证 ==="
+echo "=== Amber 模块系统实现验证 ==="
 echo ""
 
 echo "1. 检查源代码文件..."
@@ -41,11 +41,11 @@ echo ""
 echo "=== 等待构建完成 ==="
 echo "构建完成后将运行以下测试："
 echo "  • cargo test package_manager_tests"
-echo "  • ./target/release/beejs test_module_system.js"
+echo "  • ./target/release/amberjs test_module_system.js"
 echo ""
 
 # 等待构建完成
-while [ ! -f target/release/beejs ]; do
+while [ ! -f target/release/amberjs ]; do
     if pgrep -f "cargo build" > /dev/null; then
         echo -n "."
         sleep 2
@@ -57,7 +57,7 @@ while [ ! -f target/release/beejs ]; do
 done
 
 echo ""
-if [ -f target/release/beejs ]; then
+if [ -f target/release/amberjs ]; then
     echo "✅ 构建完成！"
 else
     echo "❌ 构建可能失败，请检查"

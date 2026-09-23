@@ -37,7 +37,7 @@ fn setup_process(
     let process: _ = v8::Object::new(scope);
     // process.argv
     let argv: _ = v8::Array::new(scope, 2);
-    let arg0: _ = v8::String::new(scope, "bee").unwrap();
+    let arg0: _ = v8::String::new(scope, "amber").unwrap();
     let arg1: _ = v8::String::new(scope, "<eval>").unwrap();
     argv.set_index(scope, 0, arg0.into());
     argv.set_index(scope, 1, arg1.into());
@@ -45,7 +45,7 @@ fn setup_process(
     process.set(scope, argv_key.into(), argv.into());
     // process.version
     let version_key: _ = v8::String::new(scope, "version").unwrap();
-    let version_val: _ = v8::String::new(scope, "1.0.0-bee").unwrap();
+    let version_val: _ = v8::String::new(scope, "1.0.0-amber").unwrap();
     process.set(scope, version_key.into(), version_val.into());
     // process.cwd()
     let cwd_func: _ = v8::FunctionTemplate::new(scope, cwd_callback);

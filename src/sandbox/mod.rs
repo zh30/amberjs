@@ -182,20 +182,20 @@ pub fn setup_sandbox_api(
     vfs_obj.set(scope, get_audit_path_key.into(), get_audit_path_fn.into());
 
     // Register on globalThis:
-    let bee_vfs_key = v8::String::new(scope, "__bee_vfs").unwrap();
-    global.set(scope, bee_vfs_key.into(), vfs_obj.into());
+    let amber_vfs_key = v8::String::new(scope, "__amber_vfs").unwrap();
+    global.set(scope, amber_vfs_key.into(), vfs_obj.into());
 
     let vfs_key = v8::String::new(scope, "vfs").unwrap();
     global.set(scope, vfs_key.into(), vfs_obj.into());
 
-    let bee_vfs_mod_key = v8::String::new(scope, "bee:vfs").unwrap();
-    global.set(scope, bee_vfs_mod_key.into(), vfs_obj.into());
+    let amber_vfs_mod_key = v8::String::new(scope, "amber:vfs").unwrap();
+    global.set(scope, amber_vfs_mod_key.into(), vfs_obj.into());
 
-    let bee_sandbox_mod_key = v8::String::new(scope, "bee:sandbox").unwrap();
-    global.set(scope, bee_sandbox_mod_key.into(), vfs_obj.into());
+    let amber_sandbox_mod_key = v8::String::new(scope, "amber:sandbox").unwrap();
+    global.set(scope, amber_sandbox_mod_key.into(), vfs_obj.into());
 
-    let bee_sandbox_key = v8::String::new(scope, "__bee_sandbox").unwrap();
-    global.set(scope, bee_sandbox_key.into(), vfs_obj.into());
+    let amber_sandbox_key = v8::String::new(scope, "__amber_sandbox").unwrap();
+    global.set(scope, amber_sandbox_key.into(), vfs_obj.into());
 
     let sandbox_key = v8::String::new(scope, "sandbox").unwrap();
     global.set(scope, sandbox_key.into(), vfs_obj.into());
@@ -203,7 +203,7 @@ pub fn setup_sandbox_api(
     // Inject createEnclave via JS helper
     let enclave_helper_js = r#"
     (function() {
-        const sb = globalThis.__bee_sandbox;
+        const sb = globalThis.__amber_sandbox;
         if (!sb) return;
 
         sb.createEnclave = function(policyOrCode, options = {}) {

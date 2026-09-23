@@ -26,10 +26,10 @@ mod template_variable_tests {
         let template = "Hello, {{name}}! Welcome to {{project}}.";
         let mut vars = HashMap::new();
         vars.insert("name".to_string(), "Developer".to_string());
-        vars.insert("project".to_string(), "Beejs".to_string());
+        vars.insert("project".to_string(), "Amber".to_string());
 
         let result = substitute_variables(template, &vars);
-        assert_eq!(result, "Hello, Developer! Welcome to Beejs.");
+        assert_eq!(result, "Hello, Developer! Welcome to Amber.");
     }
 
     /// 测试多行模板
@@ -80,11 +80,11 @@ export const name = "{{project_name}}";
     fn test_variable_with_underscores() {
         let template = "{{project_name}}_{{sub_module}}";
         let mut vars = HashMap::new();
-        vars.insert("project_name".to_string(), "beejs".to_string());
+        vars.insert("project_name".to_string(), "amberjs".to_string());
         vars.insert("sub_module".to_string(), "cli".to_string());
 
         let result = substitute_variables(template, &vars);
-        assert_eq!(result, "beejs_cli");
+        assert_eq!(result, "amberjs_cli");
     }
 
     /// 测试变量替换性能
@@ -406,8 +406,8 @@ mod dependency_install_tests {
         );
         assert_eq!(generate_install_command(PackageManager::Bun), "bun install");
         assert_eq!(
-            generate_install_command(PackageManager::Beejs),
-            "bee install"
+            generate_install_command(PackageManager::Amber),
+            "amber install"
         );
     }
 
@@ -441,7 +441,7 @@ mod dependency_install_tests {
         Yarn,
         Pnpm,
         Bun,
-        Beejs,
+        Amber,
     }
 
     fn detect_package_manager_from_lockfile(filename: &str) -> Option<PackageManager> {
@@ -460,7 +460,7 @@ mod dependency_install_tests {
             PackageManager::Yarn => "yarn install",
             PackageManager::Pnpm => "pnpm install",
             PackageManager::Bun => "bun install",
-            PackageManager::Beejs => "bee install",
+            PackageManager::Amber => "amber install",
         }
     }
 
@@ -495,11 +495,11 @@ mod dependency_install_tests {
                     format!("bun add {}", deps_str)
                 }
             }
-            PackageManager::Beejs => {
+            PackageManager::Amber => {
                 if dev {
-                    format!("bee add -D {}", deps_str)
+                    format!("amber add -D {}", deps_str)
                 } else {
-                    format!("bee add {}", deps_str)
+                    format!("amber add {}", deps_str)
                 }
             }
         }
@@ -748,7 +748,7 @@ mod integration_tests {
 
         // 生成入口文件
         let entry_content = format!(
-            "// {}\nconsole.log('Hello from Beejs!');",
+            "// {}\nconsole.log('Hello from Amber!');",
             config
                 .variables
                 .get("project_name")

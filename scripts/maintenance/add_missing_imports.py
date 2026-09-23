@@ -72,7 +72,7 @@ def add_missing_imports(file_path):
 
 def main():
     """主函数"""
-    project_root = Path("/Users/henry/code/beejs")
+    project_root = Path("/Users/henry/code/amberjs")
 
     # 处理核心源文件
     key_files = [

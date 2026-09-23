@@ -1,7 +1,7 @@
 {
-  "name": "beejs-tools",
-  "displayName": "Beejs Developer Tools",
-  "description": "Language Server, CDP Debugger, oxc Formatter & Deployment Toolkit for Beejs",
+  "name": "amberjs-tools",
+  "displayName": "Amber Developer Tools",
+  "description": "Language Server, CDP Debugger, oxc Formatter & Deployment Toolkit for Amber",
   "version": "1.16.0",
   "publisher": "zh30",
   "engines": {
@@ -16,157 +16,157 @@
     "javascript",
     "typescript",
     "runtime",
-    "beejs",
+    "amberjs",
     "debugger",
     "performance"
   ],
   "activationEvents": [
     "onLanguage:javascript",
     "onLanguage:typescript",
-    "onCommand:beejs.runScript",
-    "onCommand:beejs.debugScript",
-    "onCommand:beejs.formatDocument",
-    "onCommand:beejs.exportTypes",
-    "onCommand:beejs.deploy",
-    "onDebug:beejs"
+    "onCommand:amberjs.runScript",
+    "onCommand:amberjs.debugScript",
+    "onCommand:amberjs.formatDocument",
+    "onCommand:amberjs.exportTypes",
+    "onCommand:amberjs.deploy",
+    "onDebug:amberjs"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
-        "id": "beejs",
-        "aliases": ["Beejs", "beejs"],
-        "extensions": [".beejs"],
+        "id": "amberjs",
+        "aliases": ["Amber", "amberjs"],
+        "extensions": [".amberjs"],
         "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
       {
-        "language": "beejs",
-        "scopeName": "source.beejs",
-        "path": "./syntaxes/beejs.tmLanguage.json"
+        "language": "amberjs",
+        "scopeName": "source.amberjs",
+        "path": "./syntaxes/amberjs.tmLanguage.json"
       }
     ],
     "configuration": {
-      "title": "Beejs Runtime",
+      "title": "Amber Runtime",
       "properties": {
-        "beejs.runtimePath": {
+        "amberjs.runtimePath": {
           "type": "string",
-          "default": "bee",
-          "description": "Path to the Beejs executable",
+          "default": "amber",
+          "description": "Path to the Amber executable",
           "order": 1
         },
-        "beejs.debugPort": {
+        "amberjs.debugPort": {
           "type": "number",
           "default": 9229,
-          "description": "Debug port for Beejs inspector",
+          "description": "Debug port for Amber inspector",
           "order": 2
         },
-        "beejs.enableTypeChecking": {
+        "amberjs.enableTypeChecking": {
           "type": "boolean",
           "default": true,
-          "description": "Enable TypeScript type checking for Beejs scripts",
+          "description": "Enable TypeScript type checking for Amber scripts",
           "order": 3
         },
-        "beejs.maxMemory": {
+        "amberjs.maxMemory": {
           "type": "string",
           "default": "512m",
-          "description": "Maximum memory allocation for Beejs runtime",
+          "description": "Maximum memory allocation for Amber runtime",
           "order": 4
         },
-        "beejs.enableExperimentalFeatures": {
+        "amberjs.enableExperimentalFeatures": {
           "type": "boolean",
           "default": false,
-          "description": "Enable experimental Beejs features",
+          "description": "Enable experimental Amber features",
           "order": 5
         }
       }
     },
     "commands": [
       {
-        "command": "beejs.runScript",
-        "title": "Run Beejs Script",
-        "category": "Beejs"
+        "command": "amberjs.runScript",
+        "title": "Run Amber Script",
+        "category": "Amber"
       },
       {
-        "command": "beejs.debugScript",
-        "title": "Debug Beejs Script",
-        "category": "Beejs"
+        "command": "amberjs.debugScript",
+        "title": "Debug Amber Script",
+        "category": "Amber"
       },
       {
-        "command": "beejs.formatDocument",
-        "title": "Format Document with OXC (bee fmt)",
-        "category": "Beejs"
+        "command": "amberjs.formatDocument",
+        "title": "Format Document with OXC (amber fmt)",
+        "category": "Amber"
       },
       {
-        "command": "beejs.exportTypes",
-        "title": "Export TypeScript Definitions (bee types)",
-        "category": "Beejs"
+        "command": "amberjs.exportTypes",
+        "title": "Export TypeScript Definitions (amber types)",
+        "category": "Amber"
       },
       {
-        "command": "beejs.deploy",
-        "title": "Deploy Application Scaffolding (bee deploy)",
-        "category": "Beejs"
+        "command": "amberjs.deploy",
+        "title": "Deploy Application Scaffolding (amber deploy)",
+        "category": "Amber"
       },
       {
-        "command": "beejs.showPerformanceReport",
+        "command": "amberjs.showPerformanceReport",
         "title": "Show Performance Report",
-        "category": "Beejs"
+        "category": "Amber"
       },
       {
-        "command": "beejs.installRuntime",
-        "title": "Install Beejs Runtime",
-        "category": "Beejs"
+        "command": "amberjs.installRuntime",
+        "title": "Install Amber Runtime",
+        "category": "Amber"
       }
     ],
     "keybindings": [
       {
-        "command": "beejs.runScript",
+        "command": "amberjs.runScript",
         "key": "f5",
         "when": "editorTextFocus && resourceExtname == .js"
       },
       {
-        "command": "beejs.debugScript",
+        "command": "amberjs.debugScript",
         "key": "f6",
         "when": "editorTextFocus && resourceExtname == .js"
       }
     ],
     "debuggers": [
       {
-        "type": "beejs",
-        "label": "Beejs",
+        "type": "amberjs",
+        "label": "Amber",
         "program": "./out/debug/adapter.js",
-        "runtimeExecutable": "${config:beejs.runtimePath}",
-        "runtimeArgs": ["debug", "--port", "${config:beejs.debugPort}"],
-        "port": "${config:beejs.debugPort}",
+        "runtimeExecutable": "${config:amberjs.runtimePath}",
+        "runtimeArgs": ["debug", "--port", "${config:amberjs.debugPort}"],
+        "port": "${config:amberjs.debugPort}",
         "stopOnEntry": true,
         "sourceMaps": true,
         "pathMappings": [],
         "restart": true,
         "console": "integratedTerminal",
         "variables": {
-          "beejsRuntime": "${command:beejs.selectRuntime}"
+          "amberjsRuntime": "${command:amberjs.selectRuntime}"
         }
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "beejs.runScript",
-          "when": "resourceExtname == .js || resourceExtname == .ts || resourceExtname == .beejs",
-          "group": "beejs@1"
+          "command": "amberjs.runScript",
+          "when": "resourceExtname == .js || resourceExtname == .ts || resourceExtname == .amberjs",
+          "group": "amberjs@1"
         },
         {
-          "command": "beejs.debugScript",
-          "when": "resourceExtname == .js || resourceExtname == .ts || resourceExtname == .beejs",
-          "group": "beejs@2"
+          "command": "amberjs.debugScript",
+          "when": "resourceExtname == .js || resourceExtname == .ts || resourceExtname == .amberjs",
+          "group": "amberjs@2"
         }
       ],
       "explorer/context": [
         {
-          "command": "beejs.runScript",
-          "when": "resourceExtname == .js || resourceExtname == .ts || resourceExtname == .beejs",
-          "group": "beejs@1"
+          "command": "amberjs.runScript",
+          "when": "resourceExtname == .js || resourceExtname == .ts || resourceExtname == .amberjs",
+          "group": "amberjs@1"
         }
       ]
     }
@@ -199,11 +199,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/zh30/beejs.git"
+    "url": "https://github.com/zh30/amberjs.git"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/zh30/beejs/issues"
+    "url": "https://github.com/zh30/amberjs/issues"
   },
-  "homepage": "https://github.com/zh30/beejs"
+  "homepage": "https://github.com/zh30/amberjs"
 }

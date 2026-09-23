@@ -23,7 +23,7 @@
 mod tests {
     use std::time::Instant;
     use std::hint::black_box;
-    use beejs::RuntimeLite;
+    use amberjs::RuntimeLite;
 
     /// 检查是否在测试环境中运行
     fn is_test_environment() -> bool {

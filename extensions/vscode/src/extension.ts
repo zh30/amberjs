@@ -1,75 +1,75 @@
 /**
- * Beejs VS Code Extension - Main Entry Point
+ * Amber VS Code Extension - Main Entry Point
  *
  * This extension provides:
- * - Language support for JavaScript/TypeScript with Beejs enhancements
- * - Debugging capabilities for Beejs runtime
- * - Integration with Beejs CLI tools
+ * - Language support for JavaScript/TypeScript with Amber enhancements
+ * - Debugging capabilities for Amber runtime
+ * - Integration with Amber CLI tools
  */
 
 import * as vscode from 'vscode';
-import { BeejsLanguageService } from './language/BeejsLanguageService';
-import { BeejsDebugAdapterDescriptorFactory } from './debug/BeejsDebugAdapter';
-import { BeejsCommands } from './utils/BeejsCommands';
-import { BeejsConfiguration } from './utils/BeejsConfiguration';
+import { AmberLanguageService } from './language/AmberLanguageService';
+import { AmberDebugAdapterDescriptorFactory } from './debug/AmberDebugAdapter';
+import { AmberCommands } from './utils/AmberCommands';
+import { AmberConfiguration } from './utils/AmberConfiguration';
 
 export function activate(context: vscode.ExtensionContext) {
     // Log activation
-    vscode.window.showInformationMessage('🐝 Beejs Runtime Extension activated!');
+    vscode.window.showInformationMessage('🐝 Amber Runtime Extension activated!');
 
     // Initialize configuration
-    const config = new BeejsConfiguration();
+    const config = new AmberConfiguration();
 
     // Register language service
-    const languageService = new BeejsLanguageService(context, config);
+    const languageService = new AmberLanguageService(context, config);
     const languageClient = languageService.initialize();
 
     context.subscriptions.push(languageClient);
 
     // Register debug adapter
-    const debugAdapterFactory = new BeejsDebugAdapterDescriptorFactory(config);
+    const debugAdapterFactory = new AmberDebugAdapterDescriptorFactory(config);
     context.subscriptions.push(
-        vscode.debug.registerDebugAdapterDescriptorFactory('beejs', debugAdapterFactory)
+        vscode.debug.registerDebugAdapterDescriptorFactory('amberjs', debugAdapterFactory)
     );
 
     // Register commands
-    const commands = new BeejsCommands(config);
+    const commands = new AmberCommands(config);
     context.subscriptions.push(
-        vscode.commands.registerCommand('beejs.runScript', commands.runScript),
-        vscode.commands.registerCommand('beejs.debugScript', commands.debugScript),
-        vscode.commands.registerCommand('beejs.formatDocument', commands.formatDocument),
-        vscode.commands.registerCommand('beejs.exportTypes', commands.exportTypes),
-        vscode.commands.registerCommand('beejs.deploy', commands.deploy),
-        vscode.commands.registerCommand('beejs.showPerformanceReport', commands.showPerformanceReport),
-        vscode.commands.registerCommand('beejs.installRuntime', commands.installRuntime),
-        vscode.commands.registerCommand('beejs.selectRuntime', commands.selectRuntime)
+        vscode.commands.registerCommand('amberjs.runScript', commands.runScript),
+        vscode.commands.registerCommand('amberjs.debugScript', commands.debugScript),
+        vscode.commands.registerCommand('amberjs.formatDocument', commands.formatDocument),
+        vscode.commands.registerCommand('amberjs.exportTypes', commands.exportTypes),
+        vscode.commands.registerCommand('amberjs.deploy', commands.deploy),
+        vscode.commands.registerCommand('amberjs.showPerformanceReport', commands.showPerformanceReport),
+        vscode.commands.registerCommand('amberjs.installRuntime', commands.installRuntime),
+        vscode.commands.registerCommand('amberjs.selectRuntime', commands.selectRuntime)
     );
 
     // Register configuration change handler
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((e) => {
-            if (e.affectsConfiguration('beejs')) {
+            if (e.affectsConfiguration('amberjs')) {
                 config.reload();
-                vscode.window.showInformationMessage('🐝 Beejs configuration updated');
+                vscode.window.showInformationMessage('🐝 Amber configuration updated');
             }
         })
     );
 
     // Show welcome message on first activation
-    const beenActivated = context.globalState.get('beejs.activated', false);
+    const beenActivated = context.globalState.get('amberjs.activated', false);
     if (!beenActivated) {
-        context.globalState.update('beejs.activated', true);
+        context.globalState.update('amberjs.activated', true);
         showWelcomeMessage();
     }
 }
 
 function showWelcomeMessage() {
-    const message = 'Welcome to Beejs! Install the runtime to get started.';
-    const action = 'Install Beejs';
+    const message = 'Welcome to Amber! Install the runtime to get started.';
+    const action = 'Install Amber';
 
     vscode.window.showInformationMessage(message, action).then((selection) => {
         if (selection === action) {
-            vscode.commands.executeCommand('beejs.installRuntime');
+            vscode.commands.executeCommand('amberjs.installRuntime');
         }
     });
 }

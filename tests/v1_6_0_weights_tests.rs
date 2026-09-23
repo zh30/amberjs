@@ -1,10 +1,10 @@
-// Tests for Beejs v1.6.0 Native GGUF & SafeTensors Model Weights Loader (`bee:weights`)
+// Tests for Amber v1.6.0 Native GGUF & SafeTensors Model Weights Loader (`amber:weights`)
 
 use std::fs::File;
 use std::io::{Seek, Write};
 use tempfile::tempdir;
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 fn create_mock_gguf_file(path: &std::path::Path) {
@@ -84,7 +84,7 @@ fn test_gguf_metadata_parsing_and_tensor_loading() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
     let code = format!(
         r#"
-        const weights = require('bee:weights');
+        const weights = require('amber:weights');
         const weightsAlias = require('weights');
         if (weights !== weightsAlias) throw new Error('Alias mismatch');
 
@@ -130,8 +130,8 @@ fn test_safetensors_metadata_and_tensor_loading() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
     let code = format!(
         r#"
-        const weights = require('bee:weights');
-        const ai = require('bee:ai');
+        const weights = require('amber:weights');
+        const ai = require('amber:ai');
 
         const meta = weights.readSafeTensorsMetadata("{path}");
         if (meta.metadata.format !== 'pt') throw new Error('Format mismatch');

@@ -1,5 +1,5 @@
 //! Minimal Runtime Example - standalone test
-//! This example demonstrates the core functionality without dependencies on the full beejs codebase
+//! This example demonstrates the core functionality without dependencies on the full amberjs codebase
 
 use rusty_v8 as v8;
 

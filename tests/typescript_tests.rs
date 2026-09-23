@@ -1,4 +1,4 @@
-use beejs::Runtime;
+use amberjs::Runtime;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
@@ -52,7 +52,7 @@ fn test_typescript_functions() {
             return "Hello, " + name;
         }
 
-        const result = greet("Beejs");
+        const result = greet("Amber");
         console.log(result);
         result;
     "#;

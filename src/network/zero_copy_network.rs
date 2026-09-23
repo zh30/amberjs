@@ -113,7 +113,7 @@ impl ZeroCopySocket {
     /// 创建内存映射
     fn create_mmap(&self, size: usize) -> Result<Mmap> {
         // 创建临时文件用于内存映射
-        let temp_file: _ = std::env::temp_dir().join(format!("beejs_zero_copy_{}", std::process::id()));
+        let temp_file: _ = std::env::temp_dir().join(format!("amberjs_zero_copy_{}", std::process::id()));
         let file: _ = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
@@ -172,7 +172,7 @@ impl Drop for ZeroCopySocket {
     fn drop(&mut self) {
         // 清理临时文件
         let temp_dir: _ = std::env::temp_dir();
-        let temp_file: _ = temp_dir.join(format!("beejs_zero_copy_{}", std::process::id()));
+        let temp_file: _ = temp_dir.join(format!("amberjs_zero_copy_{}", std::process::id()));
         let _: _ = std::fs::remove_file(temp_file);
     }
 }

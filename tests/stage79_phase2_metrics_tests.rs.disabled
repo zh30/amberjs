@@ -1,7 +1,7 @@
 //! Stage 79 Phase 2.1: 实时指标系统测试
 //! 测试 MetricsCollector 指标收集和 Prometheus 导出功能
 
-use beejs::enterprise::{MetricsCollector, RequestStatus};
+use amberjs::enterprise::{MetricsCollector, RequestStatus};
 
 #[cfg(test)]
 mod tests {
@@ -59,11 +59,11 @@ mod tests {
         let prometheus_output = collector.export_prometheus().unwrap();
 
         // 验证 Prometheus 格式
-        assert!(prometheus_output.contains("beejs_requests_total 100"));
-        assert!(prometheus_output.contains("beejs_request_duration_ms_total 50000"));
-        assert!(prometheus_output.contains("beejs_active_connections 25"));
-        assert!(prometheus_output.contains("beejs_memory_usage_bytes 2147483648"));
-        assert!(prometheus_output.contains("beejs_cpu_usage_percent 76")); // 75.5 舍入
+        assert!(prometheus_output.contains("amberjs_requests_total 100"));
+        assert!(prometheus_output.contains("amberjs_request_duration_ms_total 50000"));
+        assert!(prometheus_output.contains("amberjs_active_connections 25"));
+        assert!(prometheus_output.contains("amberjs_memory_usage_bytes 2147483648"));
+        assert!(prometheus_output.contains("amberjs_cpu_usage_percent 76")); // 75.5 舍入
 
         // 验证 HELP 和 TYPE 注释
         assert!(prometheus_output.contains("# HELP"));

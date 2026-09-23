@@ -8,7 +8,7 @@
 
 ## 📋 任务概述
 
-成功修复了 Beejs 运行时中的 V8 API 兼容性问题，解决了 `to_rust_string_lossy` 方法在 rusty_v8 0.22 版本中的弃用问题，消除了 JavaScript 执行时的语法错误。
+成功修复了 Amber 运行时中的 V8 API 兼容性问题，解决了 `to_rust_string_lossy` 方法在 rusty_v8 0.22 版本中的弃用问题，消除了 JavaScript 执行时的语法错误。
 
 ---
 
@@ -174,4 +174,4 @@ V8 API 兼容性修复成功完成，解决了项目中的关键技术问题：
 
 **状态**: ✅ Stage 61 V8 API 兼容性修复完成
 **负责人**: Claude Code Assistant
-**项目**: Beejs 高性能 JavaScript/TypeScript 运行时
+**项目**: Amber 高性能 JavaScript/TypeScript 运行时

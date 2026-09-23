@@ -1,4 +1,4 @@
-//! Lightweight assertion and testing helpers (`bee:std/assert`).
+//! Lightweight assertion and testing helpers (`amber:std/assert`).
 
 pub const ASSERT_JS_CODE: &str = r#"
 (function() {
@@ -79,7 +79,7 @@ pub const ASSERT_JS_CODE: &str = r#"
         }
     }
 
-    globalThis.__bee_assert = {
+    globalThis.__amber_assert = {
         assert,
         assertEquals,
         assertNotEquals,

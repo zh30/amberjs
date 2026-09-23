@@ -1,4 +1,4 @@
-# Beejs Production Configuration
+# Amber Production Configuration
 # Optimized for enterprise deployments
 
 [server]
@@ -50,7 +50,7 @@ security_headers = true
 level = "info"
 format = "json"
 output = "file"
-file_path = "/app/logs/beejs.log"
+file_path = "/app/logs/amberjs.log"
 max_file_size = "100MB"
 max_files = 10
 
@@ -72,9 +72,9 @@ tracing_endpoint = "jaeger:14268"
 # PostgreSQL configuration
 postgres_host = "postgres"
 postgres_port = 5432
-postgres_db = "beejs"
-postgres_user = "beejs"
-postgres_password = "beejs_password"
+postgres_db = "amberjs"
+postgres_user = "amberjs"
+postgres_password = "amberjs_password"
 postgres_pool_size = 20
 postgres_timeout = 30
 

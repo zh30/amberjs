@@ -5,8 +5,8 @@ use std::time::{SystemTime, UNIX_EPOCH, Duration};
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use beejs::ecosystem::package::*;
-    use beejs::ecosystem::types::*;
+    use amberjs::ecosystem::package::*;
+    use amberjs::ecosystem::types::*;
 
     #[tokio::test]
     async fn test_dependency_resolver_creation() {

@@ -250,12 +250,12 @@ mod tests {
     use super::*;
     #[test]
     fn test_tracer_creation() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
-        assert_eq!(tracer.service_name, "beejs-service");
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
+        assert_eq!(tracer.service_name, "amberjs-service");
     }
     #[test]
     fn test_start_span() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let span: _ = tracer.start_span("api_request");
         assert!(!span.trace_id.is_empty());
         assert!(!span.span_id.is_empty());
@@ -266,7 +266,7 @@ mod tests {
     }
     #[test]
     fn test_inject_context() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let span: _ = tracer.start_span("database_query");
         let mut headers = HashMap::new();
         tracer.inject_context(&span, &mut headers);
@@ -276,7 +276,7 @@ mod tests {
     }
     #[test]
     fn test_extract_context() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let mut headers = HashMap::new();
         headers.insert("trace-id".to_string(), "test-trace-id".to_string());
         headers.insert("span-id".to_string(), "test-span-id".to_string());
@@ -286,7 +286,7 @@ mod tests {
     }
     #[test]
     fn test_span_with_context() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let mut headers = HashMap::new();
         headers.insert("trace-id".to_string(), "parent-trace".to_string());
         headers.insert("span-id".to_string(), "parent-span".to_string());
@@ -297,7 +297,7 @@ mod tests {
     }
     #[test]
     fn test_span_tags() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let mut span = tracer.start_span("api_request");
         span.add_tag("user_id", "12345");
         span.add_tag("auth_method", "oauth");
@@ -306,7 +306,7 @@ mod tests {
     }
     #[test]
     fn test_span_logs() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let mut span = tracer.start_span("api_request");
         span.log_event("request_received");
         span.log_event("response_sent");
@@ -324,7 +324,7 @@ mod tests {
     }
     #[test]
     fn test_span_duration() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let span: _ = tracer.start_span("api_request");
         std::thread::sleep(Duration::from_millis(10));
         let duration: _ = span.get_duration();
@@ -332,7 +332,7 @@ mod tests {
     }
     #[test]
     fn test_trace_id_generation() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let span1: _ = tracer.start_span("op1");
         let span2: _ = tracer.start_span("op2");
         // 每个 Span 应该有唯一的 ID
@@ -342,7 +342,7 @@ mod tests {
     }
     #[test]
     fn test_span_id_generation() {
-        let tracer: _ = DistributedTracer::new("beejs-service".to_string());
+        let tracer: _ = DistributedTracer::new("amberjs-service".to_string());
         let span1: _ = tracer.start_span("op1");
         let span2: _ = tracer.start_span("op2");
         // 每个 Span 应该有唯一的 Span ID

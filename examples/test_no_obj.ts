@@ -12,7 +12,7 @@ function add(a: number, b: number): number {
     return a + b;
 }
 
-console.log("Hello World for Beejs!");
+console.log("Hello World for Amber!");
 console.log(greet({name: "Test", version: "1.0"}));
 console.log(add(1, 2));
 

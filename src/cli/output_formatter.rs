@@ -278,7 +278,7 @@ impl OutputFormatter {
         println!("  ╰{}╯", "─".repeat(border_width));
     }
     // ========== 版本信息 ==========
-    /// 打印 Beejs 版本横幅
+    /// 打印 Amber 版本横幅
     pub fn print_banner(&self) {
         let banner: _ = r#"
    ____            _
@@ -293,7 +293,7 @@ impl OutputFormatter {
         println!("{}", self.colorize(banner, colors::BRIGHT_CYAN));
         println!(
             "  {} {} - {}",
-            self.colorize("Beejs", colors::BOLD),
+            self.colorize("Amber", colors::BOLD),
             self.colorize("v0.1.0", colors::BRIGHT_GREEN),
             self.colorize(
                 "High-performance JavaScript/TypeScript Runtime",

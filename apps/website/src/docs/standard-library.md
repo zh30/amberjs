@@ -1,5 +1,5 @@
 ---
-title: "Standard Library (bee:std)"
+title: "Standard Library (amber:std)"
 subtitle: "Zero-dependency, production-grade official stdlib: dotenv, terminal CLI, filesystem, cryptography & assertions"
 group: "Ecosystem"
 id: "standard-library"
@@ -9,7 +9,7 @@ id: "standard-library"
 
 In the traditional Node.js ecosystem, even the most basic tasks—loading a `.env` file, printing colored tables to the terminal, generating UUIDs, recursively copying folders, or making deep equality assertions—require third-party npm packages like `dotenv`, `chalk`, `cli-table`, `uuid`, or `fs-extra`. This leads to bloated `node_modules`, slow cold starts, and supply chain security vulnerabilities.
 
-Beejs introduces the **`bee:std`** official standard library: all utilities are natively implemented in Rust for maximum execution speed, safety, and zero external npm dependencies.
+Amber introduces the **`amber:std`** official standard library: all utilities are natively implemented in Rust for maximum execution speed, safety, and zero external npm dependencies.
 
 ---
 
@@ -19,26 +19,26 @@ You can import through the unified namespace or granular submodules:
 
 ```typescript
 // Unified import
-import { dotenv, cli, fs, crypto, assert } from 'bee:std';
+import { dotenv, cli, fs, crypto, assert } from 'amber:std';
 
 // Granular submodule imports
-import { config, parse } from 'bee:std/dotenv';
-import { colors, table, ProgressBar } from 'bee:std/cli';
-import { walk, copyDir } from 'bee:std/fs';
-import { uuidv4, uuidv7, jwt } from 'bee:std/crypto';
-import { assertEquals, assertThrows } from 'bee:std/assert';
+import { config, parse } from 'amber:std/dotenv';
+import { colors, table, ProgressBar } from 'amber:std/cli';
+import { walk, copyDir } from 'amber:std/fs';
+import { uuidv4, uuidv7, jwt } from 'amber:std/crypto';
+import { assertEquals, assertThrows } from 'amber:std/assert';
 ```
 
 ---
 
 ## 3. Submodule Details
 
-### 1. `bee:std/dotenv` Environment Config
+### 1. `amber:std/dotenv` Environment Config
 
 Loads and parses `.env` files with comment filtering, quote stripping, and variable interpolation (`${VAR}`).
 
 ```typescript
-import { config, parse } from 'bee:std/dotenv';
+import { config, parse } from 'amber:std/dotenv';
 
 // Automatically loads .env in the current directory and injects into process.env
 config();
@@ -56,12 +56,12 @@ console.log('Port:', process.env.PORT);
 
 ---
 
-### 2. `bee:std/cli` Terminal Styling & Interaction
+### 2. `amber:std/cli` Terminal Styling & Interaction
 
 Out-of-the-box ANSI coloring, Unicode box tables, and interactive terminal widgets:
 
 ```typescript
-import { colors, table, ProgressBar } from 'bee:std/cli';
+import { colors, table, ProgressBar } from 'amber:std/cli';
 
 // 1. Text styling
 console.log(colors.green(colors.bold('✔ Deployment successful!')));
@@ -70,7 +70,7 @@ console.log(colors.yellow('⚠ Warning: High memory usage detected'));
 // 2. Unicode table formatter
 const headers = ['Package', 'Version', 'Status'];
 const rows = [
-  ['beejs', 'v1.16.0', colors.green('Active')],
+  ['amberjs', 'v1.16.0', colors.green('Active')],
   ['sqlite', 'v3.45', colors.green('Active')],
 ];
 console.log(table(headers, rows));
@@ -84,12 +84,12 @@ for (let i = 0; i <= 100; i += 20) {
 
 ---
 
-### 3. `bee:std/fs` High-Level Filesystem
+### 3. `amber:std/fs` High-Level Filesystem
 
 Extends built-in filesystem operations with recursive directory walking and manipulation:
 
 ```typescript
-import { walk, copyDir, emptyDir } from 'bee:std/fs';
+import { walk, copyDir, emptyDir } from 'amber:std/fs';
 
 // 1. Recursively walk directory and filter by extensions
 const tsFiles = walk('./src', { extensions: ['ts', 'tsx'] });
@@ -104,19 +104,19 @@ emptyDir('./temp_cache');
 
 ---
 
-### 4. `bee:std/crypto` Cryptography & Tokens
+### 4. `amber:std/crypto` Cryptography & Tokens
 
 Provides UUID v4 (random), UUID v7 (time-ordered monotonic, ideal for database keys), and JWT authentication:
 
 ```typescript
-import { uuidv4, uuidv7, jwt, hash } from 'bee:std/crypto';
+import { uuidv4, uuidv7, jwt, hash } from 'amber:std/crypto';
 
 // 1. Generate UUIDs
 const id = uuidv4();
 const timeOrderedId = uuidv7(); // Perfect for B-Tree index keys
 
 // 2. JWT (HMAC-SHA256) sign and verify
-const secret = 'beejs-super-secret-key';
+const secret = 'amberjs-super-secret-key';
 const token = jwt.sign({ userId: 1001, role: 'admin' }, secret, { expiresIn: 3600 });
 console.log('Generated JWT:', token);
 
@@ -130,12 +130,12 @@ console.log('SHA-256:', hash('hello world', 'sha256'));
 
 ---
 
-### 5. `bee:std/assert` Lightweight Assertions
+### 5. `amber:std/assert` Lightweight Assertions
 
 Clear error reporting and deep equality checks:
 
 ```typescript
-import { assert, assertEquals, assertThrows } from 'bee:std/assert';
+import { assert, assertEquals, assertThrows } from 'amber:std/assert';
 
 assert(1 + 1 === 2, 'Math must hold');
 assertEquals({ a: 1, b: [2, 3] }, { a: 1, b: [2, 3] });

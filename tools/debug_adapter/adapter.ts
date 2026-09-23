@@ -1,5 +1,5 @@
 /**
- * Beejs Debug Adapter
+ * Amber Debug Adapter
  * Implements the Debug Adapter Protocol for VS Code integration
  */
 
@@ -7,13 +7,13 @@ import { DebugAdapter, LoggingDebugSession, InitializedEvent, TerminatedEvent, S
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { Subject } from 'await-notify';
 
-export class BeejsDebugAdapter extends LoggingDebugSession {
+export class AmberDebugAdapter extends LoggingDebugSession {
 
     private _configurationDone = new Subject();
     private breakpoints: Map<string, DebugProtocol.Breakpoint[]> = new Map();
 
     public constructor() {
-        super('beejs-debug.log');
+        super('amberjs-debug.log');
     }
 
     protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
@@ -33,7 +33,7 @@ export class BeejsDebugAdapter extends LoggingDebugSession {
     }
 
     protected launchRequest(response: DebugProtocol.LaunchResponse, args: DebugProtocol.LaunchRequestArguments): void {
-        // TODO: Launch Beejs runtime with debug mode
+        // TODO: Launch Amber runtime with debug mode
         this.sendResponse(response);
     }
 
@@ -41,7 +41,7 @@ export class BeejsDebugAdapter extends LoggingDebugSession {
         const path = args.source.path || '';
         const clientLines = args.lines || [];
 
-        // TODO: Set breakpoints in Beejs runtime
+        // TODO: Set breakpoints in Amber runtime
         const breakpoints: DebugProtocol.Breakpoint[] = clientLines.map(line => ({
             id: 1,
             verified: true,
@@ -65,7 +65,7 @@ export class BeejsDebugAdapter extends LoggingDebugSession {
     }
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
-        // TODO: Get stack trace from Beejs runtime
+        // TODO: Get stack trace from Amber runtime
         response.body = {
             stackFrames: [
                 {
@@ -90,7 +90,7 @@ export class BeejsDebugAdapter extends LoggingDebugSession {
     }
 
     protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
-        // TODO: Get variables from Beejs runtime
+        // TODO: Get variables from Amber runtime
         response.body = {
             variables: [
                 { name: 'count', value: '42', type: 'number', variablesReference: 0 }
@@ -120,7 +120,7 @@ export class BeejsDebugAdapter extends LoggingDebugSession {
     }
 
     protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
-        // TODO: Evaluate expression in Beejs runtime
+        // TODO: Evaluate expression in Amber runtime
         response.body = {
             result: '42',
             type: 'number'
@@ -129,4 +129,4 @@ export class BeejsDebugAdapter extends LoggingDebugSession {
     }
 }
 
-DebugAdapter.run(BeejsDebugAdapter);
+DebugAdapter.run(AmberDebugAdapter);

@@ -1,0 +1,57 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "amberjs.fullname" . }}
+  labels:
+    {{- include "amberjs.labels" . | nindent 4 }}
+    {{- include "amberjs.component" . | nindent 4 }}
+spec:
+  groups:
+    - name: amberjs.rules
+      rules:
+        - alert: AmberDown
+          expr: up{job="{{ include "amberjs.fullname" . }}"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Amber instance is down"
+            description: "Amber instance {{ $labels.instance }} has been down for more than 1 minute."
+
+        - alert: AmberHighCpuUsage
+          expr: rate(container_cpu_usage_seconds_total{pod=~"{{ include "amberjs.fullname" . }}-.*"}[5m]) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Amber high CPU usage"
+            description: "Amber instance {{ $labels.instance }} CPU usage is above 80% for more than 5 minutes."
+
+        - alert: AmberHighMemoryUsage
+          expr: container_memory_working_set_bytes{pod=~"{{ include "amberjs.fullname" . }}-.*"} / container_spec_memory_limit_bytes > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Amber high memory usage"
+            description: "Amber instance {{ $labels.instance }} memory usage is above 90% for more than 5 minutes."
+
+        - alert: AmberManyRestarts
+          expr: increase(kube_pod_container_status_restarts_total{pod=~"{{ include "amberjs.fullname" . }}-.*"}[1h]) > 5
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Amber container restarting frequently"
+            description: "Amber container {{ $labels.instance }} has restarted {{ $value }} times in the last hour."
+
+        - alert: AmberHighErrorRate
+          expr: rate(amberjs_http_requests_total{status=~"5.."}[5m]) / rate(amberjs_http_requests_total[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Amber high error rate"
+            description: "Amber instance {{ $labels.instance }} error rate is above 10% for more than 5 minutes."
+{{- end }}

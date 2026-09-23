@@ -1,33 +1,33 @@
 ---
-title: "Testing, Coverage & Benchmarking (bee test & bee bench)"
+title: "Testing, Coverage & Benchmarking (amber test & amber bench)"
 subtitle: "Built-in Jest-compatible test runner, LCOV coverage reporting, microbenchmark suite & CPU flamecharts"
 group: "Developer Tooling"
 id: "testing-benchmarking"
 ---
 
-In production and performance-sensitive systems, quality tests, code coverage metrics, and microbenchmarks are essential. Beejs provides native tools without needing Jest, Vitest, or C8.
+In production and performance-sensitive systems, quality tests, code coverage metrics, and microbenchmarks are essential. Amber provides native tools without needing Jest, Vitest, or C8.
 
 ---
 
-## 1. Automated Testing & Code Coverage (`bee test --coverage`)
+## 1. Automated Testing & Code Coverage (`amber test --coverage`)
 
-Beejs features a native test runner supporting Jest and Vitest syntax.
+Amber features a native test runner supporting Jest and Vitest syntax.
 
 ### 1.1 Running Tests
 
 ```bash
 # Run all *.test.ts and *.spec.js files
-$ bee test
+$ amber test
 
 # Run a specific test file
-$ bee test tests/auth.test.ts
+$ amber test tests/auth.test.ts
 ```
 
 ### 1.2 Collecting Code Coverage (`--coverage`)
-Add the `--coverage` flag to track line-level coverage. Beejs outputs an aligned summary table to the console and generates a standard `coverage/lcov.info` file (ready for Codecov, Coveralls, or CI):
+Add the `--coverage` flag to track line-level coverage. Amber outputs an aligned summary table to the console and generates a standard `coverage/lcov.info` file (ready for Codecov, Coveralls, or CI):
 
 ```bash
-$ bee test --coverage
+$ amber test --coverage
 ```
 
 Output:
@@ -43,9 +43,9 @@ Lines        : 96.42% ( 538/558 )
 
 ---
 
-## 2. Language-Level Microbenchmarks (`bee bench`)
+## 2. Language-Level Microbenchmarks (`amber bench`)
 
-To measure the impact of algorithm tweaks, parsing, or math operations, use `bee bench`.
+To measure the impact of algorithm tweaks, parsing, or math operations, use `amber bench`.
 
 ### 2.1 Writing a Benchmark File
 
@@ -54,7 +54,7 @@ Create `*.bench.ts` or `*.bench.js` files:
 ```typescript
 // math.bench.ts
 bench("JSON.parse small payload", () => {
-  JSON.parse('{"id": 1, "name": "beejs", "ok": true}');
+  JSON.parse('{"id": 1, "name": "amberjs", "ok": true}');
 });
 
 bench("Array sort 1000 items", () => {
@@ -66,9 +66,9 @@ bench("Array sort 1000 items", () => {
 ### 2.2 Running Benchmarks
 
 ```bash
-$ bee bench
+$ amber bench
 # Or specify a directory pattern
-$ bee bench benchmarks/
+$ amber bench benchmarks/
 ```
 
 Console output:
@@ -85,15 +85,15 @@ Console output:
 
 ---
 
-## 3. V8 CPU Profiling (`bee profile`)
+## 3. V8 CPU Profiling (`amber profile`)
 
-Diagnose CPU hotspots and bottlenecks with microsecond precision using `bee profile`, which exports Chrome DevTools compliant `.cpuprofile` files.
+Diagnose CPU hotspots and bottlenecks with microsecond precision using `amber profile`, which exports Chrome DevTools compliant `.cpuprofile` files.
 
 ### 3.1 Capturing a Profile
 
 ```bash
 # Execute and profile app.ts
-$ bee profile app.ts -o app.cpuprofile
+$ amber profile app.ts -o app.cpuprofile
 ```
 
 ### 3.2 Visualizing Flamecharts in Chrome

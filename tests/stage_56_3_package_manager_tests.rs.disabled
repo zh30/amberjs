@@ -67,7 +67,7 @@ mod package_json_tests {
             scripts: Some(std::collections::HashMap::new()),
             dependencies: Some(std::collections::HashMap::new()),
             dev_dependencies: Some(std::collections::HashMap::new()),
-            beejs: None,
+            amberjs: None,
         };
         
         assert_eq!(package.name, Some("test-package".to_string()));

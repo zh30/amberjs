@@ -7,11 +7,11 @@ id: "jit-optimization"
 
 ## 1. Zero-Config Native TypeScript Execution
 
-Beejs operates on a simple principle: **Developers should never have to configure a compiler just to run a TypeScript file.**
+Amber operates on a simple principle: **Developers should never have to configure a compiler just to run a TypeScript file.**
 
 In traditional Node.js setups, running TypeScript requires installing `typescript`, `ts-node`, `tsx`, or writing complex `tsconfig.json` and bundler configurations. This introduces heavy dependencies and noticeable startup lags.
 
-With Beejs, you can run any modern script file directly with `bee run`:
+With Amber, you can run any modern script file directly with `amber run`:
 - **`.ts`**: Standard TypeScript modules
 - **`.tsx`**: TypeScript components with JSX syntax
 - **`.mts` / `.cts`**: Explicit ESM or CommonJS TypeScript modules
@@ -19,14 +19,14 @@ With Beejs, you can run any modern script file directly with `bee run`:
 
 ```bash
 # Execute directly without tsc compilation
-bee run src/app.tsx
+amber run src/app.tsx
 ```
 
 ---
 
 ## 2. Why the oxc Compiler?
 
-Beejs embeds the high-performance **oxc** (The Oxidation Compiler) written in Rust:
+Amber embeds the high-performance **oxc** (The Oxidation Compiler) written in Rust:
 
 - **Blazing Fast**: oxc is widely recognized as one of the fastest JS/TS parsers and transpilers available. It parses and strips types **30x–50x faster** than official `tsc`, transforming typical 1,000-line files in under **1 millisecond**.
 - **Pure In-Memory Execution**: Transpilation happens entirely in memory. The sanitized JavaScript bytecode is handed directly to the V8 JIT pipeline without writing temporary files to disk.
@@ -36,7 +36,7 @@ Beejs embeds the high-performance **oxc** (The Oxidation Compiler) written in Ru
 
 ## 3. Next-Gen Language Features Supported
 
-Beyond standard type stripping, Beejs includes out-of-the-box support for modern language capabilities:
+Beyond standard type stripping, Amber includes out-of-the-box support for modern language capabilities:
 
 ### 1. Stage 3 Decorators
 Native support for TC39 Stage 3 standard decorators without experimental compiler flags:
@@ -135,7 +135,7 @@ console.log(StatCard({ title: 'Active Workers', count: 8 }));
 ## 4. Best Practices: Transpilation vs Type Checking
 
 ### Transpile-Only Runtime Philosophy
-Like Bun and Deno, Beejs uses a **transpile-only** strategy when running code:
+Like Bun and Deno, Amber uses a **transpile-only** strategy when running code:
 - **Optimized for Startup Speed**: Type checking on every script invocation is redundant and slow. Stripping types in memory keeps CLI cold starts strictly below 18ms.
 - **Type Error Forgiveness**: If a file has type mismatches, it will still execute as long as the generated JavaScript syntax is valid.
 
@@ -143,13 +143,13 @@ Like Bun and Deno, Beejs uses a **transpile-only** strategy when running code:
 Decouple runtime execution from static analysis for optimal developer velocity:
 
 1. **Local Development**: Let your IDE (VS Code, WebStorm) handle real-time type squiggles and autocompletion via the TypeScript language server.
-2. **Execution**: Run directly with `bee run` for instant feedback and zero build wait.
+2. **Execution**: Run directly with `amber run` for instant feedback and zero build wait.
 3. **CI Pipeline**: Run `tsc --noEmit` before merging pull requests to guarantee comprehensive static type safety:
 
 ```json
 {
   "scripts": {
-    "start": "bee run src/index.ts",
+    "start": "amber run src/index.ts",
     "check": "tsc --noEmit"
   }
 }

@@ -1,4 +1,4 @@
-//! Beejs Native Embeddings & Vector Operations powered by Candle
+//! Amber Native Embeddings & Vector Operations powered by Candle
 //!
 //! Provides dense, normalized vector embeddings and SIMD/GPU accelerated similarity.
 

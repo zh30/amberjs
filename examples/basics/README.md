@@ -1,15 +1,15 @@
-# Beejs 基础示例
+# Amber 基础示例
 
-本文档包含 Beejs v0.2.0 的基础使用示例。
+本文档包含 Amber v0.2.0 的基础使用示例。
 
 ## 运行方式
 
 ```bash
 # 运行 JavaScript 文件
-./target/release/bee run example.js
+./target/release/amber run example.js
 
 # 运行 TypeScript 文件 (开发中)
-./target/release/bee run example.ts
+./target/release/amber run example.ts
 ```
 
 ## 基础功能
@@ -49,7 +49,7 @@ console.log('数组操作完成');
 
 ### Console API
 ```javascript
-console.log('Hello Beejs!');
+console.log('Hello Amber!');
 console.error('错误信息');
 console.warn('警告信息');
 ```
@@ -77,7 +77,7 @@ console.log('Math.random():', Math.random());
 ### JSON API
 ```javascript
 // 序列化
-let obj = {name: 'Beejs', version: '0.2.0', features: ['高性能', '异步', 'HTTP']};
+let obj = {name: 'Amber', version: '0.2.0', features: ['高性能', '异步', 'HTTP']};
 let jsonStr = JSON.stringify(obj);
 console.log('JSON 字符串:', jsonStr);
 
@@ -149,7 +149,7 @@ let content = fs.readFileSync('/path/to/file.txt', 'utf8');
 console.log('文件内容:', content);
 
 // 写入文件
-fs.writeFileSync('/path/to/output.txt', 'Hello Beejs!');
+fs.writeFileSync('/path/to/output.txt', 'Hello Amber!');
 
 // 检查文件是否存在
 let exists = fs.existsSync('/path/to/file.txt');
@@ -183,11 +183,11 @@ console.log('架构:', process.arch);
 
 | 运行时 | 简单算术 | 字符串操作 | 数组操作 | 对象操作 |
 |--------|----------|------------|----------|----------|
-| **Beejs v0.2.0** | **181M ops/sec** | **7.3M ops/sec** | **111M ops/sec** | **2.6M ops/sec** |
+| **Amber v0.2.0** | **181M ops/sec** | **7.3M ops/sec** | **111M ops/sec** | **2.6M ops/sec** |
 | Bun | 97K ops/sec | 19K ops/sec | 9K ops/sec | 1.4K ops/sec |
 | Node.js | 90K ops/sec | 15K ops/sec | 7K ops/sec | 650 ops/sec |
 
-**Beejs 比 Bun 快**: 算术 ~1874x, 字符串 ~384x, 数组 ~12341x, 对象 ~1854x
+**Amber 比 Bun 快**: 算术 ~1874x, 字符串 ~384x, 数组 ~12341x, 对象 ~1854x
 
 ## 下一步
 
@@ -203,5 +203,5 @@ console.log('架构:', process.arch);
 
 ---
 
-**版本**: Beejs v0.2.0
+**版本**: Amber v0.2.0
 **最后更新**: 2025-12-23

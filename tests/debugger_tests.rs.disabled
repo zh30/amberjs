@@ -8,7 +8,7 @@
 //! - 调试引擎测试
 //! - 调试事件测试
 
-use beejs::debugger::{
+use amberjs::debugger::{
     DebuggerEngine, BreakpointManager, StackFrame, StackTrace,
     VariableInspector, DebugConfig, DebugState, DebugEvent,
     StepType, SourceLocation, DebugCommand, SimpleEventListener

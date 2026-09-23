@@ -1,31 +1,35 @@
-// bee prune command tests
-// v0.3.230 - Test coverage for bee prune command
+// amber prune command tests
+// v0.3.230 - Test coverage for amber prune command
 
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
-/// Get the path to the bee binary built by cargo for integration tests.
-fn beejs_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_bee"))
+/// Get the path to the amber binary built by cargo for integration tests.
+fn amberjs_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_BIN_EXE_amber"))
 }
 
 #[cfg(test)]
 mod prune_command_tests {
     use super::*;
 
-    /// Test 1: bee prune command should be recognized
+    /// Test 1: amber prune command should be recognized
     #[test]
     fn test_prune_command_exists() {
-        let beejs = beejs_path();
-        assert!(beejs.exists(), "bee binary should exist at {:?}", beejs);
+        let amberjs = amberjs_path();
+        assert!(
+            amberjs.exists(),
+            "amber binary should exist at {:?}",
+            amberjs
+        );
 
-        let output = Command::new(&beejs)
+        let output = Command::new(&amberjs)
             .arg("prune")
             .arg("--help")
             .output()
-            .expect("Failed to execute bee prune --help");
+            .expect("Failed to execute amber prune --help");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -35,28 +39,28 @@ mod prune_command_tests {
             output.status.success()
                 || stdout.contains("Remove unused dependencies")
                 || stderr.contains("Remove unused dependencies"),
-            "bee prune command should be recognized. stdout: {}, stderr: {}",
+            "amber prune command should be recognized. stdout: {}, stderr: {}",
             stdout,
             stderr
         );
     }
 
-    /// Test 2: bee prune with no package.json should error
+    /// Test 2: amber prune with no package.json should error
     #[test]
     fn test_prune_no_package_json() {
         let temp_dir = TempDir::new().unwrap();
 
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .arg("prune")
             .current_dir(temp_dir.path())
             .output()
-            .expect("Failed to execute bee prune");
+            .expect("Failed to execute amber prune");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
 
         assert!(
             !output.status.success(),
-            "bee prune should fail without package.json"
+            "amber prune should fail without package.json"
         );
         assert!(
             stderr.contains("package.json not found"),
@@ -65,7 +69,7 @@ mod prune_command_tests {
         );
     }
 
-    /// Test 3: bee prune with no node_modules should succeed
+    /// Test 3: amber prune with no node_modules should succeed
     #[test]
     fn test_prune_no_node_modules() {
         let temp_dir = TempDir::new().unwrap();
@@ -78,18 +82,18 @@ mod prune_command_tests {
         let package_json_path = temp_dir.path().join("package.json");
         fs::write(&package_json_path, package_json).unwrap();
 
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .arg("prune")
             .current_dir(temp_dir.path())
             .output()
-            .expect("Failed to execute bee prune");
+            .expect("Failed to execute amber prune");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
 
         assert!(
             output.status.success(),
-            "bee prune with no node_modules should succeed. stderr: {}",
+            "amber prune with no node_modules should succeed. stderr: {}",
             stderr
         );
         assert!(
@@ -99,7 +103,7 @@ mod prune_command_tests {
         );
     }
 
-    /// Test 4: bee prune should preserve declared dependencies
+    /// Test 4: amber prune should preserve declared dependencies
     #[test]
     fn test_prune_preserves_declared_deps() {
         let temp_dir = TempDir::new().unwrap();
@@ -126,18 +130,18 @@ mod prune_command_tests {
         )
         .unwrap();
 
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .arg("prune")
             .current_dir(temp_dir.path())
             .output()
-            .expect("Failed to execute bee prune");
+            .expect("Failed to execute amber prune");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
 
         assert!(
             output.status.success(),
-            "bee prune should succeed. stderr: {}",
+            "amber prune should succeed. stderr: {}",
             stderr
         );
         // lodash should NOT be removed since it's declared
@@ -148,7 +152,7 @@ mod prune_command_tests {
         );
     }
 
-    /// Test 5: bee prune should remove undeclared packages
+    /// Test 5: amber prune should remove undeclared packages
     #[test]
     fn test_prune_removes_undeclared() {
         let temp_dir = TempDir::new().unwrap();
@@ -186,18 +190,18 @@ mod prune_command_tests {
         )
         .unwrap();
 
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .arg("prune")
             .current_dir(temp_dir.path())
             .output()
-            .expect("Failed to execute bee prune");
+            .expect("Failed to execute amber prune");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
 
         assert!(
             output.status.success(),
-            "bee prune should succeed. stderr: {}",
+            "amber prune should succeed. stderr: {}",
             stderr
         );
         // undeclared-package should be removed
@@ -211,7 +215,7 @@ mod prune_command_tests {
     /// Test 6: verify prune method in PackageManager
     #[test]
     fn test_package_manager_prune() {
-        use beejs::package_manager::{PackageJson, PackageManager, PackageManagerConfig};
+        use amberjs::package_manager::{PackageJson, PackageManager, PackageManagerConfig};
 
         let temp_dir = TempDir::new().unwrap();
         let config = PackageManagerConfig {
@@ -297,18 +301,18 @@ mod prune_command_tests {
         )
         .unwrap();
 
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .arg("prune")
             .current_dir(temp_dir.path())
             .output()
-            .expect("Failed to execute bee prune");
+            .expect("Failed to execute amber prune");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
 
         assert!(
             output.status.success(),
-            "bee prune should succeed. stderr: {}",
+            "amber prune should succeed. stderr: {}",
             stderr
         );
         // @other/pkg should be removed

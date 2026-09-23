@@ -1,7 +1,7 @@
 // 测试 V8 Isolate 清理问题
 // 验证 Isolate 在异常情况下的正确清理
 
-use beejs::Runtime;
+use amberjs::Runtime;
 
 #[cfg(test)]
 mod tests {

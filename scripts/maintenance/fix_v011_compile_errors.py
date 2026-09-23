@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Beejs v0.1.1 编译错误修复脚本
+Amber v0.1.1 编译错误修复脚本
 自动修复测试编译中的常见错误
 """
 
@@ -141,7 +141,7 @@ def process_file(filepath):
 
 def main():
     """主函数"""
-    print("🚀 开始修复 Beejs v0.1.1 编译错误...")
+    print("🚀 开始修复 Amber v0.1.1 编译错误...")
 
     # 1. 修复模块冲突
     fix_enhanced_module_conflict()

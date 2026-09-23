@@ -23,7 +23,7 @@ pub struct ReplConfig {
 impl Default for ReplConfig {
     fn default() -> Self {
         Self {
-            prompt: "bee> ".to_string(),
+            prompt: "amber> ".to_string(),
             history_size: 100,
             syntax_highlight: false,
             auto_indent: true,
@@ -81,7 +81,7 @@ impl Repl {
     }
     /// Run the REPL
     pub async fn run(&mut self) -> anyhow::Result<()> {
-        println!("🐝 Beejs REPL - High-performance JavaScript/TypeScript runtime");
+        println!("🐝 Amber REPL - High-performance JavaScript/TypeScript runtime");
         println!("Type JavaScript code and press Enter to execute");
         println!("Type .exit or Ctrl+C to quit");
         println!("Type .help for more information");
@@ -233,7 +233,7 @@ impl Repl {
     }
     /// Print help information
     fn print_help(&self) {
-        println!("\n🐝 Beejs REPL Commands:");
+        println!("\n🐝 Amber REPL Commands:");
         println!("  .exit, .quit    - Exit the REPL");
         println!("  .help           - Show this help message");
         println!("  .clear          - Clear the screen");

@@ -13,7 +13,7 @@ import os
 
 def fix_websocket_rs():
     """Fix websocket.rs errors"""
-    file_path = "/Users/henry/code/beejs/src/web_api/websocket.rs"
+    file_path = "/Users/henry/code/amberjs/src/web_api/websocket.rs"
 
     with open(file_path, 'r') as f:
         content = f.read()
@@ -44,7 +44,7 @@ def fix_websocket_rs():
 
 def fix_events_rs():
     """Fix events.rs errors"""
-    file_path = "/Users/henry/code/beejs/src/web_api/events.rs"
+    file_path = "/Users/henry/code/amberjs/src/web_api/events.rs"
 
     with open(file_path, 'r') as f:
         content = f.read()
@@ -66,7 +66,7 @@ def fix_scope_borrowing():
     """Fix scope borrowing issues across multiple files"""
 
     # Fix events.rs line 166
-    file_path = "/Users/henry/code/beejs/src/nodejs_core/events.rs"
+    file_path = "/Users/henry/code/amberjs/src/nodejs_core/events.rs"
     with open(file_path, 'r') as f:
         content = f.read()
 
@@ -84,7 +84,7 @@ def fix_scope_borrowing():
     print(f"✓ Fixed scope borrowing in {file_path}")
 
     # Fix buffer.rs line 170
-    file_path = "/Users/henry/code/beejs/src/nodejs_core/buffer.rs"
+    file_path = "/Users/henry/code/amberjs/src/nodejs_core/buffer.rs"
     with open(file_path, 'r') as f:
         content = f.read()
 
@@ -101,7 +101,7 @@ def fix_scope_borrowing():
     print(f"✓ Fixed scope borrowing in {file_path}")
 
     # Fix os.rs line 406
-    file_path = "/Users/henry/code/beejs/src/nodejs_core/os.rs"
+    file_path = "/Users/henry/code/amberjs/src/nodejs_core/os.rs"
     with open(file_path, 'r') as f:
         content = f.read()
 
@@ -119,7 +119,7 @@ def fix_scope_borrowing():
     print(f"✓ Fixed scope borrowing in {file_path}")
 
     # Fix fetch.rs lines 217 and 227
-    file_path = "/Users/henry/code/beejs/src/web_api/fetch.rs"
+    file_path = "/Users/henry/code/amberjs/src/web_api/fetch.rs"
     with open(file_path, 'r') as f:
         content = f.read()
 
@@ -146,9 +146,9 @@ def fix_scope_borrowing():
 def fix_rv_mutability():
     """Fix _rv mutability issues"""
     files = [
-        ("/Users/henry/code/beejs/src/nodejs_core/buffer.rs", 91),
-        ("/Users/henry/code/beejs/src/web_api/fetch.rs", 246),
-        ("/Users/henry/code/beejs/src/web_api/url.rs", 302),
+        ("/Users/henry/code/amberjs/src/nodejs_core/buffer.rs", 91),
+        ("/Users/henry/code/amberjs/src/web_api/fetch.rs", 246),
+        ("/Users/henry/code/amberjs/src/web_api/url.rs", 302),
     ]
 
     for file_path, line_num in files:

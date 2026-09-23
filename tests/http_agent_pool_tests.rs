@@ -1,7 +1,7 @@
 // HTTP Agent Connection Pool Tests - v0.3.84
 // 测试 HTTP Agent 连接池功能
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

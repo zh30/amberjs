@@ -1,4 +1,4 @@
-// Jaeger Tracing Integration for Beejs
+// Jaeger Tracing Integration for Amber
 // 实现与 Jaeger 分布式追踪系统的集成
 
 use anyhow::{Context, Result};
@@ -375,7 +375,7 @@ mod tests {
     fn test_jaeger_tracer_creation() {
         let config: _ = JaegerConfig {
             collector_endpoint: "http://localhost:14268/api/traces".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             agent_host: "localhost".to_string(),
             agent_port: 6831,
             batch_size: 100,
@@ -389,7 +389,7 @@ mod tests {
     fn test_start_span() {
         let config: _ = JaegerConfig {
             collector_endpoint: "http://localhost:14268/api/traces".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             agent_host: "localhost".to_string(),
             agent_port: 6831,
             batch_size: 100,
@@ -406,7 +406,7 @@ mod tests {
     fn test_add_tags() {
         let config: _ = JaegerConfig {
             collector_endpoint: "http://localhost:14268/api/traces".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             agent_host: "localhost".to_string(),
             agent_port: 6831,
             batch_size: 100,
@@ -426,7 +426,7 @@ mod tests {
     fn test_finish_span() {
         let config: _ = JaegerConfig {
             collector_endpoint: "http://localhost:14268/api/traces".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             agent_host: "localhost".to_string(),
             agent_port: 6831,
             batch_size: 100,
@@ -442,7 +442,7 @@ mod tests {
     fn test_get_stats() {
         let config: _ = JaegerConfig {
             collector_endpoint: "http://localhost:14268/api/traces".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             agent_host: "localhost".to_string(),
             agent_port: 6831,
             batch_size: 100,

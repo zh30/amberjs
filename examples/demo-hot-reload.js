@@ -1,13 +1,13 @@
 /**
- * Beejs Hot Reload Demo
+ * Amber Hot Reload Demo
  *
  * This file demonstrates the hot reload functionality.
- * Run with: bee run demo.js --watch
+ * Run with: amber run demo.js --watch
  *
  * The browser will automatically reload when this file changes.
  */
 
-console.log('[Demo] Beejs Hot Reload Demo Started');
+console.log('[Demo] Amber Hot Reload Demo Started');
 console.log('[Demo] Current time:', new Date().toISOString());
 
 // Simple counter to verify reload
@@ -20,7 +20,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Demonstrate reactivity
-const message = 'Hello from Beejs with hot reload!';
+const message = 'Hello from Amber with hot reload!';
 console.log('[Demo]', message);
 
 // Calculate Fibonacci for demonstration

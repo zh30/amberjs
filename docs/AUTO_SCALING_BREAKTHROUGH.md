@@ -1,4 +1,4 @@
-# Beejs 智能进程池扩缩容系统 - 重大突破总结
+# Amber 智能进程池扩缩容系统 - 重大突破总结
 
 ## 🎯 任务完成情况
 
@@ -113,14 +113,14 @@ test result: ok. 151 passed; 0 failed; 10 ignored; 0 measured; 0 filtered out
 
 ## 💡 核心价值
 
-智能扩缩容系统是 Beejs 向高性能 JavaScript/TypeScript 运行时迈进的重要一步。通过自动化的资源管理，Beejs 现在能够：
+智能扩缩容系统是 Amber 向高性能 JavaScript/TypeScript 运行时迈进的重要一步。通过自动化的资源管理，Amber 现在能够：
 
 - **自适应**: 根据实际负载自动调整资源
 - **高效**: 避免资源浪费，提升整体性能
 - **稳定**: 防抖机制保证系统稳定性
 - **可观测**: 完整的统计指标，便于运维
 
-这为 Beejs 在 AI 时代的高性能脚本执行奠定了坚实基础！
+这为 Amber 在 AI 时代的高性能脚本执行奠定了坚实基础！
 
 ---
 

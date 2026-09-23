@@ -1,8 +1,8 @@
-# Beejs Stage 88 实施计划 - 生态系统扩展
+# Amber Stage 88 实施计划 - 生态系统扩展
 
 ## 项目概述
 
-**目标**: 实现 Beejs 生态系统扩展，通过多语言支持、跨平台运行时、企业级解决方案和云原生集成，构建一个全面的高性能运行时平台。
+**目标**: 实现 Amber 生态系统扩展，通过多语言支持、跨平台运行时、企业级解决方案和云原生集成，构建一个全面的高性能运行时平台。
 
 **核心价值**:
 - 🐍 **多语言支持**: Python、Go、Rust 等编程语言的无缝集成
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Beejs 多语言运行时                             │
+│                   Amber 多语言运行时                             │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ Python       │  │ Go           │  │ Rust 原生        │  │
@@ -40,7 +40,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Beejs 跨平台运行时                             │
+│                   Amber 跨平台运行时                             │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ macOS        │  │ Linux        │  │ Windows          │  │
@@ -70,7 +70,7 @@
    ```rust
    pub struct PythonRuntime {
        gil: Arc<PythonGIL>,
-       bee_api: Arc<BeeAPI>,
+       amber_api: Arc<AmberAPI>,
        context_pool: Arc<ContextPool>,
    }
 
@@ -86,18 +86,18 @@
 2. **双向 API 调用**
    ```rust
    pub struct PythonBeeBridge {
-       bee_runtime: Arc<BeeRuntime>,
+       amber_runtime: Arc<AmberRuntime>,
        python_gil: Arc<PythonGIL>,
    }
 
-   pub async fn call_bee_from_python(&self, script: &str) -> Result<Value> {
-       // 从 Python 调用 Beejs
+   pub async fn call_amber_from_python(&self, script: &str) -> Result<Value> {
+       // 从 Python 调用 Amber
    }
    ```
 
 **测试驱动开发**:
 - `test_python_basic_execution()`: 测试 Python 基本执行
-- `test_python_bee_interop()`: 测试 Python 与 Beejs 互操作
+- `test_python_amber_interop()`: 测试 Python 与 Amber 互操作
 - `test_python_performance()`: 测试 Python 性能
 
 #### 任务 1.2: Go 运行时集成
@@ -109,7 +109,7 @@
    pub struct GoRuntime {
        vm: Arc<GoVM>,
        goroutines: Arc<GoRoutinePool>,
-       bee_api: Arc<BeeAPI>,
+       amber_api: Arc<AmberAPI>,
    }
 
    pub async fn execute_go(&self, code: &str) -> Result<Value> {
@@ -121,21 +121,21 @@
    }
    ```
 
-2. **Go-Beejs 互操作**
+2. **Go-Amber 互操作**
    ```rust
-   pub struct GoBeeBridge {
-       bee_runtime: Arc<BeeRuntime>,
+   pub struct GoAmberBridge {
+       amber_runtime: Arc<AmberRuntime>,
        go_vm: Arc<GoVM>,
    }
 
-   pub async fn call_bee_from_go(&self, script: &str) -> Result<Value> {
-       // 从 Go 调用 Beejs
+   pub async fn call_amber_from_go(&self, script: &str) -> Result<Value> {
+       // 从 Go 调用 Amber
    }
    ```
 
 **测试驱动开发**:
 - `test_go_basic_execution()`: 测试 Go 基本执行
-- `test_go_bee_interop()`: 测试 Go 与 Beejs 互操作
+- `test_go_amber_interop()`: 测试 Go 与 Amber 互操作
 - `test_go_concurrency()`: 测试 Go 并发特性
 
 #### 任务 1.3: Rust 原生优化

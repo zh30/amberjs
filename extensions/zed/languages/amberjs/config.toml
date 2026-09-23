@@ -1,0 +1,3 @@
+name = "Amber"
+path_suffixes = ["amberjs"]
+line_comments = ["//"]

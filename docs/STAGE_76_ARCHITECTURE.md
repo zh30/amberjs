@@ -392,4 +392,4 @@ impl ProfilingCommand {
 3. **智能采样**: 平衡准确性和性能
 4. **向后兼容**: 不破坏现有功能
 
-这个架构将使 Beejs 具备企业级性能分析能力，为 AI 时代的 JavaScript/TypeScript 脚本优化提供强大支持。
+这个架构将使 Amber 具备企业级性能分析能力，为 AI 时代的 JavaScript/TypeScript 脚本优化提供强大支持。

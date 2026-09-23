@@ -1,4 +1,4 @@
-# Beejs Stage 37.0 实施计划 - 性能基准测试系统
+# Amber Stage 37.0 实施计划 - 性能基准测试系统
 
 ## 📋 任务概览
 
@@ -175,7 +175,7 @@ pub struct BenchmarkRunner {
 }
 
 pub struct RuntimeConfig {
-    pub name: String,           // "beejs", "nodejs", "bun"
+    pub name: String,           // "amberjs", "nodejs", "bun"
     pub command: String,        // 可执行命令
     pub args: Vec<String>,      // 启动参数
     pub version_cmd: Option<String>, // 版本查询命令
@@ -206,7 +206,7 @@ pub struct ComparisonResult {
 }
 
 pub struct BenchmarkComparison {
-    pub beejs_result: Option<BenchmarkResult>,
+    pub amberjs_result: Option<BenchmarkResult>,
     pub nodejs_result: Option<BenchmarkResult>,
     pub bun_result: Option<BenchmarkResult>,
     pub speedup_vs_nodejs: f64,
@@ -291,7 +291,7 @@ impl HtmlReportGenerator {
         let mut template = self.load_template("performance_report.html")?;
 
         // 替换占位符
-        template = template.replace("{{title}}", "Beejs Performance Report");
+        template = template.replace("{{title}}", "Amber Performance Report");
         template = template.replace("{{timestamp}}", &chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string());
 
         // 插入性能图表
@@ -455,18 +455,18 @@ tests/
 
 ## 📝 总结
 
-Stage 37.0 将建立完整的性能基准测试体系，使 Beejs 能够：
+Stage 37.0 将建立完整的性能基准测试体系，使 Amber 能够：
 
 1. **量化性能优势**: 通过详细的基准测试证明比 Bun/Node.js 更快
 2. **持续性能监控**: 自动检测性能回归，确保性能不退化
 3. **可视化性能分析**: 生成美观的性能报告，便于分享和分析
 4. **CI/CD 集成**: 每次提交自动运行性能测试，确保质量
 
-这将为 Beejs 成为"比 Bun 更快的 JavaScript 运行时"提供强有力的数据支持。
+这将为 Amber 成为"比 Bun 更快的 JavaScript 运行时"提供强有力的数据支持。
 
 ---
 
 **实施时间**: 2025-12-19
-**负责人**: Beejs 开发团队
+**负责人**: Amber 开发团队
 **状态**: 待开始
 **下一步**: Stage 38.0 - GPU 加速支持

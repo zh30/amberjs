@@ -1,4 +1,4 @@
-// Beejs Testing Framework Module
+// Amber Testing Framework Module
 // Stage 56.4 - Test Runner Implementation
 //
 // Provides Jest-compatible testing framework with:

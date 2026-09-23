@@ -1,5 +1,5 @@
 // Multi-tenancy Isolation Manager
-// Implements secure multi-tenancy for Beejs clusters
+// Implements secure multi-tenancy for Amber clusters
 
 
 use tracing::{info, warn, error, debug};

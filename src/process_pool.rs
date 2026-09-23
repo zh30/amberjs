@@ -1,4 +1,4 @@
-// Process Pool Implementation for Beejs
+// Process Pool Implementation for Amber
 //
 // This module implements a process pool system to reuse pre-spawned worker processes
 // for script execution, significantly reducing the overhead of process creation.
@@ -26,7 +26,7 @@ use std::hash::{Hash, Hasher, DefaultHasher};
 #[allow(unused_imports)]
 const DEFAULT_POOL_SIZE: usize = 4;
 const MAX_POOL_SIZE: usize = 16;
-const SOCKET_PATH_PREFIX: &str = "/tmp/beejs-pool-";
+const SOCKET_PATH_PREFIX: &str = "/tmp/amberjs-pool-";
 const WORKER_READY_MSG: &str = "READY";
 const EXEC_SUCCESS_MSG: &str = "SUCCESS:";
 const EXEC_ERROR_MSG: &str = "ERROR:";

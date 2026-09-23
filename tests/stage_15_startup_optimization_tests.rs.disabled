@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod startup_optimization_tests {
-    use beejs::{RuntimeLite, profiler::{Profiler, ProfilingMode}};
+    use amberjs::{RuntimeLite, profiler::{Profiler, ProfilingMode}};
     use std::time::{Duration, SystemTime};
 use std::sync::{Arc, Mutex, RwLock};
 use std::collections::{HashMap, BTreeMap};
@@ -147,7 +147,7 @@ use std::collections::{HashMap, BTreeMap};
         let runtime: _ = RuntimeLite::new(false).expect("RuntimeLite 创建失败");
 
         // 开始分析
-        let profile_id: _ = profiler.start_profile(beejs::profiler::ProfileTarget::Runtime)
+        let profile_id: _ = profiler.start_profile(amberjs::profiler::ProfileTarget::Runtime)
             .expect("开始分析失败");
 
         if let Ok(result) = runtime.execute_code("1+1") {

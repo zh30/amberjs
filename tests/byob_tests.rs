@@ -6,16 +6,17 @@ mod byob_tests {
     use std::path::PathBuf;
     use std::process::Command;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_bee").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
     /// Test 1: ReadableStream.getReader() read() accepts a view parameter
     #[test]
     fn test_byob_read_accepts_view() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -34,7 +35,7 @@ mod byob_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Current implementation should return false (BYOB not supported yet)
@@ -49,7 +50,7 @@ mod byob_tests {
     /// Test 2: BYOB read should copy data into the provided buffer
     #[test]
     fn test_byob_copies_to_buffer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -68,7 +69,7 @@ mod byob_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Should handle the read operation
@@ -82,7 +83,7 @@ mod byob_tests {
     /// Test 3: BYOB with smaller buffer than chunk
     #[test]
     fn test_byob_smaller_buffer() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -101,7 +102,7 @@ mod byob_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Should handle partial reads
@@ -115,7 +116,7 @@ mod byob_tests {
     /// Test 4: BYOB with ArrayBufferView (DataView)
     #[test]
     fn test_byob_with_dataview() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args([
                 "eval",
                 r#"
@@ -134,7 +135,7 @@ mod byob_tests {
             "#,
             ])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -149,7 +150,7 @@ mod byob_tests {
     /// Test 5: Normal read without BYOB still works
     #[test]
     fn test_normal_read_still_works() {
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", r#"
                 const stream = new ReadableStream({
                     start(controller) {
@@ -163,7 +164,7 @@ mod byob_tests {
                 });
             "#])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(

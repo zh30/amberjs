@@ -2,7 +2,7 @@
 //!
 //! These modules are experimental. Built-in model inference is opt-in and must
 //! not be treated as production-ready LLM serving. Prefer running real AI SDKs
-//! (OpenAI/Anthropic/etc.) on Beejs' Node-compatible I/O path.
+//! (OpenAI/Anthropic/etc.) on Amber' Node-compatible I/O path.
 
 pub mod acceleration_engine;
 pub mod ai_async_queue;

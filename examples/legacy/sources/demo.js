@@ -1,1 +1,1 @@
-console.log("Beejs Stage 48 Demo - Success\!");
+console.log("Amber Stage 48 Demo - Success\!");

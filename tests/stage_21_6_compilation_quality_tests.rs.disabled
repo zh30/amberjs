@@ -1,7 +1,7 @@
 //! Stage 21.6: 代码质量清理测试
 //! 验证所有编译警告已清理，代码质量达到生产标准
 
-use beejs::*;
+use amberjs::*;
 
 #[cfg(test)]
 mod compilation_quality_tests {
@@ -22,12 +22,12 @@ mod compilation_quality_tests {
     fn test_network_module_code_quality() {
         // 验证网络模块能够正常编译
         // 只验证导出的类型存在，不调用具体方法
-        let _buffer_pool: Option<beejs::NetworkBufferPool> = None;
-        let _connection_pool: Option<beejs::ConnectionPool> = None;
-        let _statistics: Option<beejs::NetworkIoStatistics> = None;
-        let _config: Option<beejs::NetworkConfig> = None;
-        let _stats: Option<beejs::NetworkStats> = None;
-        let _monitor: Option<beejs::NetworkMonitor> = None;
+        let _buffer_pool: Option<amberjs::NetworkBufferPool> = None;
+        let _connection_pool: Option<amberjs::ConnectionPool> = None;
+        let _statistics: Option<amberjs::NetworkIoStatistics> = None;
+        let _config: Option<amberjs::NetworkConfig> = None;
+        let _stats: Option<amberjs::NetworkStats> = None;
+        let _monitor: Option<amberjs::NetworkMonitor> = None;
         assert!(true, "网络模块编译质量验证");
     }
 

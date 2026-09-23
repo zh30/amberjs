@@ -2,9 +2,9 @@
 
 ## 📋 阶段概述
 
-Stage 55.2 专注于 **性能对比分析**，将 Beejs 与 Node.js、Bun、Deno 等主流运行时进行全面对比，建立性能优势证明。
+Stage 55.2 专注于 **性能对比分析**，将 Amber 与 Node.js、Bun、Deno 等主流运行时进行全面对比，建立性能优势证明。
 
-**目标**: 证明 Beejs 在关键性能指标上超越竞品，为用户提供选择 Beejs 的明确理由。
+**目标**: 证明 Amber 在关键性能指标上超越竞品，为用户提供选择 Amber 的明确理由。
 
 ---
 
@@ -20,7 +20,7 @@ Stage 55.2 专注于 **性能对比分析**，将 Beejs 与 Node.js、Bun、Deno
 - [ ] **测试覆盖**: 涵盖所有主要性能指标
 - [ ] **报告完整**: 生成详细的 Markdown 对比报告
 - [ ] **可视化**: 创建性能对比图表
-- [ ] **结论明确**: 明确展示 Beejs 的性能优势
+- [ ] **结论明确**: 明确展示 Amber 的性能优势
 
 ---
 
@@ -56,7 +56,7 @@ Stage 55.2 专注于 **性能对比分析**，将 Beejs 与 Node.js、Bun、Deno
 
 #### 2.1 对比测试框架
 - [ ] **创建 ComparisonRunner**
-  - [ ] 多运行时支持（Beejs、Node.js、Bun、Deno）
+  - [ ] 多运行时支持（Amber、Node.js、Bun、Deno）
   - [ ] 统一的测试用例接口
   - [ ] 自动数据收集和统计
 
@@ -108,7 +108,7 @@ Stage 55.2 专注于 **性能对比分析**，将 Beejs 与 Node.js、Bun、Deno
 ```rust
 /// 性能对比测试套件
 pub struct PerformanceComparisonSuite {
-    beejs_path: PathBuf,
+    amberjs_path: PathBuf,
     nodejs_path: PathBuf,
     bun_path: PathBuf,
     deno_path: PathBuf,
@@ -117,13 +117,13 @@ pub struct PerformanceComparisonSuite {
 impl PerformanceComparisonSuite {
     /// 创建新的对比测试套件
     pub fn new(
-        beejs_path: PathBuf,
+        amberjs_path: PathBuf,
         nodejs_path: PathBuf,
         bun_path: PathBuf,
         deno_path: PathBuf,
     ) -> Self {
         Self {
-            beejs_path,
+            amberjs_path,
             nodejs_path,
             bun_path,
             deno_path,
@@ -177,7 +177,7 @@ impl ComparisonReportGenerator {
         let mut markdown = String::new();
 
         // 标题
-        markdown.push_str("# Beejs 性能对比报告\n\n");
+        markdown.push_str("# Amber 性能对比报告\n\n");
         markdown.push_str(&format!("生成时间: {}\n\n", report.generated_at));
 
         // 执行摘要
@@ -227,7 +227,7 @@ impl ComparisonReportGenerator {
 ## 📊 预期成果
 
 ### 性能对比数据
-| 测试项目 | Beejs | Node.js | Bun | Deno | Beejs 优势 |
+| 测试项目 | Amber | Node.js | Bun | Deno | Amber 优势 |
 |---------|-------|---------|-----|------|-----------|
 | 启动时间 | < 50ms | ~100ms | ~70ms | ~120ms | 2-3x faster |
 | JS 执行 | < 20μs | ~60μs | ~35μs | ~80μs | 3-5x faster |

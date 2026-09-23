@@ -1,4 +1,4 @@
-// Beejs Streaming Structured JSON & LLM Token Grammar Engine (bee:grammar)
+// Amber Streaming Structured JSON & LLM Token Grammar Engine (amber:grammar)
 // Real-time incremental partial JSON repair, SSE parser, and constrained token grammars.
 
 use rusty_v8 as v8;
@@ -226,7 +226,7 @@ fn grammar_native_dispatch(
     }
 }
 
-/// Sets up the `bee:grammar` API in V8 context
+/// Sets up the `amber:grammar` API in V8 context
 pub fn setup_grammar_api(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
@@ -235,12 +235,12 @@ pub fn setup_grammar_api(
 
     // Register native dispatcher callback
     let native_fn = v8::Function::new(scope, grammar_native_dispatch).unwrap();
-    let k_native = v8::String::new(scope, "__bee_grammar_native").unwrap();
+    let k_native = v8::String::new(scope, "__amber_grammar_native").unwrap();
     global.set(scope, k_native.into(), native_fn.into());
 
     let grammar_js_bootstrap = r#"
     (function() {
-        const native = globalThis.__bee_grammar_native;
+        const native = globalThis.__amber_grammar_native;
 
         // --- 1. Partial JSON Parsing ---
         function parsePartialJSON(input) {
@@ -428,7 +428,7 @@ pub fn setup_grammar_api(
             }
         };
 
-        globalThis.__bee_grammar = grammarModule;
+        globalThis.__amber_grammar = grammarModule;
         globalThis.grammar = grammarModule;
     })();
     "#;

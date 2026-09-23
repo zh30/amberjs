@@ -1,11 +1,11 @@
-# Beejs Stage 87 实施计划 - 边缘计算
+# Amber Stage 87 实施计划 - 边缘计算
 
 ## 项目概述
 
-**目标**: 实现 Beejs 边缘计算能力，支持在边缘节点上高效运行 JavaScript/TypeScript 脚本，通过离线模式、分布式智能和边缘优化，为 AI 时代提供低延迟、高性能的计算服务。
+**目标**: 实现 Amber 边缘计算能力，支持在边缘节点上高效运行 JavaScript/TypeScript 脚本，通过离线模式、分布式智能和边缘优化，为 AI 时代提供低延迟、高性能的计算服务。
 
 **核心价值**:
-- 🚀 **边缘节点支持**: 在边缘设备上运行 Beejs 运行时
+- 🚀 **边缘节点支持**: 在边缘设备上运行 Amber 运行时
 - 📡 **离线模式**: 无网络环境下的完整功能
 - 🧠 **分布式智能**: AI 驱动的任务分发和负载均衡
 - ⚡ **边缘优化**: 针对边缘环境的性能优化
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Beejs 边缘计算平台                           │
+│                     Amber 边缘计算平台                           │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ 边缘节点     │  │ 离线模式     │  │ 分布式智能       │  │
@@ -446,13 +446,13 @@
 ### 1. 边缘节点管理器实现示例
 
 ```rust
-pub struct BeejsEdgeNodeManager {
+pub struct AmberEdgeNodeManager {
     nodes: Arc<RwLock<HashMap<NodeId, EdgeNode>>>,
     load_balancer: Arc<EdgeLoadBalancer>,
     health_checker: Arc<HealthChecker>,
 }
 
-impl BeejsEdgeNodeManager {
+impl AmberEdgeNodeManager {
     pub async fn initialize(&self) -> Result<()> {
         // 1. 初始化节点注册表
         self.register_local_node().await?;
@@ -623,4 +623,4 @@ impl OfflineExecutionEngine {
 
 ---
 
-**结论**: Stage 87 将为 Beejs 构建完整的边缘计算能力，通过边缘节点支持、离线模式、分布式智能和边缘优化，让 Beejs 在 AI 时代成为低延迟、高性能的首选运行时平台。
+**结论**: Stage 87 将为 Amber 构建完整的边缘计算能力，通过边缘节点支持、离线模式、分布式智能和边缘优化，让 Amber 在 AI 时代成为低延迟、高性能的首选运行时平台。

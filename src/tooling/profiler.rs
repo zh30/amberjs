@@ -1,4 +1,4 @@
-//! Profiler and CPU profile generator for Beejs.
+//! Profiler and CPU profile generator for Amber.
 //!
 //! Exports Chrome DevTools compatible `.cpuprofile` files for flamegraph visualization.
 

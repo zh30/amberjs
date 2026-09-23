@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "amberjs.fullname" . }}
+  labels:
+    {{- include "amberjs.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "amberjs.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "amberjs.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "amberjs.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: AMBER_MODE
+              value: "production"
+            - name: AMBER_MAX_CONNECTIONS
+              value: "{{ .Values.network.maxConnections }}"
+            - name: AMBER_BATCH_SIZE
+              value: "{{ .Values.network.batchSize }}"
+            - name: AMBER_WASM_CACHE_SIZE
+              value: "{{ .Values.network.wasmCache.size }}"
+            {{- if .Values.performance.jitOptimization }}
+            - name: AMBER_JIT_OPTIMIZATION
+              value: "true"
+            {{- end }}
+            {{- if .Values.performance.zeroCopyIO }}
+            - name: AMBER_ZERO_COPY_IO
+              value: "true"
+            {{- end }}
+            {{- if .Values.performance.memoryPool.enabled }}
+            - name: AMBER_MEMORY_POOL_INITIAL_SIZE
+              value: "{{ .Values.performance.memoryPool.initialSize }}"
+            - name: AMBER_MEMORY_POOL_MAX_SIZE
+              value: "{{ .Values.performance.memoryPool.maxSize }}"
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.startupProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/cache
+            {{- if .Values.monitoring.enabled }}
+            - name: prometheus-exporter
+              mountPath: /metrics
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          {{- if .Values.network.wasmCache.enabled }}
+          emptyDir:
+            sizeLimit: {{ .Values.network.wasmCache.size }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.monitoring.enabled }}
+        - name: prometheus-exporter
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
