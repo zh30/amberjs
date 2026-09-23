@@ -1,10 +1,10 @@
 //! 跨平台测试运行器
 //!
-//! 这个工具用于自动化运行 Beejs 的跨平台兼容性测试，
+//! 这个工具用于自动化运行 Amber 的跨平台兼容性测试，
 //! 包括 Linux、macOS 和 Windows 平台特性测试。支持平台检测、
 //! 测试选择、结果聚合和报告生成。
 
-use beejs::runtime_lite::Runtime;
+use amberjs::runtime_lite::Runtime;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -565,7 +565,7 @@ impl ResultAggregator {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Beejs Cross-Platform Test Report</title>
+    <title>Amber Cross-Platform Test Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }}
         .container {{ max-width: 1200px; margin: 0 auto; }}
@@ -596,7 +596,7 @@ impl ResultAggregator {
 <body>
     <div class="container">
         <div class="header">
-            <h1>Beejs Cross-Platform Test Report</h1>
+            <h1>Amber Cross-Platform Test Report</h1>
             <p>Generated at: {}</p>
         </div>
 

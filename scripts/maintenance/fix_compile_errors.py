@@ -101,9 +101,9 @@ def fix_file(filepath):
 def main():
     """主函数"""
     files_to_fix = [
-        '/Users/henry/code/beejs/src/ai/auto_optimizer.rs',
-        '/Users/henry/code/beejs/src/ai/predictive_scaler.rs',
-        '/Users/henry/code/beejs/src/io/dma_engine.rs',
+        '/Users/henry/code/amberjs/src/ai/auto_optimizer.rs',
+        '/Users/henry/code/amberjs/src/ai/predictive_scaler.rs',
+        '/Users/henry/code/amberjs/src/io/dma_engine.rs',
     ]
 
     print("🔧 开始修复编译错误...\n")

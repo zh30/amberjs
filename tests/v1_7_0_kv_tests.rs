@@ -1,4 +1,4 @@
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use tempfile::tempdir;
 
@@ -8,7 +8,7 @@ fn test_kv_in_memory_and_basic_operations() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime creation");
 
     let code = r#"
-    const { KVStore } = require('bee:kv');
+    const { KVStore } = require('amber:kv');
     const store = KVStore.openMemory();
 
     // 1. Basic Set and Get
@@ -44,7 +44,7 @@ fn test_kv_in_memory_and_basic_operations() {
 #[serial]
 fn test_kv_disk_persistence_and_wal_reload() {
     let dir = tempdir().expect("tempdir");
-    let kv_path = dir.path().join("agent_state.bee-kv");
+    let kv_path = dir.path().join("agent_state.amber-kv");
     let kv_path_str = kv_path.to_string_lossy().replace('\\', "\\\\");
 
     // Phase 1: Write state to disk-backed KVStore
@@ -52,7 +52,7 @@ fn test_kv_disk_persistence_and_wal_reload() {
         let mut runtime = MinimalRuntime::new().expect("MinimalRuntime 1");
         let code = format!(
             r#"
-            const kv = require('bee:kv');
+            const kv = require('amber:kv');
             const store = kv.open("{path}");
 
             store.set('session:1', {{ agent: 'researcher', step: 5 }});
@@ -76,7 +76,7 @@ fn test_kv_disk_persistence_and_wal_reload() {
         let mut runtime = MinimalRuntime::new().expect("MinimalRuntime 2");
         let code = format!(
             r#"
-            const {{ KVStore }} = require('bee:kv');
+            const {{ KVStore }} = require('amber:kv');
             const store = KVStore.open("{path}");
 
             const s1 = store.get('session:1');
@@ -116,7 +116,7 @@ fn test_kv_prefix_scanning_and_ttl() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { KVStore } = require('bee:kv');
+    const { KVStore } = require('amber:kv');
     const store = KVStore.openMemory();
 
     store.set('agent:memory:1', 'Fact A');
@@ -162,7 +162,7 @@ fn test_kv_atomic_increments_and_batch() {
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
 
     let code = r#"
-    const { KVStore } = require('bee:kv');
+    const { KVStore } = require('amber:kv');
     const store = KVStore.openMemory();
 
     // 1. Atomic increments

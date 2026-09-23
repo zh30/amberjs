@@ -8,7 +8,7 @@ use serial_test::serial;
 #[serial]
 fn test_next_tick_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.nextTick;
     "#;
@@ -25,7 +25,7 @@ fn test_next_tick_exists() {
 #[serial]
 fn test_next_tick_returns_undefined() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         let result = process.nextTick(() => {});
         result === undefined;
@@ -45,7 +45,7 @@ fn test_next_tick_returns_undefined() {
 #[serial]
 fn test_next_tick_with_args() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         globalThis.__nextTickReceived = null;
         process.nextTick((arg1, arg2) => {
@@ -75,7 +75,7 @@ fn test_next_tick_with_args() {
 #[serial]
 fn test_next_tick_requires_function() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         try {
             process.nextTick('not a function');
@@ -97,7 +97,7 @@ fn test_next_tick_requires_function() {
 #[serial]
 fn test_stdout_write_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.stdout.write;
     "#;
@@ -114,7 +114,7 @@ fn test_stdout_write_exists() {
 #[serial]
 fn test_stderr_write_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         typeof process.stderr.write;
     "#;
@@ -131,7 +131,7 @@ fn test_stderr_write_exists() {
 #[serial]
 fn test_stdout_write_returns_boolean() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         let result = process.stdout.write('test');
         typeof result;
@@ -149,7 +149,7 @@ fn test_stdout_write_returns_boolean() {
 #[serial]
 fn test_stderr_write_returns_boolean() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         let result = process.stderr.write('error');
         typeof result;
@@ -167,7 +167,7 @@ fn test_stderr_write_returns_boolean() {
 #[serial]
 fn test_stdout_write_empty_string() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         let result = process.stdout.write('');
         result === true;
@@ -185,7 +185,7 @@ fn test_stdout_write_empty_string() {
 #[serial]
 fn test_stdout_write_number() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         let result = process.stdout.write(42);
         result === true;

@@ -262,7 +262,7 @@ mod tests {
     fn test_sandbox_creation() {
         let config: _ = SandboxConfig {
             enabled: true,
-            base_dir: PathBuf::from("/tmp/beejs-sandbox"),
+            base_dir: PathBuf::from("/tmp/amberjs-sandbox"),
             max_memory: 1024 * 1024 * 1024, // 1GB
             max_cpu_time: 60,
             max_processes: 10,
@@ -280,26 +280,26 @@ mod tests {
     fn test_path_allowed() {
         let config: _ = SandboxConfig {
             enabled: true,
-            base_dir: PathBuf::from("/tmp/beejs-sandbox"),
+            base_dir: PathBuf::from("/tmp/amberjs-sandbox"),
             max_memory: 1024 * 1024 * 1024,
             max_cpu_time: 60,
             max_processes: 10,
             max_file_size: 100 * 1024 * 1024,
-            allowed_paths: vec![PathBuf::from("/tmp/beejs-sandbox")],
+            allowed_paths: vec![PathBuf::from("/tmp/amberjs-sandbox")],
             blocked_paths: vec![PathBuf::from("/etc")],
             network_enabled: false,
             env_vars: HashMap::new(),
             blocked_env_vars: Vec::new(),
         };
         let sandbox: _ = SecuritySandbox::new(config).unwrap();
-        assert!(sandbox.is_path_allowed(&PathBuf::from("/tmp/beejs-sandbox/test"));
+        assert!(sandbox.is_path_allowed(&PathBuf::from("/tmp/amberjs-sandbox/test"));
         assert!(!sandbox.is_path_allowed(&PathBuf::from("/etc/passwd"));
     }
     #[test]
     fn test_resource_limits() {
         let config: _ = SandboxConfig {
             enabled: true,
-            base_dir: PathBuf::from("/tmp/beejs-sandbox"),
+            base_dir: PathBuf::from("/tmp/amberjs-sandbox"),
             max_memory: 512 * 1024 * 1024, // 512MB
             max_cpu_time: 30,
             max_processes: 5,

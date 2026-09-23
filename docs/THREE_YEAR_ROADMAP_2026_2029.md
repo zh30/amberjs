@@ -1,6 +1,6 @@
-# 🚀 Beejs 3年技术拓扑与愿景蓝图 (2026 – 2029)
+# 🚀 Amber 3年技术拓扑与愿景蓝图 (2026 – 2029)
 
-> **文档定位**：本文档定义了 Beejs 运行时在未来 3 年（2026 - 2029）的宏大技术拓扑与演进路线图。Beejs 将超越传统的单进程 JS 运行时，致力于成为面向 **AI-Native、边缘计算（Edge-Native）与自主 Agent 架构** 的下一代主权级计算引擎。
+> **文档定位**：本文档定义了 Amber 运行时在未来 3 年（2026 - 2029）的宏大技术拓扑与演进路线图。Amber 将超越传统的单进程 JS 运行时，致力于成为面向 **AI-Native、边缘计算（Edge-Native）与自主 Agent 架构** 的下一代主权级计算引擎。
 
 ---
 
@@ -12,13 +12,13 @@
 3. **主权级能力安全沙箱**（基于 eBPF + Linux Landlock + V8 Isolate 的硬核隔离）
 4. **分布式动态 Isolate 迁移**（运行时状态在线无损跨机热迁移）
 
-Beejs 将立足于 Rust 的内存安全与高并发优势，深度整合 V8 引擎与 WebAssembly 生态，打造**新一代面向 AI 与边缘的终极运行时**。
+Amber 将立足于 Rust 的内存安全与高并发优势，深度整合 V8 引擎与 WebAssembly 生态，打造**新一代面向 AI 与边缘的终极运行时**。
 
 ---
 
 ```mermaid
 timeline
-    title Beejs 3年技术演进路线图
+    title Amber 3年技术演进路线图
     2026 - 2027 : 极速冷启动与边缘原生 AI : V8 Snapshot 预热池 : Candle/ONNX 原生 JIT 绑定 : Wasmtime 零拷贝内存共享 : 毫秒级边缘 Serverless
     2027 - 2028 : 异构多语言与主权级沙箱 : PyO3/Wasm Component Model 矩阵 : eBPF + Landlock 硬隔离沙箱 : Native io_uring 异步引擎 : 确定性 Replay 调试器
     2028 - 2029 : 分布式 Isolate 织网 (BeeGrid) : 全球节点状态实时热迁移 : AIOps 自适应 GC 与 JIT 调优 : AI Agent 专用 OS 级接口 : 异构 GPU/NPU 直连加速
@@ -37,14 +37,14 @@ timeline
   - 代码执行冷启动时间由目前的 ~4ms 压缩至 **< 0.5ms**。
   - 单台服务器可同时维持 50,000+ 个并发调用的 Worker 实例，内存开销降低 80%。
 
-#### 2. 原生 Agentic AI 推理加速层 (BeeJS-AI Core)
+#### 2. 原生 Agentic AI 推理加速层 (Amber-AI Core)
 - **技术突破**：摒弃传统通过 HTTP/gRPC/IPC 调用外部 Python 进程的做法，在 Rust 侧深度集成 `Candle` / `GGML` / `TensorRT-LLM` C++ 绑定，直接向 V8 暴露 Zero-Copy Tensor 接口。
 - **核心 API 范例**：
   ```typescript
   // 在 V8 内部直接进行本地 Token 流式推理，无任何网络/序列化开销
-  import { LLM } from 'bee:ai';
+  import { LLM } from 'amber:ai';
   const model = await LLM.load('qwen-2.5-7b-quant.gguf', { device: 'metal' });
-  for await (const chunk of model.generateStream('Hello Beejs')) {
+  for await (const chunk of model.generateStream('Hello Amber')) {
     process.stdout.write(chunk);
   }
   ```
@@ -114,4 +114,4 @@ timeline
 
 ## 💡 总结与行动蓝图
 
-Beejs 绝不满足于做又一个简单的 JavaScript 运行工具，而是要借助 **Rust 的极致性能与内存安全**、**V8 的强大执行效率** 以及 **WebAssembly 的跨平台拓展力**，打造一个面向未来 **AI Agent 时代与 Edge 云原生基础设施** 的终极引擎！
+Amber 绝不满足于做又一个简单的 JavaScript 运行工具，而是要借助 **Rust 的极致性能与内存安全**、**V8 的强大执行效率** 以及 **WebAssembly 的跨平台拓展力**，打造一个面向未来 **AI Agent 时代与 Edge 云原生基础设施** 的终极引擎！

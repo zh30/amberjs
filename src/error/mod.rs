@@ -5,10 +5,10 @@ pub mod types;
 pub use recovery::{
     AutoRecovery, AutoRecoveryConfig, FallbackStrategyFn, RecoveryStats, RetryPolicy,
 };
-pub use types::{BeejsError, ErrorContext, ErrorSeverity, SourceLocation, StackFrame};
+pub use types::{AmberError, ErrorContext, ErrorSeverity, SourceLocation, StackFrame};
 /// 创建错误上下文的便捷函数
 pub fn create_error_context(
-    error: BeejsError,
+    error: AmberError,
     file: String,
     line: u32,
     function: String,
@@ -16,11 +16,11 @@ pub fn create_error_context(
     ErrorContext::new(error, file, line, function)
 }
 /// 创建简单错误上下文的便捷函数
-pub fn create_simple_error_context(error: BeejsError) -> ErrorContext {
+pub fn create_simple_error_context(error: AmberError) -> ErrorContext {
     ErrorContext::new_without_location(error)
 }
 /// 错误处理结果类型
-pub type Result<T> = std::result::Result<T, BeejsError>;
+pub type Result<T> = std::result::Result<T, AmberError>;
 /// 全局错误处理配置
 #[derive(Debug, Clone)]
 pub struct GlobalErrorConfig {
@@ -44,7 +44,7 @@ pub struct ErrorHandler;
 impl ErrorHandler {
     /// 包装可能出错的操作，提供错误上下文
     pub async fn wrap_with_context<F, T, Fut>(
-        error_type: BeejsError,
+        error_type: AmberError,
         file: &'static str,
         line: u32,
         function: &'static str,
@@ -89,18 +89,18 @@ impl ErrorHandler {
             }
         }
     }
-    /// 转换任意错误为 BeejsError
-    pub fn convert_error<E: std::fmt::Display + 'static>(error: E) -> BeejsError {
+    /// 转换任意错误为 AmberError
+    pub fn convert_error<E: std::fmt::Display + 'static>(error: E) -> AmberError {
         let any = &error as &dyn std::any::Any;
-        if let Some(beejs_err) = any.downcast_ref::<BeejsError>() {
-            return beejs_err.clone();
+        if let Some(amberjs_err) = any.downcast_ref::<AmberError>() {
+            return amberjs_err.clone();
         }
-        BeejsError::RuntimeError(error.to_string())
+        AmberError::RuntimeError(error.to_string())
     }
 }
 /// 错误宏
 #[macro_export]
-macro_rules! beejs_try {
+macro_rules! amberjs_try {
     ($result:expr) => {
         match $result {
             Ok(value) => value,
@@ -124,7 +124,7 @@ macro_rules! beejs_try {
 }
 /// 异步错误处理宏
 #[macro_export]
-macro_rules! beejs_try_async {
+macro_rules! amberjs_try_async {
     ($result:expr) => {
         match $result {
             Ok(value) => value,
@@ -155,7 +155,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_context_creation() {
-        let error: _ = BeejsError::V8Error("Test error".to_string());
+        let error: _ = AmberError::V8Error("Test error".to_string());
         let context: _ = create_error_context(
             error.clone(),
             "test.rs".to_string(),
@@ -168,7 +168,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_simple_error_context() {
-        let error: _ = BeejsError::RuntimeError("Simple error".to_string());
+        let error: _ = AmberError::RuntimeError("Simple error".to_string());
         let context: _ = create_simple_error_context(error.clone());
         assert_eq!(context.error_type, error);
         assert!(context.source_location.is_none());
@@ -176,27 +176,27 @@ mod tests {
     #[tokio::test]
     async fn test_error_conversion() {
         let std_error: _ = "Standard error";
-        let beejs_error: _ = ErrorHandler::convert_error(std_error);
-        assert!(matches!(beejs_error, BeejsError::RuntimeError(_)));
+        let amberjs_error: _ = ErrorHandler::convert_error(std_error);
+        assert!(matches!(amberjs_error, AmberError::RuntimeError(_)));
     }
     #[test]
-    fn test_beejs_try_macro() -> Result<()> {
+    fn test_amberjs_try_macro() -> Result<()> {
         let result: Result<i32> = Ok(42);
-        let value: _ = beejs_try!(result);
+        let value: _ = amberjs_try!(result);
         assert_eq!(value, 42);
         Ok(())
     }
     #[test]
-    fn test_beejs_try_macro_error() {
+    fn test_amberjs_try_macro_error() {
         fn helper() -> Result<()> {
-            let result: Result<i32> = Err(BeejsError::V8Error("Test".to_string()));
-            let _error: _ = beejs_try!(result);
+            let result: Result<i32> = Err(AmberError::V8Error("Test".to_string()));
+            let _error: _ = amberjs_try!(result);
             // This test verifies macro propagates error
             assert!(false); // Should not reach here
             Ok(())
         }
         let res = helper();
         assert!(res.is_err());
-        assert!(matches!(res.err().unwrap(), BeejsError::V8Error(_)));
+        assert!(matches!(res.err().unwrap(), AmberError::V8Error(_)));
     }
 }

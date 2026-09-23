@@ -108,7 +108,7 @@ def main():
     print("🧹 开始清理重复导入 (v0.1.2)")
     print("=" * 60)
 
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
     if not src_dir.exists():
         print(f"❌ 源目录不存在: {src_dir}")
         return 1

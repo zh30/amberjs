@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-Stage 91 Phase 3 专注于扩展 Beejs 的生态系统支持，通过实现包管理器集成、开发工具支持和主流框架兼容性，让 Beejs 成为真正的生产级 JavaScript/TypeScript 运行时。
+Stage 91 Phase 3 专注于扩展 Amber 的生态系统支持，通过实现包管理器集成、开发工具支持和主流框架兼容性，让 Amber 成为真正的生产级 JavaScript/TypeScript 运行时。
 
 ## 完成时间
 **2025-12-23 04:00 UTC**
@@ -294,7 +294,7 @@ impl SsrRenderer {
 - `tsconfig.json` - TypeScript 配置
 - `src/extension.ts` - 主扩展逻辑
 - `src/language-server.ts` - 语言服务器
-- `src/beejs-runner.ts` - 脚本运行器
+- `src/amberjs-runner.ts` - 脚本运行器
 - `src/package-manager.ts` - 包管理器集成
 - `src/type-generator.ts` - 类型生成器
 - `src/performance-monitor.ts` - 性能监控
@@ -431,7 +431,7 @@ impl SsrRenderer {
   - `extensions/vscode/tsconfig.json` - TypeScript 配置
   - `extensions/vscode/src/extension.ts` - 主扩展
   - `extensions/vscode/src/language-server.ts` - 语言服务器
-  - `extensions/vscode/src/beejs-runner.ts` - 脚本运行器
+  - `extensions/vscode/src/amberjs-runner.ts` - 脚本运行器
   - `extensions/vscode/src/package-manager.ts` - 包管理器
   - `extensions/vscode/src/type-generator.ts` - 类型生成
   - `extensions/vscode/src/performance-monitor.ts` - 性能监控
@@ -480,7 +480,7 @@ impl SsrRenderer {
 ### 包管理器集成
 
 ```rust
-use beejs::ecosystem::package_managers::*;
+use amberjs::ecosystem::package_managers::*;
 
 // 使用 npm
 let config = PackageManagerConfig::default();
@@ -498,7 +498,7 @@ npm.install_packages(&[spec], &options).await?;
 ### 类型生成
 
 ```rust
-use beejs::ecosystem::type_generator::*;
+use amberjs::ecosystem::type_generator::*;
 
 let generator = TypeDefinitionGenerator::new(TypeGenConfig::default());
 
@@ -516,7 +516,7 @@ println!("生成的类型定义:\n{}", dts);
 ### React 运行时
 
 ```rust
-use beejs::ecosystem::framework::*;
+use amberjs::ecosystem::framework::*;
 
 let runtime = ReactRuntime::new(ReactConfig::default());
 
@@ -533,7 +533,7 @@ println!("渲染结果: {}", render_result.html);
 ### SSR 渲染
 
 ```rust
-use beejs::ecosystem::framework::*;
+use amberjs::ecosystem::framework::*;
 
 let renderer = SsrRenderer::new(SsrConfig::default());
 
@@ -554,7 +554,7 @@ println!("HTML: {}", response.body);
 
 ### 包管理器性能
 
-| 操作 | Beejs | npm | Yarn | pnpm |
+| 操作 | Amber | npm | Yarn | pnpm |
 |------|-------|-----|------|------|
 | 包解析 (100 包) | 80ms | 150ms | 120ms | 100ms |
 | 安装时间 | 2.5s | 5.0s | 3.5s | 3.0s |
@@ -562,7 +562,7 @@ println!("HTML: {}", response.body);
 
 ### 类型生成性能
 
-| 项目规模 | Beejs | TypeScript |
+| 项目规模 | Amber | TypeScript |
 |----------|-------|------------|
 | 100 文件 | 200ms | 500ms |
 | 500 文件 | 800ms | 2.5s |
@@ -640,7 +640,7 @@ Stage 91 Phase 3 生态系统集成已圆满完成！
 - ✅ 全面性能优化
 
 ### 技术价值
-- 为 Beejs 运行时提供完整的生态系统支持
+- 为 Amber 运行时提供完整的生态系统支持
 - 显著提升开发者体验
 - 降低从其他运行时迁移的成本
 - 建立可扩展的插件架构

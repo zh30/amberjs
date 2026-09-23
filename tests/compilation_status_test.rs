@@ -1,4 +1,4 @@
-// Test to verify compilation status of Beejs runtime
+// Test to verify compilation status of Amber runtime
 //
 // This test ensures that the core modules compile successfully.
 // Following TDD methodology: write test first, then fix issues.
@@ -60,9 +60,9 @@ mod compilation_tests {
     #[test]
     fn test_cli_build_succeeds() {
         let output = Command::new("cargo")
-            .args(["build", "--bin", "bee"])
+            .args(["build", "--bin", "amber"])
             .output()
-            .expect("Failed to execute cargo build for bee binary");
+            .expect("Failed to execute cargo build for amber binary");
 
         println!(
             "CLI build stdout: {}",
@@ -75,7 +75,7 @@ mod compilation_tests {
 
         assert!(
             output.status.success(),
-            "beejs CLI binary should build successfully. Build failed with:\n{}",
+            "amberjs CLI binary should build successfully. Build failed with:\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
     }

@@ -1,4 +1,4 @@
-// fs/promises module tests for Beejs runtime
+// fs/promises module tests for Amber runtime
 // v0.3.7: Promise-based fs API implementation
 
 use serial_test::serial;
@@ -9,7 +9,7 @@ use tempfile::TempDir;
 #[serial]
 fn test_fs_promises_module_exists() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         typeof fsPromises;
@@ -26,7 +26,7 @@ fn test_fs_promises_module_exists() {
 #[serial]
 fn test_fs_promises_has_readfile() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         typeof fsPromises.readFile;
@@ -43,7 +43,7 @@ fn test_fs_promises_has_readfile() {
 #[serial]
 fn test_fs_promises_has_writefile() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         typeof fsPromises.writeFile;
@@ -60,7 +60,7 @@ fn test_fs_promises_has_writefile() {
 #[serial]
 fn test_fs_promises_has_appendfile() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         typeof fsPromises.appendFile;
@@ -77,7 +77,7 @@ fn test_fs_promises_has_appendfile() {
 #[serial]
 fn test_fs_promises_has_unlink() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         typeof fsPromises.unlink;
@@ -94,7 +94,7 @@ fn test_fs_promises_has_unlink() {
 #[serial]
 fn test_fs_promises_has_mkdir() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         typeof fsPromises.mkdir;
@@ -111,7 +111,7 @@ fn test_fs_promises_has_mkdir() {
 #[serial]
 fn test_fs_promises_has_rmdir() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         typeof fsPromises.rmdir;
@@ -128,7 +128,7 @@ fn test_fs_promises_has_rmdir() {
 #[serial]
 fn test_fs_promises_has_readdir() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         typeof fsPromises.readdir;
@@ -145,7 +145,7 @@ fn test_fs_promises_has_readdir() {
 #[serial]
 fn test_fs_promises_readfile_returns_promise() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("promise_test.txt");
@@ -172,7 +172,7 @@ fn test_fs_promises_readfile_returns_promise() {
 #[serial]
 fn test_fs_promises_writefile_returns_promise() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("write_promise.txt");
@@ -198,7 +198,7 @@ fn test_fs_promises_writefile_returns_promise() {
 #[serial]
 fn test_fs_promises_appendfile_returns_promise() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("append_promise.txt");
@@ -225,7 +225,7 @@ fn test_fs_promises_appendfile_returns_promise() {
 #[serial]
 fn test_fs_promises_unlink_returns_promise() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("delete_promise.txt");
@@ -252,7 +252,7 @@ fn test_fs_promises_unlink_returns_promise() {
 #[serial]
 fn test_fs_promises_mkdir_returns_promise() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let new_dir = temp_dir.path().join("new_promise_dir");
@@ -278,7 +278,7 @@ fn test_fs_promises_mkdir_returns_promise() {
 #[serial]
 fn test_fs_promises_rmdir_returns_promise() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let sub_dir = temp_dir.path().join("remove_promise_dir");
@@ -305,7 +305,7 @@ fn test_fs_promises_rmdir_returns_promise() {
 #[serial]
 fn test_fs_promises_readdir_returns_promise() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
 
@@ -330,7 +330,7 @@ fn test_fs_promises_readdir_returns_promise() {
 #[serial]
 fn test_fs_promises_all_functions_exist() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
         const fsPromises = require('fs/promises');
         const hasReadFile = typeof fsPromises.readFile === 'function';
@@ -354,7 +354,7 @@ fn test_fs_promises_all_functions_exist() {
 #[serial]
 fn test_fs_promises_readfile_error_handling() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let code = r#"
         const fsPromises = require('fs/promises');
@@ -374,7 +374,7 @@ fn test_fs_promises_readfile_error_handling() {
 #[serial]
 fn test_promises_stat_stats_methods_match_file_and_dir() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("stat_test.txt");
@@ -417,7 +417,7 @@ fn test_promises_stat_stats_methods_match_file_and_dir() {
 #[serial]
 fn test_fs_promises_readfile_utf8_encoding() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("test_utf8.txt");
@@ -445,7 +445,7 @@ fn test_fs_promises_readfile_utf8_encoding() {
 #[serial]
 fn test_fs_promises_readfile_base64_encoding() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     // Write binary data that encodes to a known base64 string
@@ -474,7 +474,7 @@ fn test_fs_promises_readfile_base64_encoding() {
 #[serial]
 fn test_fs_promises_readfile_hex_encoding() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     // Write binary data
@@ -502,7 +502,7 @@ fn test_fs_promises_readfile_hex_encoding() {
 #[serial]
 fn test_fs_promises_readfile_buffer_encoding() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("test_buffer.txt");
@@ -529,7 +529,7 @@ fn test_fs_promises_readfile_buffer_encoding() {
 #[serial]
 fn test_fs_promises_readfile_encoding_object_option() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("test_object_option.txt");
@@ -557,7 +557,7 @@ fn test_fs_promises_readfile_encoding_object_option() {
 #[serial]
 fn test_fs_promises_readfile_default_encoding() {
     let mut runtime =
-        beejs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
 
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let test_file = temp_dir.path().join("test_default.txt");

@@ -1,5 +1,5 @@
 // v0.3.363: Real Performance Benchmark Tests
-// Actual benchmarks measuring Beejs runtime performance
+// Actual benchmarks measuring Amber runtime performance
 // For AI-era high-performance JavaScript/TypeScript execution
 
 #[cfg(test)]
@@ -8,29 +8,30 @@ mod real_benchmark_tests {
     use std::process::Command;
     use std::time::{Duration, Instant};
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_bee").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
-    /// Run `bee eval`. Wall-clock throughput belongs in `benchmarks/`;
+    /// Run `amber eval`. Wall-clock throughput belongs in `benchmarks/`;
     /// `cargo test` on shared CI runners is not a bench machine (PR #30 flake).
     fn eval_script(script: &str) -> (String, Duration) {
         let start = Instant::now();
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", script])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
         let elapsed = start.elapsed();
         assert!(
             output.status.success(),
-            "bee eval failed: {}",
+            "amber eval failed: {}",
             String::from_utf8_lossy(&output.stderr)
         );
         assert!(
             elapsed < Duration::from_secs(30),
-            "bee eval hung ({elapsed:?})"
+            "amber eval hung ({elapsed:?})"
         );
         (
             String::from_utf8_lossy(&output.stdout).into_owned(),
@@ -213,10 +214,10 @@ mod real_benchmark_tests {
     #[test]
     fn benchmark_startup_time() {
         let start = Instant::now();
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", "1 + 1"])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
         let elapsed = start.elapsed();
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -302,9 +303,10 @@ mod performance_regression_tests {
     use std::process::Command;
     use std::time::Duration;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_bee").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
@@ -316,10 +318,10 @@ mod performance_regression_tests {
         let mut times = Vec::new();
         for _ in 0..5 {
             let start = std::time::Instant::now();
-            let _output = Command::new(beejs_path())
+            let _output = Command::new(amberjs_path())
                 .args(["eval", script])
                 .output()
-                .expect("Failed to run bee");
+                .expect("Failed to run amber");
             let elapsed = start.elapsed();
             times.push(elapsed);
         }
@@ -336,7 +338,7 @@ mod performance_regression_tests {
         let _ratio = max_time.as_secs_f64() / min_time.as_secs_f64();
         assert!(
             *max_time < Duration::from_secs(30),
-            "bee eval hung: max = {max_time:?}"
+            "amber eval hung: max = {max_time:?}"
         );
     }
 
@@ -360,10 +362,10 @@ mod performance_regression_tests {
         "#;
 
         let start = std::time::Instant::now();
-        let output = Command::new(beejs_path())
+        let output = Command::new(amberjs_path())
             .args(["eval", script])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
         let elapsed = start.elapsed();
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -375,12 +377,12 @@ mod performance_regression_tests {
 
         assert!(
             output.status.success(),
-            "bee eval failed: {}",
+            "amber eval failed: {}",
             String::from_utf8_lossy(&output.stderr)
         );
         assert!(
             elapsed < std::time::Duration::from_secs(30),
-            "bee eval hung ({elapsed:?})"
+            "amber eval hung ({elapsed:?})"
         );
     }
 }
@@ -392,33 +394,34 @@ mod comparative_benchmarks {
     use std::process::Command;
     use std::time::Instant;
 
-    fn beejs_path() -> PathBuf {
+    fn amberjs_path() -> PathBuf {
         PathBuf::from(
-            std::env::var("CARGO_BIN_EXE_bee").unwrap_or_else(|_| "./target/debug/bee".to_string()),
+            std::env::var("CARGO_BIN_EXE_amber")
+                .unwrap_or_else(|_| "./target/debug/amber".to_string()),
         )
     }
 
-    /// Compare Beejs startup time with other runtimes
+    /// Compare Amber startup time with other runtimes
     #[test]
     fn compare_startup_time() {
         let script = "1+1";
 
-        // Measure Beejs startup
-        let beejs_start = Instant::now();
-        let _ = Command::new(beejs_path())
+        // Measure Amber startup
+        let amberjs_start = Instant::now();
+        let _ = Command::new(amberjs_path())
             .args(["eval", script])
             .output()
-            .expect("Failed to run bee");
-        let beejs_elapsed = beejs_start.elapsed();
+            .expect("Failed to run amber");
+        let amberjs_elapsed = amberjs_start.elapsed();
 
         println!("Startup comparison:");
-        println!("  Beejs: {:?}", beejs_elapsed);
+        println!("  Amber: {:?}", amberjs_elapsed);
 
         // Debug mode is slower; just verify it completes
         assert!(
-            beejs_elapsed < std::time::Duration::from_secs(3),
-            "Beejs startup took {:?}, expected < 3s (debug mode is slower)",
-            beejs_elapsed
+            amberjs_elapsed < std::time::Duration::from_secs(3),
+            "Amber startup took {:?}, expected < 3s (debug mode is slower)",
+            amberjs_elapsed
         );
     }
 
@@ -428,10 +431,10 @@ mod comparative_benchmarks {
         let script = r#"for(let i=0; i<1000000; i++){1+1}"#;
 
         let start = Instant::now();
-        let _output = Command::new(beejs_path())
+        let _output = Command::new(amberjs_path())
             .args(["eval", script])
             .output()
-            .expect("Failed to run bee");
+            .expect("Failed to run amber");
         let elapsed = start.elapsed();
 
         let ops_per_sec = 1_000_000.0 / elapsed.as_secs_f64();
@@ -442,7 +445,7 @@ mod comparative_benchmarks {
 
         assert!(
             elapsed < std::time::Duration::from_secs(30),
-            "bee eval hung ({elapsed:?})"
+            "amber eval hung ({elapsed:?})"
         );
         let _ = ops_per_sec;
     }

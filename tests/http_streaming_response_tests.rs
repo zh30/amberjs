@@ -1,4 +1,4 @@
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 fn run_http_script(script: &str) -> String {

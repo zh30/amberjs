@@ -1,7 +1,7 @@
 // MinimalRuntime 快速启动模式测试
 // v0.3.231: 测试 new_fast() 构造函数
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

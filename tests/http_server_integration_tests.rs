@@ -3,7 +3,7 @@
 // 注意: 这些测试验证服务器是否正确监听和接收请求
 // v0.3.97: 添加测试隔离和清理功能
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::io::{Read, Write};
 use std::net::TcpStream;
@@ -14,7 +14,7 @@ use std::time::Duration;
 /// v0.3.97: 在每个测试开始时调用，确保干净的全局状态
 #[allow(dead_code)]
 fn setup_test_environment() {
-    use beejs::nodejs_core::http::reset_http_server_channel;
+    use amberjs::nodejs_core::http::reset_http_server_channel;
     // 重置消息通道以清除任何残留消息
     reset_http_server_channel();
     // 等待更长时间让 TIME_WAIT 端口释放 (macOS TIME_WAIT 可达 60s)
@@ -268,7 +268,7 @@ fn test_http_server_request_with_headers() {
     wait_for_server(3535);
 
     // Send request with custom headers
-    let request = "GET / HTTP/1.1\r\nHost: localhost\r\nX-Custom-Header: test-value\r\nUser-Agent: BeejsTest\r\n\r\n";
+    let request = "GET / HTTP/1.1\r\nHost: localhost\r\nX-Custom-Header: test-value\r\nUser-Agent: AmberTest\r\n\r\n";
     let connected = send_http_request(3535, request);
     assert!(connected, "Request with headers failed");
 }
@@ -364,7 +364,7 @@ fn test_http_server_ipv6_binding() {
 #[test]
 #[serial]
 fn test_http_message_channel_basics() {
-    use beejs::nodejs_core::http::HttpServerMessageChannel;
+    use amberjs::nodejs_core::http::HttpServerMessageChannel;
 
     // 创建消息通道
     let channel = HttpServerMessageChannel::new(10);
@@ -386,7 +386,7 @@ fn test_http_message_channel_basics() {
 #[test]
 #[serial]
 fn test_create_http_response() {
-    use beejs::nodejs_core::http::create_http_response;
+    use amberjs::nodejs_core::http::create_http_response;
 
     let response = create_http_response(1, 200, "Hello World", "text/plain");
 
@@ -406,7 +406,7 @@ fn test_create_http_response() {
 #[test]
 #[serial]
 fn test_http_server_channel_initialization() {
-    use beejs::nodejs_core::http::{init_http_server_channel, reset_http_server_channel};
+    use amberjs::nodejs_core::http::{init_http_server_channel, reset_http_server_channel};
 
     // 重置通道以确保从干净状态初始化
     reset_http_server_channel();
@@ -429,7 +429,7 @@ fn test_http_server_channel_initialization() {
 #[test]
 #[serial]
 fn test_try_recv_http_request_empty() {
-    use beejs::nodejs_core::http::{
+    use amberjs::nodejs_core::http::{
         init_http_server_channel, reset_http_server_channel, try_recv_http_request,
     };
 
@@ -450,7 +450,7 @@ fn test_try_recv_http_request_empty() {
 fn http_server_missing_dispatcher_does_not_return_fake_200() {
     setup_test_environment();
 
-    use beejs::nodejs_core::http::{get_http_server_channel, reset_http_server_channel};
+    use amberjs::nodejs_core::http::{get_http_server_channel, reset_http_server_channel};
 
     let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
     let code = r#"
@@ -746,11 +746,11 @@ fn test_http_server_request_headers() {
     runtime.execute_code(code).expect("Execution failed");
     wait_for_server(3544);
 
-    let request = "GET / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: BeejsTest/1.0\r\n\r\n";
+    let request = "GET / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: AmberTest/1.0\r\n\r\n";
     let response = send_request_and_get_response(3544, request, &mut runtime);
 
     assert!(
-        response.contains("BeejsTest/1.0"),
+        response.contains("AmberTest/1.0"),
         "Should echo back user agent, got: {}",
         response
     );
@@ -799,7 +799,7 @@ fn test_pump_http_messages() {
     // v0.3.97: 设置测试环境
     setup_test_environment();
 
-    use beejs::nodejs_core::http::reset_http_server_channel;
+    use amberjs::nodejs_core::http::reset_http_server_channel;
 
     let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
 

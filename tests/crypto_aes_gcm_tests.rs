@@ -2,7 +2,7 @@
 // Tests for crypto.subtle.encrypt and decrypt with AES-GCM algorithm
 // Uses real cryptographic implementation via ring library
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

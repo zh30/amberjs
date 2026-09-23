@@ -1,13 +1,13 @@
 # Stage 96 Phase 2: Enterprise Features - 完成报告
 
-**项目**: Beejs - 高性能 JavaScript/TypeScript 运行时
+**项目**: Amber - 高性能 JavaScript/TypeScript 运行时
 **版本**: v0.1.0 (Stage 96 Phase 2)
 **完成日期**: 2025-12-22
 **维护者**: Henry Zhang & Claude Code Assistant
 
 ## 执行概述
 
-本阶段成功实现了 Beejs 的企业级功能，包括 Kubernetes Operator、多租户隔离机制和企业级监控。这些功能将 Beejs 从高性能运行时提升为企业级解决方案。
+本阶段成功实现了 Amber 的企业级功能，包括 Kubernetes Operator、多租户隔离机制和企业级监控。这些功能将 Amber 从高性能运行时提升为企业级解决方案。
 
 ## 阶段目标
 
@@ -15,7 +15,7 @@
 
 1. **Kubernetes Operator 实现** (Phase 2.1)
    - 生产级 Kubernetes Operator
-   - BeejsCluster CRD 支持
+   - AmberCluster CRD 支持
    - 自动扩缩容机制
    - 完整的生命周期管理
 
@@ -36,7 +36,7 @@
 ### 1. Kubernetes Operator (`src/enterprise/k8s/operator.rs`)
 
 **主要特性**:
-- `BeejsCluster` CRD 定义，支持完整的集群生命周期管理
+- `AmberCluster` CRD 定义，支持完整的集群生命周期管理
 - 异步操作支持，支持高并发场景
 - 事件驱动的架构，实时响应集群状态变化
 - 自动故障恢复和重试机制
@@ -44,7 +44,7 @@
 **核心 API**:
 ```rust
 Operator::new(config)           // 创建 Operator 实例
-Operator::create_cluster()      // 创建 BeejsCluster
+Operator::create_cluster()      // 创建 AmberCluster
 Operator::update_cluster()      // 更新集群配置
 Operator::delete_cluster()      // 删除集群
 Operator::list_clusters()       // 列出所有集群
@@ -131,7 +131,7 @@ MonitoringManager::create_alert()             // 创建告警规则
 ### 1. 异步优先架构
 所有企业功能都采用异步设计，支持高并发场景：
 ```rust
-pub async fn create_cluster(&self, cluster: BeejsCluster) -> Result<(), Error> {
+pub async fn create_cluster(&self, cluster: AmberCluster) -> Result<(), Error> {
     // 异步集群创建
 }
 ```
@@ -208,7 +208,7 @@ pub mod monitoring; // 监控指标
 use enterprise::{Operator, OperatorConfig};
 
 let config = OperatorConfig {
-    namespace: "beejs".to_string(),
+    namespace: "amberjs".to_string(),
     reconcile_interval: Duration::from_secs(30),
     max_retries: 3,
 };
@@ -307,7 +307,7 @@ let prometheus_metrics = manager.export_prometheus_metrics().await?;
 
 ## 总结
 
-Stage 96 Phase 2 成功将 Beejs 提升为企业级解决方案。通过 Kubernetes Operator、多租户隔离和企业级监控三大核心功能，Beejs 现在具备了：
+Stage 96 Phase 2 成功将 Amber 提升为企业级解决方案。通过 Kubernetes Operator、多租户隔离和企业级监控三大核心功能，Amber 现在具备了：
 
 - **生产就绪**: 完整的企业级功能
 - **高安全性**: 多租户隔离和 RBAC

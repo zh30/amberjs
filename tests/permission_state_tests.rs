@@ -1,8 +1,8 @@
-use beejs::permissions::{
+use amberjs::permissions::{
     global_resource_broker, PermissionAction, PermissionDecision, PermissionKind, ResourceBroker,
     ResourceId,
 };
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
 
@@ -11,7 +11,7 @@ fn path_for_js(path: &std::path::Path) -> String {
 }
 
 fn reset_global_broker() {
-    beejs::permissions::reset_runtime_permission_state();
+    amberjs::permissions::reset_runtime_permission_state();
     *global_resource_broker()
         .write()
         .expect("resource broker lock should not be poisoned") = ResourceBroker::default();
@@ -41,7 +41,7 @@ fn broker_allows_by_default_for_compatibility() {
     let decision = broker.check(
         PermissionKind::FileSystem,
         PermissionAction::Read,
-        ResourceId::Path("/tmp/beejs.txt".into()),
+        ResourceId::Path("/tmp/amberjs.txt".into()),
     );
 
     assert_eq!(decision, PermissionDecision::Allow);
@@ -196,7 +196,7 @@ fn broker_normalizes_equivalent_paths_before_checking_rules() {
 fn broker_normalizes_relative_nonexistent_path_against_absolute_rule() {
     let temp = tempfile::tempdir().unwrap();
     let _cwd = CurrentDirGuard::switch_to(temp.path());
-    let cache_path = temp.path().join(".beejs_cache");
+    let cache_path = temp.path().join(".amberjs_cache");
 
     let mut broker = ResourceBroker::default();
     broker.deny(
@@ -214,7 +214,7 @@ fn broker_normalizes_relative_nonexistent_path_against_absolute_rule() {
         broker.check(
             PermissionKind::FileSystem,
             PermissionAction::Write,
-            ResourceId::Path(".beejs_cache".into()),
+            ResourceId::Path(".amberjs_cache".into()),
         ),
         PermissionDecision::Allow
     );
@@ -346,7 +346,7 @@ fn broker_keeps_network_connect_and_listen_rules_separate() {
 #[test]
 #[serial]
 fn process_env_filters_denied_environment_variables() {
-    const SECRET_NAME: &str = "BEEJS_PERMISSION_TEST_SECRET";
+    const SECRET_NAME: &str = "AMBER_PERMISSION_TEST_SECRET";
 
     std::env::set_var(SECRET_NAME, "classified-value");
     {
@@ -384,7 +384,7 @@ fn process_env_filters_denied_environment_variables() {
 #[test]
 #[serial]
 fn process_env_rechecks_permission_after_runtime_initialization() {
-    const SECRET_NAME: &str = "BEEJS_PERMISSION_DYNAMIC_SECRET";
+    const SECRET_NAME: &str = "AMBER_PERMISSION_DYNAMIC_SECRET";
 
     std::env::set_var(SECRET_NAME, "classified-value");
     reset_global_broker();
@@ -1300,9 +1300,9 @@ fn child_process_uses_global_process_permission_broker() {
                 }
             }
             [
-                capture(() => childProcess.exec("echo beejs")),
-                capture(() => childProcess.spawn("echo", ["beejs"])),
-                capture(() => childProcess.execFile("echo", ["beejs"])),
+                capture(() => childProcess.exec("echo amberjs")),
+                capture(() => childProcess.spawn("echo", ["amberjs"])),
+                capture(() => childProcess.execFile("echo", ["amberjs"])),
             ].join("\n");
             "#,
         )
@@ -1346,7 +1346,7 @@ fn child_process_exec_matches_argv0_not_full_string() {
         .execute_code(
             r#"
             try {
-                require("child_process").exec("echo beejs-argv0");
+                require("child_process").exec("echo amberjs-argv0");
                 "allowed";
             } catch (error) {
                 String(error && error.message ? error.message : error);

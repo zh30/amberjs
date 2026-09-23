@@ -1,5 +1,5 @@
 ---
-title: "加固沙箱与安全合规审计引擎 (bee:sandbox)"
+title: "加固沙箱与安全合规审计引擎 (amber:sandbox)"
 subtitle: "隔离微环境 Enclave、全量 ResourceBroker 决策 JSONL 流式合规审计与零信任防护"
 group: "Agent & Advanced"
 id: "hardened-sandbox"
@@ -7,7 +7,7 @@ id: "hardened-sandbox"
 
 在企业生产级环境中执行不可信的 Agent 脚本或动态合成的外部工具时，强效的边界隔离与不可篡改的审计追踪是不可或缺的防线。当 Agent 试图发起越权文件访问或非法网络探测时，安全团队需要毫秒级的实时可见性。
 
-**Beejs v1.7.0 带来了加固沙箱与安全审计日志引擎（`bee:sandbox` 与 CLI `--audit-log`）**。支持创建屏蔽宿主全局污染的安全隔离微环境（Enclave），并为所有底层系统资源决策生成结构化流式 JSONL 审计追踪。
+**Amber v1.7.0 带来了加固沙箱与安全审计日志引擎（`amber:sandbox` 与 CLI `--audit-log`）**。支持创建屏蔽宿主全局污染的安全隔离微环境（Enclave），并为所有底层系统资源决策生成结构化流式 JSONL 审计追踪。
 
 ---
 
@@ -16,7 +16,7 @@ id: "hardened-sandbox"
 在动态执行来自外部的复杂计算逻辑或子 Agent 产物时，`createEnclave` 将执行环境严格限制于无害的安全 ECMAScript 全局对象集合中：
 
 ```typescript
-import { createEnclave } from 'bee:sandbox';
+import { createEnclave } from 'amber:sandbox';
 
 // 在完全隔离的环境中执行表达式
 const result = createEnclave('25 * 4 + 10');
@@ -46,8 +46,8 @@ console.log(sum); // 60
 ### 2.1 编程式审计日志管理
 
 ```typescript
-import { startAuditLog, stopAuditLog, getAuditLogPath } from 'bee:sandbox';
-import { query, revoke } from 'bee:permissions';
+import { startAuditLog, stopAuditLog, getAuditLogPath } from 'amber:sandbox';
+import { query, revoke } from 'amber:permissions';
 
 // 开启 JSONL 审计日志流式记录
 startAuditLog('./audit/agent_decisions.jsonl');
@@ -67,7 +67,7 @@ stopAuditLog();
 
 ```bash
 # 将本次运行产生的所有 ResourceBroker 裁决记录到 audit.jsonl 中
-$ bee run --audit-log ./audit.jsonl agent.ts
+$ amber run --audit-log ./audit.jsonl agent.ts
 ```
 
 ---

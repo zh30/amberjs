@@ -215,8 +215,8 @@ COPY . .
 RUN cargo build --release
 
 FROM debian:bullseye-slim
-COPY --from=builder /app/target/release/bee /usr/local/bin/
-ENTRYPOINT ["bee"]
+COPY --from=builder /app/target/release/amber /usr/local/bin/
+ENTRYPOINT ["amber"]
 "#
         .to_string()
     }
@@ -285,8 +285,8 @@ spec:
         app: {}
     spec:
       containers:
-      - name: beejs
-        image: beejs:latest
+      - name: amberjs
+        image: amberjs:latest
         ports:
         - containerPort: {}
         resources:
@@ -329,7 +329,7 @@ spec:
 version: '3.8'
 services:
   {}:
-    image: beejs:latest
+    image: amberjs:latest
     ports:
       - "{}:{}"
     deploy:
@@ -365,7 +365,7 @@ mod tests {
         let config = BundleConfig {
             target_os: "linux".to_string(),
             target_arch: "x86_64".to_string(),
-            output_path: PathBuf::from("/tmp/beejs"),
+            output_path: PathBuf::from("/tmp/amberjs"),
             include_debug_info: false,
             optimize_level: 3,
         };
@@ -379,7 +379,7 @@ mod tests {
         let config = BundleConfig {
             target_os: "linux".to_string(),
             target_arch: "x86_64".to_string(),
-            output_path: PathBuf::from("/tmp/beejs"),
+            output_path: PathBuf::from("/tmp/amberjs"),
             include_debug_info: false,
             optimize_level: 3,
         };
@@ -398,13 +398,13 @@ mod tests {
         let config = BundleConfig {
             target_os: "linux".to_string(),
             target_arch: "x86_64".to_string(),
-            output_path: PathBuf::from("/tmp/beejs"),
+            output_path: PathBuf::from("/tmp/amberjs"),
             include_debug_info: false,
             optimize_level: 3,
         };
 
         let bundler = SingleFileBundler::new(config);
-        assert!(bundler.validate_output(Path::new("/tmp/beejs")));
+        assert!(bundler.validate_output(Path::new("/tmp/amberjs")));
     }
 
     #[test]
@@ -487,20 +487,20 @@ mod tests {
     #[test]
     fn test_docker_builder_creation() {
         let config = DockerBuildConfig {
-            image_name: "beejs".to_string(),
+            image_name: "amberjs".to_string(),
             tag: "latest".to_string(),
             dockerfile_path: PathBuf::from("Dockerfile"),
             build_context: PathBuf::from("."),
         };
 
         let builder = DockerBuilder::new(config);
-        assert_eq!(builder.config.image_name, "beejs");
+        assert_eq!(builder.config.image_name, "amberjs");
     }
 
     #[test]
     fn test_docker_build() {
         let config = DockerBuildConfig {
-            image_name: "beejs".to_string(),
+            image_name: "amberjs".to_string(),
             tag: "latest".to_string(),
             dockerfile_path: PathBuf::from("Dockerfile"),
             build_context: PathBuf::from("."),
@@ -516,7 +516,7 @@ mod tests {
     #[test]
     fn test_dockerfile_generation() {
         let config = DockerBuildConfig {
-            image_name: "beejs".to_string(),
+            image_name: "amberjs".to_string(),
             tag: "latest".to_string(),
             dockerfile_path: PathBuf::from("Dockerfile"),
             build_context: PathBuf::from("."),
@@ -526,7 +526,7 @@ mod tests {
         let dockerfile = builder.generate_dockerfile();
 
         assert!(dockerfile.contains("FROM"));
-        assert!(dockerfile.contains("bee"));
+        assert!(dockerfile.contains("amber"));
     }
 
     #[test]
@@ -594,7 +594,7 @@ mod tests {
         let bundle_config = BundleConfig {
             target_os: "linux".to_string(),
             target_arch: "x86_64".to_string(),
-            output_path: PathBuf::from("/tmp/beejs"),
+            output_path: PathBuf::from("/tmp/amberjs"),
             include_debug_info: false,
             optimize_level: 3,
         };
@@ -625,7 +625,7 @@ mod tests {
 
         // Docker 构建
         let docker_config = DockerBuildConfig {
-            image_name: "beejs".to_string(),
+            image_name: "amberjs".to_string(),
             tag: "latest".to_string(),
             dockerfile_path: PathBuf::from("Dockerfile"),
             build_context: PathBuf::from("."),
@@ -659,7 +659,7 @@ mod tests {
             let config = BundleConfig {
                 target_os: "linux".to_string(),
                 target_arch: "x86_64".to_string(),
-                output_path: PathBuf::from(format!("/tmp/beejs_{}", i)),
+                output_path: PathBuf::from(format!("/tmp/amberjs_{}", i)),
                 include_debug_info: false,
                 optimize_level: 3,
             };

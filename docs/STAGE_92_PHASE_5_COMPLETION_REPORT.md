@@ -1,7 +1,7 @@
 # Stage 92 Phase 5: 企业级功能集成完成报告
 
 ## 项目概述
-Phase 5 是 Beejs Stage 92 的最终阶段，成功实现了企业级功能和部署支持。通过集成 Kubernetes、监控、安全合规和高可用容灾，将 Beejs 打造成企业级生产就绪的 JavaScript/TypeScript 运行时。
+Phase 5 是 Amber Stage 92 的最终阶段，成功实现了企业级功能和部署支持。通过集成 Kubernetes、监控、安全合规和高可用容灾，将 Amber 打造成企业级生产就绪的 JavaScript/TypeScript 运行时。
 
 ## 完成内容
 
@@ -9,7 +9,7 @@ Phase 5 是 Beejs Stage 92 的最终阶段，成功实现了企业级功能和�
 
 #### Kubernetes Operator 增强 (`src/enterprise/k8s_operator.rs`, 1050+ 行)
 - ✅ **自定义资源定义 (CRD)**
-  - `BeejsCluster` 完整定义
+  - `AmberCluster` 完整定义
   - 集群配置和状态管理
   - 版本控制和升级跟踪
 
@@ -255,9 +255,9 @@ Phase 5 是 Beejs Stage 92 的最终阶段，成功实现了企业级功能和�
 #### Docker Compose 栈 (`docker-compose.yml`, 350 行)
 **服务组件**:
 
-- ✅ **Beejs 集群**
-  - 主节点 (beejs-primary)
-  - 副本节点 (beejs-replica-1/2)
+- ✅ **Amber 集群**
+  - 主节点 (amberjs-primary)
+  - 副本节点 (amberjs-replica-1/2)
   - 自动重启策略
   - 资源限制
   - 健康检查
@@ -577,21 +577,21 @@ Phase 5 是 Beejs Stage 92 的最终阶段，成功实现了企业级功能和�
 
 ## 结论
 
-Stage 92 Phase 5 成功完成了 Beejs 企业级功能的全面集成，实现了：
+Stage 92 Phase 5 成功完成了 Amber 企业级功能的全面集成，实现了：
 
 1. **完整的云原生部署方案** - Kubernetes Operator + Docker + Helm
 2. **全方位的可观测性** - 指标 + 追踪 + 日志 + 仪表板
 3. **企业级安全保障** - 沙箱 + 策略 + 合规 + 审计
 4. **99.99% 高可用性** - 多区域 + 故障转移 + 备份 + DR
 
-Beejs 现在已经是一个 **企业级生产就绪** 的 JavaScript/TypeScript 运行时，具备了与 Bun、Node.js、Deno 竞争的所有企业级特性。
+Amber 现在已经是一个 **企业级生产就绪** 的 JavaScript/TypeScript 运行时，具备了与 Bun、Node.js、Deno 竞争的所有企业级特性。
 
-通过 Stage 92 的 5 个阶段，Beejs 实现了：
+通过 Stage 92 的 5 个阶段，Amber 实现了：
 - **AI 原生性能优化** - 智能调度和预测
 - **极致性能优化** - 零拷贝 + JIT + 内存 + 网络
 - **企业级功能** - 监控 + 安全 + 高可用 + 合规
 
-Beejs 已经准备好在企业环境中部署和使用！
+Amber 已经准备好在企业环境中部署和使用！
 
 ---
 

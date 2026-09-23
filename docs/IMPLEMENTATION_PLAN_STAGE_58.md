@@ -2,7 +2,7 @@
 
 ## 📋 阶段概述
 
-Stage 58 专注于为 Beejs 实现完整的调试器系统，提供生产级的调试能力，包括断点设置、单步执行、变量检查和调用栈查看。这将大幅提升开发者体验，使 Beejs 成为专业级的 JavaScript/TypeScript 运行时。
+Stage 58 专注于为 Amber 实现完整的调试器系统，提供生产级的调试能力，包括断点设置、单步执行、变量检查和调用栈查看。这将大幅提升开发者体验，使 Amber 成为专业级的 JavaScript/TypeScript 运行时。
 
 **目标**: 构建完整的 V8 调试器集成，支持 CLI 调试、REPL 调试和远程调试。
 
@@ -19,7 +19,7 @@ Stage 58 专注于为 Beejs 实现完整的调试器系统，提供生产级的�
 - [ ] **异常捕获**: 自动在异常处停止
 
 ### 调试界面
-- [ ] **CLI 调试器**: `beejs debug <file>` 命令
+- [ ] **CLI 调试器**: `amberjs debug <file>` 命令
 - [ ] **REPL 调试模式**: `.debug` 命令进入调试
 - [ ] **可视化输出**: 友好的调试信息显示
 - [ ] **热键支持**: 快速调试操作（Ctrl+C, Ctrl+N, etc.）
@@ -145,8 +145,8 @@ Stage 58 专注于为 Beejs 实现完整的调试器系统，提供生产级的�
 
 #### 5.1 Debug 命令
 - [ ] **基础命令**
-  - `beejs debug <file>` - 启动调试
-  - `beejs debug --inspect-brk <port>` - 远程调试
+  - `amberjs debug <file>` - 启动调试
+  - `amberjs debug --inspect-brk <port>` - 远程调试
 
 - [ ] **调试操作**
   - `break <line>` - 设置断点
@@ -335,7 +335,7 @@ pub enum DebugCommand {
 
 ## 📝 总结
 
-Stage 58 将为 Beejs 添加完整的调试能力，使其成为专业级的 JavaScript/TypeScript 运行时。这对于开发者体验和生产力至关重要，特别是在处理复杂应用和 AI 工作负载时。
+Stage 58 将为 Amber 添加完整的调试能力，使其成为专业级的 JavaScript/TypeScript 运行时。这对于开发者体验和生产力至关重要，特别是在处理复杂应用和 AI 工作负载时。
 
 **预计完成时间**: 18-24 小时
 **主要文件数量**: 15-20 个新文件

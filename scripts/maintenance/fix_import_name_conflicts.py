@@ -99,7 +99,7 @@ def find_rust_files_with_conflicts(directory):
     return files_with_conflicts
 
 def main():
-    src_dir = '/Users/henry/code/beejs/src'
+    src_dir = '/Users/henry/code/amberjs/src'
 
     print("Finding files with import name conflicts...")
     files_with_conflicts = find_rust_files_with_conflicts(src_dir)

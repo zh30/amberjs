@@ -227,7 +227,7 @@ impl TorchGPUAccelerator {
 
 ## 🚀 预期成果
 
-Stage 54.3 完成后，Beejs 将具备：
+Stage 54.3 完成后，Amber 将具备：
 
 1. ✅ **原生 PyTorch 支持** - 高性能 TorchScript 模型推理
 2. ✅ **GPU 加速支持** - CUDA/ROCm 加速推理
@@ -236,7 +236,7 @@ Stage 54.3 完成后，Beejs 将具备：
 5. ✅ **性能监控** - 完整的统计和监控
 6. ✅ **双引擎支持** - ONNX + PyTorch 并存
 
-这些功能将使 Beejs 能够高效运行 PyTorch 格式的 AI 模型，与 ONNX 引擎一起为 AI 应用提供强大的推理能力。
+这些功能将使 Amber 能够高效运行 PyTorch 格式的 AI 模型，与 ONNX 引擎一起为 AI 应用提供强大的推理能力。
 
 ## 📚 学习要点
 

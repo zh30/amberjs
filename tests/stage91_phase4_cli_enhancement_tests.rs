@@ -9,7 +9,7 @@ use tempfile::TempDir;
 mod output_formatter_tests {
     use std::time::Duration;
 
-    // 由于 OutputFormatter 在 beejs::cli 模块中，这里模拟测试
+    // 由于 OutputFormatter 在 amberjs::cli 模块中，这里模拟测试
     // 实际测试需要在模块内或使用 pub 导出
 
     #[test]
@@ -138,9 +138,9 @@ mod init_command_tests {
             "main": "src/index.js",
             "type": "module",
             "scripts": {
-                "start": "bee run src/index.js",
-                "dev": "bee run --watch src/index.js",
-                "test": "bee test"
+                "start": "amber run src/index.js",
+                "dev": "amber run --watch src/index.js",
+                "test": "amber test"
             }
         });
 
@@ -178,7 +178,7 @@ mod init_command_tests {
                 "outDir": "./dist",
                 "rootDir": "./src",
                 "lib": ["ESNext"],
-                "types": ["beejs"]
+                "types": ["amberjs"]
             },
             "include": ["src/**/*"],
             "exclude": ["node_modules", "dist"]
@@ -241,7 +241,7 @@ build/
 
         // 创建 package.json
         let package_json = serde_json::json!({
-            "name": "my-beejs-app",
+            "name": "my-amberjs-app",
             "version": "0.1.0",
             "main": "src/index.js"
         });
@@ -252,7 +252,7 @@ build/
         .unwrap();
 
         // 创建 index.js
-        let index_content = r#"console.log("Hello, Beejs!");
+        let index_content = r#"console.log("Hello, Amber!");
 "#;
         fs::write(project_path.join("src/index.js"), index_content).unwrap();
 
@@ -324,7 +324,7 @@ mod info_command_tests {
     #[test]
     fn test_info_json_format() {
         let info = serde_json::json!({
-            "beejs": {
+            "amberjs": {
                 "version": "0.1.0",
                 "v8_version": "10.x"
             },
@@ -336,7 +336,7 @@ mod info_command_tests {
         });
 
         let json_str = serde_json::to_string_pretty(&info).unwrap();
-        assert!(json_str.contains("beejs"));
+        assert!(json_str.contains("amberjs"));
         assert!(json_str.contains("system"));
         assert!(json_str.contains("version"));
     }
@@ -488,10 +488,10 @@ mod integration_tests {
             "main": "src/index.ts",
             "type": "module",
             "scripts": {
-                "start": "bee run src/index.ts",
-                "dev": "bee run --watch src/index.ts",
-                "build": "bee bundle src/index.ts --outfile dist/index.js",
-                "test": "bee test"
+                "start": "amber run src/index.ts",
+                "dev": "amber run --watch src/index.ts",
+                "build": "amber bundle src/index.ts --outfile dist/index.js",
+                "test": "amber test"
             }
         });
         fs::write(
@@ -520,7 +520,7 @@ mod integration_tests {
 }
 
 const greeting: Greeting = {
-    message: "Hello from Beejs TypeScript!"
+    message: "Hello from Amber TypeScript!"
 };
 
 console.log(greeting.message);
@@ -606,8 +606,8 @@ mod performance_tests {
                 "name": "test-project",
                 "version": "0.1.0",
                 "scripts": {
-                    "start": "bee run src/index.js",
-                    "test": "bee test"
+                    "start": "amber run src/index.js",
+                    "test": "amber test"
                 }
             });
             let _ = serde_json::to_string_pretty(&json).unwrap();

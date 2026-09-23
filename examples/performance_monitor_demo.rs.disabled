@@ -1,14 +1,14 @@
 //! PerformanceMonitor 功能演示
 //! 展示性能监控系统的核心功能
 
-use beejs::monitor::performance_monitor::{
+use amberjs::monitor::performance_monitor::{
     PerformanceMonitor, MetricType, MetricValue, MonitorConfig, ThresholdConfig
 };
 use std::collections::HashMap;
 use std::time::Duration;
 
 fn main() {
-    println!("=== Beejs PerformanceMonitor 功能演示 ===\n");
+    println!("=== Amber PerformanceMonitor 功能演示 ===\n");
 
     // 1. 创建性能监控器
     println!("1. 创建性能监控器...");

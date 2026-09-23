@@ -1,4 +1,4 @@
-//! In-memory deterministic Virtual Filesystem (VFS) sandbox for Beejs.
+//! In-memory deterministic Virtual Filesystem (VFS) sandbox for Amber.
 //!
 //! Provides an isolated, in-memory copy-on-write (COW) filesystem for executing
 //! untrusted Agent-generated code without any side-effects on the host machine.

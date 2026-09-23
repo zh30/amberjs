@@ -1,8 +1,8 @@
-# Beejs 项目优化完成总结
+# Amber 项目优化完成总结
 
 ## 🎯 项目概述
 
-**Beejs** 是一个高性能的 JavaScript/TypeScript 运行时，使用 Rust 和 V8 实现，旨在为 AI 时代提供更高效的 JS/TS 脚本执行能力。通过本次全面优化，**Beejs 的性能达到了新的高度**。
+**Amber** 是一个高性能的 JavaScript/TypeScript 运行时，使用 Rust 和 V8 实现，旨在为 AI 时代提供更高效的 JS/TS 脚本执行能力。通过本次全面优化，**Amber 的性能达到了新的高度**。
 
 ## ✅ 完成的任务
 
@@ -66,7 +66,7 @@
    - 零开销参数解析
 
 3. **V8 预初始化**
-   - `beejs::initialize_v8()` 在 main 开始处
+   - `amberjs::initialize_v8()` 在 main 开始处
    - 避免重复初始化开销
    - 全局运行时实例复用
 
@@ -166,7 +166,7 @@
 
 ## 🎉 总结
 
-**Beejs 项目优化取得了巨大成功！**
+**Amber 项目优化取得了巨大成功！**
 
 ### 核心成就
 1. ✅ **启动时间优化**: 487ms → 5-9ms (98% 提升)
@@ -189,7 +189,7 @@
 - **文档完善**: ✅ 完整
 - **生产就绪**: ✅ 是
 
-**Beejs 已经成为真正的高性能 JavaScript/TypeScript 运行时！** 🚀
+**Amber 已经成为真正的高性能 JavaScript/TypeScript 运行时！** 🚀
 
 ---
 

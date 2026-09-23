@@ -1,7 +1,7 @@
 // Real TCP Connection Integration Tests - v0.3.70
 // 测试 TCP Socket API（真实网络连接需要后续 tokio 集成）
 
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 /// 测试：能够创建 TCP Socket 连接对象

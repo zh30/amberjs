@@ -1,6 +1,6 @@
 // Worker API boundary for Web standard compatibility.
 //
-// Beejs does not yet have a real WorkerHost with an independent isolate,
+// Amber does not yet have a real WorkerHost with an independent isolate,
 // event loop, structured-clone message queues, and termination lifecycle.
 // Until that exists, Worker construction must fail closed instead of returning
 // a synchronous object shell that makes scripts believe background execution

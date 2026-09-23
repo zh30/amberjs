@@ -4,7 +4,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use super::types::BeejsError;
+use super::types::AmberError;
 use rand::Rng;
 use std::time::{Duration, Instant};
 
@@ -78,7 +78,7 @@ impl RetryPolicy {
     }
 }
 /// 回退策略函数类型
-pub type FallbackStrategyFn = Box<dyn Fn(&BeejsError) -> Option<String> + Send + Sync>;
+pub type FallbackStrategyFn = Box<dyn Fn(&AmberError) -> Option<String> + Send + Sync>;
 /// 自动恢复配置
 pub struct AutoRecoveryConfig {
     pub retry_policy: RetryPolicy,
@@ -135,7 +135,7 @@ impl RecoveryStats {
 pub struct AutoRecovery {
     config: AutoRecoveryConfig,
     stats: Arc<RwLock<RecoveryStats>>,
-    retry_history: Arc<RwLock<Vec<(BeejsError, Instant, Duration)>>>,
+    retry_history: Arc<RwLock<Vec<(AmberError, Instant, Duration)>>>,
 }
 impl AutoRecovery {
     /// 创建新的自动恢复管理器
@@ -180,7 +180,7 @@ impl AutoRecovery {
         self
     }
     /// 从错误中恢复
-    pub async fn recover_from_error(&self, error: &BeejsError) -> Result<String, BeejsError> {
+    pub async fn recover_from_error(&self, error: &AmberError) -> Result<String, AmberError> {
         let start_time: _ = Instant::now();
         let mut attempts = 0;
         let mut last_error = error.clone();
@@ -253,28 +253,28 @@ impl AutoRecovery {
     /// 尝试恢复
     async fn attempt_recovery(
         &self,
-        error: &BeejsError,
+        error: &AmberError,
         attempt: u32,
-    ) -> Result<String, BeejsError> {
+    ) -> Result<String, AmberError> {
         // 根据错误类型和尝试次数决定恢复策略
         match error {
-            BeejsError::V8Error(_msg) => {
+            AmberError::V8Error(_msg) => {
                 if attempt <= 2 {
                     // 前两次尝试：重新初始化 V8
                     self.reinitialize_v8()
                         .await
-                        .map_err(|e| BeejsError::V8Error(format!("Recovery failed: {}", e)))?;
+                        .map_err(|e| AmberError::V8Error(format!("Recovery failed: {}", e)))?;
                     Ok(format!("V8 reinitialized (attempt {})", attempt))
                 } else {
                     // 后续尝试：使用简化模式
                     Ok(format!("Switched to simplified mode (attempt {})", attempt))
                 }
             }
-            BeejsError::JsExecutionError(_msg) => {
+            AmberError::JsExecutionError(_msg) => {
                 if attempt <= 1 {
                     // 第一次尝试：验证语法
                     self.validate_syntax().await.map_err(|e| {
-                        BeejsError::JsExecutionError(format!("Validation failed: {}", e))
+                        AmberError::JsExecutionError(format!("Validation failed: {}", e))
                     })?;
                     Ok("Syntax validated".to_string())
                 } else {
@@ -282,12 +282,12 @@ impl AutoRecovery {
                     Ok("Bypassed validation".to_string())
                 }
             }
-            BeejsError::MultiLanguageError(_msg) => {
+            AmberError::MultiLanguageError(_msg) => {
                 // 重新初始化运行时
                 self.reinitialize_language_runtime(error).await?;
                 Ok("Language runtime reinitialized".to_string())
             }
-            BeejsError::PlatformError(_msg) => {
+            AmberError::PlatformError(_msg) => {
                 // 检查平台兼容性
                 self.check_platform_compatibility().await?;
                 Ok("Platform compatibility verified".to_string())
@@ -298,7 +298,7 @@ impl AutoRecovery {
                     self.reset_runtime_state().await?;
                     Ok("Runtime state reset".to_string())
                 } else {
-                    Err(BeejsError::RuntimeError(format!(
+                    Err(AmberError::RuntimeError(format!(
                         "Failed to recover after {} attempts",
                         attempt
                     )))
@@ -317,17 +317,17 @@ impl AutoRecovery {
         Ok(())
     }
     /// 重新初始化语言运行时
-    async fn reinitialize_language_runtime(&self, _error: &BeejsError) -> Result<(), BeejsError> {
+    async fn reinitialize_language_runtime(&self, _error: &AmberError) -> Result<(), AmberError> {
         // 当前恢复管理器只记录策略动作；真正的运行时重建由调用方接入。
         Ok(())
     }
     /// 检查平台兼容性
-    async fn check_platform_compatibility(&self) -> Result<(), BeejsError> {
+    async fn check_platform_compatibility(&self) -> Result<(), AmberError> {
         // 当前恢复管理器只记录策略动作；真正的平台检查由调用方接入。
         Ok(())
     }
     /// 重置运行时状态
-    async fn reset_runtime_state(&self) -> Result<(), BeejsError> {
+    async fn reset_runtime_state(&self) -> Result<(), AmberError> {
         // 当前恢复管理器只记录策略动作；真正的状态重置由调用方接入。
         Ok(())
     }
@@ -336,7 +336,7 @@ impl AutoRecovery {
         self.stats.read().await.clone()
     }
     /// 获取重试历史
-    pub async fn get_retry_history(&self) -> Vec<(BeejsError, Instant, Duration)> {
+    pub async fn get_retry_history(&self) -> Vec<(AmberError, Instant, Duration)> {
         self.retry_history.read().await.clone()
     }
     /// 重置统计信息
@@ -345,10 +345,10 @@ impl AutoRecovery {
         self.retry_history.write().await.clear();
     }
     /// 检查是否应该尝试恢复
-    pub fn should_attempt_recovery(&self, error: &BeejsError) -> bool {
+    pub fn should_attempt_recovery(&self, error: &AmberError) -> bool {
         match error {
-            BeejsError::SecurityError(_) => false, // 安全错误不自动恢复
-            BeejsError::ConfigurationError(_) => true,
+            AmberError::SecurityError(_) => false, // 安全错误不自动恢复
+            AmberError::ConfigurationError(_) => true,
             _ => true,
         }
     }

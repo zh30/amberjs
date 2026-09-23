@@ -1,6 +1,6 @@
 // Agent Sandbox Audit Trail & Traceability Integration Tests
-use beejs::agent::*;
-use beejs::permissions::*;
+use amberjs::agent::*;
+use amberjs::permissions::*;
 use serial_test::serial;
 use std::fs;
 use tempfile::tempdir;

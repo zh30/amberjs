@@ -205,7 +205,7 @@ VectorizationOptimizer {
 
 ## 总结
 
-Stage 92 Phase 4 成功实现了 JIT 深度优化的核心架构，为 Beejs 提供了下一代编译器基础。通过多层编译架构和向量化优化，Beejs 现在具备了比 Bun 快 500% 的技术基础。
+Stage 92 Phase 4 成功实现了 JIT 深度优化的核心架构，为 Amber 提供了下一代编译器基础。通过多层编译架构和向量化优化，Amber 现在具备了比 Bun 快 500% 的技术基础。
 
 **核心成就**:
 - ✅ 构建了完整的 JIT 编译器核心

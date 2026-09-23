@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Beejs 导入语法错误批量修复脚本 v2.0
+Amber 导入语法错误批量修复脚本 v2.0
 修复所有 std::sync::atomic 导入相关的语法错误
 """
 
@@ -75,7 +75,7 @@ def fix_import_syntax(file_path):
 
 def main():
     """主函数"""
-    project_root = Path("/Users/henry/code/beejs")
+    project_root = Path("/Users/henry/code/amberjs")
     rust_files = list(project_root.rglob("*.rs"))
 
     total_files = 0
@@ -83,7 +83,7 @@ def main():
     total_changes = 0
 
     print("=" * 80)
-    print("Beejs 导入语法错误批量修复脚本 v2.0")
+    print("Amber 导入语法错误批量修复脚本 v2.0")
     print("=" * 80)
 
     for file_path in rust_files:

@@ -3,7 +3,7 @@
 pub mod k8s;
 /// Re-export Kubernetes module
 pub use k8s::{
-    BeejsCluster, BeejsClusterSpec, BeejsWorkload, BeejsWorkloadSpec, ClusterPhase, Condition,
+    AmberCluster, AmberClusterSpec, AmberWorkload, AmberWorkloadSpec, ClusterPhase, Condition,
     ConditionStatus, ConditionType, DistributedConfig, HPAConfig, MonitoringConfig,
     NetworkPolicyConfig, PodAffinity, PodAntiAffinity, PreferredSchedulingTerm,
     ResourceRequirements, RetryConfig, SecurityConfig, SecurityContext, ServiceDiscoveryConfig,
@@ -46,7 +46,7 @@ mod tests {
     #[test]
     fn test_module_structure() {
         // Verify that the module structure is correct
-        let _cluster: Option<BeejsCluster> = None;
-        let _workload: Option<BeejsWorkload> = None;
+        let _cluster: Option<AmberCluster> = None;
+        let _workload: Option<AmberWorkload> = None;
     }
 }

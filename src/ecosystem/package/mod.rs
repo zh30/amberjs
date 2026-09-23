@@ -1,4 +1,4 @@
-// Beejs 包管理器模块
+// Amber 包管理器模块
 // Stage 80 Phase 1 - 包管理器核心功能
 pub mod dependency_resolver;
 pub mod cache_manager;

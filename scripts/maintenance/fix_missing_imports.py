@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fix missing imports in Beejs source files"""
+"""Fix missing imports in Amber source files"""
 
 import os
 import re

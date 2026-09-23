@@ -178,7 +178,7 @@ pub struct ClassDeclaration {
 
 ## 🚀 预期成果
 
-Stage 51 完成后，Beejs 将能够：
+Stage 51 完成后，Amber 将能够：
 
 1. ✅ 正确编译包含完整类型注解的 TypeScript 类
 2. ✅ 支持构造函数参数类型检查

@@ -2299,7 +2299,7 @@ impl TypeScriptCompiler {
         Some(TypeScriptError {
             code: 2000,
             message: format!(
-                "TSX/JSX element syntax is unsupported by the Beejs TypeScript compiler in {}",
+                "TSX/JSX element syntax is unsupported by the Amber TypeScript compiler in {}",
                 file_name
             ),
             file: Some(file_name.to_string()),
@@ -14834,7 +14834,7 @@ console.log(greeting);
         let mut compiler = TypeScriptCompiler::new(TypeScriptCompilerConfig::default());
         // Test template with expression at end: `${expr}`
         let source = r#"
-const name = "Beejs";
+const name = "Amber";
 const greeting = `Hello ${name}`;
 console.log(greeting);
 "#;

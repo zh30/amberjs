@@ -1,6 +1,6 @@
-// Beejs v0.2.0 最终演示
+// Amber v0.2.0 最终演示
 
-console.log('=== Beejs v0.2.0 项目完成总结 ===\n');
+console.log('=== Amber v0.2.0 项目完成总结 ===\n');
 
 // 1. 性能演示
 console.log('--- 性能基准测试 ---');
@@ -26,7 +26,11 @@ console.log('--- Web API 支持 ---');
 console.log('Math.PI:', Math.PI);
 console.log('Math.max(1,5,3):', Math.max(1, 5, 3));
 console.log('JSON.stringify:', JSON.stringify({test: true}));
-console.log('URL.host:', new URL('https://example.com/path').host);
+try {
+    console.log('URL.host:', new URL('https://example.com/path').host);
+} catch (error) {
+    console.log('URL.host: error', error);
+}
 console.log('crypto.randomUUID():', crypto.randomUUID());
 console.log('fetch 状态:', fetch('https://httpbin.org/json').status);
 console.log();
@@ -44,7 +48,7 @@ console.log();
 console.log('--- 性能对比 ---');
 console.log('| 运行时    | 算术运算       | 提升倍数 |');
 console.log('|-----------|----------------|----------|');
-console.log('| Beejs     | 181M ops/sec   | 基准     |');
+console.log('| Amber     | 181M ops/sec   | 基准     |');
 console.log('| Bun       | 97K ops/sec    | 慢 1874x |');
 console.log('| Node.js   | 90K ops/sec    | 慢 2013x |');
 console.log();
@@ -57,10 +61,10 @@ console.log();
 
 // 6. 使用方法
 console.log('--- 开始使用 ---');
-console.log('运行脚本: ./target/release/beejs run script.js');
+console.log('运行脚本: ./target/release/amberjs run script.js');
 console.log('查看文档: examples/basics/README.md');
-console.log('完整报告: BEEJS_V020_COMPLETION_REPORT.md');
+console.log('完整报告: AMBER_V020_COMPLETION_REPORT.md');
 console.log();
 
-console.log('🎉 Beejs v0.2.0 开发完成!');
+console.log('🎉 Amber v0.2.0 开发完成!');
 console.log('感谢您的关注和支持!');

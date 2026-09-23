@@ -1,10 +1,10 @@
-# Beejs Stage 30.2 完成报告
+# Amber Stage 30.2 完成报告
 
 ## 🎉 重大成就
 
 **Stage 30.2: 内存管理深度优化已全面完成！**
 
-Beejs 现在具备企业级的内存管理能力，通过零拷贝内存分配、分代垃圾回收、内存压缩和泄漏检测四大核心技术，实现 30%+ 的内存使用降低。
+Amber 现在具备企业级的内存管理能力，通过零拷贝内存分配、分代垃圾回收、内存压缩和泄漏检测四大核心技术，实现 30%+ 的内存使用降低。
 
 ---
 
@@ -276,7 +276,7 @@ fn is_potential_leak(&self, info: &ObjectTrackingInfo, age_seconds: u64, access_
 
 ### 内存管理指标对比
 
-| 特性 | Beejs Stage 30.2 | Bun | 优势 |
+| 特性 | Amber Stage 30.2 | Bun | 优势 |
 |------|------------------|-----|------|
 | 零拷贝分配 | ✅ 90%+ 命中率 | ⚠️ 基础分配 | **显著优势** |
 | 分代 GC | ✅ 完整实现 | ⚠️ 基础 GC | **完整实现** |
@@ -285,7 +285,7 @@ fn is_potential_leak(&self, info: &ObjectTrackingInfo, age_seconds: u64, access_
 | 内存效率 | < 50MB | 80-100MB | **50%** |
 | GC 停顿 | < 1ms | 5-10ms | **10x** |
 
-**结论**: Beejs Stage 30.2 在内存管理深度和广度上全面超越 Bun，成为真正的极致内存效率运行时。
+**结论**: Amber Stage 30.2 在内存管理深度和广度上全面超越 Bun，成为真正的极致内存效率运行时。
 
 ---
 
@@ -370,7 +370,7 @@ fn is_potential_leak(&self, info: &ObjectTrackingInfo, age_seconds: u64, access_
 
 ## 🎯 结论
 
-**Stage 30.2 是 Beejs 内存管理优化的重大里程碑！**
+**Stage 30.2 是 Amber 内存管理优化的重大里程碑！**
 
 通过零拷贝内存分配、分代垃圾回收、内存压缩、泄漏检测四大核心技术的精心实施，我们成功实现了：
 
@@ -383,9 +383,9 @@ fn is_potential_leak(&self, info: &ObjectTrackingInfo, age_seconds: u64, access_
 - ✅ 18个测试 100% 通过
 - ✅ 全面超越 Bun 内存管理
 
-**现在，Beejs 已经具备生产级的内存管理能力！**
+**现在，Amber 已经具备生产级的内存管理能力！**
 
-下一步的 Stage 30.3 将进一步优化网络 I/O，使 Beejs 成为真正的极致性能运行时。
+下一步的 Stage 30.3 将进一步优化网络 I/O，使 Amber 成为真正的极致性能运行时。
 
 ---
 
@@ -419,4 +419,4 @@ fn is_potential_leak(&self, info: &ObjectTrackingInfo, age_seconds: u64, access_
 - **泄漏严重级别**: 4 级
 - **统一接口数**: 1 个
 
-**Beejs Stage 30.2 - 内存管理深度优化完成！**
+**Amber Stage 30.2 - 内存管理深度优化完成！**

@@ -136,7 +136,7 @@ src/aiops/allocation/
 ├── scheduler.rs                  # 智能调度器
 └── load_balancer.rs              # 负载均衡器
 
-test_stage95_phase4_allocation.rs           # 完整测试套件 (依赖 beejs)
+test_stage95_phase4_allocation.rs           # 完整测试套件 (依赖 amberjs)
 test_stage95_phase4_allocation_simple.rs    # 独立验证测试
 
 STAGE_95_PHASE_4_COMPLETION_REPORT.md       # 本报告

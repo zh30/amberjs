@@ -88,7 +88,7 @@ def fix_arc_mutex_imports(file_path):
 
 def main():
     """主函数"""
-    project_root = Path("/Users/henry/code/beejs")
+    project_root = Path("/Users/henry/code/amberjs")
 
     # 手动修复关键文件
     key_files = [

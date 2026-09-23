@@ -1,0 +1,18 @@
+PackageIdentifier: zh30.amber
+PackageVersion: 1.16.0
+PackageName: Amber
+Publisher: Henry Zhang
+License: MIT
+ShortDescription: JavaScript/TypeScript runtime built with Rust and V8
+PackageUrl: https://github.com/zh30/amberjs
+InstallerType: zip
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/zh30/amberjs/releases/download/v1.16.0/amber-v1.16.0-x86_64-pc-windows-msvc.zip
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+    NestedInstallerType: portable
+    NestedInstallerFiles:
+      - RelativeFilePath: amber.exe
+        PortableCommandAlias: amber
+ManifestType: singleton
+ManifestVersion: 1.6.0

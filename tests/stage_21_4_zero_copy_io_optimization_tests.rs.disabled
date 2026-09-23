@@ -3,7 +3,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::*;
+    use amberjs::*;
     use std::sync::Arc;
     use std::time::Instant;
     use tempfile::TempDir;
@@ -29,7 +29,7 @@ mod tests {
         fs::write(&file_path, &test_data).unwrap();
 
         // Open memory-mapped file
-        let mmap_file = beejs::memory_mapped_file::MemoryMappedFile::open_readonly(
+        let mmap_file = amberjs::memory_mapped_file::MemoryMappedFile::open_readonly(
             file_path.as_path()
         ).unwrap();
 
@@ -59,7 +59,7 @@ mod tests {
         let test_data = vec![1u8; 10 * 1024 * 1024];
         fs::write(&file_path, &test_data).unwrap();
 
-        let mmap_file = beejs::memory_mapped_file::MemoryMappedFile::open_readonly(
+        let mmap_file = amberjs::memory_mapped_file::MemoryMappedFile::open_readonly(
             file_path.as_path()
         ).unwrap();
 
@@ -79,7 +79,7 @@ mod tests {
     /// Test 3: Zero-Copy Buffer Pool Performance
     #[test]
     fn test_zero_copy_buffer_pool_performance() {
-        let manager = beejs::zero_copy::ZeroCopyManager::new();
+        let manager = amberjs::zero_copy::ZeroCopyManager::new();
 
         let iterations = 10000;
         let start = Instant::now();
@@ -104,7 +104,7 @@ mod tests {
     /// Test 4: Zero-Copy Channel Performance
     #[test]
     fn test_zero_copy_channel_performance() {
-        let channel = beejs::zero_copy::ZeroCopyChannel::new(1000);
+        let channel = amberjs::zero_copy::ZeroCopyChannel::new(1000);
 
         let iterations = 100000;
         let start = Instant::now();
@@ -132,7 +132,7 @@ mod tests {
     /// Test 5: Zero-Copy Ring Buffer Basic Functionality
     #[test]
     fn test_zero_copy_ring_buffer_basic() {
-        let mut buffer = beejs::zero_copy::ZeroCopyRingBuffer::new(10);
+        let mut buffer = amberjs::zero_copy::ZeroCopyRingBuffer::new(10);
 
         // Test basic write and read
         assert!(buffer.try_write(1));
@@ -163,8 +163,8 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("perf_test_dat");
 
-        let buffer = beejs::zero_copy::ZeroCopyBuffer::new(vec![99u8; 4096]);
-        let mut writer = beejs::zero_copy::ZeroCopyFileWriter::new(
+        let buffer = amberjs::zero_copy::ZeroCopyBuffer::new(vec![99u8; 4096]);
+        let mut writer = amberjs::zero_copy::ZeroCopyFileWriter::new(
             file_path.to_str().unwrap()
         ).await.unwrap();
 
@@ -189,7 +189,7 @@ mod tests {
     /// Test 7: Zero-Copy Statistics and Monitoring
     #[test]
     fn test_zero_copy_statistics() {
-        let manager = beejs::zero_copy::ZeroCopyManager::new();
+        let manager = amberjs::zero_copy::ZeroCopyManager::new();
 
         // Create multiple buffers and channels
         let buffers: Vec<_> = (0..10)
@@ -218,7 +218,7 @@ mod tests {
     /// Test 8: Zero-Copy Message Passing with Metadata
     #[test]
     fn test_zero_copy_message_with_metadata() {
-        let message = beejs::zero_copy::ZeroCopyMessage::new_with_priority(
+        let message = amberjs::zero_copy::ZeroCopyMessage::new_with_priority(
             vec![1, 2, 3, 4, 5],
             10
         );
@@ -254,7 +254,7 @@ mod tests {
         }
 
         let start = Instant::now();
-        let mmap_file = beejs::memory_mapped_file::MemoryMappedFile::open_readonly(
+        let mmap_file = amberjs::memory_mapped_file::MemoryMappedFile::open_readonly(
             file_path.as_path()
         ).unwrap();
 
@@ -277,7 +277,7 @@ mod tests {
     /// Test 10: Zero-Copy Buffer Sharing Between Threads
     #[test]
     fn test_zero_copy_buffer_sharing() {
-        let buffer = beejs::zero_copy::ZeroCopyBuffer::new(vec![42u8; 1024]);
+        let buffer = amberjs::zero_copy::ZeroCopyBuffer::new(vec![42u8; 1024]);
         let buffer_clone = buffer.duplicate();
 
         // Verify that both buffers share the same underlying data by comparing slices
@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn test_zero_copy_ipc_channel() {
         let capacity = 100;
-        let channel = beejs::zero_copy::ZeroCopyChannel::new(capacity);
+        let channel = amberjs::zero_copy::ZeroCopyChannel::new(capacity);
 
         // Test bidirectional communication
         let test_values: Vec<i32> = (0..50).collect();
@@ -320,7 +320,7 @@ mod tests {
         let test_data: Vec<u8> = (0..1000).map(|i| (i % 256) as u8).collect();
         fs::write(&file_path, &test_data).unwrap();
 
-        let mut reader = beejs::zero_copy::ZeroCopyFileReader::new(
+        let mut reader = amberjs::zero_copy::ZeroCopyFileReader::new(
             file_path.to_str().unwrap()
         ).await.unwrap();
 
@@ -338,7 +338,7 @@ mod tests {
     /// Test 13: Zero-Copy Manager Buffer Lifecycle
     #[test]
     fn test_zero_copy_manager_buffer_lifecycle() {
-        let manager = beejs::zero_copy::ZeroCopyManager::new();
+        let manager = amberjs::zero_copy::ZeroCopyManager::new();
 
         // Create buffer
         let buffer = manager.create_buffer(vec![1, 2, 3]);
@@ -361,7 +361,7 @@ mod tests {
     /// Test 14: Zero-Copy Ring Buffer Utilization Tracking
     #[test]
     fn test_zero_copy_ring_buffer_utilization() {
-        let mut buffer = beejs::zero_copy::ZeroCopyRingBuffer::new(10);
+        let mut buffer = amberjs::zero_copy::ZeroCopyRingBuffer::new(10);
 
         // Initially empty
         assert_eq!(buffer.utilization(), 0.0);
@@ -388,7 +388,7 @@ mod tests {
     /// Test 15: Zero-Copy Performance Benchmark
     #[test]
     fn test_zero_copy_performance_benchmark() {
-        let manager = beejs::zero_copy::ZeroCopyManager::new();
+        let manager = amberjs::zero_copy::ZeroCopyManager::new();
         let iterations = 100000;
 
         // Benchmark buffer creation

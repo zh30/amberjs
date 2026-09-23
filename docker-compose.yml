@@ -1,33 +1,33 @@
-# Docker Compose for Beejs Enterprise
-# This file demonstrates a production-ready Beejs deployment
+# Docker Compose for Amber Enterprise
+# This file demonstrates a production-ready Amber deployment
 
 version: '3.8'
 
 services:
   # ==========================================================================
-  # Beejs Runtime Cluster
+  # Amber Runtime Cluster
   # ==========================================================================
-  beejs-primary:
+  amberjs-primary:
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: beejs:0.2.0
-    container_name: beejs-primary
+    image: amberjs:0.2.0
+    container_name: amberjs-primary
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - BEEJS_ENV=production
-      - BEEJS_LOG_LEVEL=info
-      - BEEJS_MAX_WORKERS=auto
-      - BEEJS_PRIMARY=true
+      - AMBER_ENV=production
+      - AMBER_LOG_LEVEL=info
+      - AMBER_MAX_WORKERS=auto
+      - AMBER_PRIMARY=true
     volumes:
-      - beejs_data:/app/data
-      - beejs_logs:/app/logs
+      - amberjs_data:/app/data
+      - amberjs_logs:/app/logs
       - ./configs:/app/configs:ro
     networks:
-      - beejs-network
+      - amberjs-network
     deploy:
       resources:
         limits:
@@ -42,36 +42,36 @@ services:
         max_attempts: 3
         window: 120s
     healthcheck:
-      test: ["CMD", "bee", "--health-check"]
+      test: ["CMD", "amber", "--health-check"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
-  beejs-replica-1:
+  amberjs-replica-1:
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: beejs:0.2.0
-    container_name: beejs-replica-1
+    image: amberjs:0.2.0
+    container_name: amberjs-replica-1
     restart: unless-stopped
     ports:
       - "3001:3000"
     environment:
-      - BEEJS_ENV=production
-      - BEEJS_LOG_LEVEL=info
-      - BEEJS_MAX_WORKERS=auto
-      - BEEJS_PRIMARY=false
-      - BEEJS_PRIMARY_ENDPOINT=beejs-primary:3000
+      - AMBER_ENV=production
+      - AMBER_LOG_LEVEL=info
+      - AMBER_MAX_WORKERS=auto
+      - AMBER_PRIMARY=false
+      - AMBER_PRIMARY_ENDPOINT=amberjs-primary:3000
     volumes:
-      - beejs_data:/app/data
-      - beejs_logs:/app/logs
+      - amberjs_data:/app/data
+      - amberjs_logs:/app/logs
       - ./configs:/app/configs:ro
     networks:
-      - beejs-network
+      - amberjs-network
     depends_on:
-      - beejs-primary
+      - amberjs-primary
     deploy:
       resources:
         limits:
@@ -81,35 +81,35 @@ services:
           cpus: '1'
           memory: 2G
     healthcheck:
-      test: ["CMD", "bee", "--health-check"]
+      test: ["CMD", "amber", "--health-check"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  beejs-replica-2:
+  amberjs-replica-2:
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    image: beejs:0.2.0
-    container_name: beejs-replica-2
+    image: amberjs:0.2.0
+    container_name: amberjs-replica-2
     restart: unless-stopped
     ports:
       - "3002:3000"
     environment:
-      - BEEJS_ENV=production
-      - BEEJS_LOG_LEVEL=info
-      - BEEJS_MAX_WORKERS=auto
-      - BEEJS_PRIMARY=false
-      - BEEJS_PRIMARY_ENDPOINT=beejs-primary:3000
+      - AMBER_ENV=production
+      - AMBER_LOG_LEVEL=info
+      - AMBER_MAX_WORKERS=auto
+      - AMBER_PRIMARY=false
+      - AMBER_PRIMARY_ENDPOINT=amberjs-primary:3000
     volumes:
-      - beejs_data:/app/data
-      - beejs_logs:/app/logs
+      - amberjs_data:/app/data
+      - amberjs_logs:/app/logs
       - ./configs:/app/configs:ro
     networks:
-      - beejs-network
+      - amberjs-network
     depends_on:
-      - beejs-primary
+      - amberjs-primary
     deploy:
       resources:
         limits:
@@ -119,7 +119,7 @@ services:
           cpus: '1'
           memory: 2G
     healthcheck:
-      test: ["CMD", "bee", "--health-check"]
+      test: ["CMD", "amber", "--health-check"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -129,7 +129,7 @@ services:
   # ==========================================================================
   haproxy:
     image: haproxy:2.8
-    container_name: beejs-haproxy
+    container_name: amberjs-haproxy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -137,18 +137,18 @@ services:
     volumes:
       - ./configs/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     networks:
-      - beejs-network
+      - amberjs-network
     depends_on:
-      - beejs-primary
-      - beejs-replica-1
-      - beejs-replica-2
+      - amberjs-primary
+      - amberjs-replica-1
+      - amberjs-replica-2
 
   # ==========================================================================
   # Monitoring Stack
   # ==========================================================================
   prometheus:
     image: prom/prometheus:v2.47
-    container_name: beejs-prometheus
+    container_name: amberjs-prometheus
     restart: unless-stopped
     ports:
       - "9090:9090"
@@ -163,11 +163,11 @@ services:
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
     networks:
-      - beejs-network
+      - amberjs-network
 
   grafana:
     image: grafana/grafana:10.1
-    container_name: beejs-grafana
+    container_name: amberjs-grafana
     restart: unless-stopped
     ports:
       - "3001:3000"
@@ -178,7 +178,7 @@ services:
       - ./configs/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./configs/grafana/datasources:/etc/grafana/provisioning/datasources:ro
     networks:
-      - beejs-network
+      - amberjs-network
     depends_on:
       - prometheus
 
@@ -187,7 +187,7 @@ services:
   # ==========================================================================
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.10
-    container_name: beejs-elasticsearch
+    container_name: amberjs-elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -197,33 +197,33 @@ services:
     ports:
       - "9200:9200"
     networks:
-      - beejs-network
+      - amberjs-network
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.10
-    container_name: beejs-logstash
+    container_name: amberjs-logstash
     volumes:
       - ./configs/logstash:/usr/share/logstash/pipeline:ro
-      - beejs_logs:/var/log/beejs:ro
+      - amberjs_logs:/var/log/amberjs:ro
     ports:
       - "5044:5044"
       - "9600:9600"
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
-      - beejs-network
+      - amberjs-network
     depends_on:
       - elasticsearch
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.10
-    container_name: beejs-kibana
+    container_name: amberjs-kibana
     ports:
       - "5601:5601"
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
     networks:
-      - beejs-network
+      - amberjs-network
     depends_on:
       - elasticsearch
 
@@ -232,31 +232,31 @@ services:
   # ==========================================================================
   jaeger:
     image: jaegertracing/all-in-one:1.50
-    container_name: beejs-jaeger
+    container_name: amberjs-jaeger
     ports:
       - "16686:16686"
       - "14268:14268"
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     networks:
-      - beejs-network
+      - amberjs-network
 
   # ==========================================================================
   # Database (Optional)
   # ==========================================================================
   postgres:
     image: postgres:15
-    container_name: beejs-postgres
+    container_name: amberjs-postgres
     environment:
-      - POSTGRES_DB=beejs
-      - POSTGRES_USER=beejs
-      - POSTGRES_PASSWORD=beejs_password
+      - POSTGRES_DB=amberjs
+      - POSTGRES_USER=amberjs
+      - POSTGRES_PASSWORD=amberjs_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
-      - beejs-network
+      - amberjs-network
     restart: unless-stopped
 
   # ==========================================================================
@@ -264,23 +264,23 @@ services:
   # ==========================================================================
   redis:
     image: redis:7.2-alpine
-    container_name: beejs-redis
+    container_name: amberjs-redis
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     ports:
       - "6379:6379"
     networks:
-      - beejs-network
+      - amberjs-network
     restart: unless-stopped
 
 # ==========================================================================
 # Volumes
 # ==========================================================================
 volumes:
-  beejs_data:
+  amberjs_data:
     driver: local
-  beejs_logs:
+  amberjs_logs:
     driver: local
   prometheus_data:
     driver: local
@@ -297,7 +297,7 @@ volumes:
 # Networks
 # ==========================================================================
 networks:
-  beejs-network:
+  amberjs-network:
     driver: bridge
     ipam:
       config:
@@ -310,17 +310,17 @@ networks:
 #    docker-compose up -d
 #
 # 2. Access the services:
-#    - Beejs: http://localhost:3000
+#    - Amber: http://localhost:3000
 #    - Grafana: http://localhost:3001 (admin/admin)
 #    - Prometheus: http://localhost:9090
 #    - Kibana: http://localhost:5601
 #    - Jaeger: http://localhost:16686
 #
-# 3. Scale Beejs instances:
-#    docker-compose up -d --scale beejs-replica-1=3
+# 3. Scale Amber instances:
+#    docker-compose up -d --scale amberjs-replica-1=3
 #
 # 4. View logs:
-#    docker-compose logs -f beejs-primary
+#    docker-compose logs -f amberjs-primary
 #
 # 5. Stop the stack:
 #    docker-compose down

@@ -1,4 +1,4 @@
-//! In-memory deterministic Virtual Filesystem (VFS) sandbox for Beejs.
+//! In-memory deterministic Virtual Filesystem (VFS) sandbox for Amber.
 //!
 //! Provides an isolated, in-memory copy-on-write (COW) filesystem for executing
 //! untrusted Agent-generated code without any side-effects on the host machine.
@@ -113,7 +113,7 @@ pub fn vfs_write(path: &Path, data: &[u8]) -> io::Result<()> {
         files.insert(norm, data.to_vec());
         Ok(())
     } else {
-        Err(io::Error::new(ErrorKind::Other, "Lock poisoned"))
+        Err(io::Error::other("Lock poisoned"))
     }
 }
 
@@ -124,7 +124,7 @@ pub fn vfs_create_dir(path: &Path) -> io::Result<()> {
         dirs.insert(norm);
         Ok(())
     } else {
-        Err(io::Error::new(ErrorKind::Other, "Lock poisoned"))
+        Err(io::Error::other("Lock poisoned"))
     }
 }
 

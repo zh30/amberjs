@@ -1,4 +1,4 @@
-//! Chrome DevTools Protocol (CDP) Inspector Server for Beejs.
+//! Chrome DevTools Protocol (CDP) Inspector Server for Amber.
 //!
 //! HTTP discovery (`/json/version`, `/json/list`) plus a WebSocket channel.
 //! `Runtime.evaluate` is forwarded to the V8 thread via a queue; `--inspect-brk`
@@ -205,13 +205,13 @@ fn handle_http_json(
 
     let body = if req_header.contains("GET /json/version") {
         json!({
-            "Browser": format!("Beejs/{}", env!("CARGO_PKG_VERSION")),
+            "Browser": format!("Amber/{}", env!("CARGO_PKG_VERSION")),
             "Protocol-Version": "1.3"
         })
     } else {
         json!([
             {
-                "description": "Beejs runtime",
+                "description": "Amber runtime",
                 "devtoolsFrontendUrl": format!("devtools://devtools/bundled/js_app.html?ws={}:{}/ws", host, port),
                 "id": target_id,
                 "title": script_name,

@@ -26,9 +26,9 @@ pub struct WASMModule {
 /// Host functions for WASM environment
 #[derive(Debug)]
 pub struct HostFunctions {
-    bee_api: Arc<dyn BeeWasmAPI>,
+    amber_api: Arc<dyn BeeWasmAPI>,
 }
-/// Bee WASM API interface
+/// Amber WASM API interface
 pub trait BeeWasmAPI: Send + Sync {
     fn console_log(&self, message: &str) -> Result<()>;
     fn execute_js(&self, code: &str) -> Result<String>;
@@ -57,10 +57,10 @@ pub struct JS2WASMCompiler {
 }
 impl WASMRuntime {
     /// Create a new WASM runtime
-    pub fn new(bee_api: Arc<dyn BeeWasmAPI>) -> Result<Self> {
+    pub fn new(amber_api: Arc<dyn BeeWasmAPI>) -> Result<Self> {
         let engine: _ = Arc::new(Engine::default());
         let modules: _ = Arc::new(RwLock::new(HashMap::new()));
-        let host_functions: _ = Arc::new(HostFunctions { bee_api });
+        let host_functions: _ = Arc::new(HostFunctions { amber_api });
         Ok(WASMRuntime {
             engine,
             modules,
@@ -239,16 +239,16 @@ mod tests {
     }
     #[tokio::test]
     async fn test_wasm_runtime_creation() {
-        let bee_api: _ = Arc::new(MockBeeWasmAPI);
-        let runtime: _ = WASMRuntime::new(bee_api).unwrap();
+        let amber_api: _ = Arc::new(MockBeeWasmAPI);
+        let runtime: _ = WASMRuntime::new(amber_api).unwrap();
         let modules: _ = runtime.list_modules().await;
         assert!(modules.is_ok());
         assert_eq!(modules.unwrap().len(), 0);
     }
     #[tokio::test]
     async fn test_wasm_module_loading() {
-        let bee_api: _ = Arc::new(MockBeeWasmAPI);
-        let runtime: _ = WASMRuntime::new(bee_api).unwrap();
+        let amber_api: _ = Arc::new(MockBeeWasmAPI);
+        let runtime: _ = WASMRuntime::new(amber_api).unwrap();
         let wasm_binary: _ = generate_minimal_wasm();
         let result: _ = runtime.load_module("test".to_string(), wasm_binary).await;
         assert!(result.is_ok());
@@ -285,8 +285,8 @@ function hello() {
     }
     #[tokio::test]
     async fn test_wasm_module_info() {
-        let bee_api: _ = Arc::new(MockBeeWasmAPI);
-        let runtime: _ = WASMRuntime::new(bee_api).unwrap();
+        let amber_api: _ = Arc::new(MockBeeWasmAPI);
+        let runtime: _ = WASMRuntime::new(amber_api).unwrap();
         let wasm_binary: _ = generate_minimal_wasm();
         runtime
             .load_module("test".to_string(), wasm_binary)

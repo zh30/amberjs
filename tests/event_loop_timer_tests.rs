@@ -1,4 +1,4 @@
-use beejs::event_loop::{AsyncTimerManager, TimerScheduleError};
+use amberjs::event_loop::{AsyncTimerManager, TimerScheduleError};
 use std::time::Duration;
 use tokio::time::sleep;
 

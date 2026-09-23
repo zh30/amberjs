@@ -1,11 +1,11 @@
 [package]
-name = "zed-beejs"
-version = "1.16.0"
+name = "zed-amberjs"
+version = "1.16.1"
 edition = "2021"
 license = "MIT"
 publish = false
-description = "Zed extension that launches Beejs `bee lsp`"
-repository = "https://github.com/zh30/beejs"
+description = "Zed extension that launches Amber `amber lsp`"
+repository = "https://github.com/zh30/amberjs"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

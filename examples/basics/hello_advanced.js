@@ -1,5 +1,5 @@
-// Advanced JavaScript example for Beejs
-console.log("🚀 Beejs High-Performance Runtime");
+// Advanced JavaScript example for Amber
+console.log("🚀 Amber High-Performance Runtime");
 console.log("V8 Engine Version:", process.version);
 
 // Test various JavaScript features

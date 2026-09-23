@@ -1,4 +1,4 @@
-// Beejs TypeScript smoke example.
+// Amber TypeScript smoke example.
 // Transpiled by oxc (TypeScript 6.0 syntax, transpile-only) before V8.
 
 let message: string = "Hello from TypeScript!";
@@ -14,7 +14,7 @@ function greet(name: string): string {
     return "Hello, " + name + "!";
 }
 
-console.log("TypeScript Hello World for Beejs!");
+console.log("TypeScript Hello World for Amber!");
 console.log(message);
 console.log("Count: " + count);
 console.log("Active: " + isActive);

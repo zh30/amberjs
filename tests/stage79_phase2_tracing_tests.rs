@@ -36,7 +36,7 @@ mod tests {
     fn test_distributed_tracing() {
         // 测试分布式追踪功能
         let _tracer = DistributedTracer {
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
         };
 
         // 创建模拟 Span
@@ -65,7 +65,7 @@ mod tests {
     fn test_context_propagation() {
         // 测试上下文传播功能
         let _tracer = DistributedTracer {
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
         };
 
         // 创建模拟 Span
@@ -104,7 +104,7 @@ mod tests {
     fn test_span_parent_child_relationship() {
         // 测试父子 Span 关系
         let _tracer = DistributedTracer {
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
         };
 
         // 创建父 Span
@@ -139,7 +139,7 @@ mod tests {
     fn test_multiple_spans() {
         // 测试多个 Span
         let _tracer = DistributedTracer {
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
         };
 
         // 创建多个 Span
@@ -192,7 +192,7 @@ mod tests {
     fn test_span_with_metadata() {
         // 测试带元数据的 Span
         let _tracer = DistributedTracer {
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
         };
 
         let mut span = Span {

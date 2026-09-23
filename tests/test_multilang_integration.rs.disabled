@@ -3,18 +3,18 @@ Tests for Python, Go, and Rust integration
 */
 
 // TODO: Enable when multilang module is implemented
-// use beejs::multilang::{PythonRuntime, GoRuntime, RustOptimizer, MultiLanguageRuntime, BeeAPI};
+// use amberjs::multilang::{PythonRuntime, GoRuntime, RustOptimizer, MultiLanguageRuntime, AmberAPI};
 use std::sync::Arc;
 
 // TODO: Enable when multilang module is implemented
 /*
 #[tokio::test]
 async fn test_python_integration() {
-    let bee_api = Arc::new(BeeAPI {
-        runtime: Arc::new(MockBeeRuntime),
+    let amber_api = Arc::new(AmberAPI {
+        runtime: Arc::new(MockAmberRuntime),
     });
 
-    let runtime = PythonRuntime::new(bee_api).unwrap();
+    let runtime = PythonRuntime::new(amber_api).unwrap();
 
     let result = runtime.execute_python("print('Hello from Python')").await;
     assert!(result.is_ok(), "Python execution should succeed");
@@ -27,11 +27,11 @@ async fn test_python_integration() {
 
 #[tokio::test]
 async fn test_go_integration() {
-    let bee_api = Arc::new(BeeAPI {
-        runtime: Arc::new(MockBeeRuntime),
+    let amber_api = Arc::new(AmberAPI {
+        runtime: Arc::new(MockAmberRuntime),
     });
 
-    let runtime = GoRuntime::new(bee_api).unwrap();
+    let runtime = GoRuntime::new(amber_api).unwrap();
 
     let code = r#"
 package main
@@ -64,8 +64,8 @@ async fn test_multilang_runtime() {
     let mut runtime = MultiLanguageRuntime::new();
 
     // Initialize Python
-    let python_api = Arc::new(BeeAPI {
-        runtime: Arc::new(MockBeeRuntime),
+    let python_api = Arc::new(AmberAPI {
+        runtime: Arc::new(MockAmberRuntime),
     });
     runtime.init_python(python_api).unwrap();
 
@@ -74,8 +74,8 @@ async fn test_multilang_runtime() {
     assert!(result.is_ok(), "Python execution should work");
 
     // Initialize Go
-    let go_api = Arc::new(BeeAPI {
-        runtime: Arc::new(MockBeeRuntime),
+    let go_api = Arc::new(AmberAPI {
+        runtime: Arc::new(MockAmberRuntime),
     });
     runtime.init_go(go_api).unwrap();
 
@@ -98,9 +98,9 @@ async fn test_zero_copy_performance() {
     assert!(result.is_ok(), "Zero-copy execution should succeed");
 }
 
-struct MockBeeRuntime;
+struct MockAmberRuntime;
 
-impl beejs::multilang::BeeRuntimeInterface for MockBeeRuntime {
+impl amberjs::multilang::AmberRuntimeInterface for MockAmberRuntime {
     fn execute_script(&self, script: &str) -> Result<String, anyhow::Error> {
         Ok(format!("Mock executed: {}", script))
     }

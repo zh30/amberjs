@@ -1,7 +1,7 @@
 //! AI 性能引擎演示
 //! 展示如何使用 AI 性能引擎进行智能性能优化
 
-use beejs::ai::{
+use amberjs::ai::{
     ai_performance_engine::{AiPerformanceEngine, AiPerformanceEngineConfig, PerformanceMetrics},
     intelligent_scheduler::{IntelligentScheduler, IntelligentSchedulerConfig, Task, TaskType, ResourceRequirements},
 };
@@ -9,7 +9,7 @@ use std::time::Instant;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🚀 Beejs AI 性能引擎演示\n");
+    println!("🚀 Amber AI 性能引擎演示\n");
 
     // 1. 创建 AI 性能引擎
     println!("1. 初始化 AI 性能引擎...");

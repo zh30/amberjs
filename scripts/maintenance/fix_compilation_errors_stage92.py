@@ -7,7 +7,7 @@ import re
 
 def fix_ai_performance_engine():
     """修复 ai_performance_engine.rs 中的错误"""
-    filepath = "/Users/henry/code/beejs/src/ai/ai_performance_engine.rs"
+    filepath = "/Users/henry/code/amberjs/src/ai/ai_performance_engine.rs"
 
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -44,7 +44,7 @@ def fix_ai_performance_engine():
 
 def fix_intelligent_scheduler():
     """修复 intelligent_scheduler.rs 中的错误"""
-    filepath = "/Users/henry/code/beejs/src/ai/intelligent_scheduler.rs"
+    filepath = "/Users/henry/code/amberjs/src/ai/intelligent_scheduler.rs"
 
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -88,7 +88,7 @@ def fix_intelligent_scheduler():
 
 def fix_zero_copy_enhanced():
     """修复 zero_copy_enhanced.rs 中的错误"""
-    filepath = "/Users/henry/code/beejs/src/memory/zero_copy_enhanced.rs"
+    filepath = "/Users/henry/code/amberjs/src/memory/zero_copy_enhanced.rs"
 
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -118,7 +118,7 @@ def fix_zero_copy_enhanced():
 
 def fix_gc_optimizer_enhanced():
     """修复 gc_optimizer_enhanced.rs 中的 match 错误"""
-    filepath = "/Users/henry/code/beejs/src/memory/gc_optimizer_enhanced.rs"
+    filepath = "/Users/henry/code/amberjs/src/memory/gc_optimizer_enhanced.rs"
 
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()

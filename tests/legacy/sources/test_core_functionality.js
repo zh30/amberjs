@@ -1,5 +1,5 @@
-// 测试 Beejs v0.1.7 核心功能
-console.log("🧪 测试 Beejs v0.1.7 核心功能");
+// 测试 Amber v0.1.7 核心功能
+console.log("🧪 测试 Amber v0.1.7 核心功能");
 
 // 1. 测试基础 JavaScript
 console.log("\n1. 基础 JavaScript 测试:");

@@ -1,8 +1,8 @@
-// 性能分析脚本 - 使用 Beejs 的性能分析工具
-use beejs::profiler::{Profiler, ProfilingMode, ProfileTarget};
+// 性能分析脚本 - 使用 Amber 的性能分析工具
+use amberjs::profiler::{Profiler, ProfilingMode, ProfileTarget};
 
 fn main() {
-    println!("🔍 Beejs 性能分析工具演示");
+    println!("🔍 Amber 性能分析工具演示");
     println!("=====================================\n");
 
     // 创建性能分析器

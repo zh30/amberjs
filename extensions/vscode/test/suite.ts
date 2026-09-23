@@ -1,10 +1,10 @@
 /**
- * VS Code Extension Test Suite for Beejs
+ * VS Code Extension Test Suite for Amber
  *
- * This test suite validates the Beejs VS Code extension functionality:
+ * This test suite validates the Amber VS Code extension functionality:
  * - Language service (completion, hover, diagnostics)
  * - Debug adapter (launch, breakpoints, stepping)
- * - Integration with Beejs runtime
+ * - Integration with Amber runtime
  */
 
 import * as path from 'path';
@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import { describe, test, before, after } from 'mocha';
 import { expect } from 'chai';
 
-describe('Beejs VS Code Extension', () => {
+describe('Amber VS Code Extension', () => {
     const testDir = path.join(__dirname, '..', 'test', 'fixtures');
     const extensionDir = path.join(__dirname, '..');
 
@@ -27,8 +27,8 @@ describe('Beejs VS Code Extension', () => {
         const tsFixture = path.join(testDir, 'test.ts');
 
         fs.writeFileSync(jsFixture, `
-console.log('Hello from Beejs!');
-const result = await beejs.run('test.ts');
+console.log('Hello from Amber!');
+const result = await amberjs.run('test.ts');
 export default result;
 `);
 
@@ -39,7 +39,7 @@ interface User {
 }
 
 async function main() {
-    const user: User = { name: 'Beejs', age: 1 };
+    const user: User = { name: 'Amber', age: 1 };
     console.log(\`User: \${user.name}\`);
     return user;
 }
@@ -99,17 +99,17 @@ export { main };
                 version: '0.2.0',
                 configurations: [
                     {
-                        type: 'beejs',
+                        type: 'amberjs',
                         request: 'launch',
-                        name: 'Debug Beejs Script',
+                        name: 'Debug Amber Script',
                         program: '${workspaceFolder}/test.js',
-                        runtimeExecutable: 'bee'
+                        runtimeExecutable: 'amber'
                     }
                 ]
             };
 
             expect(launchConfig.configurations).to.have.length(1);
-            expect(launchConfig.configurations[0].type).to.equal('beejs');
+            expect(launchConfig.configurations[0].type).to.equal('amberjs');
         });
 
         test('should support breakpoints', async () => {
@@ -128,47 +128,47 @@ export { main };
     });
 
     describe('Integration', () => {
-        test('should integrate with Beejs runtime', async () => {
-            // Test that the extension can communicate with Beejs
-            const beejsPath = 'bee'; // Should be resolved from PATH or config
+        test('should integrate with Amber runtime', async () => {
+            // Test that the extension can communicate with Amber
+            const amberjsPath = 'amber'; // Should be resolved from PATH or config
 
             // TODO: Test actual runtime integration
-            expect(beejsPath).to.be.a('string');
+            expect(amberjsPath).to.be.a('string');
         });
 
-        test('should handle .beejs file association', async () => {
+        test('should handle .amberjs file association', async () => {
             // Test file association
-            const beejsFile = path.join(testDir, 'script.beejs');
-            fs.writeFileSync(beejsFile, 'console.log("Beejs file");');
+            const amberjsFile = path.join(testDir, 'script.amberjs');
+            fs.writeFileSync(amberjsFile, 'console.log("Amber file");');
 
-            expect(fs.existsSync(beejsFile)).to.be.true;
+            expect(fs.existsSync(amberjsFile)).to.be.true;
         });
     });
 
     describe('Configuration', () => {
-        test('should read Beejs settings', async () => {
+        test('should read Amber settings', async () => {
             const settings = {
-                beejs: {
-                    runtimePath: '/usr/local/bin/bee',
+                amberjs: {
+                    runtimePath: '/usr/local/bin/amber',
                     debugPort: 9229,
                     enableTypeChecking: true,
                     maxMemory: '512m'
                 }
             };
 
-            expect(settings.beejs).to.have.property('runtimePath');
-            expect(settings.beejs).to.have.property('debugPort');
+            expect(settings.amberjs).to.have.property('runtimePath');
+            expect(settings.amberjs).to.have.property('debugPort');
         });
 
         test('should validate configuration', async () => {
             const validateConfig = (config: any) => {
-                if (!config.beejs || !config.beejs.runtimePath) {
+                if (!config.amberjs || !config.amberjs.runtimePath) {
                     throw new Error('Invalid configuration: runtimePath required');
                 }
                 return true;
             };
 
-            expect(() => validateConfig({ beejs: { runtimePath: '/path/to/bee' } })).to.not.throw();
+            expect(() => validateConfig({ amberjs: { runtimePath: '/path/to/amber' } })).to.not.throw();
         });
     });
 });

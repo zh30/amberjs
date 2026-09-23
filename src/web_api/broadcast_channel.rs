@@ -5,7 +5,7 @@
 use anyhow::Result;
 use rusty_v8 as v8;
 
-const REGISTRY_PRIVATE_KEY: &str = "BeeJS.BroadcastChannel#registry";
+const REGISTRY_PRIVATE_KEY: &str = "Amber.BroadcastChannel#registry";
 
 fn get_broadcast_registry<'s>(scope: &mut v8::PinScope<'s, '_>) -> v8::Local<'s, v8::Array> {
     let global = scope.get_current_context().global(scope);

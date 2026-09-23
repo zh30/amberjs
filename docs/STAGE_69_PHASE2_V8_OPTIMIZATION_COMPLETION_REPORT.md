@@ -1,7 +1,7 @@
 # Stage 69 Phase 2: V8 引擎深度优化实施完成报告
 
 ## 项目概述
-**项目**: Beejs 高性能 JavaScript/TypeScript 运行时
+**项目**: Amber 高性能 JavaScript/TypeScript 运行时
 **阶段**: Stage 69 Phase 2 - V8 引擎深度优化
 **实施日期**: 2025-12-20
 **状态**: ✅ 完成
@@ -212,7 +212,7 @@ Stage 69 Phase 2: V8 引擎深度优化已成功完成！
 - 实施热路径检测改进
 - 实现高级逃逸分析
 
-**Stage 69 Phase 2 为 Beejs 运行时性能提升奠定了坚实基础！** 🚀
+**Stage 69 Phase 2 为 Amber 运行时性能提升奠定了坚实基础！** 🚀
 
 ---
 

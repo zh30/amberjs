@@ -1,7 +1,7 @@
 # Stage 93 Phase 2 实施计划：AI 增强功能
 
 ## 概述
-Stage 93 Phase 2 将在 Phase 1（性能极致优化）的基础上，深度集成 AI 辅助开发功能，使 Beejs 成为 AI 时代首选的高性能 JavaScript/TypeScript 运行时。
+Stage 93 Phase 2 将在 Phase 1（性能极致优化）的基础上，深度集成 AI 辅助开发功能，使 Amber 成为 AI 时代首选的高性能 JavaScript/TypeScript 运行时。
 
 ## 核心目标
 - 🧠 **AI 辅助编码**: 提供智能代码补全、优化建议和错误诊断

@@ -1,5 +1,5 @@
-use beejs::nodejs_core::commonjs_resolver::{resolve_esm_module, ResolvedModule};
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::nodejs_core::commonjs_resolver::{resolve_esm_module, ResolvedModule};
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
 use tempfile::tempdir;
@@ -58,7 +58,7 @@ fn test_wintertc_navigator_and_globals() {
 
     // 4. navigator conforming to ECMA-429 Section 7
     if (typeof navigator === 'undefined') throw new Error('navigator is undefined');
-    if (typeof navigator.userAgent !== 'string' || !navigator.userAgent.startsWith('Beejs/')) {
+    if (typeof navigator.userAgent !== 'string' || !navigator.userAgent.startsWith('Amber/')) {
         throw new Error('Invalid userAgent: ' + navigator.userAgent);
     }
     if (typeof navigator.hardwareConcurrency !== 'number' || navigator.hardwareConcurrency < 1) {
@@ -160,9 +160,9 @@ fn test_wintertc_sockets_api() {
 
     let code = format!(
         r#"
-    // 1. Require from bee:sockets or global
-    const sockets = require('bee:sockets');
-    if (!sockets || typeof sockets.connect !== 'function') throw new Error('bee:sockets.connect missing');
+    // 1. Require from amber:sockets or global
+    const sockets = require('amber:sockets');
+    if (!sockets || typeof sockets.connect !== 'function') throw new Error('amber:sockets.connect missing');
     if (typeof globalThis.connect !== 'function') throw new Error('globalThis.connect missing');
     if (typeof globalThis.Socket !== 'function') throw new Error('globalThis.Socket missing');
 
@@ -194,15 +194,15 @@ fn test_wintertc_sockets_api() {
 #[test]
 #[serial]
 fn test_wintertc_sockets_tls_rejects_untrusted_self_signed() {
-    beejs::sockets::clear_test_root_cas();
-    let listener = beejs::sockets::start_self_signed_tls_listener().expect("tls listener");
+    amberjs::sockets::clear_test_root_cas();
+    let listener = amberjs::sockets::start_self_signed_tls_listener().expect("tls listener");
     let port = listener.port;
 
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
     let code = format!(
         r#"
     globalThis.__tlsErr = 'pending';
-    const tlsSocket = require('bee:sockets').connect(
+    const tlsSocket = require('amber:sockets').connect(
         {{ hostname: '127.0.0.1', port: {port} }},
         {{ secureTransport: 'on', sni: 'localhost' }}
     );
@@ -231,9 +231,9 @@ fn test_wintertc_sockets_tls_rejects_untrusted_self_signed() {
 #[test]
 #[serial]
 fn test_wintertc_sockets_tls_handshake_with_test_ca() {
-    beejs::sockets::clear_test_root_cas();
-    let listener = beejs::sockets::start_self_signed_tls_listener().expect("tls listener");
-    beejs::sockets::install_test_root_ca_der(listener.cert_der.clone());
+    amberjs::sockets::clear_test_root_cas();
+    let listener = amberjs::sockets::start_self_signed_tls_listener().expect("tls listener");
+    amberjs::sockets::install_test_root_ca_der(listener.cert_der.clone());
     let port = listener.port;
 
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
@@ -241,7 +241,7 @@ fn test_wintertc_sockets_tls_handshake_with_test_ca() {
         r#"
     globalThis.__tlsOpened = 'pending';
     globalThis.__tlsUpgraded = false;
-    const tlsSocket = require('bee:sockets').connect(
+    const tlsSocket = require('amber:sockets').connect(
         {{ hostname: '127.0.0.1', port: {port} }},
         {{ secureTransport: 'on', sni: 'localhost' }}
     );
@@ -267,15 +267,15 @@ fn test_wintertc_sockets_tls_handshake_with_test_ca() {
         tls_res.contains("\"upgraded\":true"),
         "secureTransport on must set upgraded after handshake, got {tls_res}"
     );
-    beejs::sockets::clear_test_root_cas();
+    amberjs::sockets::clear_test_root_cas();
 }
 
 #[test]
 #[serial]
 fn test_wintertc_sockets_start_tls_upgrades_opened_socket() {
-    beejs::sockets::clear_test_root_cas();
-    let listener = beejs::sockets::start_self_signed_tls_listener().expect("tls listener");
-    beejs::sockets::install_test_root_ca_der(listener.cert_der.clone());
+    amberjs::sockets::clear_test_root_cas();
+    let listener = amberjs::sockets::start_self_signed_tls_listener().expect("tls listener");
+    amberjs::sockets::install_test_root_ca_der(listener.cert_der.clone());
     let port = listener.port;
 
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
@@ -283,7 +283,7 @@ fn test_wintertc_sockets_start_tls_upgrades_opened_socket() {
         r#"
     globalThis.__startTls = 'pending';
     (async () => {{
-        const sockets = require('bee:sockets');
+        const sockets = require('amber:sockets');
         const socket = sockets.connect({{ hostname: '127.0.0.1', port: {port} }}, {{ sni: 'localhost' }});
         await socket.opened;
         if (socket.upgraded) throw new Error('plain connect must not be upgraded');
@@ -302,14 +302,14 @@ fn test_wintertc_sockets_start_tls_upgrades_opened_socket() {
         res.contains("\"startTls\":\"upgraded\""),
         "startTls must complete rustls handshake, got {res}"
     );
-    beejs::sockets::clear_test_root_cas();
+    amberjs::sockets::clear_test_root_cas();
 }
 
 #[test]
 #[serial]
 fn test_wintertc_sockets_start_tls_rejects_untrusted_and_does_not_upgrade() {
-    beejs::sockets::clear_test_root_cas();
-    let listener = beejs::sockets::start_self_signed_tls_listener().expect("tls listener");
+    amberjs::sockets::clear_test_root_cas();
+    let listener = amberjs::sockets::start_self_signed_tls_listener().expect("tls listener");
     let port = listener.port;
 
     let mut runtime = MinimalRuntime::new().expect("MinimalRuntime");
@@ -318,7 +318,7 @@ fn test_wintertc_sockets_start_tls_rejects_untrusted_and_does_not_upgrade() {
     globalThis.__startTlsFail = 'pending';
     globalThis.__startTlsUpgraded = null;
     (async () => {{
-        const sockets = require('bee:sockets');
+        const sockets = require('amber:sockets');
         const socket = sockets.connect({{ hostname: '127.0.0.1', port: {port} }}, {{ sni: 'localhost' }});
         await socket.opened;
         if (socket.upgraded) throw new Error('plain connect must not be upgraded');

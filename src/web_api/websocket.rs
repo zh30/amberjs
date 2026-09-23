@@ -365,7 +365,7 @@ fn websocket_constructor_callback(
     let null_val: v8::Local<v8::Value> = v8::null(scope).into();
     ws_obj.set(scope, onclose_key.into(), null_val);
     let onerror_key: _ = v8::String::new(scope, "onerror").unwrap();
-    // Preserve Beejs' existing callable default so code can invoke onerror
+    // Preserve Amber' existing callable default so code can invoke onerror
     // without first installing a handler.
     let onerror_handler = v8::Function::new(scope, websocket_noop_error_handler).unwrap();
     ws_obj.set(scope, onerror_key.into(), onerror_handler.into());

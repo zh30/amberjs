@@ -74,7 +74,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "amber_sandbox"
-version = "1.16.0"
+version = "1.16.1"
 dependencies = [
  "chrono",
  "once_cell",
@@ -86,7 +86,7 @@ dependencies = [
 
 [[package]]
 name = "amber_transpile"
-version = "1.16.0"
+version = "1.16.1"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -99,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "amberjs"
-version = "1.16.0"
+version = "1.16.1"
 dependencies = [
  "amber_sandbox",
  "amber_transpile",
@@ -176,7 +176,7 @@ dependencies = [
  "tar",
  "tch",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.17",
  "tiny_http",
  "tokenizers",
  "tokio",
@@ -195,7 +195,7 @@ dependencies = [
  "walkdir",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-encoder 0.243.0",
+ "wasm-encoder 0.244.0",
  "wasmparser 0.217.1",
  "wasmtime",
  "wasmtime-wasi",
@@ -271,9 +271,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.100"
+version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
+checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "arbitrary"
@@ -4070,6 +4070,7 @@ checksum = "db297a5e119706ad508114ec9065a8a13d154efc14d830d3a1effb0b69cbd5eb"
 dependencies = [
  "oxc_allocator",
  "oxc_ast",
+ "oxc_ast_visit",
  "oxc_codegen",
  "oxc_diagnostics",
  "oxc_parser",
@@ -5438,15 +5439,15 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.35"
+version = "0.23.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "533f54bc6a7d4f647e46ad909549eda97bf5afc1585190ef692b4286b198bd8f"
+checksum = "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
 dependencies = [
  "log 0.4.29",
  "once_cell",
  "ring",
  "rustls-pki-types",
- "rustls-webpki 0.103.8",
+ "rustls-webpki 0.103.15",
  "subtle",
  "zeroize",
 ]
@@ -5502,9 +5503,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.8"
+version = "0.103.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ffdfa2f5286e2247234e03f680868ac2815974dc39e00ea15adc445d0aafe52"
+checksum = "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -5759,15 +5760,16 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.143"
+version = "1.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d401abef1d108fbd9cbaebc3e46611f4b1021f714a0597a71f41ee463f5f4a5a"
+checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
 dependencies = [
  "indexmap 2.14.2",
  "itoa",
  "memchr",
- "ryu",
  "serde",
+ "serde_core",
+ "zmij",
 ]
 
 [[package]]
@@ -7070,7 +7072,7 @@ dependencies = [
  "flate2",
  "log 0.4.29",
  "once_cell",
- "rustls 0.23.35",
+ "rustls 0.23.45",
  "rustls-pki-types",
  "url 2.5.8",
  "webpki-roots 0.26.11",
@@ -7301,16 +7303,6 @@ dependencies = [
 
 [[package]]
 name = "wasm-encoder"
-version = "0.243.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c55db9c896d70bd9fa535ce83cd4e1f2ec3726b0edd2142079f594fc3be1cb35"
-dependencies = [
- "leb128fmt",
- "wasmparser 0.243.0",
-]
-
-[[package]]
-name = "wasm-encoder"
 version = "0.244.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "990065f2fe63003fe337b932cfb5e3b80e0b4d0f5ff650e6985b1048f62c8319"
@@ -7388,17 +7380,6 @@ dependencies = [
  "indexmap 2.14.2",
  "semver",
  "serde",
-]
-
-[[package]]
-name = "wasmparser"
-version = "0.243.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6d8db401b0528ec316dfbe579e6ab4152d61739cfe076706d2009127970159d"
-dependencies = [
- "bitflags 2.13.1",
- "indexmap 2.14.2",
- "semver",
 ]
 
 [[package]]
@@ -8448,8 +8429,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "zed-beejs"
-version = "1.16.0"
+name = "zed-amberjs"
+version = "1.16.1"
 dependencies = [
  "tempfile",
  "zed_extension_api",

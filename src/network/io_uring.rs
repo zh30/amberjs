@@ -221,7 +221,7 @@ impl Drop for IoUringEngine {
     fn drop(&mut self) {
         // 清理资源
         let temp_file: _ = std::env::temp_dir()
-            .join(format!("beejs_io_uring_{}", std::process::id()));
+            .join(format!("amberjs_io_uring_{}", std::process::id()));
         let _: _ = std::fs::remove_file(temp_file);
     }
 }

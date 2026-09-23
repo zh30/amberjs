@@ -17,7 +17,7 @@ Traditional sandboxes like Docker or Firecracker microVMs suffer from:
 - **Resource Heaviness**: Demands container daemons, root privileges, and storage layers;
 - **Cluttered Teardown**: Requires explicit cleanup scripts to avoid orphan files on disk.
 
-Beejs v1.3.0 provides a **thread-safe, high-performance Virtual Filesystem (VFS)** sandbox:
+Amber v1.3.0 provides a **thread-safe, high-performance Virtual Filesystem (VFS)** sandbox:
 - **Pure In-Memory Storage**: Writes and mutations occur in RAM with **zero host disk side-effects**;
 - **Copy-On-Write (COW)**: Allows reading base host files transparently while isolating all writes;
 - **Strict Mode**: `--virtual-fs-strict` cuts off host read fallbacks for a completely blank in-memory workspace;
@@ -31,25 +31,25 @@ Enable with CLI flags on any command without code changes:
 
 ```bash
 # 1. Enable standard Copy-On-Write (COW) Virtual Filesystem
-bee run --virtual-fs ./untrusted_script.js
-bee eval --virtual-fs "require('fs').writeFileSync('/etc/secret.txt', 'test'); console.log('Isolated!')"
+amber run --virtual-fs ./untrusted_script.js
+amber eval --virtual-fs "require('fs').writeFileSync('/etc/secret.txt', 'test'); console.log('Isolated!')"
 
 # 2. Enable strict pure-RAM mode (disables host read fallback)
-bee run --virtual-fs --virtual-fs-strict ./agent_task.ts
+amber run --virtual-fs --virtual-fs-strict ./agent_task.ts
 
 # 3. Combine with full permission sandbox
-bee run --sandbox --virtual-fs ./agent.js
+amber run --sandbox --virtual-fs ./agent.js
 ```
 
 ---
 
-## 3. JavaScript / TypeScript API (`bee:vfs`)
+## 3. JavaScript / TypeScript API (`amber:vfs`)
 
 Control the virtual filesystem lifecycle programmatically:
 
 ```typescript
 import fs from 'fs';
-import * as vfs from 'bee:vfs';
+import * as vfs from 'amber:vfs';
 
 // 1. Inspect status
 console.log("VFS Enabled:", vfs.isEnabled());
@@ -79,7 +79,7 @@ vfs.disable();
 
 ## 4. Security & Performance Comparison
 
-| Metric | Traditional Docker / VM | Beejs `--virtual-fs` |
+| Metric | Traditional Docker / VM | Amber `--virtual-fs` |
 | :--- | :--- | :--- |
 | **Host Disk Safety** | Relies on mount isolation | **100% in-memory; zero physical mutation** |
 | **Startup Latency** | 500ms – 3000ms | **< 0.001ms instantaneous** |

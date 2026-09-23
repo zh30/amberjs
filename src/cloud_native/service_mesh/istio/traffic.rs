@@ -292,10 +292,10 @@ mod tests {
     #[test]
     fn test_traffic_split_creation() {
         let split: _ = TrafficSplit {
-            service: "beejs-api".to_string(),
+            service: "amberjs-api".to_string(),
             splits: vec![("v1".to_string(), 90), ("v2".to_string(), 10)],
         };
-        assert_eq!(split.service, "beejs-api");
+        assert_eq!(split.service, "amberjs-api");
         assert_eq!(split.splits.len(), 2);
         assert_eq!(split.splits[0].0, "v1");
         assert_eq!(split.splits[0].1, 90);

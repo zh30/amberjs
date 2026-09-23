@@ -1,5 +1,5 @@
 // Kubernetes Runtime Integration
-// Provides native Kubernetes support for Beejs runtime
+// Provides native Kubernetes support for Amber runtime
 
 use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
@@ -199,14 +199,14 @@ impl K8sRuntime {
     }
     /// Execute script in a Kubernetes pod
     pub async fn execute_in_pod(&self, script: &str, image: &str) -> Result<String> {
-        let pod_name: _ = format!("beejs-pod-{}", uuid::Uuid::new_v4());
+        let pod_name: _ = format!("amberjs-pod-{}", uuid::Uuid::new_v4());
         let spec: _ = K8sPodSpec {
             name: pod_name.clone(),
             image: image.to_string(),
             command: vec!["node".to_string(), "-e".to_string(), script.to_string()],
             env: vec![
                 K8sEnvVar {
-                    name: "BEEJS_EXECUTION".to_string(),
+                    name: "AMBER_EXECUTION".to_string(),
                     value: "true".to_string(),
                 },
             ],
@@ -229,7 +229,7 @@ impl K8sRuntime {
     pub async fn execute_with_autoscale(&self, script: &str, replicas: usize) -> Result<Vec<String> {
         let mut results = Vec::new();
         for i in 0..replicas {
-            let pod_name: _ = format!("beejs-pod-{}-{}", uuid::Uuid::new_v4(), i);
+            let pod_name: _ = format!("amberjs-pod-{}-{}", uuid::Uuid::new_v4(), i);
             let image: _ = "node:18-alpine".to_string();
             let spec: _ = K8sPodSpec {
                 name: pod_name.clone(),
@@ -246,7 +246,7 @@ impl K8sRuntime {
         }
         // Wait for all pods and collect results
         for i in 0..replicas {
-            let pod_name: _ = format!("beejs-pod-{}-{}", i, uuid::Uuid::new_v4());
+            let pod_name: _ = format!("amberjs-pod-{}-{}", i, uuid::Uuid::new_v4());
             let result: _ = self.pod_manager.execute_in_pod(&pod_name, &["node", "-e", script]).await;
             results.push(result.unwrap_or_else(|_| "Error".to_string());
         }

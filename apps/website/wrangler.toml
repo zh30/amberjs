@@ -7,6 +7,22 @@ compatibility_date = "2024-11-01"
 main = "src/worker.ts"
 assets = { directory = "./dist", binding = "ASSETS", html_handling = "auto-trailing-slash", not_found_handling = "single-page-application" }
 
+[[routes]]
+pattern = "amberjs.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.amberjs.com"
+custom_domain = true
+
+[[routes]]
+pattern = "get.amberjs.com"
+custom_domain = true
+
+[[r2_buckets]]
+binding = "DIST_BUCKET"
+bucket_name = "amber-dist"
+
 [build]
 command = "cp ../../install.sh public/install.sh && cp ../../install.ps1 public/install.ps1 && npx vite build"
 watch_dir = "src"

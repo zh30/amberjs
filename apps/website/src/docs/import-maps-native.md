@@ -5,7 +5,7 @@ group: "Agent & Advanced"
 id: "import-maps-native"
 ---
 
-Modern JavaScript applications require standard module resolution and native extension support. Beejs provides comprehensive integration for both **WICG Import Maps** and **Node-API Native Addons (`.node`)**.
+Modern JavaScript applications require standard module resolution and native extension support. Amber provides comprehensive integration for both **WICG Import Maps** and **Node-API Native Addons (`.node`)**.
 
 ---
 
@@ -32,10 +32,10 @@ Pass `--import-map` during run or bundle:
 
 ```bash
 # Direct execution with mapped bare specifiers
-$ bee run --import-map import_map.json app.ts
+$ amber run --import-map import_map.json app.ts
 
 # Bundle using the import map
-$ bee bundle app.ts -o dist/bundle.js --import-map import_map.json
+$ amber bundle app.ts -o dist/bundle.js --import-map import_map.json
 ```
 
 In your application:
@@ -52,7 +52,7 @@ import Button from 'components/Button.tsx';
 Many performance-critical libraries utilize compiled C/C++ binary extensions with the `.node` suffix.
 
 ### 2.1 Dynamic Loading Support
-Beejs natively exposes `process.dlopen` mapped to the underlying dynamic linker:
+Amber natively exposes `process.dlopen` mapped to the underlying dynamic linker:
 
 ```typescript
 const addonModule = { exports: {} };
@@ -61,7 +61,7 @@ console.log(addonModule.exports.calculate());
 ```
 
 ### 2.2 CommonJS Automatic Dispatch
-When calling `require()` on a `.node` file, Beejs intercepts the extension and automatically invokes dynamic linking (`dlopen` / `dlsym`):
+When calling `require()` on a `.node` file, Amber intercepts the extension and automatically invokes dynamic linking (`dlopen` / `dlsym`):
 
 ```javascript
 // Automatically loaded via process.dlopen

@@ -1,5 +1,5 @@
 ---
-title: "Native C ABI Foreign Function Interface (bee:ffi)"
+title: "Native C ABI Foreign Function Interface (amber:ffi)"
 subtitle: "Zero-dependency, high-speed C symbol dispatch and raw memory manipulation for systems interoperability"
 group: "Agent & Advanced"
 id: "ffi-native"
@@ -11,22 +11,22 @@ Modern systems programming often requires invoking native shared libraries (`.dy
 
 Historically, Node.js developers had to rely on heavy third-party native addons like `node-ffi-napi`, requiring `node-gyp`, Python, and local C++ compiler toolchains.
 
-**Beejs v1.4.0 introduces `bee:ffi`**, a zero-dependency, ultra-fast C ABI Foreign Function Interface built directly into the Beejs runtime binary via OS-native dynamic linkers (`dlopen` on Unix/macOS, `LoadLibraryA` on Windows).
+**Amber v1.4.0 introduces `amber:ffi`**, a zero-dependency, ultra-fast C ABI Foreign Function Interface built directly into the Amber runtime binary via OS-native dynamic linkers (`dlopen` on Unix/macOS, `LoadLibraryA` on Windows).
 
 ### Key Features
 - **Zero External Dependencies**: Zero npm packages or compiler toolchains required at runtime.
 - **Fast-Path ABI Dispatch**: Directly mapped scalar calls (0 to 3 arguments) execute with near-native invocation overhead.
 - **Raw Memory Operations**: High-performance pointer inspection (`ptr`), primitive read/write (`read`, `write`), and null-terminated C string utilities (`readCString`).
-- **Complete Type Safety**: TypeScript declarations included in `bee:ffi` and `@types/beejs`.
+- **Complete Type Safety**: TypeScript declarations included in `amber:ffi` and `@types/amberjs`.
 
 ---
 
 ## 2. Quick Start: Invoking Native Math Functions
 
-Import `dlopen` from `bee:ffi`:
+Import `dlopen` from `amber:ffi`:
 
 ```typescript
-import { dlopen, FFIType } from 'bee:ffi';
+import { dlopen, FFIType } from 'amber:ffi';
 
 // Load system dynamic library (or null to resolve globally loaded symbols)
 const libPath = process.platform === 'darwin'
@@ -72,10 +72,10 @@ The `FFIType` enum defines scalar and pointer representations:
 
 ## 4. Direct Memory Pointer Operations
 
-`bee:ffi` provides low-level pointer inspection and mutation without heap allocation:
+`amber:ffi` provides low-level pointer inspection and mutation without heap allocation:
 
 ```typescript
-import { ptr, read, write, readCString } from 'bee:ffi';
+import { ptr, read, write, readCString } from 'amber:ffi';
 
 // Allocate 64 bytes in JavaScript
 const buffer = new Uint8Array(64);

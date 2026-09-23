@@ -1,5 +1,5 @@
 import type { TranslationSchema } from "./types";
-import { BEEJS_VERSION } from "../version";
+import { AMBER_VERSION } from "../version";
 
 export const en: TranslationSchema = {
   nav: {
@@ -14,7 +14,7 @@ export const en: TranslationSchema = {
     run: "Run",
     running: "Running",
     language: "Language",
-    note: "Runs in your browser (the same engine as this tab), not the bee binary. Amber cannot ship V8 inside WASM. TypeScript is checked and emitted by Monaco — the VS Code editor.",
+    note: "Runs in your browser (the same engine as this tab), not the amber binary. Amber cannot ship V8 inside WASM. TypeScript is checked and emitted by Monaco — the VS Code editor.",
     output: "Output",
     empty: "Run to see console output.",
     loading: "Loading editor…",
@@ -36,9 +36,9 @@ export const en: TranslationSchema = {
   footer: {
     statusLabel: "System Status",
     statusValue: "Operational",
-    stage: BEEJS_VERSION,
+    stage: AMBER_VERSION,
     contact: "Contact",
-    email: "support@bee.zhanghe.dev",
+    email: "support@amberjs.com",
     rights: "All rights reserved.",
     builtWith: "Built with Rust & V8",
     docs: "Documentation",
@@ -47,7 +47,7 @@ export const en: TranslationSchema = {
     copyright: `© ${new Date().getFullYear()} Amber. Open-source under MIT.`,
   },
   home: {
-    heroBadge: BEEJS_VERSION,
+    heroBadge: AMBER_VERSION,
     heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream RSI",
     heroBanner:
       "Amber v1.16.0: Wasm 2.0, amber bundle / compile, and URL/fetch/ReadableStream hot paths.",
@@ -56,7 +56,7 @@ export const en: TranslationSchema = {
     heroTitleAccent: "JavaScript & TypeScript runtime",
     heroTitleSuffix: " in Rust & V8",
     heroSubtitle:
-      "One binary: bee. Run scripts, Jest-style tests, MCP tools, and bee:ai tensors — with an opt-in capability sandbox. Not a Node.js clone. Node Conformance 5.0 is 55/55.",
+      "One binary: amber. Run scripts, Jest-style tests, MCP tools, and amber:ai tensors — with an opt-in capability sandbox. Not a Node.js clone. Node Conformance 5.0 is 55/55.",
     ctaPrimary: "Explore Docs",
     ctaSecondary: "Benchmark Showdown",
     ctaNotes: "Release Notes",
@@ -87,15 +87,15 @@ export const en: TranslationSchema = {
         category: "core",
         title: "URL + URLSearchParams (20k)",
         desc: "WHATWG URL parse and search-param mutations",
-        beeValue: "7.28 ms",
-        beeOps: "137 ops/s",
+        amberValue: "7.28 ms",
+        amberOps: "137 ops/s",
         bunValue: "15.41 ms",
         bunOps: "65 ops/s",
         nodeValue: "12.54 ms",
         nodeOps: "80 ops/s",
         multiplier: "1.72x vs Node · 2.12x vs Bun",
-        isBeeWinner: true,
-        beeBar: 100,
+        isAmberWinner: true,
+        amberBar: 100,
         bunBar: 47,
         nodeBar: 58,
       },
@@ -104,15 +104,15 @@ export const en: TranslationSchema = {
         category: "io",
         title: "fetch 100 sequential GETs",
         desc: "HTTP/1.1 keep-alive GET against a local server",
-        beeValue: "6.51 ms",
-        beeOps: "154 ops/s",
+        amberValue: "6.51 ms",
+        amberOps: "154 ops/s",
         bunValue: "4.25 ms",
         bunOps: "235 ops/s",
         nodeValue: "17.00 ms",
         nodeOps: "59 ops/s",
         multiplier: "2.61x vs Node · Bun still faster",
-        isBeeWinner: false,
-        beeBar: 65,
+        isAmberWinner: false,
+        amberBar: 65,
         bunBar: 100,
         nodeBar: 25,
       },
@@ -121,15 +121,15 @@ export const en: TranslationSchema = {
         category: "core",
         title: "EventEmitter emit (50k)",
         desc: "Synchronous listener dispatch",
-        beeValue: "0.40 ms",
-        beeOps: "2,508 ops/s",
+        amberValue: "0.40 ms",
+        amberOps: "2,508 ops/s",
         bunValue: "0.83 ms",
         bunOps: "1,205 ops/s",
         nodeValue: "0.48 ms",
         nodeOps: "2,083 ops/s",
         multiplier: "1.21x vs Node · 2.07x vs Bun",
-        isBeeWinner: true,
-        beeBar: 100,
+        isAmberWinner: true,
+        amberBar: 100,
         bunBar: 48,
         nodeBar: 83,
       },
@@ -138,15 +138,15 @@ export const en: TranslationSchema = {
         category: "io",
         title: "ReadableStream 5k chunks",
         desc: "Produce and consume a byte stream",
-        beeValue: "0.92 ms",
-        beeOps: "1,091 ops/s",
+        amberValue: "0.92 ms",
+        amberOps: "1,091 ops/s",
         bunValue: "0.32 ms",
         bunOps: "3,125 ops/s",
         nodeValue: "1.16 ms",
         nodeOps: "862 ops/s",
         multiplier: "1.26x vs Node · Bun still faster",
-        isBeeWinner: false,
-        beeBar: 35,
+        isAmberWinner: false,
+        amberBar: 35,
         bunBar: 100,
         nodeBar: 28,
       },
@@ -155,15 +155,15 @@ export const en: TranslationSchema = {
         category: "core",
         title: "CLI cold start (eval 1+1)",
         desc: "Process boot, isolate, evaluate, exit (mean of 20)",
-        beeValue: "18.47 ms",
-        beeOps: "mean; P95 was jittery",
+        amberValue: "18.47 ms",
+        amberOps: "mean; P95 was jittery",
         bunValue: "8.03 ms",
         bunOps: "fastest cold start",
         nodeValue: "27.53 ms",
         nodeOps: "1.49x slower than Amber",
         multiplier: "1.49x vs Node · Bun still faster",
-        isBeeWinner: false,
-        beeBar: 43,
+        isAmberWinner: false,
+        amberBar: 43,
         bunBar: 100,
         nodeBar: 29,
       },
@@ -172,15 +172,15 @@ export const en: TranslationSchema = {
         category: "io",
         title: "Express 5.x (32 conn, 5s)",
         desc: "autocannon throughput — higher is better",
-        beeValue: "68.0k req/s",
-        beeOps: "avg 0.02 ms",
+        amberValue: "68.0k req/s",
+        amberOps: "avg 0.02 ms",
         bunValue: "64.6k req/s",
         bunOps: "avg 0.02 ms",
         nodeValue: "18.9k req/s",
         nodeOps: "avg 1.17 ms",
         multiplier: "3.59x vs Node · 1.05x vs Bun",
-        isBeeWinner: true,
-        beeBar: 100,
+        isAmberWinner: true,
+        amberBar: 100,
         bunBar: 95,
         nodeBar: 28,
       },
@@ -229,7 +229,7 @@ export const en: TranslationSchema = {
     features: [
       {
         title: "One binary",
-        desc: "run, eval, repl, test, session, and mcp in `bee`. TypeScript is oxc type-strip, not tsc.",
+        desc: "run, eval, repl, test, session, and mcp in `amber`. TypeScript is oxc type-strip, not tsc.",
       },
       {
         title: "Capability sandbox",
@@ -244,7 +244,7 @@ export const en: TranslationSchema = {
         desc: "amber test with describe / test / expect. --parallel is rejected: isolates are not shared across threads.",
       },
       {
-        title: "bee:ai in-process",
+        title: "amber:ai in-process",
         desc: 'Tensor, LLM, and AgentPipeline without a Python sidecar. Cargo feature = "ai" is empty and is not a product LLM.',
       },
       {
@@ -263,11 +263,11 @@ export const en: TranslationSchema = {
       },
       {
         title: "oxc Transpilation & Code Quality",
-        desc: "Ultra-fast Rust AST engine stripping types in sub-milliseconds, powering built-in formatting (bee fmt) and linting (bee lint).",
+        desc: "Ultra-fast Rust AST engine stripping types in sub-milliseconds, powering built-in formatting (amber fmt) and linting (amber lint).",
       },
       {
         title: "Modern Web Serving & Concurrency",
-        desc: "Standard Fetch API web serving (bee serve) and lockless multi-Worker thread pool concurrency model.",
+        desc: "Standard Fetch API web serving (amber serve) and lockless multi-Worker thread pool concurrency model.",
       },
       {
         title: "Deterministic Agent Sandbox & Quotas",
@@ -279,10 +279,10 @@ export const en: TranslationSchema = {
       },
       {
         title: "Developer Experience & Debugging (CDP & LSP)",
-        desc: "Featuring upgraded interactive REPL (bee repl), Chrome DevTools remote debugging, and Language Server Protocol (bee lsp).",
+        desc: "Featuring upgraded interactive REPL (amber repl), Chrome DevTools remote debugging, and Language Server Protocol (amber lsp).",
       },
     ],
-    ctaTitle: "Install bee and run something.",
+    ctaTitle: "Install amber and run something.",
     ctaSubtitle:
       "v1.16.0 prebuilds for macOS, Linux, and Windows. One curl (or irm) away.",
     ctaButton: "Read Installation Guide",
@@ -312,11 +312,11 @@ export const en: TranslationSchema = {
           { id: "v8-isolate-pool", label: "Runtime & V8 Core" },
           {
             id: "isolate-pool",
-            label: "Multi-Tenant IsolatePool (bee:pool)",
+            label: "Multi-Tenant IsolatePool (amber:pool)",
             badge: "v1.4",
           },
           { id: "jit-optimization", label: "TypeScript 6.0 & TSX" },
-          { id: "ai-engine", label: "Native AI Engine (bee:ai)", badge: "AI" },
+          { id: "ai-engine", label: "Native AI Engine (amber:ai)", badge: "AI" },
           {
             id: "ai-embeddings",
             label: "Native Text Embeddings & Vectors",
@@ -346,7 +346,7 @@ export const en: TranslationSchema = {
           {
             id: "bundling-compilation",
             label: "Bundler 2.0 & SEA Compiler",
-            badge: "Preview",
+            badge: "Stable",
           },
           {
             id: "testing-benchmarking",
@@ -365,12 +365,12 @@ export const en: TranslationSchema = {
         items: [
           {
             id: "embedded-db",
-            label: "Embedded DB & Vector Engine (bee:db & bee:vector)",
+            label: "Embedded DB & Vector Engine (amber:db & amber:vector)",
             badge: "DB",
           },
           {
             id: "standard-library",
-            label: "Modern Standard Library (bee:std)",
+            label: "Modern Standard Library (amber:std)",
             badge: "Std",
           },
           {
@@ -380,7 +380,7 @@ export const en: TranslationSchema = {
           },
           {
             id: "deployment-docker",
-            label: "Deployment & Containerization (bee deploy)",
+            label: "Deployment & Containerization (amber deploy)",
             badge: "Deploy",
           },
           {
@@ -400,52 +400,52 @@ export const en: TranslationSchema = {
           },
           {
             id: "agent-replay",
-            label: "Deterministic Agent Replay Engine (bee:replay)",
+            label: "Deterministic Agent Replay Engine (amber:replay)",
             badge: "v1.6",
           },
           {
             id: "model-weights",
-            label: "GGUF & SafeTensors Loader (bee:weights)",
+            label: "GGUF & SafeTensors Loader (amber:weights)",
             badge: "v1.6",
           },
           {
             id: "capability-security",
-            label: "Enterprise Capability Security (bee:security)",
+            label: "Enterprise Capability Security (amber:security)",
             badge: "v1.6",
           },
           {
             id: "kv-store",
-            label: "Persistent KV & Durable State (bee:kv)",
+            label: "Persistent KV & Durable State (amber:kv)",
             badge: "v1.7",
           },
           {
             id: "tool-synthesis",
-            label: "Tool Auto-Synthesis & OpenAPI (bee:tools)",
+            label: "Tool Auto-Synthesis & OpenAPI (amber:tools)",
             badge: "v1.7",
           },
           {
             id: "hardened-sandbox",
-            label: "Hardened Sandbox & Audit Logs (bee:sandbox)",
+            label: "Hardened Sandbox & Audit Logs (amber:sandbox)",
             badge: "v1.7",
           },
           {
             id: "agent-bus",
-            label: "Agent Message Bus & PubSub (bee:bus)",
+            label: "Agent Message Bus & PubSub (amber:bus)",
             badge: "v1.8",
           },
           {
             id: "streaming-grammar",
-            label: "Streaming Partial JSON & Grammars (bee:grammar)",
+            label: "Streaming Partial JSON & Grammars (amber:grammar)",
             badge: "v1.8",
           },
           {
             id: "agent-checkpoint",
-            label: "Agent State Checkpointing (bee:checkpoint)",
+            label: "Agent State Checkpointing (amber:checkpoint)",
             badge: "v1.8",
           },
           {
             id: "mcp-protocol",
-            label: "Model Context Protocol 2.0 (bee:mcp)",
+            label: "Model Context Protocol 2.0 (amber:mcp)",
             badge: "v1.3",
           },
           {
@@ -455,17 +455,17 @@ export const en: TranslationSchema = {
           },
           {
             id: "ffi-native",
-            label: "Native C ABI FFI (bee:ffi)",
+            label: "Native C ABI FFI (amber:ffi)",
             badge: "v1.4",
           },
           {
             id: "wasm-interop",
-            label: "Wasm 2.0 Zero-Copy Bridge (bee:wasm)",
+            label: "Wasm 2.0 Zero-Copy Bridge (amber:wasm)",
             badge: "v1.16",
           },
           {
             id: "slm-inference",
-            label: "Edge SLM & JSON Decoding (bee:ai)",
+            label: "Edge SLM & JSON Decoding (amber:ai)",
             badge: "v1.4",
           },
           {
@@ -500,7 +500,7 @@ export const en: TranslationSchema = {
         title: "Overview",
         subtitle: "Rust + V8 runtime for JavaScript and TypeScript.",
         body: [
-          "Amber v1.16.0 is a Rust + V8 JavaScript/TypeScript runtime in one binary: bee. Node Conformance 5.0 is 55/55 fixtures — that is not drop-in Node compatibility.",
+          "Amber v1.16.0 is a Rust + V8 JavaScript/TypeScript runtime in one binary: amber. Node Conformance 5.0 is 55/55 fixtures — that is not drop-in Node compatibility.",
           "The repository also contains historical stage reports and feature-gated modules. Those documents are useful for design history, but the public release promise follows the default Cargo build.",
         ],
         cards: [
@@ -521,7 +521,7 @@ export const en: TranslationSchema = {
           "Prebuilt release archives currently target macOS x86_64, macOS arm64, and Linux x86_64. Other platforms can build from source with Rust.",
         ],
         code: [
-          "$ curl -fsSL https://amberjs.com/install.sh | sh",
+          "$ curl -fsSL https://get.amberjs.com/install.sh | sh",
           "$ amber --version",
         ],
       },
@@ -534,7 +534,7 @@ export const en: TranslationSchema = {
         code: [
           'console.log("Hello from Amber");',
           "amber run hello.js",
-          'bee eval "1 + 1"',
+          'amber eval "1 + 1"',
         ],
       },
       "v8-isolate-pool": {
@@ -545,8 +545,8 @@ export const en: TranslationSchema = {
         ],
         list: [
           "Execute JavaScript files with amber run",
-          "Evaluate snippets with bee eval",
-          "Use bee repl for an interactive shell",
+          "Evaluate snippets with amber eval",
+          "Use amber repl for an interactive shell",
         ],
       },
       "jit-optimization": {
@@ -577,19 +577,19 @@ export const en: TranslationSchema = {
         title: "Serve Mode",
         subtitle: "Health-check stub, not an application server.",
         body: [
-          'bee serve binds a tiny_http listener and returns a fixed {"ok":true} JSON body. It does not execute user scripts. For application HTTP, use http.createServer and amber run.',
+          'amber serve binds a tiny_http listener and returns a fixed {"ok":true} JSON body. It does not execute user scripts. For application HTTP, use http.createServer and amber run.',
         ],
-        code: ["$ bee serve --host localhost --port 3000"],
+        code: ["$ amber serve --host localhost --port 3000"],
       },
       "cli-usage": {
         title: "CLI Usage",
         subtitle: "Core commands.",
         list: [
           "amber run <file> - execute a JavaScript or TypeScript file",
-          "bee eval <code> - evaluate a JavaScript snippet",
+          "amber eval <code> - evaluate a JavaScript snippet",
           "amber test [file] - run the built-in or file-based test runner",
           "amber bundle <entry> - write a production bundle",
-          "bee serve - health stub (fixed JSON, not user scripts)",
+          "amber serve - health stub (fixed JSON, not user scripts)",
           "amber install - install dependencies from package.json",
         ],
       },
@@ -598,10 +598,10 @@ export const en: TranslationSchema = {
         subtitle:
           "Comprehensive specification of native Amber subsystems (amber:*), Node.js core, and Web APIs.",
         body: [
-          "Manual for the default bee binary: CLI, Node/Web APIs (per-API, Conformance 5.0 is 55/55 fixtures), bee:ai, sandbox, and Preview packaging.",
+          "Manual for the default amber binary: CLI, Node/Web APIs (per-API, Conformance 5.0 is 55/55 fixtures), amber:ai, sandbox, and Preview packaging.",
         ],
         list: [
-          "Amber Native Subsystems (bee:ai, bee:db, bee:vector, bee:bus, bee:grammar, bee:checkpoint, etc.)",
+          "Amber Native Subsystems (amber:ai, amber:db, amber:vector, amber:bus, amber:grammar, amber:checkpoint, etc.)",
           "Node.js Core Compatibility (fs, net, http, crypto, stream, worker_threads, etc. 51 modules)",
           "Web Standard APIs (fetch, WebCrypto, Streams, WebSocket, Worker, structuredClone)",
         ],
@@ -624,8 +624,8 @@ export const en: TranslationSchema = {
           "Native SQLite 3 and Rust-based high-dimensional vector search engine with zero external dependencies.",
         ],
         list: [
-          "bee:db - in-process SQLite database",
-          "bee:vector - high-performance vector search engine",
+          "amber:db - in-process SQLite database",
+          "amber:vector - high-performance vector search engine",
         ],
       },
       "standard-library": {
@@ -635,11 +635,11 @@ export const en: TranslationSchema = {
           "Includes dotenv, terminal styling and tables, directory walking, UUID/JWT crypto, and assertions.",
         ],
         list: [
-          "bee:std/dotenv",
-          "bee:std/cli",
-          "bee:std/fs",
-          "bee:std/crypto",
-          "bee:std/assert",
+          "amber:std/dotenv",
+          "amber:std/cli",
+          "amber:std/fs",
+          "amber:std/crypto",
+          "amber:std/assert",
         ],
       },
       "package-manager-dlx": {
@@ -658,7 +658,7 @@ export const en: TranslationSchema = {
         body: [
           "Generates hardened multi-stage Dockerfiles, compose stacks, and cloud-native Kubernetes manifests.",
         ],
-        code: ["$ bee deploy --target docker", "$ bee deploy --target k8s"],
+        code: ["$ amber deploy --target docker", "$ amber deploy --target k8s"],
       },
       "ide-extension": {
         title: "VS Code Official Extension",

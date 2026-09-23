@@ -7,20 +7,20 @@ mod stage_32_kubernetes_operator_tests {
     // ==================== 自定义资源定义测试 ====================
 
     #[test]
-    fn test_beejs_runtime_crd_creation() {
-        // 测试 BeejsRuntime 自定义资源定义创建
+    fn test_amberjs_runtime_crd_creation() {
+        // 测试 AmberRuntime 自定义资源定义创建
         // 应该能创建符合 Kubernetes 规范的自定义资源
     }
 
     #[test]
-    fn test_beejs_runtime_crd_validation() {
-        // 测试 BeejsRuntime 资源验证
+    fn test_amberjs_runtime_crd_validation() {
+        // 测试 AmberRuntime 资源验证
         // 应该验证必需字段和字段类型
     }
 
     #[test]
-    fn test_beejs_runtime_crd_defaulting() {
-        // 测试 BeejsRuntime 资源默认值
+    fn test_amberjs_runtime_crd_defaulting() {
+        // 测试 AmberRuntime 资源默认值
         // 应该为未指定的字段设置合理的默认值
     }
 

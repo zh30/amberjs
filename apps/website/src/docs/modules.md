@@ -1,6 +1,6 @@
 ---
 title: "Modules, Package Management & Testing"
-subtitle: "Dual-cache module resolution, seamless npm interoperability, and Jest-compatible built-in test runner"
+subtitle: "Module resolution, a documented amber install subset, and the built-in test runner"
 group: "Developer Guide"
 id: "modules"
 ---
@@ -16,8 +16,8 @@ When executing `require()` or `import`, traditional Node.js engines perform repe
 3. Probing multiple extensions (`.js`, `.json`, `.node`).
 4. Making dozens of `stat` or `access` calls per module, degrading cold start times.
 
-### Beejs Stat-Bypass Architecture
-Beejs utilizes a **two-tier in-memory normalized cache**:
+### Amber Stat-Bypass Architecture
+Amber utilizes a **two-tier in-memory normalized cache**:
 
 ```text
          require('lodash') or import ... from './utils'
@@ -36,18 +36,18 @@ Beejs utilizes a **two-tier in-memory normalized cache**:
       +─────────────────────────────────────────────+
 ```
 
-In official benchmarks, Beejs achieves **4,601,226 ops/s** in module resolution—**4.1x faster than Node.js** (1.12M ops/s) and ahead of Bun (3.88M ops/s).
+In official benchmarks, Amber achieves **4,601,226 ops/s** in module resolution—**4.1x faster than Node.js** (1.12M ops/s) and ahead of Bun (3.88M ops/s).
 
 ---
 
 ## 2. ESM & CommonJS Interoperability
 
-Beejs natively supports seamless interop between ECMAScript Modules (ESM) and CommonJS (CJS):
+Amber natively supports seamless interop between ECMAScript Modules (ESM) and CommonJS (CJS):
 
 ```typescript
 // 1. Standard ESM imports
 import { readFileSync } from 'node:fs';
-import { Tensor } from 'bee:ai';
+import { Tensor } from 'amber:ai';
 
 // 2. CommonJS require alongside ESM
 const path = require('node:path');
@@ -66,50 +66,40 @@ console.log('File name:', __filename);
 
 ### Module Scheme Prefixes
 - **`node:*`**: Explicitly imports Node.js compatible core modules (recommended).
-- **`bee:*`**: Imports Beejs native built-ins (e.g. `bee:ai` for tensors and inference).
+- **`amber:*`**: Imports Amber native built-ins (e.g. `amber:ai` for tensors and inference).
 - **Relative / Absolute paths**: `./`, `../`, `/` for local disk modules with automatic `.ts` and `.tsx` extension resolution.
 
 ---
 
-## 3. Built-In Package Management
+## 3. `amber install` (Stable subset)
 
-Beejs includes lightweight package management compatible with the npm registry, requiring no separate `npm` or `pnpm` installation:
+`amber install` installs direct `dependencies` and `devDependencies` from `package.json` and checks top-level `dependencies` pins in `package-lock.json` (version, `resolved`, `integrity`). It is **not** an npm, yarn, or pnpm replacement. Workspaces, lifecycle scripts, `peerDependencies`, `yarn.lock`, `pnpm-lock.yaml`, and the lockfile `packages` map are outside the contract. `amber add` and `amber prune` stay Experimental.
+
+Contract: [INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md).
 
 ```bash
-# 1. Initialize a new project with package.json
-bee init my-app
-
-# 2. Add production dependency
-bee add lodash@4.17.21
-
-# 3. Add development dependency
-bee add --dev @types/node
-
-# 4. Install dependencies in CI with strict integrity
-bee install --frozen-lockfile
-
-# 5. Remove unused dependencies
-bee prune
+amber install
+amber install --frozen-lockfile
 ```
 
 ---
 
-## 4. Built-in Test Framework (`bee test`)
+## 4. Built-in Test Framework (`amber test`)
 
-Beejs provides a zero-dependency test runner compatible with **Jest and Vitest** conventions:
+Amber provides a zero-dependency test runner compatible with **Jest and Vitest** conventions:
 
 ### Writing Tests
 Create a test file such as `math.test.ts`:
 
 ```typescript
 // math.test.ts
-import { describe, it, test, expect } from 'bee:test';
+import { describe, it, test, expect } from 'amber:test';
 
 describe('Arithmetic & Logic', () => {
   it('adds numbers correctly', () => {
     expect(1 + 1).toBe(2);
     expect([1, 2, 3]).toHaveLength(3);
-    expect({ name: 'beejs' }).toEqual({ name: 'beejs' });
+    expect({ name: 'amberjs' }).toEqual({ name: 'amberjs' });
   });
 
   test('handles async resolutions', async () => {
@@ -128,19 +118,19 @@ describe('Arithmetic & Logic', () => {
 ### Running Tests
 ```bash
 # Run all test files (*.test.js, *.test.ts, *.spec.ts)
-$ bee test
+$ amber test
 
 # Filter tests by matching pattern
-$ bee test -t "async"
+$ amber test -t "async"
 
 # Run tests in parallel across workers
-$ bee test --parallel
+$ amber test --parallel
 
 # Terminate immediately on first failure
-$ bee test --bail
+$ amber test --bail
 
 # Watch mode
-$ bee test -w
+$ amber test -w
 ```
 
 Execution report:

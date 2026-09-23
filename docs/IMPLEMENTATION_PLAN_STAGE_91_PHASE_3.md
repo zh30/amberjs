@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-Stage 91 Phase 3 专注于扩展 Beejs 的生态系统支持，通过实现包管理器集成、开发工具支持和主流框架兼容性，让 Beejs 成为真正的生产级 JavaScript/TypeScript 运行时。
+Stage 91 Phase 3 专注于扩展 Amber 的生态系统支持，通过实现包管理器集成、开发工具支持和主流框架兼容性，让 Amber 成为真正的生产级 JavaScript/TypeScript 运行时。
 
 ## 阶段目标
 

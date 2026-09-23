@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 /// 错误类型枚举
 #[derive(Debug, Clone, PartialEq)]
-enum BeejsError {
+enum AmberError {
     V8Error(String),
     JsExecutionError(String),
     MultiLanguageError(String),
@@ -38,13 +38,13 @@ enum FallbackStrategy {
 /// 错误上下文
 #[derive(Debug, Clone)]
 struct ErrorContext {
-    error_type: BeejsError,
+    error_type: AmberError,
     severity: String,
     timestamp: Instant,
 }
 
 impl ErrorContext {
-    fn new(error_type: BeejsError, severity: String) -> Self {
+    fn new(error_type: AmberError, severity: String) -> Self {
         Self {
             error_type,
             severity,
@@ -68,25 +68,25 @@ impl AutoRecovery {
         }
     }
 
-    fn recover(&self, error: &BeejsError) -> Result<String, BeejsError> {
+    fn recover(&self, error: &AmberError) -> Result<String, AmberError> {
         match error {
-            BeejsError::V8Error(msg) => {
+            AmberError::V8Error(msg) => {
                 // V8 错误：尝试重新初始化
                 Ok(format!("V8 reinitialized after error: {}", msg))
             }
-            BeejsError::JsExecutionError(msg) => {
+            AmberError::JsExecutionError(msg) => {
                 // JS 执行错误：尝试语法验证
                 Ok(format!("Syntax validated after error: {}", msg))
             }
-            BeejsError::MultiLanguageError(msg) => {
+            AmberError::MultiLanguageError(msg) => {
                 // 多语言错误：重新初始化运行时
                 Ok(format!("Runtime reinitialized after error: {}", msg))
             }
-            BeejsError::PlatformError(msg) => {
+            AmberError::PlatformError(msg) => {
                 // 平台错误：检查兼容性
                 Ok(format!("Platform compatibility checked after error: {}", msg))
             }
-            BeejsError::RuntimeError(_) => {
+            AmberError::RuntimeError(_) => {
                 // 运行时错误：无法恢复
                 Err(error.clone())
             }
@@ -168,10 +168,10 @@ fn main() {
     // 1. 测试错误分类
     println!("📋 测试 1: 错误分类");
     let errors = vec![
-        BeejsError::V8Error("Invalid handle access".to_string()),
-        BeejsError::JsExecutionError("TypeError: Cannot read property".to_string()),
-        BeejsError::MultiLanguageError("Python module not found".to_string()),
-        BeejsError::PlatformError("iOS runtime unavailable".to_string()),
+        AmberError::V8Error("Invalid handle access".to_string()),
+        AmberError::JsExecutionError("TypeError: Cannot read property".to_string()),
+        AmberError::MultiLanguageError("Python module not found".to_string()),
+        AmberError::PlatformError("iOS runtime unavailable".to_string()),
     ];
 
     for error in &errors {
@@ -183,7 +183,7 @@ fn main() {
     // 2. 测试自动恢复
     println!("🔧 测试 2: 自动恢复机制");
     let recovery = AutoRecovery::new();
-    let test_error = BeejsError::V8Error("Test V8 error".to_string());
+    let test_error = AmberError::V8Error("Test V8 error".to_string());
 
     match recovery.recover(&test_error) {
         Ok(message) => println!("  ✓ 恢复成功: {}", message),
@@ -214,7 +214,7 @@ fn main() {
     let start = Instant::now();
 
     for i in 0..1000 {
-        let error = BeejsError::V8Error(format!("Error {}", i));
+        let error = AmberError::V8Error(format!("Error {}", i));
         let _context = ErrorContext::new(error, "LOW".to_string());
     }
 
@@ -224,7 +224,7 @@ fn main() {
 
     // 5. 集成测试
     println!("🔗 测试 5: 集成场景");
-    let integration_error = BeejsError::V8Error("Critical V8 failure".to_string());
+    let integration_error = AmberError::V8Error("Critical V8 failure".to_string());
 
     // 尝试恢复
     if let Err(_) = recovery.recover(&integration_error) {

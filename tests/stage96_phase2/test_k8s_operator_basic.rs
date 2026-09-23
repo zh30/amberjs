@@ -18,10 +18,10 @@ mod tests {
         assert!(client.is_ok());
     }
 
-    /// Test BeejsCluster CRD creation
+    /// Test AmberCluster CRD creation
     #[tokio::test]
-    async fn test_beejs_cluster_crd_creation() {
-        // Test that we can create a BeejsCluster resource spec
+    async fn test_amberjs_cluster_crd_creation() {
+        // Test that we can create a AmberCluster resource spec
         let cluster_spec = create_test_cluster_spec();
         assert_eq!(cluster_spec.replicas, 3);
         assert_eq!(cluster_spec.version, "v0.1.0");

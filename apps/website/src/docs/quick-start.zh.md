@@ -1,24 +1,24 @@
 ---
 title: "快速开始"
-subtitle: "用 bee 跑 TypeScript、测试和一个很小的 HTTP 处理器"
+subtitle: "用 amber 跑 TypeScript、测试和一个很小的 HTTP 处理器"
 group: "开始"
 id: "quick-start"
 ---
 
 ## 1. 第一段脚本
 
-Beejs 不需要 `tsc` 或 `ts-node` 就能跑 `.ts` / `.tsx`。oxc 擦掉类型，再交给 V8。
+Amber 不需要 `tsc` 或 `ts-node` 就能跑 `.ts` / `.tsx`。oxc 擦掉类型，再交给 V8。
 
 新建 `hello.ts`：
 
 ```ts
-const runtime = "Beejs";
+const runtime = "Amber";
 console.log(`hello from ${runtime}`);
 ```
 
 ```bash
-bee run hello.ts
-# hello from Beejs
+amber run hello.ts
+# hello from Amber
 ```
 
 运行时不做全项目类型检查。需要的话在 CI 里跑 `tsc --noEmit`。
@@ -26,8 +26,8 @@ bee run hello.ts
 一行表达式和 REPL：
 
 ```bash
-bee eval "console.log(crypto.randomUUID())"
-bee repl
+amber eval "console.log(crypto.randomUUID())"
+amber repl
 ```
 
 ---
@@ -46,18 +46,18 @@ describe("math", () => {
 ```
 
 ```bash
-bee test
-bee test math.test.js
-bee test --watch
+amber test
+amber test math.test.js
+amber test --watch
 ```
 
-`bee test --parallel` 会被拒绝（退出码 2）：V8 isolate 不能跨线程共享。
+`amber test --parallel` 会被拒绝（退出码 2）：V8 isolate 不能跨线程共享。
 
 ---
 
 ## 3. HTTP（Preview）
 
-`bee serve` 加载导出 `fetch` 的模块：
+`amber serve` 加载导出 `fetch` 的模块：
 
 ```js
 // app.js
@@ -69,10 +69,10 @@ module.exports = {
 ```
 
 ```bash
-bee serve app.js --host 127.0.0.1 --port 3000
+amber serve app.js --host 127.0.0.1 --port 3000
 ```
 
-也可以写 `node:http` 服务器再用 `bee run server.ts`。`--https --cert --key` 时使用 rustls HTTP/1.1。
+也可以写 `node:http` 服务器再用 `amber run server.ts`。`--https --cert --key` 时使用 rustls HTTP/1.1。
 
 ---
 
@@ -85,7 +85,7 @@ console.log(process.argv.slice(2));
 ```
 
 ```bash
-bee run cli.ts --name myapp --port 8080
+amber run cli.ts --name myapp --port 8080
 # [ '--name', 'myapp', '--port', '8080' ]
 ```
 
@@ -94,8 +94,8 @@ bee run cli.ts --name myapp --port 8080
 ## 5. Watch
 
 ```bash
-bee run --watch hello.ts
-bee run --watch --debounce 200 app.ts
+amber run --watch hello.ts
+amber run --watch --debounce 200 app.ts
 ```
 
 ---
@@ -103,7 +103,7 @@ bee run --watch --debounce 200 app.ts
 ## 6. 建议目录
 
 ```text
-my-bee-app/
+my-amber-app/
 ├── package.json
 ├── tsconfig.json          # 可选，给编辑器用
 ├── src/index.ts
@@ -112,11 +112,11 @@ my-bee-app/
 
 ```json
 {
-  "name": "my-bee-app",
+  "name": "my-amber-app",
   "scripts": {
-    "dev": "bee run --watch src/index.ts",
-    "start": "bee run src/index.ts",
-    "test": "bee test"
+    "dev": "amber run --watch src/index.ts",
+    "start": "amber run src/index.ts",
+    "test": "amber test"
   }
 }
 ```

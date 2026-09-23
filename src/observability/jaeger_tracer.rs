@@ -1,4 +1,4 @@
-// Jaeger distributed tracing for Beejs runtime
+// Jaeger distributed tracing for Amber runtime
 //
 // This module provides distributed tracing capabilities using Jaeger.
 // It allows tracking the execution of scripts, network operations,

@@ -5,7 +5,7 @@
 
 #[cfg(test)]
 mod tests {
-    use beejs::*;
+    use amberjs::*;
     use std::time::{Duration, Instant};
     use std::thread;
 
@@ -14,12 +14,12 @@ mod tests {
     #[test]
     fn test_v8_initialization() {
         // 初始化V8（参考成功测试的模式）
-        beejs::initialize_v8();
+        amberjs::initialize_v8();
 
         let start = Instant::now();
 
         // 验证V8已初始化
-        let _ = beejs::is_v8_initialized();
+        let _ = amberjs::is_v8_initialized();
 
         let elapsed = start.elapsed();
 
@@ -31,7 +31,7 @@ mod tests {
     #[test]
     fn test_runtime_lite_creation_performance() {
         // 初始化V8（参考成功测试的模式）
-        beejs::initialize_v8();
+        amberjs::initialize_v8();
 
         // 创建RuntimeLite（轻量级运行时）
         let start = Instant::now();
@@ -52,7 +52,7 @@ mod tests {
     #[test]
     fn test_simple_script_execution_performance() {
         // 初始化V8
-        beejs::initialize_v8();
+        amberjs::initialize_v8();
 
         // 测试简单算术运算
         let test_cases = vec![
@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn test_concurrent_execution_performance() {
         // 初始化V8
-        beejs::initialize_v8();
+        amberjs::initialize_v8();
 
         let thread_count = 4;
         let iterations_per_thread = 50;
@@ -136,7 +136,7 @@ mod tests {
     /// 目标：验证内存池基本功能
     #[test]
     fn test_memory_pool_performance() {
-        use beejs::memory_pool::{SmartMemoryPool, PoolConfig};
+        use amberjs::memory_pool::{SmartMemoryPool, PoolConfig};
 
         let pool = SmartMemoryPool::new(PoolConfig::default());
 
@@ -165,7 +165,7 @@ mod tests {
     #[test]
     fn test_fast_path_vs_v8_comparison() {
         // 初始化V8
-        beejs::initialize_v8();
+        amberjs::initialize_v8();
 
         // 测试应该能走快路径的简单表达式
         let fast_path_code = "2 + 2";
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_end_to_end_performance() {
         // 初始化V8
-        beejs::initialize_v8();
+        amberjs::initialize_v8();
 
         // 模拟真实工作负载：计算斐波那契数列
         let code = r#"

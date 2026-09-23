@@ -79,7 +79,7 @@ def fix_file(file_path):
     return False
 
 def main():
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
     rust_files = list(src_dir.rglob('*.rs'))
 
     print("🔧 修复 Ordering 重复导入错误...")

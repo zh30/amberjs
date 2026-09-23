@@ -213,7 +213,7 @@ impl OptimizedProcessPool {
     /// 预编译常用代码
     async fn pre_compile_common_code(&self, worker: &Arc<SmartWorker>) -> Result<()> {
         let common_codes: _ = vec![
-            "console.log('Hello from Beejs')",
+            "console.log('Hello from Amber')",
             "Math.random()",
             "Date.now()",
             "[1,2,3].map(x => x * 2)",

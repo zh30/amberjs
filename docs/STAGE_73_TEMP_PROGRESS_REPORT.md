@@ -1,4 +1,4 @@
-# Beejs Stage 73 临时进展报告
+# Amber Stage 73 临时进展报告
 
 ## 概述
 
@@ -27,7 +27,7 @@
 #### 3. 项目状态分析
 - ✅ Git 历史分析：71个commits ahead，当前在Stage 73
 - ✅ PROGRESS.md 文档分析：了解长期计划和当前阶段
-- ✅ 旧版本兼容性确认：预编译beejs (18MB) 不支持新CLI结构
+- ✅ 旧版本兼容性确认：预编译amberjs (18MB) 不支持新CLI结构
 
 ### 🔄 进行中工作
 
@@ -101,7 +101,7 @@ Compiling md5 v0.8.0
 
 1. **验证编译成功**
    ```bash
-   ls -lh target/release/beejs
+   ls -lh target/release/amberjs
    ```
 
 2. **运行测试套件**
@@ -112,7 +112,7 @@ Compiling md5 v0.8.0
 
 3. **验证 CLI 功能**
    ```bash
-   ./target/release/beejs --verbose run test_temp_1766262119856.ts
+   ./target/release/amberjs --verbose run test_temp_1766262119856.ts
    ```
 
 4. **运行集成测试**
@@ -139,13 +139,13 @@ Compiling md5 v0.8.0
 - **编译时间**: 7+ 分钟 (进行中)
 - **内存使用**: ~17% (17760 KB)
 - **CPU使用率**: 低 (等待I/O)
-- **磁盘空间**: target/release/beejs (等待生成)
+- **磁盘空间**: target/release/amberjs (等待生成)
 
 ## 风险评估
 
 - 🟢 **低风险**: 代码实现正确，测试充分
 - 🟡 **中风险**: 编译时间可能继续延长
-- 🟢 **低风险**: 已有回退方案 (旧版本beejs可运行基础JS)
+- 🟢 **低风险**: 已有回退方案 (旧版本amberjs可运行基础JS)
 
 ## 结论
 

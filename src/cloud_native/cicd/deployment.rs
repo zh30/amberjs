@@ -499,7 +499,7 @@ mod tests {
     #[test]
     fn test_blue_green_deployment() {
         let deployment: _ = BlueGreenDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -514,7 +514,7 @@ mod tests {
     #[test]
     fn test_canary_deployment() {
         let deployment: _ = CanaryDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -530,7 +530,7 @@ mod tests {
     #[test]
     fn test_canary_promotion() {
         let deployment: _ = CanaryDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -547,7 +547,7 @@ mod tests {
     #[test]
     fn test_canary_rollback() {
         let deployment: _ = CanaryDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -564,7 +564,7 @@ mod tests {
     #[test]
     fn test_rolling_deployment() {
         let deployment: _ = RollingDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -579,7 +579,7 @@ mod tests {
     #[test]
     fn test_rolling_deployment_params() {
         let deployment: _ = RollingDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),
@@ -596,7 +596,7 @@ mod tests {
         let mut selector = DeploymentStrategySelector::new();
         let config: _ = DeploymentConfig {
             strategy: "blue-green".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             environment: "production".to_string(),
             current_version: "v1.0.0".to_string(),
             next_version: "v1.1.0".to_string(),
@@ -614,7 +614,7 @@ mod tests {
         params.insert("promotion_threshold".to_string(), "99".to_string());
         let config: _ = DeploymentConfig {
             strategy: "canary".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             environment: "production".to_string(),
             current_version: "v1.0.0".to_string(),
             next_version: "v1.1.0".to_string(),
@@ -632,7 +632,7 @@ mod tests {
         let selector: _ = DeploymentStrategySelector::new();
         let config: _ = DeploymentConfig {
             strategy: "invalid".to_string(),
-            service_name: "beejs-service".to_string(),
+            service_name: "amberjs-service".to_string(),
             environment: "production".to_string(),
             current_version: "v1.0.0".to_string(),
             next_version: "v1.1.0".to_string(),
@@ -645,7 +645,7 @@ mod tests {
     fn test_deployment_manager() {
         let mut manager = DeploymentManager::new();
         let strategy: _ = BlueGreenDeployment::new(
-            "beejs-service".to_string(),
+            "amberjs-service".to_string(),
             "production".to_string(),
             "v1.0.0".to_string(),
             "v1.1.0".to_string(),

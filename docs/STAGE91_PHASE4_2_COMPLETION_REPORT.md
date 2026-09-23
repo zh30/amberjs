@@ -1,7 +1,7 @@
 # Stage 91 Phase 4.2: Enhanced REPL - Implementation Complete
 
 ## 概述
-Stage 91 Phase 4.2 增强 REPL 已成功实现，为 Beejs 运行时提供了高级交互式体验功能。
+Stage 91 Phase 4.2 增强 REPL 已成功实现，为 Amber 运行时提供了高级交互式体验功能。
 
 ## 完成的功能
 
@@ -140,7 +140,7 @@ pub use repl_enhanced::{EnhancedRepl, EnhancedReplConfig, EnhancedReplResult, En
 
 ### 启动增强 REPL
 ```rust
-use beejs::cli::{EnhancedRepl, EnhancedReplConfig};
+use amberjs::cli::{EnhancedRepl, EnhancedReplConfig};
 use std::sync::Arc;
 
 let runtime = Arc::new(RuntimeLite::new(false)?);
@@ -150,33 +150,33 @@ repl.run()?;
 
 ### Tab 补全
 ```
-beejs> cons[Tab]
+amberjs> cons[Tab]
 → console
 
-beejs> console.[Tab]
+amberjs> console.[Tab]
 → log  error  warn  info  debug
 ```
 
 ### 语法高亮
 ```
-beejs> function hello() {     // 高亮显示: function 关键字
-beejs>   console.log("Hi");   // 高亮显示: console, log, 字符串
-beejs> }
+amberjs> function hello() {     // 高亮显示: function 关键字
+amberjs>   console.log("Hi");   // 高亮显示: console, log, 字符串
+amberjs> }
 ```
 
 ### 增强命令
 ```
-beejs> .time 1 + 1
+amberjs> .time 1 + 1
 ⏱ Timing: 1 + 1
   Total time: 0.123ms
   Average time: 0.123µs
   Iterations: 1000
 
-beejs> .type 42
+amberjs> .type 42
 📝 Type of: 42
 Type: number
 
-beejs> .inspect {a: 1, b: 2}
+amberjs> .inspect {a: 1, b: 2}
 🔍 Inspecting: {a: 1, b: 2}
 Value: {"a":1,"b":2}
 💡 Tip: Use console.log() for detailed object inspection
@@ -221,4 +221,4 @@ Stage 91 Phase 4.2 增强 REPL 成功实现了所有预期功能:
 4. ✅ 箭头键导航 - 通过 rustyline 实现
 5. ✅ 测试套件 - 完整覆盖
 
-**总计新增 2400+ 行高质量代码，全面提升 Beejs REPL 的开发者体验！**
+**总计新增 2400+ 行高质量代码，全面提升 Amber REPL 的开发者体验！**

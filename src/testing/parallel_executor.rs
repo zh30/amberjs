@@ -124,7 +124,7 @@ impl Default for ThreadPoolConfig {
         ThreadPoolConfig {
             size: num_cpus::get(),
             stack_size: 2 * 1024 * 1024, // 2MB
-            name_prefix: "beejs-test".to_string(),
+            name_prefix: "amberjs-test".to_string(),
         }
     }
 }

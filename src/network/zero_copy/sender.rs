@@ -340,7 +340,7 @@ mod tests {
     #[test]
     fn test_progress_calculation() {
         // 创建临时测试文件
-        let test_file_path: _ = "/tmp/beejs_zero_copy_test.bin";
+        let test_file_path: _ = "/tmp/amberjs_zero_copy_test.bin";
         let test_data: _ = vec![42u8; 1024];
         std::fs::write(test_file_path, &test_data).expect("写入测试文件失败");
         let mut sender =

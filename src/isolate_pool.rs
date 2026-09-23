@@ -232,10 +232,10 @@ fn is_test_environment() -> bool {
     return true;
     // 2. 环境变量检测 - 仅在明确设置时为 true
     #[allow(unreachable_code)]
-    let env_check: _ = std::env::var("BEEJS_TEST_MODE").is_ok();
+    let env_check: _ = std::env::var("AMBER_TEST_MODE").is_ok();
     env_check
-    // 注意：不再检查二进制路径，因为 target/release/bee 会被误判为测试环境
-    // 这会导致生产构建的 beejs 无法使用 Isolate 池，严重影响性能
+    // 注意：不再检查二进制路径，因为 target/release/amber 会被误判为测试环境
+    // 这会导致生产构建的 amberjs 无法使用 Isolate 池，严重影响性能
 }
 /// 初始化全局Isolate池（超级激进版）
 #[allow(dead_code)]

@@ -9,7 +9,7 @@
 
 #### 新增文件
 - **`src/error/types.rs`** (400+ 行)
-  - `BeejsError`: 12种错误类型枚举，涵盖所有可能的错误场景
+  - `AmberError`: 12种错误类型枚举，涵盖所有可能的错误场景
   - `ErrorContext`: 完整的错误上下文信息，包含源码位置、栈追踪、严重级别
   - `SourceLocation`: 源代码位置信息
   - `StackFrame`: 栈帧信息
@@ -61,7 +61,7 @@
 #### 新增文件
 - **`src/error/mod.rs`** (200+ 行)
   - 统一错误处理API
-  - 错误处理宏 (`beejs_try!`, `beejs_try_async!`)
+  - 错误处理宏 (`amberjs_try!`, `amberjs_try_async!`)
   - 全局错误配置
   - 错误处理工具函数
 
@@ -139,7 +139,7 @@
 
 ### 1. 智能错误分类
 ```rust
-pub enum BeejsError {
+pub enum AmberError {
     V8Error(String),              // V8引擎错误
     JsExecutionError(String),     // JS执行错误
     MultiLanguageError(String),   // 多语言集成错误
@@ -192,11 +192,11 @@ pub struct FallbackStats {
 
 ### 基本错误处理
 ```rust
-use crate::error::{BeejsError, create_error_context};
+use crate::error::{AmberError, create_error_context};
 
 // 创建错误上下文
 let context = create_error_context(
-    BeejsError::V8Error("Invalid handle".to_string()),
+    AmberError::V8Error("Invalid handle".to_string()),
     "test.rs".to_string(),
     42,
     "test_function".to_string(),
@@ -237,9 +237,9 @@ match manager.handle_feature_failure(Feature::V8Optimization).await {
 
 ### 错误处理宏
 ```rust
-use crate::beejs_try;
+use crate::amberjs_try;
 
-let result = beejs_try!(some_operation(), "file.rs", 42, "function")?;
+let result = amberjs_try!(some_operation(), "file.rs", 42, "function")?;
 ```
 
 ## 📈 性能表现
@@ -329,7 +329,7 @@ Stage 89 Phase 2 成功实现了企业级错误处理系统：
 - ✅ 为生产部署提供稳定性保障
 - ✅ 为开发者提供友好的错误处理体验
 
-**Stage 89 Phase 2 已圆满完成，为 Beejs 向企业级运行时迈进奠定了坚实基础！**
+**Stage 89 Phase 2 已圆满完成，为 Amber 向企业级运行时迈进奠定了坚实基础！**
 
 ---
 

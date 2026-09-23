@@ -1,8 +1,8 @@
-# Beejs Stage 77 实施计划 - WebAssembly 完整集成
+# Amber Stage 77 实施计划 - WebAssembly 完整集成
 
 ## 项目概述
 
-**目标**: 实现完整的 WebAssembly 集成，将 Beejs 打造为 AI 时代最快的高性能 JavaScript/TypeScript 运行时
+**目标**: 实现完整的 WebAssembly 集成，将 Amber 打造为 AI 时代最快的高性能 JavaScript/TypeScript 运行时
 
 **核心价值**:
 - 🚀 极致性能: WASM 模块执行速度接近原生代码
@@ -16,7 +16,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Beejs Runtime                            │
+│                    Amber Runtime                            │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │   V8 Engine  │  │ Wasmtime VM  │  │   Interop Layer  │  │
@@ -232,16 +232,16 @@
 **功能要求**:
 1. **WASM 模块管理**
    ```bash
-   beejs wasm load <module.wasm>
-   beejs wasm list
-   beejs wasm execute <module.wasm> <function>
-   beejs wasm benchmark <module.wasm>
+   amberjs wasm load <module.wasm>
+   amberjs wasm list
+   amberjs wasm execute <module.wasm> <function>
+   amberjs wasm benchmark <module.wasm>
    ```
 
 2. **性能分析**
    ```bash
-   beejs wasm profile <module.wasm>
-   beejs wasm analyze <module.wasm>
+   amberjs wasm profile <module.wasm>
+   amberjs wasm analyze <module.wasm>
    ```
 
 **测试驱动开发**:
@@ -502,4 +502,4 @@ impl HighPerformanceInterop {
 
 ---
 
-**结论**: Stage 77 将为 Beejs 带来完整的 WebAssembly 支持，显著提升计算密集型任务的执行性能，进一步巩固 Beejs 作为 AI 时代最快 JavaScript/TypeScript 运行时的地位。通过系统性的设计和实现，我们将创建一个高性能、高可用、易于使用的 WebAssembly 集成系统。
+**结论**: Stage 77 将为 Amber 带来完整的 WebAssembly 支持，显著提升计算密集型任务的执行性能，进一步巩固 Amber 作为 AI 时代最快 JavaScript/TypeScript 运行时的地位。通过系统性的设计和实现，我们将创建一个高性能、高可用、易于使用的 WebAssembly 集成系统。

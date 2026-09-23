@@ -1,4 +1,4 @@
-# Beejs Stage 19 启动时间优化报告
+# Amber Stage 19 启动时间优化报告
 
 ## 🎯 优化目标
 
@@ -21,18 +21,18 @@
 
 ### Ultra-Simple 场景性能
 
-对于 ultra-simple 表达式（数字、字符串、布尔值、简单算术），Beejs 现在完全绕过 V8 引擎：
+对于 ultra-simple 表达式（数字、字符串、布尔值、简单算术），Amber 现在完全绕过 V8 引擎：
 
 ```bash
-$ time ./beejs -e "42"
+$ time ./amberjs -e "42"
 42
 real    0m0.009s  # ~9ms (ZERO-V8 路径)
 
-$ time ./beejs -e "2 + 3"
+$ time ./amberjs -e "2 + 3"
 5
 real    0m0.009s  # ~9ms (ZERO-V8 路径)
 
-$ time ./beejs -e "'hello'"
+$ time ./amberjs -e "'hello'"
 "hello"
 real    0m0.009s  # ~9ms (ZERO-V8 路径)
 ```
@@ -170,7 +170,7 @@ test result: ok. 199 passed; 0 failed; 10 ignored; 0 measured; 0 filtered out
 - 零分配参数解析
 - 完全绕过 V8 的 ultra-simple 路径
 
-**Beejs 现在是真正的超高性能 JavaScript/TypeScript 运行时！** 🚀
+**Amber 现在是真正的超高性能 JavaScript/TypeScript 运行时！** 🚀
 
 ---
 

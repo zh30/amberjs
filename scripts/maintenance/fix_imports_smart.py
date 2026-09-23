@@ -92,7 +92,7 @@ def fix_file(filepath):
     return changes
 
 def main():
-    src_dir = Path('/Users/henry/code/beejs/src')
+    src_dir = Path('/Users/henry/code/amberjs/src')
     total = 0
     for rs_file in src_dir.rglob('*.rs'):
         changes = fix_file(rs_file)

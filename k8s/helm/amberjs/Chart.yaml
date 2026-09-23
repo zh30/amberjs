@@ -1,0 +1,19 @@
+apiVersion: v2
+name: amberjs
+description: High-performance JavaScript/TypeScript runtime for AI workloads
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/henry/amberjs
+sources:
+  - https://github.com/henry/amberjs
+maintainers:
+  - name: Henry Zhang
+    email: henry@example.com
+keywords:
+  - javascript
+  - typescript
+  - runtime
+  - ai
+  - high-performance
+  - wasm

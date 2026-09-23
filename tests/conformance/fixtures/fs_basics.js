@@ -7,15 +7,15 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg || 'assertion failed');
 }
 
-const root = path.join(os.tmpdir(), 'bee_conformance_fs_' + process.pid);
+const root = path.join(os.tmpdir(), 'amber_conformance_fs_' + process.pid);
 const file = path.join(root, 'hello.txt');
 const nested = path.join(root, 'a', 'b');
 
 // write + read roundtrip
 fs.mkdirSync(nested, { recursive: true });
 assert(fs.existsSync(nested), 'mkdirSync recursive creates nested dirs');
-fs.writeFileSync(file, 'hello bee');
-assert(fs.readFileSync(file, 'utf8') === 'hello bee', 'readFileSync utf8 roundtrip');
+fs.writeFileSync(file, 'hello amber');
+assert(fs.readFileSync(file, 'utf8') === 'hello amber', 'readFileSync utf8 roundtrip');
 
 // overwrite semantics
 fs.writeFileSync(file, 'second');

@@ -1,7 +1,7 @@
-# Beejs 模块系统实现报告
+# Amber 模块系统实现报告
 
 ## 概述
-本文档描述了 Beejs 高性能 JavaScript/TypeScript 运行时中模块系统的完整实现。
+本文档描述了 Amber 高性能 JavaScript/TypeScript 运行时中模块系统的完整实现。
 
 ## 实现日期
 2025-12-17
@@ -210,10 +210,10 @@ exports.greet = (name) => `Hello, ${name}!`;
 
 ## 结论
 
-Beejs 的模块系统实现提供了完整的 CommonJS 支持，包括：
+Amber 的模块系统实现提供了完整的 CommonJS 支持，包括：
 - 高性能模块加载和缓存
 - 完整的模块导出机制
 - 内置模块支持
 - 循环依赖处理
 
-该实现为 Beejs 运行时提供了坚实的基础，使其能够高效运行现有的 JavaScript/TypeScript 代码，为 AI 时代的高性能脚本执行做好准备。
+该实现为 Amber 运行时提供了坚实的基础，使其能够高效运行现有的 JavaScript/TypeScript 代码，为 AI 时代的高性能脚本执行做好准备。

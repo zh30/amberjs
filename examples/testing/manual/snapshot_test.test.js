@@ -1,5 +1,5 @@
 /**
- * Beejs 测试框架 - 快照测试示例
+ * Amber 测试框架 - 快照测试示例
  *
  * 快照测试非常适合测试数据结构、API 响应、配置对象等
  * 避免手动编写大量断言
@@ -53,14 +53,14 @@ describe("快照测试示例", () => {
     test("复杂配置对象快照", () => {
         const config = {
             app: {
-                name: "Beejs App",
+                name: "Amber App",
                 version: "1.0.0",
                 debug: false
             },
             database: {
                 host: "localhost",
                 port: 5432,
-                name: "beejs_db",
+                name: "amberjs_db",
                 options: {
                     ssl: false,
                     maxConnections: 100,
@@ -129,7 +129,7 @@ describe("快照测试 - 更新快照", () => {
             randomId: Math.random().toString(36).substring(7),
             sessionData: {
                 startTime: new Date().toISOString(),
-                userAgent: "Beejs Test Runner"
+                userAgent: "Amber Test Runner"
             }
         };
 
@@ -167,14 +167,14 @@ describe("快照测试 - 大对象", () => {
 /**
  * 快照测试使用说明
  *
- * 1. 首次运行测试时，Beejs 会创建快照文件
+ * 1. 首次运行测试时，Amber 会创建快照文件
  * 2. 快照文件保存在 __snapshots__ 目录中
  * 3. 后续运行会与快照进行比较
  * 4. 如果需要更新快照，使用 --updateSnapshot 参数
  *
  * 命令:
- * bee test examples/testing/snapshot_test.test.js
- * bee test examples/testing/snapshot_test.test.js --update-snapshot
+ * amber test examples/testing/snapshot_test.test.js
+ * amber test examples/testing/snapshot_test.test.js --update-snapshot
  *
  * 快照文件:
  * __snapshots__/snapshot_test.test.js.snap

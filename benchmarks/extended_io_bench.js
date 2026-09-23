@@ -46,9 +46,9 @@ async function benchFetchClient() {
 async function benchSqliteInsertSelect() {
     let Database;
     try {
-        ({ Database } = require('db'));
+        ({ Database } = require('amber:db'));
     } catch (err) {
-        throw new Error(`bee:db unavailable: ${err.message}`);
+        throw new Error(`amber:db unavailable: ${err.message}`);
     }
     const db = new Database(':memory:');
     db.exec('CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, score REAL)');
@@ -68,9 +68,9 @@ async function benchSqliteInsertSelect() {
 async function benchSqliteTransaction() {
     let Database;
     try {
-        ({ Database } = require('db'));
+        ({ Database } = require('amber:db'));
     } catch (err) {
-        throw new Error(`bee:db unavailable: ${err.message}`);
+        throw new Error(`amber:db unavailable: ${err.message}`);
     }
     const db = new Database(':memory:');
     db.exec('CREATE TABLE t (id INTEGER PRIMARY KEY, v INTEGER)');

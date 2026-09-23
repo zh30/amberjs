@@ -1,11 +1,11 @@
 ---
 title: "WinterTC compliance"
-subtitle: "ECMA-429, runtime keys, and Sockets API on Beejs"
+subtitle: "ECMA-429, runtime keys, and Sockets API on Amber"
 group: "Reference & Specs"
 id: "wintertc-compliance"
 ---
 
-Beejs implements the WinterTC (Ecma TC55, formerly WinterCG) baseline so the same Web-platform code can run on Node-like and edge runtimes.
+Amber implements the WinterTC (Ecma TC55, formerly WinterCG) baseline so the same Web-platform code can run on Node-like and edge runtimes.
 
 ## ECMA-429 minimum common Web API
 
@@ -15,7 +15,7 @@ Beejs implements the WinterTC (Ecma TC55, formerly WinterCG) baseline so the sam
 | `globalThis.self` | Alias of `globalThis` |
 | `reportError(error)` | Calls `onerror` when set |
 | `PromiseRejectionEvent` | Dispatched on unhandled rejections via `onunhandledrejection` |
-| `navigator.userAgent` | `Beejs/{version}` |
+| `navigator.userAgent` | `Amber/{version}` |
 | `navigator.hardwareConcurrency` / `language` / `platform` | Present |
 | `URLPattern` | `test()` / `exec()` with `:param` groups |
 | `ByteLengthQueuingStrategy` / `CountQueuingStrategy` | Global |
@@ -30,7 +30,7 @@ Beejs implements the WinterTC (Ecma TC55, formerly WinterCG) baseline so the sam
 ## Sockets API
 
 ```js
-const { connect } = require('bee:sockets');
+const { connect } = require('amber:sockets');
 const socket = connect({ hostname: 'example.com', port: 443 }, { secureTransport: 'on' });
 // socket.readable / socket.writable are Web Streams
 // socket.startTls() performs a real rustls handshake

@@ -1,8 +1,8 @@
-// Beejs v1.6.0: Deterministic Agent Replay Engine (`bee:replay`)
+// Amber v1.6.0: Deterministic Agent Replay Engine (`amber:replay`)
 //
 // Provides deterministic recording and time-travel replay for AI Agents:
 // - Intercepts and records non-deterministic runtime sources (time, random, fetch, fs, agent steps)
-// - Emits portable, serialized .bee-trace.json artifacts
+// - Emits portable, serialized .amber-trace.json artifacts
 // - Offline replay with divergence detection (pinpoints the exact step where an agent deviates)
 
 use std::collections::HashMap;
@@ -317,7 +317,7 @@ fn chrono_lite_now() -> String {
     format!("{}-trace", epoch)
 }
 
-/// Native dispatcher callback for __bee_replay_native
+/// Native dispatcher callback for __amber_replay_native
 fn replay_native_dispatch(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -513,7 +513,7 @@ fn replay_native_dispatch(
     }
 }
 
-/// Sets up the `bee:replay` API inside V8 Context
+/// Sets up the `amber:replay` API inside V8 Context
 pub fn setup_replay_api(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
@@ -522,12 +522,12 @@ pub fn setup_replay_api(
 
     // Register native dispatcher
     let native_fn = v8::Function::new(scope, replay_native_dispatch).unwrap();
-    let k_native = v8::String::new(scope, "__bee_replay_native").unwrap();
+    let k_native = v8::String::new(scope, "__amber_replay_native").unwrap();
     global.set(scope, k_native.into(), native_fn.into());
 
     let replay_js_bootstrap = r#"
     (function() {
-        const native = globalThis.__bee_replay_native;
+        const native = globalThis.__amber_replay_native;
         const replay = {
             startRecording(opts = {}) {
                 const script = typeof opts === 'string' ? opts : (opts && opts.script);
@@ -573,7 +573,7 @@ pub fn setup_replay_api(
                 return native('reset');
             }
         };
-        globalThis.__bee_replay = replay;
+        globalThis.__amber_replay = replay;
         globalThis.replay = replay;
     })();
     "#;

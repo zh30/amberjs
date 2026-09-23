@@ -1,6 +1,6 @@
 // Tests for crypto.createSign module (v0.3.19)
 // Digital signature creation using RSA keys
-use beejs::runtime_minimal::MinimalRuntime;
+use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 #[test]

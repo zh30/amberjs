@@ -1,4 +1,4 @@
-//! Code coverage collector and reporter for Beejs test runner.
+//! Code coverage collector and reporter for Amber test runner.
 //!
 //! Generates terminal summary tables and standard lcov.info reports.
 

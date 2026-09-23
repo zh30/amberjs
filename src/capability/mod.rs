@@ -1,4 +1,4 @@
-// Beejs v1.6.0: Enterprise Capability-Based Security (`bee:security` / `bee:permissions`)
+// Amber v1.6.0: Enterprise Capability-Based Security (`amber:security` / `amber:permissions`)
 //
 // Provides JavaScript runtime introspection and enforcement of fine-grained capabilities:
 // - Query and test permissions (fs, net, env, run)
@@ -83,7 +83,7 @@ fn parse_descriptor_to_parts(
     }
 }
 
-/// Sets up `bee:security` / `bee:permissions` inside V8 context
+/// Sets up `amber:security` / `amber:permissions` inside V8 context
 pub fn setup_security_api(
     scope: &mut v8::PinScope,
     context: &v8::Local<v8::Context>,
@@ -441,14 +441,14 @@ pub fn setup_security_api(
     let perm_key = v8::String::new(scope, "permissions").unwrap();
     security_obj.set(scope, perm_key.into(), permissions_obj.into());
 
-    // Register globally as `__bee_security`, `security`, `__bee_permissions`, `permissions`
+    // Register globally as `__amber_security`, `security`, `__amber_permissions`, `permissions`
     let global = context.global(scope);
-    let sec_global_key = v8::String::new(scope, "__bee_security").unwrap();
+    let sec_global_key = v8::String::new(scope, "__amber_security").unwrap();
     global.set(scope, sec_global_key.into(), security_obj.into());
     let sec_plain_key = v8::String::new(scope, "security").unwrap();
     global.set(scope, sec_plain_key.into(), security_obj.into());
 
-    let perm_global_key = v8::String::new(scope, "__bee_permissions").unwrap();
+    let perm_global_key = v8::String::new(scope, "__amber_permissions").unwrap();
     global.set(scope, perm_global_key.into(), permissions_obj.into());
     let perm_plain_key = v8::String::new(scope, "permissions").unwrap();
     global.set(scope, perm_plain_key.into(), permissions_obj.into());

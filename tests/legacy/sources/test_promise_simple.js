@@ -1,4 +1,4 @@
-// 测试 Beejs v0.2.1 Promise 功能
+// 测试 Amber v0.2.1 Promise 功能
 console.log('=== 测试 Promise API v0.2.1 ===\n');
 
 // 1. 测试 Promise.resolve

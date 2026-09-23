@@ -10,51 +10,59 @@ id: "installation"
 On macOS or Linux, run the official one-line install script in your terminal:
 
 ```bash
-curl -fsSL https://bee.zhanghe.dev/install.sh | sh
+curl -fsSL https://get.amberjs.com/install.sh | sh
 
 # pin a release
-curl -fsSL https://bee.zhanghe.dev/install.sh | BEEJS_VERSION=v1.16.0 sh
+curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
 ```
 
 On Windows (PowerShell):
 
 ```powershell
-irm https://bee.zhanghe.dev/install.ps1 | iex
+irm https://get.amberjs.com/install.ps1 | iex
 ```
 
-Homebrew (formula in the Beejs repo; tap hashes are filled after each GitHub Release):
+Homebrew (formula in the Amber repo; tap hashes are filled after each GitHub Release):
 
 ```bash
-brew install zh30/tap/bee
+brew install zh30/tap/amber
 ```
+
+From crates.io (GitHub `v*` tags publish `amber_transpile`, `amber_sandbox`, then `amberjs` via Release Assets + `CARGO_REGISTRY_TOKEN`):
+
+```bash
+cargo install amberjs
+```
+
+This installs the `amber` binary. Needs Rust **1.97.1** and a C++ toolchain for V8.
 
 ### What the Install Script Does
 
 1. **Detects Environment**: Automatically identifies your OS (macOS / Linux) and CPU architecture (Apple Silicon `arm64` or Intel `x86_64`).
 2. **Fetches Prebuilt Archive**: Downloads the release archive optimized with `-O3` and verifies binary integrity.
-3. **Deploys Binary**: Unpacks the `bee` executable into `~/.bee/bin/bee`.
-4. **Configures PATH**: Updates your active shell profile (`~/.zshrc`, `~/.bashrc`, etc.) with `export PATH="$HOME/.bee/bin:$PATH"`.
+3. **Deploys Binary**: Unpacks the `amber` executable into `~/.amber/bin/amber`.
+4. **Configures PATH**: Updates your active shell profile (`~/.zshrc`, `~/.bashrc`, etc.) with `export PATH="$HOME/.amber/bin:$PATH"`.
 
-After installation finishes, either restart your terminal or run `source ~/.zshrc` (or `source ~/.bashrc`) to start using `bee`.
+After installation finishes, either restart your terminal or run `source ~/.zshrc` (or `source ~/.bashrc`) to start using `amber`.
 
 ---
 
 ## Verifying Installation
 
-Verify that `bee` is properly installed and accessible:
+Verify that `amber` is properly installed and accessible:
 
 ```bash
 # Print version info
-bee --version
+amber --version
 
 # Evaluate a quick JavaScript snippet
-bee eval "1 + 1"
+amber eval "1 + 1"
 ```
 
 You should see output similar to:
 
 ```text
-bee 1.16.0
+amber 1.16.0
 2
 ```
 
@@ -77,7 +85,7 @@ bee 1.16.0
 
 ## Building from Source
 
-To customize Beejs, debug internal subsystems, or build for non-standard architectures, compile directly using the Rust toolchain.
+To customize Amber, debug internal subsystems, or build for non-standard architectures, compile directly using the Rust toolchain.
 
 ### 1. Prerequisites
 
@@ -102,21 +110,21 @@ xcode-select --install
 ### 2. Clone and Build
 
 ```bash
-git clone https://github.com/zh30/beejs.git
-cd beejs
+git clone https://github.com/zh30/amberjs.git
+cd amberjs
 
 # Release build with full optimizations
 cargo build --release
 
 # The compiled binary is output to:
-./target/release/bee --version
+./target/release/amber --version
 ```
 
 ### 3. Install to Global PATH
 
 ```bash
-sudo cp ./target/release/bee /usr/local/bin/
-bee --version
+sudo cp ./target/release/amber /usr/local/bin/
+amber --version
 ```
 
 ---
@@ -125,27 +133,27 @@ bee --version
 
 | Variable | Default | Purpose |
 | :--- | :---: | :--- |
-| `BEE_WORKERS` | `1` | Default number of worker threads for parallel HTTP execution |
-| `BEE_HOME` | `~/.bee` | Base directory for package caches and downloads |
-| `BEE_AUDIT_LOG` | None | File path for writing JSONL security sandbox audit records |
-| `BEE_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
+| `AMBER_WORKERS` | `1` | Default number of worker threads for parallel HTTP execution |
+| `AMBER_HOME` | `~/.amber` | Base directory for package caches and downloads |
+| `AMBER_AUDIT_LOG` | None | File path for writing JSONL security sandbox audit records |
+| `AMBER_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
 
 Example for `~/.zshrc` or Dockerfile:
 
 ```bash
-export BEE_WORKERS=8
-export BEE_LOG=warn
+export AMBER_WORKERS=8
+export AMBER_LOG=warn
 ```
 
 ---
 
 ## Uninstallation
 
-To uninstall Beejs, delete the binary directory and remove the PATH entry from your shell configuration:
+To uninstall Amber, delete the binary directory and remove the PATH entry from your shell configuration:
 
 ```bash
 # 1. Remove binary and caches
-rm -rf ~/.bee
+rm -rf ~/.amber
 
 # 2. Remove the PATH export line from ~/.zshrc or ~/.bashrc
 ```

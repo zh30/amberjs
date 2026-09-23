@@ -1,5 +1,5 @@
 /**
- * Beejs 模块系统示例
+ * Amber 模块系统示例
  *
  * 演示 CommonJS 和 ES6 模块的使用
  */
@@ -33,7 +33,7 @@ module.exports = {
 };
 
 // ===== ES6 模块示例 =====
-// 注意: Beejs 支持 ES6 模块语法
+// 注意: Amber 支持 ES6 模块语法
 // 但需要使用 .mjs 扩展名或在 package.json 中设置 type: "module"
 
 // es6-module.mjs 内容:
@@ -58,7 +58,7 @@ export class ApiClient {
 export default ApiClient;
 
 // ===== 主文件演示 =====
-console.log("=== Beejs 模块系统示例 ===\n");
+console.log("=== Amber 模块系统示例 ===\n");
 
 // 导入 CommonJS 模块
 const math = require('./math-module.js');

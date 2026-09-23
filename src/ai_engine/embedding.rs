@@ -2,7 +2,7 @@
 //!
 //! Generates dense, normalized semantic embedding vectors (e.g. 64, 128, 384 dimensions)
 //! from input text with zero external dependencies, zero Python, and sub-millisecond latency.
-//! Fully interoperable with `bee:vector`'s similarity search.
+//! Fully interoperable with `amber:vector`'s similarity search.
 
 use std::f32::consts::PI;
 
@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn test_embed_dimensions_and_normalization() {
-        let text = "Beejs is a fast JavaScript runtime built with Rust";
+        let text = "Amber is a fast JavaScript runtime built with Rust";
         let opts = EmbedOptions {
             dimensions: 128,
             normalize: true,

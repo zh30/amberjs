@@ -4,7 +4,7 @@
 use serial_test::serial;
 
 fn reset_global_broker() {
-    use beejs::permissions::{global_resource_broker, ResourceBroker};
+    use amberjs::permissions::{global_resource_broker, ResourceBroker};
 
     *global_resource_broker()
         .write()
@@ -29,7 +29,7 @@ impl Drop for BrokerResetGuard {
 #[test]
 #[serial]
 fn test_snapshot_manager_warmup_stats() {
-    use beejs::v8_snapshot::{SnapshotConfig, SnapshotManager};
+    use amberjs::v8_snapshot::{SnapshotConfig, SnapshotManager};
 
     let config = SnapshotConfig::default();
     let manager = SnapshotManager::new(config);
@@ -49,7 +49,7 @@ fn test_snapshot_manager_warmup_stats() {
 #[test]
 #[serial]
 fn test_snapshot_manager_warmup_builtins() {
-    use beejs::v8_snapshot::{SnapshotConfig, SnapshotManager};
+    use amberjs::v8_snapshot::{SnapshotConfig, SnapshotManager};
 
     let config = SnapshotConfig::default();
     let manager = SnapshotManager::new(config);
@@ -66,7 +66,7 @@ fn test_snapshot_manager_warmup_builtins() {
 #[test]
 #[serial]
 fn test_snapshot_manager_creation() {
-    use beejs::v8_snapshot::{SnapshotConfig, SnapshotManager};
+    use amberjs::v8_snapshot::{SnapshotConfig, SnapshotManager};
 
     let config = SnapshotConfig::default();
     let manager = SnapshotManager::new(config);
@@ -79,7 +79,7 @@ fn test_snapshot_manager_creation() {
 #[test]
 #[serial]
 fn test_snapshot_stats_hit_rate() {
-    use beejs::v8_snapshot::SnapshotStats;
+    use amberjs::v8_snapshot::SnapshotStats;
 
     let stats = SnapshotStats::new();
 
@@ -91,7 +91,7 @@ fn test_snapshot_stats_hit_rate() {
 #[test]
 #[serial]
 fn test_snapshot_config_default() {
-    use beejs::v8_snapshot::SnapshotConfig;
+    use amberjs::v8_snapshot::SnapshotConfig;
 
     let config = SnapshotConfig::default();
 
@@ -104,7 +104,7 @@ fn test_snapshot_config_default() {
 #[test]
 #[serial]
 fn test_snapshot_metadata() {
-    use beejs::v8_snapshot::SnapshotMetadata;
+    use amberjs::v8_snapshot::SnapshotMetadata;
     use std::time::SystemTime;
 
     let metadata = SnapshotMetadata {
@@ -127,7 +127,7 @@ fn test_snapshot_metadata() {
 #[test]
 #[serial]
 fn test_generate_snapshot_produces_a_loadable_v8_startup_blob() {
-    use beejs::v8_snapshot::{SnapshotConfig, SnapshotManager};
+    use amberjs::v8_snapshot::{SnapshotConfig, SnapshotManager};
     use rusty_v8 as v8;
 
     let manager = SnapshotManager::new(SnapshotConfig::default());
@@ -137,11 +137,11 @@ fn test_generate_snapshot_produces_a_loadable_v8_startup_blob() {
 
     assert!(snapshot.validate(), "generated snapshot should validate");
     assert!(
-        !snapshot.snapshot_data.starts_with(b"BEEJS_WARMUP_V1\0"),
-        "the blob must be V8 snapshot data, not a beejs marker"
+        !snapshot.snapshot_data.starts_with(b"AMBER_WARMUP_V1\0"),
+        "the blob must be V8 snapshot data, not a amberjs marker"
     );
 
-    beejs::initialize_v8().unwrap();
+    amberjs::initialize_v8().unwrap();
     let startup_data = v8::StartupData::from(snapshot.snapshot_data.clone());
     let params = v8::Isolate::create_params().snapshot_blob(startup_data);
     let mut isolate = v8::Isolate::new(params);
@@ -163,7 +163,7 @@ fn test_generate_snapshot_produces_a_loadable_v8_startup_blob() {
 #[test]
 #[serial]
 fn test_save_invalid_snapshot_rejects() {
-    use beejs::v8_snapshot::{SnapshotConfig, SnapshotManager, V8Snapshot};
+    use amberjs::v8_snapshot::{SnapshotConfig, SnapshotManager, V8Snapshot};
 
     let dir = tempfile::tempdir().unwrap();
     let manager = SnapshotManager::new(SnapshotConfig::default());
@@ -176,10 +176,10 @@ fn test_save_invalid_snapshot_rejects() {
 #[test]
 #[serial]
 fn snapshot_persistence_uses_global_file_broker() {
-    use beejs::permissions::{
+    use amberjs::permissions::{
         global_resource_broker, PermissionAction, PermissionKind, ResourceBroker, ResourceId,
     };
-    use beejs::v8_snapshot::{SnapshotConfig, SnapshotManager, V8Snapshot};
+    use amberjs::v8_snapshot::{SnapshotConfig, SnapshotManager, V8Snapshot};
 
     let _guard = BrokerResetGuard::new();
     let dir = tempfile::tempdir().unwrap();
@@ -280,7 +280,7 @@ fn snapshot_persistence_uses_global_file_broker() {
 #[test]
 #[serial]
 fn test_load_snapshot_not_found() {
-    use beejs::v8_snapshot::{SnapshotConfig, SnapshotManager};
+    use amberjs::v8_snapshot::{SnapshotConfig, SnapshotManager};
 
     let config = SnapshotConfig::default();
     let manager = SnapshotManager::new(config);
