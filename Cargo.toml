@@ -47,6 +47,8 @@ oxc = { version = "0.147", default-features = false, features = [
     "semantic",
     "transformer",
     "codegen",
+    # SEA preflight walks import()/require() so amber compile can fail closed.
+    "ast_visit",
 ] }
 
 # WebAssembly runtime

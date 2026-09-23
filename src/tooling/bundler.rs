@@ -1,11 +1,10 @@
-//! Production-grade Module Bundler 2.0 for Amber (`amber bundle`).
+//! `amber bundle` module graph bundler (oxc).
 //!
-//! Features:
-//! - Recursive module dependency graph discovery
-//! - Scope isolation with standard runtime module registry
-//! - Support for both ES modules and CommonJS interop
-//! - Fast TypeScript/TSX transpile integration
-//! - AST-level minification and SourceMap v3 generation
+//! Stable contract (see `docs/BUNDLE_CONTRACT.md`):
+//! - Single file entry; recursive static `import` / `export from` / `require("...")`
+//! - Local JS/TS/JSON inlined; unresolved bare specifiers stay runtime `require()`
+//! - Unresolved relative specifiers and non-JS/JSON assets fail with stable diagnostics
+//! - Optional oxc minify; SourceMap v3 is a source inventory (`mappings` is empty)
 
 use anyhow::{anyhow, Result};
 use oxc::allocator::Allocator;
@@ -45,33 +44,80 @@ struct BundledModule {
     processed_code: String,
 }
 
+/// Prefix for every `amber bundle` diagnostic. CLI and tests pin this string.
+pub const BUNDLE_ERROR_PREFIX: &str = "error: amber bundle:";
+
+const BUNDLED_EXTENSIONS: &[&str] = &["js", "mjs", "cjs", "jsx", "ts", "tsx", "mts", "cts", "json"];
+
+fn bundle_err(message: impl std::fmt::Display) -> anyhow::Error {
+    let text = message.to_string();
+    if text.starts_with(BUNDLE_ERROR_PREFIX) {
+        anyhow!(text)
+    } else {
+        anyhow!("{} {}", BUNDLE_ERROR_PREFIX, text)
+    }
+}
+
+/// Relative specifiers that must resolve at bundle time (not runtime externals).
+pub fn is_relative_specifier(specifier: &str) -> bool {
+    specifier.starts_with("./")
+        || specifier.starts_with("../")
+        || specifier == "."
+        || specifier == ".."
+}
+
+/// File types the bundler will inline. Anything else is an unsupported asset.
+pub fn is_supported_bundle_module(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            BUNDLED_EXTENSIONS
+                .iter()
+                .any(|allowed| ext.eq_ignore_ascii_case(allowed))
+        })
+        .unwrap_or(false)
+}
+
+fn is_local_path_specifier(specifier: &str) -> bool {
+    is_relative_specifier(specifier) || Path::new(specifier).is_absolute()
+}
+
+fn resolve_existing_candidate(direct: &Path) -> Option<PathBuf> {
+    if direct.is_file() {
+        return Some(direct.to_path_buf());
+    }
+
+    for ext in ["ts", "tsx", "js", "mjs", "cjs", "jsx", "json"] {
+        let with_ext = direct.with_extension(ext);
+        if with_ext.is_file() {
+            return Some(with_ext);
+        }
+    }
+
+    if direct.is_dir() {
+        for ext in ["ts", "tsx", "js", "mjs", "json"] {
+            let index = direct.join(format!("index.{}", ext));
+            if index.is_file() {
+                return Some(index);
+            }
+        }
+    }
+
+    None
+}
+
 /// Resolves a module specifier relative to the importing file.
 pub fn resolve_module_path(from_file: &Path, specifier: &str) -> Option<PathBuf> {
     let parent = from_file.parent().unwrap_or_else(|| Path::new("."));
 
     if specifier.starts_with('.') {
-        let direct = parent.join(specifier);
-        if direct.is_file() {
-            return Some(direct);
-        }
+        return resolve_existing_candidate(&parent.join(specifier));
+    }
 
-        // Try extensions: .ts, .tsx, .js, .mjs, .cjs, .jsx, .json
-        for ext in ["ts", "tsx", "js", "mjs", "cjs", "jsx", "json"] {
-            let with_ext = direct.with_extension(ext);
-            if with_ext.is_file() {
-                return Some(with_ext);
-            }
-        }
-
-        // Try index file in directory
-        if direct.is_dir() {
-            for ext in ["ts", "tsx", "js", "mjs", "json"] {
-                let index = direct.join(format!("index.{}", ext));
-                if index.is_file() {
-                    return Some(index);
-                }
-            }
-        }
+    // Import-map remaps and absolute filesystem paths
+    let as_path = PathBuf::from(specifier);
+    if as_path.is_absolute() {
+        return resolve_existing_candidate(&as_path);
     }
 
     // Try node_modules resolution
@@ -114,6 +160,10 @@ fn scan_import_specifiers_fallback(source: &str) -> Vec<String> {
 
     for line in source.lines() {
         let trimmed = line.trim();
+        // Type-only imports are erased; do not require those files to exist.
+        if trimmed.starts_with("import type ") || trimmed.starts_with("export type ") {
+            continue;
+        }
 
         // import ... from "..." or export ... from "..."
         if (trimmed.starts_with("import ") || trimmed.starts_with("export "))
@@ -638,15 +688,15 @@ fn validate_named_bindings(
             let exports =
                 resolve_module_exports(dep_id, analyses, dep_maps, &mut cache, &mut visiting);
             if !exports.contains(imported) {
-                return Err(anyhow!(
-                    "Missing export '{}' from '{}' (imported by {})",
+                return Err(bundle_err(format!(
+                    "missing export '{}' from '{}' (imported by {})",
                     imported,
                     specifier,
                     modules
                         .get(module_id)
                         .map(|path| path.display().to_string())
                         .unwrap_or_else(|| module_id.to_string())
-                ));
+                )));
             }
         }
         for (exported, specifier, local) in &analysis.reexports {
@@ -657,8 +707,8 @@ fn validate_named_bindings(
             let exports =
                 resolve_module_exports(dep_id, analyses, dep_maps, &mut cache, &mut visiting);
             if !exports.contains(local) {
-                return Err(anyhow!(
-                    "Missing export '{}' from '{}' (cannot re-export '{}' in {})",
+                return Err(bundle_err(format!(
+                    "missing export '{}' from '{}' (cannot re-export '{}' in {})",
                     local,
                     specifier,
                     exported,
@@ -666,24 +716,71 @@ fn validate_named_bindings(
                         .get(module_id)
                         .map(|path| path.display().to_string())
                         .unwrap_or_else(|| module_id.to_string())
-                ));
+                )));
             }
         }
     }
     Ok(())
 }
 
+fn resolve_bundle_dep(
+    from_file: &Path,
+    specifier: &str,
+    import_map: Option<&crate::tooling::import_map::ImportMap>,
+) -> Result<Option<PathBuf>> {
+    let remapped = import_map.and_then(|im| im.resolve(specifier, Some(from_file)));
+    let mapped = remapped.clone().unwrap_or_else(|| specifier.to_string());
+
+    if let Some(resolved) = resolve_module_path(from_file, &mapped) {
+        if !is_supported_bundle_module(&resolved) {
+            return Err(bundle_err(format!(
+                "unsupported module '{}' (bundled files must be js, mjs, cjs, jsx, ts, tsx, mts, cts, or json)",
+                resolved.display()
+            )));
+        }
+        return Ok(Some(resolved));
+    }
+
+    let must_resolve = is_relative_specifier(specifier)
+        || is_local_path_specifier(&mapped)
+        || remapped
+            .as_deref()
+            .map(is_local_path_specifier)
+            .unwrap_or(false);
+    if must_resolve {
+        return Err(bundle_err(format!(
+            "cannot resolve '{}' from {}",
+            specifier,
+            from_file.display()
+        )));
+    }
+
+    Ok(None)
+}
+
 /// Builds the production bundle from the entry file.
 pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
     if !options.entry.exists() {
-        return Err(anyhow!(
-            "Entry file '{}' not found",
+        return Err(bundle_err(format!(
+            "entry file not found: {}",
             options.entry.display()
-        ));
+        )));
+    }
+    if !options.entry.is_file() {
+        return Err(bundle_err(format!(
+            "entry must be a file: {}",
+            options.entry.display()
+        )));
+    }
+    if !is_supported_bundle_module(&options.entry) {
+        return Err(bundle_err(format!(
+            "unsupported module '{}' (bundled files must be js, mjs, cjs, jsx, ts, tsx, mts, cts, or json)",
+            options.entry.display()
+        )));
     }
 
     let import_map = if let Some(ref map_path) = options.import_map {
-        Some(crate::tooling::import_map::ImportMap::load(map_path)?)
+        Some(crate::tooling::import_map::ImportMap::load(map_path).map_err(|e| bundle_err(e))?)
     } else {
         None
     };
@@ -707,21 +804,20 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
         path_to_id.insert(canonical.clone(), id);
         modules.push(current_path.clone());
 
-        // Read source and find dependencies
-        if let Ok(source) = fs::read_to_string(&current_path) {
-            for specifier in scan_import_specifiers(&source) {
-                let actual_specifier = if let Some(ref im) = import_map {
-                    im.resolve(&specifier, Some(&current_path))
-                        .unwrap_or_else(|| specifier.clone())
-                } else {
-                    specifier.clone()
-                };
-                if let Some(resolved) = resolve_module_path(&current_path, &actual_specifier) {
-                    let res_canonical =
-                        resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
-                    if !visited.contains(&res_canonical) {
-                        queue.push(resolved);
-                    }
+        let source = fs::read_to_string(&current_path).map_err(|e| {
+            bundle_err(format!(
+                "failed to read '{}': {}",
+                current_path.display(),
+                e
+            ))
+        })?;
+        for specifier in scan_import_specifiers(&source) {
+            if let Some(resolved) =
+                resolve_bundle_dep(&current_path, &specifier, import_map.as_ref())?
+            {
+                let res_canonical = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
+                if !visited.contains(&res_canonical) {
+                    queue.push(resolved);
                 }
             }
         }
@@ -733,18 +829,12 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
     let mut module_dep_maps = Vec::new();
     for (id, path) in modules.iter().enumerate() {
         let source = fs::read_to_string(path)
-            .map_err(|e| anyhow!("Failed to read module '{}': {}", path.display(), e))?;
+            .map_err(|e| bundle_err(format!("failed to read '{}': {}", path.display(), e)))?;
 
         // Map specifiers to module IDs first
         let mut dep_map = HashMap::new();
         for specifier in scan_import_specifiers(&source) {
-            let actual_specifier = if let Some(ref im) = import_map {
-                im.resolve(&specifier, Some(path))
-                    .unwrap_or_else(|| specifier.clone())
-            } else {
-                specifier.clone()
-            };
-            if let Some(resolved) = resolve_module_path(path, &actual_specifier) {
+            if let Some(resolved) = resolve_bundle_dep(path, &specifier, import_map.as_ref())? {
                 let res_canonical = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
                 if let Some(&dep_id) = path_to_id.get(&res_canonical) {
                     dep_map.insert(specifier, dep_id);
@@ -769,12 +859,17 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
         let file_str = path.to_string_lossy();
         let js_code = if is_json {
             transformed
-        } else if path
-            .extension()
-            .map_or(false, |ext| ext == "ts" || ext == "tsx" || ext == "mts")
-        {
+        } else if path.extension().map_or(false, |ext| {
+            ext == "ts" || ext == "tsx" || ext == "mts" || ext == "cts"
+        }) {
             crate::typescript::compile_typescript(&transformed, &file_str)
-                .map_err(|e| anyhow!("TS compilation failed for '{}': {}", path.display(), e))?
+                .map_err(|e| {
+                    bundle_err(format!(
+                        "TypeScript compile failed for '{}': {}",
+                        path.display(),
+                        e
+                    ))
+                })?
                 .js_code
         } else {
             transformed
@@ -876,14 +971,19 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
     if let Some(ref out_path) = options.outfile {
         if let Some(parent) = out_path.parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)?;
+                fs::create_dir_all(parent).map_err(|e| {
+                    bundle_err(format!("failed to write '{}': {}", out_path.display(), e))
+                })?;
             }
         }
-        fs::write(out_path, &final_code)?;
+        fs::write(out_path, &final_code)
+            .map_err(|e| bundle_err(format!("failed to write '{}': {}", out_path.display(), e)))?;
 
         if let Some(ref map_str) = map_content {
             let map_path = out_path.with_extension("map");
-            fs::write(map_path, map_str)?;
+            fs::write(&map_path, map_str).map_err(|e| {
+                bundle_err(format!("failed to write '{}': {}", map_path.display(), e))
+            })?;
         }
     }
 
@@ -940,5 +1040,103 @@ mod tests {
         assert_eq!(output.module_count, 2);
         assert!(output.code.contains("__amberjs_require__"));
         assert!(outfile.exists());
+    }
+
+    fn opts(entry: PathBuf) -> BundleOptions {
+        BundleOptions {
+            entry,
+            outfile: None,
+            minify: false,
+            sourcemap: false,
+            target: "es2022".to_string(),
+            import_map: None,
+        }
+    }
+
+    #[test]
+    fn test_missing_entry_stable_error() {
+        let dir = tempdir().expect("tempdir");
+        let err = bundle_project(&opts(dir.path().join("missing.js")))
+            .unwrap_err()
+            .to_string();
+        assert!(err.starts_with(BUNDLE_ERROR_PREFIX), "{err}");
+        assert!(err.contains("entry file not found"), "{err}");
+    }
+
+    #[test]
+    fn test_missing_relative_stable_error() {
+        let dir = tempdir().expect("tempdir");
+        let entry = dir.path().join("entry.js");
+        fs::write(&entry, "import { x } from './missing.js';\n").expect("write");
+        let err = bundle_project(&opts(entry)).unwrap_err().to_string();
+        assert!(err.starts_with(BUNDLE_ERROR_PREFIX), "{err}");
+        assert!(err.contains("cannot resolve './missing.js'"), "{err}");
+    }
+
+    #[test]
+    fn test_unsupported_css_stable_error() {
+        let dir = tempdir().expect("tempdir");
+        let css = dir.path().join("style.css");
+        fs::write(&css, "body { color: red; }\n").expect("write css");
+        let entry = dir.path().join("entry.js");
+        fs::write(&entry, "import './style.css';\n").expect("write entry");
+        let err = bundle_project(&opts(entry)).unwrap_err().to_string();
+        assert!(err.starts_with(BUNDLE_ERROR_PREFIX), "{err}");
+        assert!(err.contains("unsupported module"), "{err}");
+        assert!(err.contains("style.css"), "{err}");
+    }
+
+    #[test]
+    fn test_bare_specifier_stays_external() {
+        let dir = tempdir().expect("tempdir");
+        let entry = dir.path().join("entry.js");
+        fs::write(
+            &entry,
+            "const fs = require('fs');\nconsole.log(typeof fs);\n",
+        )
+        .expect("write");
+        let output = bundle_project(&opts(entry)).expect("bundle");
+        assert_eq!(output.module_count, 1);
+        assert!(output.code.contains("require('fs')"), "{}", output.code);
+        assert!(!output.code.contains("__amberjs_require__(1)"));
+    }
+
+    #[test]
+    fn test_type_only_import_does_not_require_file() {
+        let dir = tempdir().expect("tempdir");
+        let entry = dir.path().join("entry.ts");
+        fs::write(
+            &entry,
+            "import type { Foo } from './missing-types';\nexport const n = 1;\n",
+        )
+        .expect("write");
+        let output = bundle_project(&opts(entry)).expect("type-only import should not fail");
+        assert_eq!(output.module_count, 1);
+    }
+
+    #[test]
+    fn test_import_map_bare_to_local_file() {
+        let dir = tempdir().expect("tempdir");
+        let label = dir.path().join("label.js");
+        fs::write(&label, "export const message = 'mapped';\n").expect("write label");
+        let map = dir.path().join("import_map.json");
+        fs::write(&map, r#"{ "imports": { "label": "./label.js" } }"#).expect("write map");
+        let entry = dir.path().join("entry.js");
+        fs::write(
+            &entry,
+            "import { message } from 'label';\nconsole.log(message);\n",
+        )
+        .expect("write entry");
+        let output = bundle_project(&BundleOptions {
+            entry,
+            outfile: None,
+            minify: false,
+            sourcemap: false,
+            target: "es2022".to_string(),
+            import_map: Some(map),
+        })
+        .expect("import map bundle");
+        assert_eq!(output.module_count, 2);
+        assert!(output.code.contains("mapped"));
     }
 }

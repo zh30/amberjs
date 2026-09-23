@@ -1,11 +1,39 @@
 # Current Scope
 
-Last reviewed: 2026-09-16 (v1.16.0)
+Last reviewed: 2026-09-22 (v1.16.1)
+
+v1.16.1 notes:
+
+These are operational facts for the `1.16.1` tag. They are not new Stable APIs. G1 and G2 below are separate from this tag note.
+
+- Release Assets still emit the five `amber-v*` archives (Linux/macOS tar.gz, Windows zip), checksums, SBOM, and cosign. When `CARGO_REGISTRY_TOKEN` is set, the same workflow publishes crates.io in order: `amber_transpile` → `amber_sandbox` → `amberjs`.
+- `install.sh` and `install.ps1` try `amber-<tag>-<target>` first, then fall back to legacy `bee-` assets from older releases. The installed binary name is always `amber`.
+- `.github/workflows/deploy-website.yml` can deploy the site to Cloudflare and upload the install scripts to R2 when `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are set on the production environment.
+
+Year-1 checklist vs this page (Graduation Rule):
+
+- [`docs/THREE_YEAR_EXECUTION_CHECKLIST.md`](THREE_YEAR_EXECUTION_CHECKLIST.md) tasks 1.1–1.4 are marked done as **delivery progress**. That does not auto-promote capabilities here.
+- `amber:ai`, V8 snapshot / CoW, permission-broker sandbox, `amber session` / `amber mcp`, and Wasm streaming stay **Stable** as already listed. The v1.16.0 zero-copy Memory / `amber:wasm` notes are unchanged; this review does not promote or demote them.
+- `amber bundle` is **Stable** (G1). `amber compile` is **Stable** (G2). `amber install` is **Stable** (G3). Executable tests: `tests/bundle_contract_tests.rs`, `tests/bundler_integration_tests.rs`, `tests/compile_contract_tests.rs`, `tests/install_contract_tests.rs`. The install promise is the subset in [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md), not npm/yarn/pnpm.
+- N-API hello loader stays **Experimental** (Year-2: [#101](https://github.com/zh30/amberjs/issues/101)).
+- `multilang` / `cloudnative` / `enterprise` / empty `ai` stay **Experimental** and are not CI-gated (Year-2: [#100](https://github.com/zh30/amberjs/issues/100)–[#104](https://github.com/zh30/amberjs/issues/104)).
+
+G1 graduation (2026-09-21):
+
+- `amber bundle` is **Stable** under the Graduation Rule. The compatibility contract (entry points, externals, CJS/ESM, sourcemaps, assets, diagnostics) lives in [`docs/BUNDLE_CONTRACT.md`](BUNDLE_CONTRACT.md) and is pinned by `tests/bundle_contract_tests.rs`. This is not webpack/rollup/esbuild parity.
+
+G2 graduation (2026-09-22):
+
+- `amber compile` is **Stable** under the Graduation Rule. The SEA contract (trailer layout, host platforms, failure diagnostics, limits) is [`docs/COMPILE_CONTRACT.md`](COMPILE_CONTRACT.md), pinned by `tests/compile_contract_tests.rs` and the CI smoke on Linux, macOS, and Windows. This is not pkg/nexe/Bun compile parity, and it does not embed Node native addons.
+
+G3 graduation (2026-09-22):
+
+- `amber install` is **Stable** under the Graduation Rule. The installer contract (what is read, what is verified, what is ignored, failure diagnostics, non-goals) is [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md), pinned by `tests/install_contract_tests.rs` and the CI step `amber install Stable contract`. This is not an npm, yarn, or pnpm replacement. `amber add`, `amber remove`, `amber prune`, `amber upgrade`, `amber init`, and `amber x` stay Experimental.
 
 v1.16.0 notes:
 
 - Wasm Engine 2.0: zero-copy `WebAssembly.Memory` / `ArrayBuffer` via V8 backing stores, mmap module load, `require('amber:wasm')`.
-- `amber bundle` (oxc) and `amber compile` (SEA trailer `AMBER_STANDALONE`) remain **Preview**.
+- At the v1.16.0 tag, `amber bundle` (oxc), `amber compile` (SEA trailer `AMBER_STANDALONE`), and `amber install` were **Preview**. Bundle and compile are **Stable** as of G1 and G2. Install is **Stable** as of G3 (direct `package.json` dependencies plus lockfile `dependencies` pins; not npm/yarn/pnpm).
 - URL / `fetch` / `ReadableStream` hot paths rewritten; suite 2.0 numbers are in `benchmarks/`.
 - Node.js Conformance 5.0 is **55/55 PASS**.
 
@@ -43,9 +71,11 @@ Use these files and checks as the current fact sources:
 - `src/main.rs`: the active `amber` CLI entrypoint.
 - Executable tests and smoke commands run in the current checkout.
 
+[`docs/THREE_YEAR_EXECUTION_CHECKLIST.md`](THREE_YEAR_EXECUTION_CHECKLIST.md) checkboxes are **delivery progress** against the three-year plan. **This page** remains the user-facing capability boundary. Checklist completion is not automatic Stable promotion.
+
 Current facts from those sources:
 
-- Package version is `1.16.0`.
+- Package version is `1.16.1`.
 - The active Cargo binary is `amber`, built from `src/main.rs`.
 - Default Cargo features are empty: `default = []`.
 - The default runtime path used by the CLI is `src/runtime_minimal.rs`.
@@ -55,11 +85,11 @@ Current facts from those sources:
 
 ### Stable
 
-Stable means the capability is part of the official v1.16.0 release scope, is reachable from the active `amber` binary or default library surface, and is verified by focused smoke tests, Rust integration tests, and conformance suites.
+Stable means the capability is part of the official v1.16.1 release scope, is reachable from the active `amber` binary or default library surface, and is verified by focused smoke tests, Rust integration tests, and conformance suites.
 
 Current stable scope:
 
-- Build Amber from source with Cargo (`v1.16.0`).
+- Build Amber from source with Cargo (`v1.16.1`).
 - Inspect the CLI with `amber --help`, `amber --version`, or `amber version`.
 - Evaluate simple JavaScript snippets with `amber eval <code>`.
 - Run JavaScript files with `amber run <file>`.
@@ -71,6 +101,9 @@ Current stable scope:
 - Manage V8 startup snapshots with zero-copy `mmap` backing: `amber snapshot [build|status|clean]`.
 - Run a tool file under `--sandbox` with explicit `--allow-*` / `--permission-policy` and structured JSONL audit trail (`--audit-log`).
 - Agent tool execution via `amber session` (stdin JSON-RPC) and `amber mcp` (MCP stdio server).
+- `amber bundle <entry>`: pack a local JS/TS/JSON module graph into one IIFE (oxc). Contract: [`docs/BUNDLE_CONTRACT.md`](BUNDLE_CONTRACT.md). Limits: static `import`/`require` only; unresolved bare specifiers stay runtime `require()`; relative misses and non-JS/JSON assets fail with `error: amber bundle:`; `--sourcemap` is a SourceMap v3 source inventory (`mappings` empty, file is `<outfile>` with extension `.map`); `--target` is a header comment; `--tree-shake` is a no-op; `package.json` `"main"` only (not `"exports"`). Not webpack/rollup/esbuild or full Node bundling.
+- `amber compile <entry> [-o <binary>]`: host Single Executable Application. Copies this machine's `amber` and embeds a bundled script plus an `AMBER_STANDALONE` trailer (payload length `u64` LE, flags `u64` LE must be 0, 16-byte magic). On Linux and Windows the trailer is at EOF. On macOS it is a `__AMBER` Mach-O segment placed before `__LINKEDIT`, then ad-hoc `codesign` (the signature is the end of the file). Contract: [`docs/COMPILE_CONTRACT.md`](COMPILE_CONTRACT.md). Limits: linux, macOS, and Windows hosts only (no cross-compile; any other OS fails with `unsupported host OS` and writes nothing); not freestanding (same dynamic linker as the producing `amber`); native `.node` addons are rejected; dynamic `import()` and computed `require()` fail the compile; no virtual filesystem; `--help` / `--version` are script arguments; `AMBER_STANDALONE` is the trailer magic, not an environment variable. Not pkg/nexe/Bun compile parity.
+- `amber install [--frozen-lockfile]`: install direct `dependencies` and `devDependencies` from `./package.json` via `https://registry.npmjs.org`. When `./package-lock.json` has a top-level `dependencies` entry, that direct pin is checked (version request, `resolved`, `integrity`) and the tarball is hashed before unpack (SRI `sha512` / `sha384` / `sha256` / `sha1`, else SHA-1 `shasum`). `--frozen-lockfile` fails closed if the lock is missing or a direct request does not match the locked version, and does not rewrite the lock. Contracted failures print `error: amber install:`. Contract: [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md). Limits: not npm/yarn/pnpm; no workspaces, lifecycle scripts, `.bin` links, or custom registry; `peerDependencies` are not installed; `optionalDependencies` download errors do not fail the command (frozen mode still rejects a missing or mismatched optional pin before install); the lockfile `packages` map, nested lock entries, `yarn.lock`, and `pnpm-lock.yaml` are ignored; transitive dependencies are not lock-pinned; unlocked ranges follow registry object order, not semver-max. `amber add` / `remove` / `prune` / `upgrade` / `init` / `x` stay Experimental.
 - Use the basic REPL with `amber repl`.
 - Use V8-backed execution through `src/runtime_minimal.rs` for repository examples and scripts.
 - WinterTC baseline: `DOMException`, `URLPattern`, `navigator`, queuing strategies, `ReadableStream.from`, `amber:sockets` (TCP + rustls TLS), `wintercg`/`wintertc` package export conditions, and `import.meta.main` / `env` / `resolve`.
@@ -85,14 +118,11 @@ Current preview scope:
 
 - TypeScript and TSX entry files are accepted by the CLI and pass through oxc before execution. This is transpile-only: types are erased, `using` / Stage 3 decorators are downleveled to ES2022, and TSX emits classic `React.createElement`. Thrown stacks map back to `.ts` lines when oxc emits a source map. There is no project-wide `tsc` type-check.
 - `amber serve --https` terminates TLS with rustls (HTTP/1.1 only). `--cert` and `--key` PEM files are required; missing material exits non-zero.
-- `amber run --inspect` / `--inspect-brk` expose CDP `/json/version` and `Runtime.evaluate` on the isolate. This is not a full Chrome DevTools / V8 Inspector on rusty_v8 0.22.
+- `amber run --inspect` / `--inspect-brk` expose CDP `/json/version` and `Runtime.evaluate` on the isolate. This is not a full Chrome DevTools / V8 Inspector Protocol on the current `v8` 152.2.0 binding.
 - Node.js compatibility modules under `src/nodejs_core/` are installed into the runtime, including areas such as `fs`, `crypto`, `events`, `buffer`, `path`, `os`, `url`, `dns`, `process`, `child_process` (`execSync`, `spawnSync`), `util`, `zlib`, timers, streams, HTTP, networking, readline, and CommonJS `require`. Treat these as compatibility work in progress unless a behavior is covered by current executable tests.
 - Web API modules under `src/web_api/` are installed into the runtime, including areas such as fetch, WebSocket, Web Crypto, URL, events, FormData, Abort, Blob, timers, encoding, performance, streams, compression, structured clone, workers, service workers, broadcast channels, and message channels. Treat these as API-specific preview work, not blanket Web platform compatibility.
 - Watch and hot reload code paths exist through `amber run --watch`, `amber test --watch`, `src/watcher.rs`, and `src/watcher_websocket.rs`.
 - Agent host surface: `amber run --sandbox --export-tools`, `amber session` (stdin JSON-RPC), and `amber mcp` (MCP stdio). Models stay external. `feature=ai` is not a product LLM and may not compile.
-- Production-grade Module Bundler 2.0 (`amber bundle`): oxc AST-backed recursive dependency graph resolution, TypeScript/TSX compilation, module scope isolation, CommonJS/JSON interop, and minified single `.js` output.
-- Single Executable Application compiler (`amber compile`): bundles and embeds self-contained JS/TS code with the Amber runtime binary into a single, zero-dependency native executable.
-- Package installer (`amber install`): package.json dependency resolution with package-lock.json integrity validation.
 
 ### Experimental
 
@@ -100,13 +130,13 @@ Experimental means the capability exists as code, command surface, module surfac
 
 Current experimental scope:
 
-- `amber debug`, `amber serve` HTTP health/fetch handler, `amber init`, `amber create`, `amber add`, `amber remove`, `amber prune`, `amber bunx`, and `amber upgrade`.
+- `amber debug`, `amber serve` HTTP health/fetch handler, `amber init`, `amber create`, `amber add`, `amber remove`, `amber prune`, `amber bunx`, and `amber upgrade`. These package commands are outside the Stable `amber install` contract.
 - N-API hello loader: `process.dlopen` calls `napi_register_module_v1` so a C hello addon can export `hello()`. Not a Node ABI compatibility commitment; Prisma/sharp are out of scope.
 - `amber test --parallel` is rejected (exit code 2). V8 isolates are not shared across threads.
-- Lightweight package-management and project setup behavior, including resolver, lifecycle, supply-chain, and package execution paths.
+- Package-manager behavior outside [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md): workspaces, lifecycle scripts, peer-dependency installs, Yarn/pnpm lockfiles, the npm `packages` lock map, and transitive lock reproducibility.
 - V8 snapshot, benchmarking helpers, performance reporting, memory/fallback/error support modules, and ecosystem-lite helpers beyond the behaviors covered by current tests.
 - Optional Cargo features: `benchmarks` and `observability` are in the CI compile matrix. `cloudnative`, `enterprise`, `multilang`, and `tch` exist in `Cargo.toml` but are not CI-gated (they may not compile). `feature = "ai"` is empty and does not enable extra modules; default `amber:ai` compiles without it. `verbose_logging` is a debug flag only.
-- GHCR: `ghcr.io/zh30/amberjs` is linux/amd64 only. Homebrew `Formula/amber.rb` hashes are filled by the Release job. Winget manifest is in-repo only (not submitted to microsoft/winget-pkgs). V8 remains `rusty_v8` 0.22 (upgrade deferred to 1.10.0).
+- GHCR: `ghcr.io/zh30/amberjs` is linux/amd64 only. Homebrew `Formula/amber.rb` hashes are filled by the Release job. Winget manifest is in-repo only (not submitted to microsoft/winget-pkgs). V8 is the `v8` crate `152.2.0` (Cargo dependency alias `rusty_v8`); the 0.22 upgrade shipped in v1.10.0.
 
 Experimental capabilities may be useful for contributors. They are not stable user promises.
 
@@ -150,7 +180,7 @@ cargo check --features observability
 cargo check --features benchmarks
 ```
 
-`enterprise`, `cloudnative`, `multilang`, `tch`, and empty `ai` are not in the v1.16.0 CI matrix.
+`enterprise`, `cloudnative`, `multilang`, `tch`, and empty `ai` are not in the v1.16.1 CI matrix.
 
 If a feature build fails or has not been checked in the current branch, document the related capability as Experimental, not Stable.
 
@@ -163,3 +193,5 @@ Move a capability upward only when all of these are true:
 - Current tests or smoke commands cover the documented behavior.
 - Known limitations are documented next to the capability.
 - Feature-gated work has a passing feature check for the relevant feature.
+
+Checklist completion in `docs/THREE_YEAR_EXECUTION_CHECKLIST.md` is not a sixth criterion and does not by itself move a capability to Stable.
