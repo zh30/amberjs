@@ -1,6 +1,6 @@
 ---
 title: "Modules, Package Management & Testing"
-subtitle: "Dual-cache module resolution, seamless npm interoperability, and Jest-compatible built-in test runner"
+subtitle: "Module resolution, a documented amber install subset, and the built-in test runner"
 group: "Developer Guide"
 id: "modules"
 ---
@@ -71,25 +71,15 @@ console.log('File name:', __filename);
 
 ---
 
-## 3. Built-In Package Management
+## 3. `amber install` (Stable subset)
 
-Amber includes lightweight package management compatible with the npm registry, requiring no separate `npm` or `pnpm` installation:
+`amber install` installs direct `dependencies` and `devDependencies` from `package.json` and checks top-level `dependencies` pins in `package-lock.json` (version, `resolved`, `integrity`). It is **not** an npm, yarn, or pnpm replacement. Workspaces, lifecycle scripts, `peerDependencies`, `yarn.lock`, `pnpm-lock.yaml`, and the lockfile `packages` map are outside the contract. `amber add` and `amber prune` stay Experimental.
+
+Contract: [INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md).
 
 ```bash
-# 1. Initialize a new project with package.json
-amber init my-app
-
-# 2. Add production dependency
-amber add lodash@4.17.21
-
-# 3. Add development dependency
-amber add --dev @types/node
-
-# 4. Install dependencies in CI with strict integrity
+amber install
 amber install --frozen-lockfile
-
-# 5. Remove unused dependencies
-amber prune
 ```
 
 ---

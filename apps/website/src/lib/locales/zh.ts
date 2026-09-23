@@ -332,7 +332,7 @@ export const zh: TranslationSchema = {
           {
             id: "bundling-compilation",
             label: "打包器 2.0 与 SEA 独立二进制",
-            badge: "Preview",
+            badge: "Stable",
           },
           {
             id: "testing-benchmarking",

@@ -206,20 +206,21 @@ amber repl
 amber snapshot [build|status|clean]
 amber session <tool>           JSON-RPC over stdin
 amber mcp [tool]               MCP stdio server
+amber compile <file> [-o myapp]  Host SEA (linux/macos/windows). Contract: docs/COMPILE_CONTRACT.md
+amber install [--frozen-lockfile]  Direct package.json deps. Not npm. Contract: docs/INSTALL_CONTRACT.md
 amber --version | amber version
+amber bundle <entry> [-o dist/bundle.js] [--minify]
 ```
 
 **Preview** — present, contract still tightening:
 
 ```text
 amber serve [--https --cert --key]
-amber bundle <entry> [-o dist/bundle.js] [--minify]
-amber compile <file> [-o myapp]
 amber run --inspect / --inspect-brk
 TypeScript / TSX execution
 ```
 
-**Experimental** — do not treat as product promises: `amber debug`, `amber init` / `create` / `add` / `remove` / `install` / `prune` / `x` / `upgrade`, N-API hello `process.dlopen`, `fmt` / `lint` / `task` / `bench` / `profile` / `deploy`.
+**Experimental** — do not treat as product promises: `amber debug`, `amber init` / `create` / `add` / `remove` / `prune` / `x` / `upgrade`, N-API hello `process.dlopen`, `fmt` / `lint` / `task` / `bench` / `profile` / `deploy`. `amber install` is the Stable exception above; it is not a full npm install.
 
 Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 
@@ -233,7 +234,7 @@ Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 | TypeScript | oxc, transpile-only | loaders / `tsc` | built-in | built-in |
 | Secure defaults | opt-in `--sandbox` | none | none | permission flags |
 | Node API | incremental Preview | native | drop-in goal | compat layer |
-| Package manager | Experimental | npm | `bun` | `deno` / JSR |
+| `amber install` | Stable subset, not npm | npm | `bun install` | `deno` / JSR |
 | Test runner | built-in `amber test` | external | `bun test` | `deno test` |
 | Native AI | `amber:ai` | — | — | — |
 

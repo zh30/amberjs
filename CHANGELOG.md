@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`amber bundle` Stable (G1)**: compatibility contract in `docs/BUNDLE_CONTRACT.md` (entry points, externals, CJS/ESM, inventory sourcemaps, JSON-only assets). Contracted failures print `error: amber bundle:` and do not write the outfile. `--import-map` is wired on the CLI. `--tree-shake` remains a no-op. Not webpack/rollup/esbuild parity.
+- **`amber compile` Stable (G2)**: SEA contract in `docs/COMPILE_CONTRACT.md`. Linux and Windows append an `AMBER_STANDALONE` trailer. macOS stores that trailer in Mach-O segment `__AMBER` and ad-hoc signs it. Contracted failures print `error: amber compile:`. Not pkg/nexe/Bun parity.
+- **`amber install` Stable (G3)**: installer contract in `docs/INSTALL_CONTRACT.md`. Reads `package.json` dependencies/devDependencies and `package-lock.json` top-level `dependencies` pins; verifies tarball SRI or SHA-1 before unpack. `--frozen-lockfile` fails closed on a missing lock or a direct version mismatch and does not rewrite the lock. Contracted failures print `error: amber install:`. Not an npm/yarn/pnpm replacement. `amber add` / `remove` / `prune` / `upgrade` stay Experimental.
 - **Release Assets**: macOS 任务安装 `openssl@3` 并导出 `OPENSSL_DIR` / `PKG_CONFIG_PATH`。`x86_64-apple-darwin` 仍在 `macos-latest`（ARM）上交叉编译，并从源码构建静态 x86_64 OpenSSL，避免 ARM Homebrew 库。发布步骤要求五套资产齐全（含 Intel mac 归档）后才写 GitHub Release / crates.io。
 - **Release Assets SBOM**: CycloneDX 改为 `anchore/sbom-action` 的 `file: Cargo.lock`（并钉住 action / syft）。`path: Cargo.lock` 会被当成目录扫描，syft 1.42 以 `dir:Cargo.lock` 失败，挡住 cosign、GitHub Release 和 crates.io。
 

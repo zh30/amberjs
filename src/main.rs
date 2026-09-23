@@ -226,7 +226,7 @@ enum Command {
         #[arg(long)]
         coverage: bool,
     },
-    /// Bundle code (experimental: concatenates local static imports, not a bundler)
+    /// Bundle a local JS/TS module graph into one JS file
     Bundle {
         #[command(flatten)]
         permissions: PermissionCliOptions,
@@ -244,7 +244,7 @@ enum Command {
         /// Target environment
         #[arg(short = 't', long, default_value = "browser")]
         target: String,
-        /// Enable tree shaking
+        /// Accepted and ignored (no tree-shaking is performed)
         #[arg(long = "tree-shake")]
         tree_shake: bool,
     },
@@ -337,7 +337,11 @@ enum Command {
         /// Package name to remove
         package: String,
     },
-    /// Install dependencies from package.json
+    /// Install dependencies from package.json.
+    ///
+    /// Stable subset of the npm registry: direct dependencies and
+    /// devDependencies, with package-lock.json `dependencies` pins.
+    /// Not an npm, yarn, or pnpm replacement. See docs/INSTALL_CONTRACT.md.
     Install {
         #[command(flatten)]
         permissions: PermissionCliOptions,
@@ -416,7 +420,11 @@ enum Command {
         #[arg(default_value = ".")]
         files: Vec<PathBuf>,
     },
-    /// Compile a script into a standalone self-executing binary
+    /// Compile a script into a host SEA binary (docs/COMPILE_CONTRACT.md).
+    ///
+    /// Copies this `amber` executable and appends a bundled script plus an
+    /// `AMBER_STANDALONE` trailer. Linux, macOS, and Windows hosts only.
+    /// Not cross-compilation and not pkg/nexe/Bun compile parity.
     Compile {
         /// Entry script (JS/TS) to compile
         entry: PathBuf,
@@ -837,6 +845,26 @@ fn network_resource_from_cli_target(target: &str) -> amberjs::permissions::Resou
     }
 }
 
+fn bundle_cli_fail(err: impl std::fmt::Display) -> ! {
+    let msg = err.to_string();
+    if msg.contains(amberjs::tooling::bundler::BUNDLE_ERROR_PREFIX) {
+        eprintln!("{msg}");
+    } else {
+        eprintln!("{} {msg}", amberjs::tooling::bundler::BUNDLE_ERROR_PREFIX);
+    }
+    std::process::exit(1);
+}
+
+fn install_cli_fail(err: impl std::fmt::Display) -> ! {
+    let msg = err.to_string();
+    if msg.contains(amberjs::package_manager::INSTALL_ERROR_PREFIX) {
+        eprintln!("{msg}");
+    } else {
+        eprintln!("{} {msg}", amberjs::package_manager::INSTALL_ERROR_PREFIX);
+    }
+    std::process::exit(1);
+}
+
 fn check_file_read_permission(path: &Path) -> Result<()> {
     amberjs::permissions::check_global_permission(
         amberjs::permissions::PermissionKind::FileSystem,
@@ -937,6 +965,71 @@ fn validate_frozen_lockfile(package_data: &serde_json::Value, lock_path: &Path) 
         }
     }
 
+    Ok(())
+}
+
+fn run_install_command(permissions: &PermissionCliOptions, frozen_lockfile: bool) -> Result<()> {
+    apply_permission_cli_options(permissions)?;
+    println!("📦 Installing dependencies from package.json...");
+
+    let package_json_path = std::path::Path::new("package.json");
+    if !package_json_path.exists() {
+        return Err(anyhow!(
+            "package.json not found in current directory. Run 'amber init' first."
+        ));
+    }
+
+    check_file_read_permission(package_json_path)?;
+    let content = std::fs::read_to_string(package_json_path)
+        .map_err(|e| anyhow!("Failed to read package.json: {}", e))?;
+
+    let package_data: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| anyhow!("Failed to parse package.json: {}", e))?;
+    let lock_path = std::path::Path::new("package-lock.json");
+    if frozen_lockfile {
+        validate_frozen_lockfile(&package_data, lock_path)?;
+    } else if lock_path.exists() {
+        check_file_read_permission(lock_path)?;
+        check_file_write_permission(lock_path)?;
+    } else {
+        check_file_write_permission(lock_path)?;
+    }
+
+    let config = amberjs::package_manager::PackageManagerConfig::default();
+    let pm = amberjs::package_manager::PackageManager::new(config)
+        .map_err(|e| anyhow!("Failed to create package manager: {}", e))?;
+
+    let package_json = pm
+        .parse_package_json(package_json_path)
+        .map_err(|e| anyhow!("Failed to parse package.json: {}", e))?;
+
+    println!("  Project: {}@{}", package_json.name, package_json.version);
+
+    let results = pm
+        .install_dependencies(&package_json)
+        .map_err(|e| anyhow!("Failed to install dependencies: {}", e))?;
+
+    println!("✅ Installed {} dependencies", results.len());
+
+    for result in &results {
+        println!("  - {}@{}", result.package.name, result.package.version);
+    }
+
+    // Frozen mode validated the lock before any install and must not rewrite it.
+    if frozen_lockfile {
+        println!("✅ Verified frozen package-lock.json");
+    } else if let Some(project_name) = package_data.get("name").and_then(|n| n.as_str()) {
+        let project_version = package_data
+            .get("version")
+            .and_then(|v| v.as_str())
+            .unwrap_or("1.0.0");
+
+        pm.generate_package_lock(lock_path, project_name, project_version)?;
+        println!("✅ Generated package-lock.json");
+    }
+
+    println!("\n📦 node_modules directory ready!");
+    println!("💡 Run 'amber run <script>' to execute scripts");
     Ok(())
 }
 
@@ -3806,25 +3899,42 @@ __amberjsRunTests();
     wrapped
 }
 
-#[allow(clippy::needless_return)]
-fn main() -> Result<()> {
-    // 0. Standalone binary self-execution check (compiled via `amber compile`)
-    if let Ok(Some(standalone_script)) = amberjs::tooling::compiler::detect_standalone_payload() {
-        let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new()
-            .map_err(|e| anyhow!("Failed to initialize standalone runtime: {}", e))?;
-        let mut argv = Vec::new();
-        let exe_str = std::env::current_exe()
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "app".to_string());
-        argv.push(exe_str.clone());
-        argv.push(exe_str);
-        argv.extend(std::env::args().skip(1));
-        runtime.set_process_argv(argv);
-        if let Err(e) = runtime.execute_code(&standalone_script) {
-            eprintln!("Error executing standalone binary: {}", e);
+fn run_standalone_payload(standalone_script: &str) -> Result<()> {
+    let mut runtime = match amberjs::runtime_minimal::MinimalRuntime::new() {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            eprintln!("error: amber standalone: failed to initialize runtime: {err}");
             std::process::exit(1);
         }
-        return Ok(());
+    };
+    let mut argv = Vec::new();
+    let exe_str = std::env::current_exe()
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|_| "app".to_string());
+    argv.push(exe_str.clone());
+    argv.push(exe_str);
+    argv.extend(std::env::args().skip(1));
+    runtime.set_process_argv(argv);
+    if let Err(err) = runtime.execute_code(standalone_script) {
+        eprintln!("error: amber standalone: {err}");
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+#[allow(clippy::needless_return)]
+fn main() -> Result<()> {
+    // SEA binaries produced by `amber compile` carry an AMBER_STANDALONE trailer.
+    // A matching magic with a bad payload must fail closed; a normal amber has no trailer.
+    match amberjs::tooling::compiler::detect_standalone_payload() {
+        Ok(Some(standalone_script)) => {
+            return run_standalone_payload(&standalone_script);
+        }
+        Ok(None) => {}
+        Err(err) => {
+            eprintln!("{err}");
+            std::process::exit(1);
+        }
     }
 
     let cli = Cli::parse();
@@ -4703,16 +4813,23 @@ fn main() -> Result<()> {
             target,
             tree_shake: _tree_shake,
         }) => {
-            apply_permission_cli_options(&permissions)?;
+            let import_map = permissions.import_map.clone();
+            if let Err(e) = apply_permission_cli_options(&permissions) {
+                bundle_cli_fail(e);
+            }
             println!("📦 Bundling JavaScript/TypeScript with Amber Bundler 2.0 (oxc)...");
 
-            check_file_read_permission(&entry)?;
+            if let Err(e) = check_file_read_permission(&entry) {
+                bundle_cli_fail(e);
+            }
             let output_path = outfile.unwrap_or_else(|| {
                 let mut path = entry.clone();
                 path.set_extension("bundle.js");
                 path
             });
-            check_file_write_permission(&output_path)?;
+            if let Err(e) = check_file_write_permission(&output_path) {
+                bundle_cli_fail(e);
+            }
 
             let options = amberjs::tooling::bundler::BundleOptions {
                 entry,
@@ -4720,10 +4837,13 @@ fn main() -> Result<()> {
                 minify,
                 sourcemap,
                 target,
-                import_map: None,
+                import_map,
             };
 
-            let bundle_out = amberjs::tooling::bundler::bundle_project(&options)?;
+            let bundle_out = match amberjs::tooling::bundler::bundle_project(&options) {
+                Ok(out) => out,
+                Err(e) => bundle_cli_fail(e),
+            };
             println!(
                 "✅ Bundle created: {} ({} modules, {} bytes)",
                 output_path.display(),
@@ -5408,86 +5528,9 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
             permissions,
             frozen_lockfile,
         }) => {
-            apply_permission_cli_options(&permissions)?;
-            println!("📦 Installing dependencies from package.json...");
-
-            // Check if package.json exists
-            let package_json_path = std::path::Path::new("package.json");
-            if !package_json_path.exists() {
-                return Err(anyhow!(
-                    "package.json not found in current directory. Run 'amber init' first."
-                ));
+            if let Err(err) = run_install_command(&permissions, frozen_lockfile) {
+                install_cli_fail(err);
             }
-
-            // Read package.json
-            check_file_read_permission(package_json_path)?;
-            let content = std::fs::read_to_string(package_json_path)
-                .map_err(|e| anyhow!("Failed to read package.json: {}", e))?;
-
-            // Parse package.json
-            let package_data: serde_json::Value = serde_json::from_str(&content)
-                .map_err(|e| anyhow!("Failed to parse package.json: {}", e))?;
-            let lock_path = std::path::Path::new("package-lock.json");
-            if frozen_lockfile {
-                validate_frozen_lockfile(&package_data, lock_path)?;
-            } else if lock_path.exists() {
-                check_file_read_permission(lock_path)?;
-                check_file_write_permission(lock_path)?;
-            } else {
-                check_file_write_permission(lock_path)?;
-            }
-
-            // Create package manager
-            let config = amberjs::package_manager::PackageManagerConfig::default();
-            let pm = amberjs::package_manager::PackageManager::new(config)
-                .map_err(|e| anyhow!("Failed to create package manager: {}", e))?;
-
-            // Parse package.json using PackageManager's method
-            let package_json = pm
-                .parse_package_json(package_json_path)
-                .map_err(|e| anyhow!("Failed to parse package.json: {}", e))?;
-
-            println!("  Project: {}@{}", package_json.name, package_json.version);
-
-            // Install all dependencies
-            match pm.install_dependencies(&package_json) {
-                Ok(results) => {
-                    println!("✅ Installed {} dependencies", results.len());
-
-                    // Show installed packages
-                    for result in &results {
-                        println!("  - {}@{}", result.package.name, result.package.version);
-                    }
-
-                    // Generate/update package-lock.json unless frozen mode made it read-only.
-                    if frozen_lockfile {
-                        println!("✅ Verified frozen package-lock.json");
-                    } else if let Some(project_name) =
-                        package_data.get("name").and_then(|n| n.as_str())
-                    {
-                        let project_version = package_data
-                            .get("version")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("1.0.0");
-
-                        if lock_path.exists() {
-                            // Update existing lock file
-                            pm.generate_package_lock(lock_path, project_name, project_version)?;
-                        } else {
-                            // Generate new lock file
-                            pm.generate_package_lock(lock_path, project_name, project_version)?;
-                        }
-                        println!("✅ Generated package-lock.json");
-                    }
-
-                    println!("\n📦 node_modules directory ready!");
-                    println!("💡 Run 'amber run <script>' to execute scripts");
-                }
-                Err(e) => {
-                    return Err(anyhow!("Failed to install dependencies: {}", e));
-                }
-            }
-
             return Ok(());
         }
         Some(Command::Prune { permissions }) => {
@@ -5932,7 +5975,10 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
                 let name = stem.to_string();
                 PathBuf::from(name)
             });
-            amberjs::tooling::compiler::compile_binary(&entry, &out)?;
+            if let Err(err) = amberjs::tooling::compiler::compile_binary(&entry, &out) {
+                eprintln!("{err}");
+                std::process::exit(1);
+            }
             return Ok(());
         }
         Some(Command::Types { outfile }) => {
@@ -5995,7 +6041,7 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
             println!("  eval <code>      Evaluate JavaScript code");
             println!("  repl             Start interactive REPL");
             println!("  test [file]      Run tests (built-in or from file)");
-            println!("  bundle <file>    Bundle code for production");
+            println!("  bundle <file>    Bundle a local JS/TS module graph into one JS file");
             println!("  debug <file>     Debug a script with detailed output");
             println!("  serve [options]  HTTP/HTTPS fetch-handler server");
             println!("  init [name]      Initialize new project");

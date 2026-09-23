@@ -1,6 +1,6 @@
 ---
 title: "模块系统、包管理与内置测试"
-subtitle: "双层全内存模块解析机制、npm 生态无缝协同与 Jest 兼容的测试套件"
+subtitle: "模块解析、有文档边界的 amber install 子集，以及内置测试运行器"
 group: "开发者指南"
 id: "modules"
 ---
@@ -71,25 +71,15 @@ console.log('当前模块绝对文件名:', __filename);
 
 ---
 
-## 3. 内置轻量包管理器
+## 3. `amber install`（Stable 子集）
 
-Amber 内置了与 npm 生态兼容的依赖管理工具链，无需额外安装 npm 或 pnpm 即可管理依赖：
+`amber install` 安装 `package.json` 里的直接 `dependencies` 和 `devDependencies`，并核对 `package-lock.json` 顶层 `dependencies` 的版本、`resolved` 和 `integrity`。它**不是** npm、yarn 或 pnpm 的替代品。workspaces、生命周期脚本、`peerDependencies`、`yarn.lock`、`pnpm-lock.yaml` 以及 lockfile 的 `packages` 字段都不在契约内。`amber add` 和 `amber prune` 仍是 Experimental。
+
+契约：[INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md)。
 
 ```bash
-# 1. 初始化项目 package.json
-amber init my-app
-
-# 2. 安装并添加生产依赖
-amber add lodash@4.17.21
-
-# 3. 安装并添加开发依赖
-amber add --dev @types/node
-
-# 4. 在新机器或 CI 流水线中一键复原依赖
+amber install
 amber install --frozen-lockfile
-
-# 5. 移除未使用的冗余依赖
-amber prune
 ```
 
 ---
