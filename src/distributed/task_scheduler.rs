@@ -312,11 +312,11 @@ use std::collections::{BTreeMap};
 use std::time::{Duration, Instant};
 use std::sync::atomic::Ordering;
 
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 if compatible_nodes.is_empty() {
                     None
                 } else {
-                    let index: _ = rng.gen_range(0..compatible_nodes.len());
+                    let index: _ = rng.random_range(0..compatible_nodes.len());
                     Some(compatible_nodes[index].id.clone())
                 }
             }

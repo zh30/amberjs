@@ -185,11 +185,11 @@ impl K8sManager {
         let mut metrics = ClusterMetrics::new();
         // 模拟随机指标值
         use rand::Rng;
-        let mut rng = rand::thread_rng();
-        metrics.cpu_usage = rng.gen_range(20.0..80.0);
-        metrics.memory_usage = rng.gen_range(30.0..90.0);
-        metrics.request_rate = rng.gen_range(100.0..2000.0);
-        metrics.active_connections = rng.gen_range(10..1000);
+        let mut rng = rand::rng();
+        metrics.cpu_usage = rng.random_range(20.0..80.0);
+        metrics.memory_usage = rng.random_range(30.0..90.0);
+        metrics.request_rate = rng.random_range(100.0..2000.0);
+        metrics.active_connections = rng.random_range(10..1000);
         Ok(metrics)
     }
     /// 执行故障转移

@@ -194,11 +194,11 @@ impl ContainerManager {
         // 模拟指标收集
         let mut metrics = ContainerMetrics::default();
         use rand::Rng;
-        let mut rng = rand::thread_rng();
-        metrics.cpu_usage = rng.gen_range(10.0..80.0);
-        metrics.memory_usage = rng.gen_range(256.0..1024.0);
-        metrics.disk_io = rng.gen_range(0.0..100.0);
-        metrics.network_io = rng.gen_range(0.0..200.0);
+        let mut rng = rand::rng();
+        metrics.cpu_usage = rng.random_range(10.0..80.0);
+        metrics.memory_usage = rng.random_range(256.0..1024.0);
+        metrics.disk_io = rng.random_range(0.0..100.0);
+        metrics.network_io = rng.random_range(0.0..200.0);
         Ok(metrics)
     }
     /// 挂载卷

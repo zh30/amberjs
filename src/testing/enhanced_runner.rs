@@ -5,8 +5,8 @@
 use crate::testing::parallel_executor::{ParallelConfig, ParallelExecutor};
 use crate::testing::test_context::{TestCase, TestResult, TestSuite};
 use crate::testing::test_timeout::{TestTimeout, TimeoutConfig};
+use rand::rng;
 use rand::seq::SliceRandom;
-use rand::thread_rng;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -121,7 +121,7 @@ impl TestSorter {
             }
             TestSorter::Random => {
                 // Fisher-Yates shuffle
-                tests.shuffle(&mut thread_rng());
+                tests.shuffle(&mut rng());
             }
         }
     }

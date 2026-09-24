@@ -14,11 +14,11 @@ fn random_bytes(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, m
     // Use a simple random generator
     use rand::Rng;
 use std::collections::{HashMap, BTreeMap};
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     // Generate random data directly into a string representation for now
     let mut random_string = String::new();
     for _ in 0..size {
-        random_string.push(rng.gen::<u8>() as char);
+        random_string.push(rng.random::<u8>() as char);
     }
     // Return as string for simplicity (not ideal but works)
     retval.set(v8::String::new(scope, &random_string).unwrap().into());
