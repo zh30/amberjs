@@ -12215,7 +12215,7 @@ impl MinimalRuntime {
 
                 // Generate random bytes using rand crate (cryptographically secure)
                 let mut random_data = vec![0u8; size as usize];
-                rand::thread_rng().fill(&mut random_data[..]);
+                rand::rng().fill(&mut random_data[..]);
 
                 // Create ArrayBuffer and Uint8Array
                 let array_buffer = v8::ArrayBuffer::new(scope, random_data.len());
@@ -12274,7 +12274,7 @@ impl MinimalRuntime {
 
                 // Generate random bytes using rand crate (synchronous, cryptographically secure)
                 let mut random_data = vec![0u8; size as usize];
-                rand::thread_rng().fill(&mut random_data[..]);
+                rand::rng().fill(&mut random_data[..]);
 
                 // Create ArrayBuffer and Uint8Array
                 let array_buffer = v8::ArrayBuffer::new(scope, random_data.len());
@@ -12381,7 +12381,7 @@ impl MinimalRuntime {
 
                     // Generate random bytes and fill
                     let mut random_data = vec![0u8; size];
-                    rand::thread_rng().fill(&mut random_data[..]);
+                    rand::rng().fill(&mut random_data[..]);
 
                     // Copy random data to buffer at offset
                     for (i, &byte) in random_data.iter().enumerate() {
@@ -12465,7 +12465,7 @@ impl MinimalRuntime {
                 let fill_size = byte_length.saturating_sub(offset);
                 if fill_size > 0 {
                     let mut random_data = vec![0u8; fill_size];
-                    rand::thread_rng().fill(&mut random_data[..]);
+                    rand::rng().fill(&mut random_data[..]);
 
                     for (i, &byte) in random_data.iter().enumerate() {
                         store[offset + i].set(byte);

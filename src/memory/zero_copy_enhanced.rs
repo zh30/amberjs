@@ -296,10 +296,10 @@ impl EnhancedZeroCopy {
             }
             AccessPattern::Random => {
                 // 随机访问：预取随机页面
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 for _ in 0..self.prefetch_config.prefetch_depth {
                     let offset: _ =
-                        rng.gen_range(0..size.saturating_sub(self.prefetch_config.window_size));
+                        rng.random_range(0..size.saturating_sub(self.prefetch_config.window_size));
                     let prefetch_addr: _ =
                         NonNull::new(unsafe { base_addr.as_ptr().add(offset) }).unwrap();
                     self.smart_prefetch(SendPtr(prefetch_addr), self.prefetch_config.window_size)

@@ -184,8 +184,8 @@ impl PatternRecognizer {
             / addresses.len() as f64;
         let std_dev: _ = variance.sqrt();
         // 生成基于正态分布的预测地址
-        let mut rng = rand::thread_rng();
-        let prediction: _ = mean + rng.gen_range(-std_dev..std_dev);
+        let mut rng = rand::rng();
+        let prediction: _ = mean + rng.random_range(-std_dev..std_dev);
         Some(prediction as usize)
     }
 }

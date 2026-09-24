@@ -66,8 +66,8 @@ impl RetryPolicy {
         if self.jitter {
             // 添加 ±25% 的随机抖动
             let jitter_range: _ = delay.as_secs_f64() * 0.25;
-            let mut rng = rand::thread_rng();
-            let jitter: _ = (rng.gen::<f64>() - 0.5) * 2.0 * jitter_range;
+            let mut rng = rand::rng();
+            let jitter: _ = (rng.random::<f64>() - 0.5) * 2.0 * jitter_range;
             let mut jittered_delay = delay.as_secs_f64() + jitter;
             if jittered_delay < 0.0 {
                 jittered_delay = 0.0;

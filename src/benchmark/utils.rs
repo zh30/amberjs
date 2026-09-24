@@ -297,9 +297,9 @@ pub fn is_significant_improvement(
 /// 生成随机测试数据
 pub fn generate_test_data(size: usize) -> Vec<f64> {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     (0..size)
-        .map(|_| rng.gen_range(0.0..1000.0))
+        .map(|_| rng.random_range(0.0..1000.0))
         .collect()
 }
 /// 验证结果数据

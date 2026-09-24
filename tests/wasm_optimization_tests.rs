@@ -266,7 +266,7 @@ mod wasm_optimization_tests {
         for _ in 0..total_requests {
             let is_popular = rand::random::<f64>() < 0.9;
             if is_popular {
-                let module_idx = rand::random::<usize>() % popular_modules.len();
+                let module_idx = rand::random_range(0..popular_modules.len());
                 let module_name = popular_modules[module_idx];
                 if warmup_cache.contains_key(module_name) {
                     cache_hit_count += 1;

@@ -149,7 +149,7 @@ impl ServiceDiscovery {
         }
         // 随机选择 gossip 目标
         
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let target_count: _ = (known_nodes.len() / 3).max(1);
         for _ in 0..target_count {
             if let Some(target) = known_nodes.iter().choose(&mut rng) {

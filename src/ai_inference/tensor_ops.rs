@@ -266,8 +266,8 @@ impl TensorOps {
     /// 创建随机张量
     pub fn random(shape: Vec<usize>) -> Result<Tensor> {
         let size: usize = shape.iter().product();
-        let mut rng = rand::thread_rng();
-        let data: Vec<f32> = (0..size).map(|_| rng.gen::<f32>()).collect();
+        let mut rng = rand::rng();
+        let data: Vec<f32> = (0..size).map(|_| rng.random::<f32>()).collect();
         Tensor::new(data, shape)
     }
     /// 创建单位矩阵

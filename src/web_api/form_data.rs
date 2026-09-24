@@ -697,7 +697,7 @@ pub fn serialize_formdata_multipart(entries: &[FormDataEntry], boundary: &str) -
 /// Generate a random boundary string for multipart/form-data
 pub fn generate_boundary() -> String {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let random: u128 = rng.gen();
+    let mut rng = rand::rng();
+    let random: u128 = rng.random();
     format!("----AmberFormBoundary{}", random)
 }

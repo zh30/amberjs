@@ -142,9 +142,9 @@ impl ComputeWorkload {
     }
     /// 数组排序
     fn sort_array(size: usize) -> Vec<i32> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut arr: Vec<i32> = (0..size)
-            .map(|_| rng.gen_range(0..1000000))
+            .map(|_| rng.random_range(0..1000000))
             .collect();
         arr.sort();
         arr
@@ -207,11 +207,11 @@ impl ComputeWorkload {
     }
     /// 计算圆周率 (蒙特卡洛方法)
     fn calculate_pi(samples: usize) -> f64 {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut inside_circle = 0;
         for _ in 0..samples {
-            let x: f64 = rng.gen_range(-1.0..1.0);
-            let y: f64 = rng.gen_range(-1.0..1.0);
+            let x: f64 = rng.random_range(-1.0..1.0);
+            let y: f64 = rng.random_range(-1.0..1.0);
             if x * x + y * y <= 1.0 {
                 inside_circle += 1;
             }
