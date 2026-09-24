@@ -1,6 +1,6 @@
 # Amber Node conformance scorecard
 
-Generated: 2026-09-18T02:47Z
+Generated: 2026-09-24T09:49Z
 
 | Fixture | Result | Notes |
 |---------|--------|-------|
@@ -11,6 +11,7 @@ Generated: 2026-09-18T02:47Z
 | buffer_basics.js | PASS |
 | child_process_exec_denied.js | PASS |
 | child_process_exec_sync.js | PASS |
+| cjs_nested_require.js | PASS |
 | create_require.js | PASS |
 | crypto_hash.js | PASS |
 | crypto_hmac_uuid.js | PASS |
@@ -29,10 +30,10 @@ Generated: 2026-09-18T02:47Z
 | fs_promises.js | PASS |
 | fs_read_denied.js | PASS |
 | hono_smoke.js | PASS |
-| http_listen_options.js | PASS |
-| http_listen.js | PASS |
-| http_post_body.js | PASS |
 | http2_basics.js | PASS |
+| http_listen.js | PASS |
+| http_listen_options.js | PASS |
+| http_post_body.js | PASS |
 | net_listen_denied.js | PASS |
 | os_basics.js | PASS |
 | path_advanced.js | PASS |
@@ -60,4 +61,6 @@ Generated: 2026-09-18T02:47Z
 | worker_threads_basics.js | PASS |
 | zlib_sync.js | PASS |
 
-**Pass rate: 55/55 (100%)**
+**Pass rate: 56/56 (100%)**
+
+**CI gate: PASS (>= 55 PASS, 0 FAIL, 0 SKIP)**

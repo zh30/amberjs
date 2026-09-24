@@ -17,10 +17,30 @@ fi
 
 FIXTURE_DIR="$ROOT/tests/conformance/fixtures"
 SCORECARD="$ROOT/tests/conformance/scorecard.md"
+# Issue #104 floor. A larger all-PASS suite stays green; fewer fixtures or any SKIP does not.
+REQUIRED_PASS=55
 PASS=0
 FAIL=0
 SKIP=0
 RESULTS=()
+
+# 0 when CI may treat the scorecard as green.
+conformance_gate_ok() {
+  local pass=$1 fail=$2 skip=$3 required=$4
+  [[ "$fail" -eq 0 && "$skip" -eq 0 && "$pass" -ge "$required" ]]
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+  conformance_gate_ok 55 0 0 55 || exit 1
+  conformance_gate_ok 56 0 0 55 || exit 1
+  if conformance_gate_ok 54 0 0 55; then exit 1; fi
+  if conformance_gate_ok 0 0 0 55; then exit 1; fi
+  if conformance_gate_ok 55 1 0 55; then exit 1; fi
+  if conformance_gate_ok 54 0 1 55; then exit 1; fi
+  if conformance_gate_ok 55 0 1 55; then exit 1; fi
+  echo "conformance gate self-test ok"
+  exit 0
+fi
 
 shopt -s nullglob
 fixtures=("$FIXTURE_DIR"/*.js)
@@ -100,6 +120,13 @@ fi
 
 echo
 echo "Summary: $PASS/$TOTAL passed (${RATE}%)"
+if conformance_gate_ok "$PASS" "$FAIL" "$SKIP" "$REQUIRED_PASS"; then
+  echo "Gate: PASS (>= ${REQUIRED_PASS} PASS, 0 FAIL, 0 SKIP)"
+  GATE_LINE="**CI gate: PASS (>= ${REQUIRED_PASS} PASS, 0 FAIL, 0 SKIP)**"
+else
+  echo "Gate: FAIL (need >= ${REQUIRED_PASS} PASS, 0 FAIL, 0 SKIP; got ${PASS} PASS, ${FAIL} FAIL, ${SKIP} SKIP)" >&2
+  GATE_LINE="**CI gate: FAIL (need >= ${REQUIRED_PASS} PASS, 0 FAIL, 0 SKIP)**"
+fi
 
 {
   echo "# Amber Node conformance scorecard"
@@ -113,7 +140,15 @@ echo "Summary: $PASS/$TOTAL passed (${RATE}%)"
   done
   echo
   echo "**Pass rate: ${PASS}/${TOTAL} (${RATE}%)**"
+  echo
+  echo "$GATE_LINE"
 } >"$SCORECARD"
 
 echo "Wrote $SCORECARD"
-exit $FAIL
+if [[ $FAIL -ne 0 ]]; then
+  exit "$FAIL"
+fi
+if ! conformance_gate_ok "$PASS" "$FAIL" "$SKIP" "$REQUIRED_PASS"; then
+  exit 1
+fi
+exit 0

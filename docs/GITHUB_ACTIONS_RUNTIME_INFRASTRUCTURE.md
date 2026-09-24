@@ -8,7 +8,7 @@ PR gates, multi-OS GitHub Releases (including Windows zip), GHCR publish, SBOM/c
 
 | Workflow file | Trigger | What it actually does |
 |---|---|---|
-| `.github/workflows/ci.yml` | `push` `main`, PR → `main`, `workflow_dispatch`, `v*` | rustc **1.97.1**, fmt, clippy `-D warnings`, `cargo test`, feature matrix `benchmarks` + `observability` (fail-closed), WinterTC named step, Node conformance, `amber test examples/testing`, `cargo package --list`, ubuntu + macOS release smoke, Windows smoke, **cargo-audit fail-closed**, cargo-deny advisories/licenses |
+| `.github/workflows/ci.yml` | `push` `main`, PR → `main`, `workflow_dispatch`, `v*` | rustc **1.97.1**, fmt, clippy `-D warnings`, `cargo test`, feature matrix `benchmarks` + `observability` (fail-closed), WinterTC named step, Node conformance fail-closed at >=55 PASS / 0 FAIL / 0 SKIP (`tests/conformance/run_conformance.sh`), `amber test examples/testing`, `cargo package --list`, ubuntu + macOS release smoke, Windows smoke, **cargo-audit fail-closed**, cargo-deny advisories/licenses |
 | `.github/workflows/release-assets.yml` | `v*` tags, `workflow_dispatch` | linux gnu x64/arm64, macOS arm64/x64, Windows x64 zip (**no** `continue-on-error` on Windows); requires Unix archives **and** Windows zip with `amber.exe`; checksums, CycloneDX SBOM, cosign; Homebrew formula SHA rewrite; crates.io publish of `amber_transpile` → `amber_sandbox` → `amberjs` when `CARGO_REGISTRY_TOKEN` is set |
 | `.github/workflows/docker.yml` | `main`, `v*`, `workflow_dispatch` | Build/push `ghcr.io/zh30/amberjs` **linux/amd64 only** (no fake `linux/arm64` tag) |
 | `.github/workflows/performance-tests.yml` | Monday 02:00 UTC cron, `workflow_dispatch` | Release lib benchmark tests. Not a PR gate |

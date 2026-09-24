@@ -10,7 +10,7 @@ Amber（crate `amberjs`，CLI `amber`）是一个用 Rust 和 V8 构建的 JavaS
 
 - `docs/STAGE_*`、`docs/IMPLEMENTATION_PLAN_STAGE_*`、阶段完成报告，以及 [`docs/THREE_YEAR_EXECUTION_CHECKLIST.md`](docs/THREE_YEAR_EXECUTION_CHECKLIST.md) 的勾选只记录设计意图或交付进度，不是产品事实，也不能把能力静默升为 Stable。
 - Preview → Stable 的升级条件写在 CURRENT_SCOPE 文末的 **Graduation Rule**。清单完成本身不是升级条件。
-- 任何 Node.js / Web 兼容性或核心架构改动，必须保持 `tests/conformance/` 为 **55/55 PASS**（[#104](https://github.com/zh30/amberjs/issues/104)）。
+- 任何 Node.js / Web 兼容性或核心架构改动，必须保持 `tests/conformance/` 为 **55/55 PASS**（[#104](https://github.com/zh30/amberjs/issues/104)）。CI job `Format, Lint, Test, Package` 的 `Node conformance scorecard` 步骤在 PASS < 55、存在 FAIL 或 SKIP 时失败。
 
 ## 关键源码与模块边界
 
