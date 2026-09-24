@@ -4,6 +4,14 @@
 
 Amber（crate `amberjs`，CLI `amber`）是一个用 Rust 和 V8 构建的 JavaScript/TypeScript 运行时。当前仓库同时包含核心运行时代码、历史阶段实现、性能基准、修复脚本、文档站点和大量阶段报告。做代码修改时以 `Cargo.toml`、`src/lib.rs` 和实际测试结果为准；`README.md` 与 `docs/STAGE_*` 中的部分性能或阶段描述可能是历史目标或阶段总结。对外品牌用 Amber / Amberjs，不要再写 Amber 或 `amber` 命令。
 
+## 能力边界（Current Scope）
+
+用户可见的 Stable / Preview / Experimental 能力边界以 [`docs/CURRENT_SCOPE.md`](docs/CURRENT_SCOPE.md) 为准。改文档、对外说明，或判断某项能力是否已毕业时，先读这一页。
+
+- `docs/STAGE_*`、`docs/IMPLEMENTATION_PLAN_STAGE_*`、阶段完成报告，以及 [`docs/THREE_YEAR_EXECUTION_CHECKLIST.md`](docs/THREE_YEAR_EXECUTION_CHECKLIST.md) 的勾选只记录设计意图或交付进度，不是产品事实，也不能把能力静默升为 Stable。
+- Preview → Stable 的升级条件写在 CURRENT_SCOPE 文末的 **Graduation Rule**。清单完成本身不是升级条件。
+- 任何 Node.js / Web 兼容性或核心架构改动，必须保持 `tests/conformance/` 为 **55/55 PASS**（[#104](https://github.com/zh30/amberjs/issues/104)）。
+
 ## 关键源码与模块边界
 
 - `src/main.rs` 是当前 Cargo 启用的 `amber` 二进制入口；`Cargo.toml` 中的 `[[bin]]` 指向这里。
@@ -93,6 +101,7 @@ npm run deploy:dry-run
 
 ## 文档与阶段资料
 
+- 用户可见能力边界见上文「能力边界（Current Scope）」：[`docs/CURRENT_SCOPE.md`](docs/CURRENT_SCOPE.md)。阶段文档不能覆盖这一页。
 - `docs/IMPLEMENTATION_PLAN_STAGE_*` 与 `docs/STAGE_*_COMPLETION_REPORT.md` 是阶段记录，适合了解设计意图，不应覆盖当前源码事实。
 - 更新用户文档时，同步核对 CLI 子命令、Cargo features、默认二进制入口和实际示例路径。
 - 性能数字必须来自当前可复现命令或报告；不要从旧 README 或阶段报告直接复制为当前事实。
