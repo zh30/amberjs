@@ -18,7 +18,7 @@ AMBER_BIN=./target/release/amber ./tests/conformance/run_conformance.sh
 
 Exit code is non-zero if any fixture fails, if any fixture prints `CONFORMANCE_SKIP`, or if PASS is below **55**. A larger suite that is still 0 FAIL and 0 SKIP stays green. CI job `Format, Lint, Test, Package` (required on `main`) runs this script in the `Node conformance scorecard` step; that step has no `continue-on-error`, so a failed gate fails the job and blocks merge.
 
-`express_smoke.js`, `fastify_smoke.js`, and `hono_smoke.js` load Express, Fastify, and Hono from `benchmarks/idle_memory/node_modules` (gitignored). If those directories are missing they print `CONFORMANCE_SKIP`. CI installs `express@5.2.1`, `fastify@5.12.3`, `hono@4.13.5`, and `@hono/node-server@2.1.1` before the scorecard so a clean checkout cannot skip them. Hono passes after that install. Express and Fastify still fail: nested `require` hits `Maximum call stack size exceeded` while loading their graphs (`debug` / `mime-types`), so the 55/55 gate stays red. That is a runtime bug, not a reason to allow SKIP or to lower the floor. Locally:
+`express_smoke.js`, `fastify_smoke.js`, and `hono_smoke.js` load Express, Fastify, and Hono from `benchmarks/idle_memory/node_modules` (gitignored). If those directories are missing they print `CONFORMANCE_SKIP`. CI installs `express@5.2.1`, `fastify@5.12.3`, `hono@4.13.5`, and `@hono/node-server@2.1.1` before the scorecard so a clean checkout cannot skip them. `cjs_nested_require.js` loads a 12-file CommonJS chain and locks the require-stack fix those frameworks need. Locally:
 
 ```bash
 npm install --prefix benchmarks/idle_memory --no-save --no-audit --no-fund --ignore-scripts \

@@ -16494,6 +16494,1794 @@ impl MinimalRuntime {
         Ok(())
     }
 
+    /// Builtins handled inside the large require arm. Kept separate so nested
+    /// file loads do not keep that frame on the stack.
+    fn cjs_require_uses_builtin_arm(module_id: &str) -> bool {
+        matches!(
+            module_id,
+            "buffer"
+                | "process"
+                | "path"
+                | "fs"
+                | "fs/promises"
+                | "os"
+                | "crypto"
+                | "events"
+                | "net"
+                | "http"
+                | "http2"
+                | "https"
+                | "tls"
+                | "util"
+                | "url"
+                | "querystring"
+                | "dns"
+                | "child_process"
+                | "tcp_async"
+                | "stream"
+                | "stream/promises"
+                | "timers"
+                | "timers/promises"
+                | "readline"
+                | "performance"
+                | "perf_hooks"
+                | "assert"
+                | "assert/strict"
+                | "diagnostics_channel"
+                | "async_hooks"
+                | "wasm"
+                | "amber:wasm"
+                | "ai"
+                | "amber:ai"
+                | "replay"
+                | "amber:replay"
+                | "weights"
+                | "amber:weights"
+                | "security"
+                | "amber:security"
+                | "permissions"
+                | "amber:permissions"
+                | "kv"
+                | "amber:kv"
+                | "tools"
+                | "amber:tools"
+                | "sandbox"
+                | "amber:sandbox"
+                | "vfs"
+                | "amber:vfs"
+                | "bus"
+                | "amber:bus"
+                | "grammar"
+                | "amber:grammar"
+                | "checkpoint"
+                | "amber:checkpoint"
+                | "sockets"
+                | "amber:sockets"
+                | "wintertc:sockets"
+                | "std:cli"
+                | "amber:std/cli"
+        )
+    }
+
+    #[inline(never)]
+    fn cjs_require_builtin_module(
+        scope: &mut v8::PinScope,
+        module_id_str: &str,
+        mut retval: v8::ReturnValue,
+    ) {
+        let result_obj = v8::Object::new(scope);
+        match module_id_str {
+            "buffer" => {
+                // Always return the same Buffer installed on globalThis.
+                let context = scope.get_current_context();
+                let global = context.global(scope);
+                let buffer_key = v8::String::new(scope, "Buffer").unwrap();
+                if let Some(buffer_val) = global.get(scope, buffer_key.into()) {
+                    if !buffer_val.is_undefined() {
+                        result_obj.set(scope, buffer_key.into(), buffer_val);
+                        let default_key = v8::String::new(scope, "default").unwrap();
+                        let default_obj = v8::Object::new(scope);
+                        default_obj.set(scope, buffer_key.into(), buffer_val);
+                        result_obj.set(scope, default_key.into(), default_obj.into());
+                        retval.set(result_obj.into());
+                        return;
+                    }
+                }
+                let error_str = v8::String::new(scope, "Buffer global is not available").unwrap();
+                let error_obj = v8::Exception::error(scope, error_str);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+            "process" => {
+                let context = scope.get_current_context();
+                let global = context.global(scope);
+                let process_key = v8::String::new(scope, "process").unwrap();
+                if let Some(process_value) = global.get(scope, process_key.into()) {
+                    if !process_value.is_undefined() {
+                        retval.set(process_value);
+                        return;
+                    }
+                }
+
+                let error_str = v8::String::new(scope, "process global is not available").unwrap();
+                let error_obj = v8::Exception::error(scope, error_str);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+            "path" => {
+                // Unify with the global path installed by nodejs_core::path.
+                let context = scope.get_current_context();
+                let global = context.global(scope);
+                let path_key = v8::String::new(scope, "path").unwrap();
+                if let Some(path_val) = global.get(scope, path_key.into()) {
+                    if !path_val.is_undefined() {
+                        retval.set(path_val);
+                        return;
+                    }
+                }
+                let error_str = v8::String::new(scope, "path global is not available").unwrap();
+                let error_obj = v8::Exception::error(scope, error_str);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+            "fs" => {
+                let ctx = scope.get_current_context();
+                let global_obj = ctx.global(scope);
+                let fs_key = v8::String::new(scope, "fs").unwrap();
+                if let Some(fs_value) = global_obj.get(scope, fs_key.into()) {
+                    if !fs_value.is_undefined() && !fs_value.is_null() {
+                        retval.set(fs_value);
+                        return;
+                    }
+                }
+
+                if !legacy_fs_fallback_enabled() {
+                    let error = v8::String::new(
+                        scope,
+                        "Cannot load builtin module 'fs': global fs binding is unavailable",
+                    )
+                    .unwrap();
+                    let exception = v8::Exception::type_error(scope, error);
+                    scope.throw_exception(exception);
+                    return;
+                }
+
+                // Return fs module with file system methods (v0.3.5)
+                let fs_obj = v8::Object::new(scope);
+
+                // Add readFile function
+                let readfile_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() >= 1 {
+                            if let Some(path_val) = args.get(0).to_string(scope) {
+                                let path = path_val.to_rust_string_lossy(scope);
+                                match std::fs::read_to_string(&path) {
+                                    Ok(contents) => {
+                                        let contents_val =
+                                            v8::String::new(scope, &contents).unwrap();
+                                        retval.set(contents_val.into());
+                                    }
+                                    Err(e) => {
+                                        let error_msg = format!("Error reading file: {}", e);
+                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                        retval.set(error_val.into());
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+                .unwrap();
+                let readfile_key = v8::String::new(scope, "readFileSync").unwrap().into();
+                fs_obj.set(scope, readfile_key, readfile_fn.into());
+
+                // Add writeFile function
+                let writefile_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() >= 2 {
+                            if let (Some(path_val), Some(data_val)) =
+                                (args.get(0).to_string(scope), args.get(1).to_string(scope))
+                            {
+                                let path = path_val.to_rust_string_lossy(scope);
+                                let data = data_val.to_rust_string_lossy(scope);
+                                match std::fs::write(&path, data) {
+                                    Ok(_) => {
+                                        let success_val = v8::undefined(scope).into();
+                                        retval.set(success_val);
+                                    }
+                                    Err(e) => {
+                                        let error_msg = format!("Error writing file: {}", e);
+                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                        retval.set(error_val.into());
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+                .unwrap();
+                let writefile_key = v8::String::new(scope, "writeFileSync").unwrap().into();
+                fs_obj.set(scope, writefile_key, writefile_fn.into());
+
+                // Add existsSync function
+                let exists_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() >= 1 {
+                            if let Some(path_val) = args.get(0).to_string(scope) {
+                                let path = path_val.to_rust_string_lossy(scope);
+                                let exists = std::path::Path::new(&path).exists();
+                                let exists_val = v8::Boolean::new(scope, exists);
+                                retval.set(exists_val.into());
+                            }
+                        }
+                    },
+                )
+                .unwrap();
+                let exists_key = v8::String::new(scope, "existsSync").unwrap().into();
+                fs_obj.set(scope, exists_key, exists_fn.into());
+
+                // Add mkdirSync function
+                let mkdir_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() >= 1 {
+                            if let Some(path_val) = args.get(0).to_string(scope) {
+                                let path = path_val.to_rust_string_lossy(scope);
+                                match std::fs::create_dir_all(&path) {
+                                    Ok(_) => {
+                                        retval.set(v8::undefined(scope).into());
+                                    }
+                                    Err(e) => {
+                                        let error_msg = format!("Error creating directory: {}", e);
+                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                        retval.set(error_val.into());
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+                .unwrap();
+                let mkdir_key = v8::String::new(scope, "mkdirSync").unwrap().into();
+                fs_obj.set(scope, mkdir_key, mkdir_fn.into());
+
+                // Add readdirSync function
+                let readdir_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() >= 1 {
+                            if let Some(path_val) = args.get(0).to_string(scope) {
+                                let path = path_val.to_rust_string_lossy(scope);
+                                match std::fs::read_dir(&path) {
+                                    Ok(entries) => {
+                                        let mut file_names = Vec::new();
+                                        for entry in entries {
+                                            if let Ok(entry) = entry {
+                                                if let Ok(file_name) =
+                                                    entry.file_name().into_string()
+                                                {
+                                                    file_names.push(file_name);
+                                                }
+                                            }
+                                        }
+                                        let js_array =
+                                            v8::Array::new(scope, file_names.len() as i32);
+                                        for (i, name) in file_names.iter().enumerate() {
+                                            let name_val = v8::String::new(scope, name).unwrap();
+                                            js_array.set_index(scope, i as u32, name_val.into());
+                                        }
+                                        retval.set(js_array.into());
+                                    }
+                                    Err(e) => {
+                                        let error_msg = format!("Error reading directory: {}", e);
+                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                        retval.set(error_val.into());
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+                .unwrap();
+                let readdir_key = v8::String::new(scope, "readdirSync").unwrap().into();
+                fs_obj.set(scope, readdir_key, readdir_fn.into());
+
+                // Add unlinkSync function
+                let unlink_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() >= 1 {
+                            if let Some(path_val) = args.get(0).to_string(scope) {
+                                let path = path_val.to_rust_string_lossy(scope);
+                                match std::fs::remove_file(&path) {
+                                    Ok(_) => {
+                                        retval.set(v8::undefined(scope).into());
+                                    }
+                                    Err(e) => {
+                                        let error_msg = format!("Error deleting file: {}", e);
+                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                        let exception = v8::Exception::type_error(scope, error_val);
+                                        scope.throw_exception(exception.into());
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+                .unwrap();
+                let unlink_key = v8::String::new(scope, "unlinkSync").unwrap().into();
+                fs_obj.set(scope, unlink_key, unlink_fn.into());
+
+                // Add rmdirSync function
+                let rmdir_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() >= 1 {
+                            if let Some(path_val) = args.get(0).to_string(scope) {
+                                let path = path_val.to_rust_string_lossy(scope);
+                                match std::fs::remove_dir(&path) {
+                                    Ok(_) => {
+                                        retval.set(v8::undefined(scope).into());
+                                    }
+                                    Err(e) => {
+                                        let error_msg = format!("Error removing directory: {}", e);
+                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                        let exception = v8::Exception::type_error(scope, error_val);
+                                        scope.throw_exception(exception.into());
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+                .unwrap();
+                let rmdir_key = v8::String::new(scope, "rmdirSync").unwrap().into();
+                fs_obj.set(scope, rmdir_key, rmdir_fn.into());
+
+                // Add readFile function (async with callback) - v0.3.6
+                let readfile_async_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     _retval: v8::ReturnValue| {
+                        if args.length() < 2 {
+                            let error =
+                                v8::String::new(scope, "readFile: missing arguments").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        }
+
+                        let path_val = args.get(0);
+
+                        // Find the callback - it's at index 1 if index 1 is a function,
+                        // otherwise it's at index 2 (index 1 is options)
+                        let callback_val = if args.get(1).is_function() {
+                            args.get(1)
+                        } else if args.length() >= 3 && args.get(2).is_function() {
+                            args.get(2)
+                        } else {
+                            let error =
+                                v8::String::new(scope, "readFile: callback must be a function")
+                                    .unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        };
+
+                        let path = path_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+
+                        // Determine encoding from index 1 if it's a string and index 2 is the callback
+                        let _encoding = if !args.get(1).is_function() && args.get(1).is_string() {
+                            args.get(1)
+                                .to_string(scope)
+                                .map(|s| s.to_rust_string_lossy(scope))
+                                .unwrap_or_else(|| "utf8".to_string())
+                        } else {
+                            "utf8".to_string()
+                        };
+
+                        // Execute read asynchronously using tokio runtime
+                        let callback_func =
+                            v8::Local::<v8::Function>::try_from(callback_val).unwrap();
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        let read_result =
+                            rt.block_on(async { tokio::fs::read_to_string(&path).await });
+
+                        let undefined = v8::undefined(scope);
+                        let null_val: v8::Local<v8::Value> = v8::null(scope).into();
+                        match read_result {
+                            Ok(contents) => {
+                                let contents_val = v8::String::new(scope, &contents).unwrap();
+                                let _ = callback_func.call(
+                                    scope,
+                                    undefined.into(),
+                                    &[null_val, contents_val.into()],
+                                );
+                            }
+                            Err(e) => {
+                                let error_msg = format!("Error reading file: {}", e);
+                                let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                let _ = callback_func.call(
+                                    scope,
+                                    undefined.into(),
+                                    &[error_val.into(), undefined.into()],
+                                );
+                            }
+                        }
+                    },
+                )
+                .ok_or_else(|| -> anyhow::Error {
+                    anyhow::anyhow!("Failed to create readFile function")
+                })
+                .unwrap();
+                let readfile_async_key = v8::String::new(scope, "readFile").unwrap().into();
+                fs_obj.set(scope, readfile_async_key, readfile_async_fn.into());
+
+                // Add writeFile function (async with callback) - v0.3.6
+                let writefile_async_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     _retval: v8::ReturnValue| {
+                        if args.length() >= 2 {
+                            let path_val = args.get(0);
+                            let data_val = args.get(1);
+                            let callback_val = args.get(2);
+
+                            if callback_val.is_function() {
+                                let path = path_val
+                                    .to_string(scope)
+                                    .map(|s| s.to_rust_string_lossy(scope))
+                                    .unwrap_or_else(|| "".to_string());
+                                let data = data_val
+                                    .to_string(scope)
+                                    .map(|s| s.to_rust_string_lossy(scope))
+                                    .unwrap_or_else(|| "".to_string());
+
+                                let callback_func =
+                                    v8::Local::<v8::Function>::try_from(callback_val).unwrap();
+
+                                let rt = tokio::runtime::Runtime::new().unwrap();
+                                let write_result =
+                                    rt.block_on(async { tokio::fs::write(&path, &data).await });
+
+                                let undefined = v8::undefined(scope);
+                                match write_result {
+                                    Ok(_) => {
+                                        let null_val = v8::null(scope).into();
+                                        let _ = callback_func.call(
+                                            scope,
+                                            undefined.into(),
+                                            &[null_val],
+                                        );
+                                    }
+                                    Err(e) => {
+                                        let error_msg = format!("Error writing file: {}", e);
+                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                        let _ = callback_func.call(
+                                            scope,
+                                            undefined.into(),
+                                            &[error_val.into()],
+                                        );
+                                    }
+                                }
+                            } else {
+                                let error = v8::String::new(
+                                    scope,
+                                    "writeFile: callback must be a function",
+                                )
+                                .unwrap();
+                                let error_obj = v8::Exception::type_error(scope, error);
+                                scope.throw_exception(error_obj.into());
+                            }
+                        } else {
+                            let error =
+                                v8::String::new(scope, "writeFile: missing arguments").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                        }
+                    },
+                )
+                .ok_or_else(|| -> anyhow::Error {
+                    anyhow::anyhow!("Failed to create writeFile function")
+                })
+                .unwrap();
+                let writefile_async_key = v8::String::new(scope, "writeFile").unwrap().into();
+                fs_obj.set(scope, writefile_async_key, writefile_async_fn.into());
+
+                // Add appendFile function (async with callback) - v0.3.6
+                let appendfile_async_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     _retval: v8::ReturnValue| {
+                        if args.length() >= 3 {
+                            let path_val = args.get(0);
+                            let data_val = args.get(1);
+                            let callback_val = args.get(2);
+
+                            let path = path_val
+                                .to_string(scope)
+                                .map(|s| s.to_rust_string_lossy(scope))
+                                .unwrap_or_else(|| "".to_string());
+                            let data = data_val
+                                .to_string(scope)
+                                .map(|s| s.to_rust_string_lossy(scope))
+                                .unwrap_or_else(|| "".to_string());
+
+                            let callback_func =
+                                v8::Local::<v8::Function>::try_from(callback_val).unwrap();
+
+                            // Use tokio runtime for async file append
+                            let rt = tokio::runtime::Runtime::new().unwrap();
+                            let append_result = rt.block_on(async {
+                                // Read existing content, append, then write
+                                let mut content =
+                                    tokio::fs::read_to_string(&path).await.unwrap_or_default();
+                                content.push_str(&data);
+                                tokio::fs::write(&path, &content).await
+                            });
+
+                            let undefined = v8::undefined(scope);
+                            match append_result {
+                                Ok(_) => {
+                                    let null_val = v8::null(scope).into();
+                                    let _ =
+                                        callback_func.call(scope, undefined.into(), &[null_val]);
+                                }
+                                Err(e) => {
+                                    let error_msg = format!("Error appending to file: {}", e);
+                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                    let _ = callback_func.call(
+                                        scope,
+                                        undefined.into(),
+                                        &[error_val.into()],
+                                    );
+                                }
+                            }
+                        } else {
+                            let error =
+                                v8::String::new(scope, "appendFile: missing arguments").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                        }
+                    },
+                )
+                .ok_or_else(|| -> anyhow::Error {
+                    anyhow::anyhow!("Failed to create appendFile function")
+                })
+                .unwrap();
+                let appendfile_async_key = v8::String::new(scope, "appendFile").unwrap().into();
+                fs_obj.set(scope, appendfile_async_key, appendfile_async_fn.into());
+
+                // For fs module, directly return fs_obj as the module exports
+                retval.set(fs_obj.into());
+                return;
+            }
+            "fs/promises" => {
+                let ctx = scope.get_current_context();
+                let global_obj = ctx.global(scope);
+                let fs_key = v8::String::new(scope, "fs").unwrap();
+                if let Some(fs_value) = global_obj.get(scope, fs_key.into()) {
+                    if let Ok(fs_obj) = v8::Local::<v8::Object>::try_from(fs_value) {
+                        let promises_key = v8::String::new(scope, "promises").unwrap();
+                        if let Some(promises_value) = fs_obj.get(scope, promises_key.into()) {
+                            if !promises_value.is_undefined() && !promises_value.is_null() {
+                                retval.set(promises_value);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if !legacy_fs_fallback_enabled() {
+                    let error = v8::String::new(
+                scope,
+                "Cannot load builtin module 'fs/promises': global fs.promises binding is unavailable",
+            )
+            .unwrap();
+                    let exception = v8::Exception::type_error(scope, error);
+                    scope.throw_exception(exception);
+                    return;
+                }
+
+                // Return fs/promises module with Promise-based API (v0.3.7)
+                let promises_obj = v8::Object::new(scope);
+
+                // Create Promise-based readFile
+                let readfile_promise_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() < 1 {
+                            let error =
+                                v8::String::new(scope, "readFile: missing path argument").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        }
+
+                        let path_val = args.get(0);
+                        let path = path_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+
+                        // Determine encoding from index 1 if it's a string
+                        let _encoding = if args.length() >= 2 {
+                            let enc = args.get(1);
+                            if enc.is_string() {
+                                enc.to_string(scope).map(|s| s.to_rust_string_lossy(scope))
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+
+                        // Create a promise resolver
+                        let resolver = v8::PromiseResolver::new(scope).unwrap();
+                        let promise = resolver.get_promise(scope);
+
+                        // Return the promise immediately
+                        retval.set(promise.into());
+
+                        // Now resolve the promise asynchronously using tokio
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(async {
+                            match tokio::fs::read_to_string(&path).await {
+                                Ok(contents) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let value = v8::String::new(scope, &contents).unwrap();
+                                    resolver.resolve(scope, value.into());
+                                }
+                                Err(e) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let error_msg = format!("Error reading file: {}", e);
+                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                    let error_obj = v8::Exception::error(scope, error_val);
+                                    resolver.reject(scope, error_obj);
+                                }
+                            }
+                        });
+                    },
+                )
+                .ok_or_else(|| anyhow::anyhow!("Failed to create readFile Promise function"))
+                .unwrap();
+                let readfile_promise_key = v8::String::new(scope, "readFile").unwrap().into();
+                promises_obj.set(scope, readfile_promise_key, readfile_promise_fn.into());
+
+                // Create Promise-based writeFile
+                let writefile_promise_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() < 2 {
+                            let error =
+                                v8::String::new(scope, "writeFile: missing arguments").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        }
+
+                        let path_val = args.get(0);
+                        let data_val = args.get(1);
+                        let path = path_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+                        let data = data_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+
+                        // Create a promise resolver
+                        let resolver = v8::PromiseResolver::new(scope).unwrap();
+                        let promise = resolver.get_promise(scope);
+                        retval.set(promise.into());
+
+                        // Resolve asynchronously
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(async {
+                            match tokio::fs::write(&path, &data).await {
+                                Ok(_) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let undefined = v8::undefined(scope);
+                                    resolver.resolve(scope, undefined.into());
+                                }
+                                Err(e) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let error_msg = format!("Error writing file: {}", e);
+                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                    let error_obj = v8::Exception::error(scope, error_val);
+                                    resolver.reject(scope, error_obj);
+                                }
+                            }
+                        });
+                    },
+                )
+                .ok_or_else(|| anyhow::anyhow!("Failed to create writeFile Promise function"))
+                .unwrap();
+                let writefile_promise_key = v8::String::new(scope, "writeFile").unwrap().into();
+                promises_obj.set(scope, writefile_promise_key, writefile_promise_fn.into());
+
+                // Create Promise-based appendFile
+                let appendfile_promise_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() < 2 {
+                            let error =
+                                v8::String::new(scope, "appendFile: missing arguments").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        }
+
+                        let path_val = args.get(0);
+                        let data_val = args.get(1);
+                        let path = path_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+                        let data = data_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+
+                        // Create a promise resolver
+                        let resolver = v8::PromiseResolver::new(scope).unwrap();
+                        let promise = resolver.get_promise(scope);
+                        retval.set(promise.into());
+
+                        // Resolve asynchronously
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(async {
+                            // Read existing content, append, then write
+                            let mut content =
+                                tokio::fs::read_to_string(&path).await.unwrap_or_default();
+                            content.push_str(&data);
+                            match tokio::fs::write(&path, &content).await {
+                                Ok(_) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let undefined = v8::undefined(scope);
+                                    resolver.resolve(scope, undefined.into());
+                                }
+                                Err(e) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let error_msg = format!("Error appending to file: {}", e);
+                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                    let error_obj = v8::Exception::error(scope, error_val);
+                                    resolver.reject(scope, error_obj);
+                                }
+                            }
+                        });
+                    },
+                )
+                .ok_or_else(|| anyhow::anyhow!("Failed to create appendFile Promise function"))
+                .unwrap();
+                let appendfile_promise_key = v8::String::new(scope, "appendFile").unwrap().into();
+                promises_obj.set(scope, appendfile_promise_key, appendfile_promise_fn.into());
+
+                // Create Promise-based unlink
+                let unlink_promise_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() < 1 {
+                            let error =
+                                v8::String::new(scope, "unlink: missing path argument").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        }
+
+                        let path_val = args.get(0);
+                        let path = path_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+
+                        let resolver = v8::PromiseResolver::new(scope).unwrap();
+                        let promise = resolver.get_promise(scope);
+                        retval.set(promise.into());
+
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(async {
+                            match tokio::fs::remove_file(&path).await {
+                                Ok(_) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let undefined = v8::undefined(scope);
+                                    resolver.resolve(scope, undefined.into());
+                                }
+                                Err(e) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let error_msg = format!("Error unlinking file: {}", e);
+                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                    let error_obj = v8::Exception::error(scope, error_val);
+                                    resolver.reject(scope, error_obj);
+                                }
+                            }
+                        });
+                    },
+                )
+                .ok_or_else(|| anyhow::anyhow!("Failed to create unlink Promise function"))
+                .unwrap();
+                let unlink_promise_key = v8::String::new(scope, "unlink").unwrap().into();
+                promises_obj.set(scope, unlink_promise_key, unlink_promise_fn.into());
+
+                // Create Promise-based mkdir
+                let mkdir_promise_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() < 1 {
+                            let error =
+                                v8::String::new(scope, "mkdir: missing path argument").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        }
+
+                        let path_val = args.get(0);
+                        let path = path_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+
+                        let resolver = v8::PromiseResolver::new(scope).unwrap();
+                        let promise = resolver.get_promise(scope);
+                        retval.set(promise.into());
+
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(async {
+                            match tokio::fs::create_dir_all(&path).await {
+                                Ok(_) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let undefined = v8::undefined(scope);
+                                    resolver.resolve(scope, undefined.into());
+                                }
+                                Err(e) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let error_msg = format!("Error creating directory: {}", e);
+                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                    let error_obj = v8::Exception::error(scope, error_val);
+                                    resolver.reject(scope, error_obj);
+                                }
+                            }
+                        });
+                    },
+                )
+                .ok_or_else(|| anyhow::anyhow!("Failed to create mkdir Promise function"))
+                .unwrap();
+                let mkdir_promise_key = v8::String::new(scope, "mkdir").unwrap().into();
+                promises_obj.set(scope, mkdir_promise_key, mkdir_promise_fn.into());
+
+                // Create Promise-based rmdir
+                let rmdir_promise_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() < 1 {
+                            let error =
+                                v8::String::new(scope, "rmdir: missing path argument").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        }
+
+                        let path_val = args.get(0);
+                        let path = path_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+
+                        let resolver = v8::PromiseResolver::new(scope).unwrap();
+                        let promise = resolver.get_promise(scope);
+                        retval.set(promise.into());
+
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(async {
+                            match tokio::fs::remove_dir_all(&path).await {
+                                Ok(_) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let undefined = v8::undefined(scope);
+                                    resolver.resolve(scope, undefined.into());
+                                }
+                                Err(e) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let error_msg = format!("Error removing directory: {}", e);
+                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                    let error_obj = v8::Exception::error(scope, error_val);
+                                    resolver.reject(scope, error_obj);
+                                }
+                            }
+                        });
+                    },
+                )
+                .ok_or_else(|| anyhow::anyhow!("Failed to create rmdir Promise function"))
+                .unwrap();
+                let rmdir_promise_key = v8::String::new(scope, "rmdir").unwrap().into();
+                promises_obj.set(scope, rmdir_promise_key, rmdir_promise_fn.into());
+
+                // Create Promise-based readdir
+                let readdir_promise_fn = v8::Function::new(
+                    scope,
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     mut retval: v8::ReturnValue| {
+                        if args.length() < 1 {
+                            let error =
+                                v8::String::new(scope, "readdir: missing path argument").unwrap();
+                            let error_obj = v8::Exception::type_error(scope, error);
+                            scope.throw_exception(error_obj.into());
+                            return;
+                        }
+
+                        let path_val = args.get(0);
+                        let path = path_val
+                            .to_string(scope)
+                            .map(|s| s.to_rust_string_lossy(scope))
+                            .unwrap_or_else(|| "".to_string());
+
+                        let resolver = v8::PromiseResolver::new(scope).unwrap();
+                        let promise = resolver.get_promise(scope);
+                        retval.set(promise.into());
+
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(async {
+                            match tokio::fs::read_dir(&path).await {
+                                Ok(mut entries) => {
+                                    let mut names: Vec<String> = Vec::new();
+                                    while let Ok(Some(entry)) = entries.next_entry().await {
+                                        if let Ok(name) = entry.file_name().into_string() {
+                                            names.push(name);
+                                        }
+                                    }
+                                    // Create a JS array with the names
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let arr = v8::Array::new(scope, names.len() as i32);
+                                    for (i, name) in names.iter().enumerate() {
+                                        let name_str = v8::String::new(scope, name).unwrap();
+                                        arr.set_index(scope, i as u32, name_str.into());
+                                    }
+                                    resolver.resolve(scope, arr.into());
+                                }
+                                Err(e) => {
+                                    let resolver = v8::PromiseResolver::new(scope).unwrap();
+                                    let error_msg = format!("Error reading directory: {}", e);
+                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
+                                    let error_obj = v8::Exception::error(scope, error_val);
+                                    resolver.reject(scope, error_obj);
+                                }
+                            }
+                        });
+                    },
+                )
+                .ok_or_else(|| anyhow::anyhow!("Failed to create readdir Promise function"))
+                .unwrap();
+                let readdir_promise_key = v8::String::new(scope, "readdir").unwrap().into();
+                promises_obj.set(scope, readdir_promise_key, readdir_promise_fn.into());
+
+                // Return the promises object
+                retval.set(promises_obj.into());
+                return;
+            }
+            // v0.3.194: Fixed to return actual global objects instead of fallback messages
+            // v0.3.281: Added readline to the list of builtin modules
+            "os"
+            | "crypto"
+            | "events"
+            | "net"
+            | "http"
+            | "http2"
+            | "https"
+            | "tls"
+            | "util"
+            | "url"
+            | "querystring"
+            | "dns"
+            | "child_process"
+            | "tcp_async"
+            | "stream"
+            | "stream/promises"
+            | "timers"
+            | "timers/promises"
+            | "readline"
+            | "performance"
+            | "perf_hooks"
+            | "assert"
+            | "assert/strict"
+            | "diagnostics_channel"
+            | "async_hooks"
+            | "wasm"
+            | "amber:wasm"
+            | "ai"
+            | "amber:ai"
+            | "replay"
+            | "amber:replay"
+            | "weights"
+            | "amber:weights"
+            | "security"
+            | "amber:security"
+            | "permissions"
+            | "amber:permissions"
+            | "kv"
+            | "amber:kv"
+            | "tools"
+            | "amber:tools"
+            | "sandbox"
+            | "amber:sandbox"
+            | "vfs"
+            | "amber:vfs"
+            | "bus"
+            | "amber:bus"
+            | "grammar"
+            | "amber:grammar"
+            | "checkpoint"
+            | "amber:checkpoint"
+            | "sockets"
+            | "amber:sockets"
+            | "wintertc:sockets"
+            | "std:cli"
+            | "amber:std/cli" => {
+                // Get context and global object
+                let ctx = scope.get_current_context();
+                let global_obj = ctx.global(scope);
+
+                if module_id_str == "stream/promises" {
+                    let js = r#"
+            (function() {
+                const stream = globalThis.stream || require('stream');
+                function pipeline(...args) {
+                    return new Promise((resolve, reject) => {
+                        stream.pipeline(...args, (err, val) => {
+                            if (err) reject(err);
+                            else resolve(val);
+                        });
+                    });
+                }
+                function finished(s, opts) {
+                    return new Promise((resolve, reject) => {
+                        if (stream.finished) {
+                            stream.finished(s, opts, (err) => {
+                                if (err) reject(err);
+                                else resolve();
+                            });
+                        } else {
+                            s.on('finish', () => resolve());
+                            s.on('end', () => resolve());
+                            s.on('close', () => resolve());
+                            s.on('error', (err) => reject(err));
+                        }
+                    });
+                }
+                return { pipeline, finished, default: { pipeline, finished } };
+            })()
+            "#;
+                    if let Some(code) = v8::String::new(scope, js) {
+                        if let Some(s) = v8::Script::compile(scope, code, None) {
+                            if let Some(val) = s.run(scope) {
+                                retval.set(val);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if module_id_str == "timers/promises" {
+                    let js = r#"
+            (function() {
+                function setTimeout(delay = 0, value, options) {
+                    return new Promise((resolve, reject) => {
+                        if (options && options.signal && options.signal.aborted) {
+                            return reject(options.signal.reason || new Error('The operation was aborted'));
+                        }
+                        const timer = globalThis.setTimeout(() => resolve(value), delay);
+                        if (options && options.signal) {
+                            options.signal.addEventListener('abort', () => {
+                                globalThis.clearTimeout(timer);
+                                reject(options.signal.reason || new Error('The operation was aborted'));
+                            });
+                        }
+                    });
+                }
+                function setImmediate(value, options) {
+                    return setTimeout(0, value, options);
+                }
+                return { setTimeout, setImmediate, default: { setTimeout, setImmediate } };
+            })()
+            "#;
+                    if let Some(code) = v8::String::new(scope, js) {
+                        if let Some(s) = v8::Script::compile(scope, code, None) {
+                            if let Some(val) = s.run(scope) {
+                                retval.set(val);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if module_id_str == "module" {
+                    let module_exports = v8::Object::new(scope);
+                    let module_key = v8::String::new(scope, "module").unwrap();
+                    if let Some(current_module) = global_obj.get(scope, module_key.into()) {
+                        if let Ok(current_obj) = v8::Local::<v8::Object>::try_from(current_module) {
+                            let create_key = v8::String::new(scope, "createRequire").unwrap();
+                            if let Some(create_require) = current_obj.get(scope, create_key.into())
+                            {
+                                module_exports.set(scope, create_key.into(), create_require);
+                            }
+                        }
+                    }
+                    retval.set(module_exports.into());
+                    return;
+                }
+
+                if module_id_str == "events" {
+                    // Node shape: require('events') => { EventEmitter, ... }
+                    let events_key = v8::String::new(scope, "events").unwrap();
+                    if let Some(events_val) = global_obj.get(scope, events_key.into()) {
+                        if !events_val.is_undefined() {
+                            retval.set(events_val);
+                            return;
+                        }
+                    }
+                }
+
+                if module_id_str == "assert" || module_id_str == "assert/strict" {
+                    let assert_key = v8::String::new(scope, "assert").unwrap();
+                    if let Some(assert_val) = global_obj.get(scope, assert_key.into()) {
+                        if !assert_val.is_undefined() {
+                            retval.set(assert_val);
+                            return;
+                        }
+                    }
+                }
+
+                if module_id_str == "perf_hooks" {
+                    let hooks_key = v8::String::new(scope, "perf_hooks").unwrap();
+                    if let Some(hooks_val) = global_obj.get(scope, hooks_key.into()) {
+                        if !hooks_val.is_undefined() {
+                            retval.set(hooks_val);
+                            return;
+                        }
+                    }
+                }
+
+                if module_id_str == "ai" {
+                    let ai_key = v8::String::new(scope, "__amber_ai").unwrap();
+                    if let Some(ai_val) = global_obj.get(scope, ai_key.into()) {
+                        if !ai_val.is_undefined() {
+                            retval.set(ai_val);
+                            return;
+                        }
+                    }
+                }
+
+                if module_id_str == "string_decoder" {
+                    let sd_key = v8::String::new(scope, "__string_decoder").unwrap();
+                    if let Some(sd_val) = global_obj.get(scope, sd_key.into()) {
+                        if !sd_val.is_undefined() {
+                            retval.set(sd_val);
+                            return;
+                        }
+                    }
+                }
+
+                if module_id_str == "url" {
+                    let url_module = v8::Object::new(scope);
+                    let url_key = v8::String::new(scope, "URL").unwrap();
+                    if let Some(url_constructor) = global_obj.get(scope, url_key.into()) {
+                        url_module.set(scope, url_key.into(), url_constructor);
+                    }
+
+                    let search_params_key = v8::String::new(scope, "URLSearchParams").unwrap();
+                    if let Some(search_params_constructor) =
+                        global_obj.get(scope, search_params_key.into())
+                    {
+                        url_module.set(scope, search_params_key.into(), search_params_constructor);
+                    }
+
+                    // Legacy Node helpers
+                    let file_url_to_path = v8::Function::new(
+                        scope,
+                        |scope: &mut v8::PinScope,
+                         args: v8::FunctionCallbackArguments,
+                         mut rv: v8::ReturnValue| {
+                            let input = args
+                                .get(0)
+                                .to_string(scope)
+                                .map(|s| s.to_rust_string_lossy(scope))
+                                .unwrap_or_default();
+                            let path = input.strip_prefix("file://").unwrap_or(&input).to_string();
+                            let out = v8::String::new(scope, &path).unwrap();
+                            rv.set(out.into());
+                        },
+                    )
+                    .unwrap();
+                    let path_to_file_url = v8::Function::new(
+                        scope,
+                        |scope: &mut v8::PinScope,
+                         args: v8::FunctionCallbackArguments,
+                         mut rv: v8::ReturnValue| {
+                            let path = args
+                                .get(0)
+                                .to_string(scope)
+                                .map(|s| s.to_rust_string_lossy(scope))
+                                .unwrap_or_default();
+                            let href = if path.starts_with("file://") {
+                                path
+                            } else {
+                                format!("file://{}", path)
+                            };
+                            // Return a minimal URL-like object with href
+                            let obj = v8::Object::new(scope);
+                            let href_key = v8::String::new(scope, "href").unwrap();
+                            let href_val = v8::String::new(scope, &href).unwrap();
+                            obj.set(scope, href_key.into(), href_val.into());
+                            rv.set(obj.into());
+                        },
+                    )
+                    .unwrap();
+                    let futp_key = v8::String::new(scope, "fileURLToPath").unwrap();
+                    let ptfu_key = v8::String::new(scope, "pathToFileURL").unwrap();
+                    url_module.set(scope, futp_key.into(), file_url_to_path.into());
+                    url_module.set(scope, ptfu_key.into(), path_to_file_url.into());
+
+                    retval.set(url_module.into());
+                    return;
+                }
+
+                if module_id_str == "sockets"
+                    || module_id_str == "amber:sockets"
+                    || module_id_str == "wintertc:sockets"
+                {
+                    let sock_key = v8::String::new(scope, "__amber_sockets").unwrap();
+                    if let Some(sock_val) = global_obj.get(scope, sock_key.into()) {
+                        if !sock_val.is_undefined() {
+                            retval.set(sock_val);
+                            return;
+                        }
+                    }
+                }
+
+                // Try to get the module from global
+                let clean_id = module_id_str
+                    .strip_prefix("amber:")
+                    .unwrap_or(&module_id_str);
+                let mod_key = v8::String::new(scope, clean_id).unwrap();
+                if let Some(mod_val) = global_obj.get(scope, mod_key.into()) {
+                    if !mod_val.is_undefined() {
+                        if module_id_str == "readline" {
+                            if let Ok(module_obj) = v8::Local::<v8::Object>::try_from(mod_val) {
+                                let default_key = v8::String::new(scope, "default").unwrap();
+                                module_obj.set(scope, default_key.into(), mod_val);
+                            }
+                        }
+                        retval.set(mod_val);
+                        return;
+                    }
+                }
+
+                let amber_mod_key =
+                    v8::String::new(scope, &format!("__amber_{}", clean_id)).unwrap();
+                if let Some(mod_val) = global_obj.get(scope, amber_mod_key.into()) {
+                    if !mod_val.is_undefined() {
+                        retval.set(mod_val);
+                        return;
+                    }
+                }
+
+                // Fail closed — never return a silent fake module object.
+                let error_msg = format!(
+                    "ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: {}",
+                    module_id_str
+                );
+                let error_str = v8::String::new(scope, &error_msg).unwrap();
+                let error_obj = v8::Exception::error(scope, error_str);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+            _ => {
+                let error_msg = format!(
+                    "ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: {}",
+                    module_id_str
+                );
+                let error_str = v8::String::new(scope, &error_msg).unwrap();
+                let error_obj = v8::Exception::error(scope, error_str);
+                scope.throw_exception(error_obj.into());
+            }
+        }
+    }
+
+    #[inline(never)]
+    fn cjs_require_user_module(
+        scope: &mut v8::PinScope,
+        module_id_str: &str,
+        mut retval: v8::ReturnValue,
+    ) {
+        let result_obj = v8::Object::new(scope);
+        // First, try to get __dirname from global context for relative path resolution
+        let context = scope.get_current_context();
+        let global = context.global(scope);
+        let dirname_key = v8::String::new(scope, "__dirname").unwrap();
+        let current_dirname = global
+            .get(scope, dirname_key.into())
+            .and_then(|v| v.to_string(scope))
+            .map(|s| s.to_rust_string_lossy(scope))
+            .unwrap_or_else(|| String::from("."));
+
+        let module_path = match crate::nodejs_core::commonjs_resolver::resolve_commonjs_module(
+            &module_id_str,
+            std::path::Path::new(&current_dirname),
+        ) {
+            Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::File(path)) => path,
+            Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::Builtin(name)) => {
+                let clean = name.strip_prefix("amber:").unwrap_or(&name);
+                for candidate in &[name.as_str(), clean] {
+                    let lookup_key = v8::String::new(scope, candidate).unwrap();
+                    if let Some(val) = global.get(scope, lookup_key.into()) {
+                        if !val.is_undefined() && !val.is_null() {
+                            retval.set(val);
+                            return;
+                        }
+                    }
+                    let amber_key = v8::String::new(scope, &format!("__{}", candidate)).unwrap();
+                    if let Some(val) = global.get(scope, amber_key.into()) {
+                        if !val.is_undefined() && !val.is_null() {
+                            retval.set(val);
+                            return;
+                        }
+                    }
+                    let full_amber_key =
+                        v8::String::new(scope, &format!("__amber_{}", candidate)).unwrap();
+                    if let Some(val) = global.get(scope, full_amber_key.into()) {
+                        if !val.is_undefined() && !val.is_null() {
+                            retval.set(val);
+                            return;
+                        }
+                    }
+                }
+                let error_msg = format!("Cannot load builtin module '{}' from file resolver", name);
+                let error_str = v8::String::new(scope, &error_msg).unwrap();
+                let error_obj = v8::Exception::error(scope, error_str);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+            Err(error) => {
+                // v0.3.281: Handle readline module - return from global.readline
+                if module_id_str == "readline" {
+                    let readline_key = v8::String::new(scope, "readline").unwrap().into();
+                    if let Some(readline_val) = global.get(scope, readline_key) {
+                        if !readline_val.is_undefined() && !readline_val.is_null() {
+                            // Set as 'default' property for CommonJS compatibility
+                            let default_key = v8::String::new(scope, "default").unwrap().into();
+                            result_obj.set(scope, default_key, readline_val);
+                            retval.set(result_obj.into());
+                            return;
+                        }
+                    }
+                    // Fallback if readline not found
+                    let error_msg = "Cannot find module 'readline' - readline API not available";
+                    let error_str = v8::String::new(scope, error_msg).unwrap();
+                    let error_obj = v8::Exception::error(scope, error_str);
+                    scope.throw_exception(error_obj.into());
+                    return;
+                }
+
+                let error_str = v8::String::new(scope, &error.to_string()).unwrap();
+                let error_obj = v8::Exception::error(scope, error_str);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+        };
+
+        // Try to resolve as file path
+        if module_path.exists() && module_path.is_file() {
+            let module_format =
+                match crate::nodejs_core::commonjs_resolver::classify_commonjs_file(&module_path) {
+                    Ok(module_format) => module_format,
+                    Err(error) => {
+                        let error_str = v8::String::new(scope, &error.to_string()).unwrap();
+                        let error_obj = v8::Exception::error(scope, error_str);
+                        scope.throw_exception(error_obj.into());
+                        return;
+                    }
+                };
+            if module_format
+                == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule
+            {
+                let cache_global_key =
+                    v8::String::new(scope, "__amberjsEsmNamespaceCache").unwrap();
+                let cache_obj = match global
+                    .get(scope, cache_global_key.into())
+                    .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
+                {
+                    Some(cache_obj) => cache_obj,
+                    None => {
+                        let cache_obj = v8::Object::new(scope);
+                        global.set(scope, cache_global_key.into(), cache_obj.into());
+                        cache_obj
+                    }
+                };
+                let fingerprint_cache_global_key =
+                    v8::String::new(scope, "__amberjsEsmNamespaceFingerprintCache").unwrap();
+                let fingerprint_cache_obj = match global
+                    .get(scope, fingerprint_cache_global_key.into())
+                    .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
+                {
+                    Some(cache_obj) => cache_obj,
+                    None => {
+                        let cache_obj = v8::Object::new(scope);
+                        global.set(scope, fingerprint_cache_global_key.into(), cache_obj.into());
+                        cache_obj
+                    }
+                };
+                let cache_key_string = module_path.to_string_lossy().to_string();
+                let cache_key = v8::String::new(scope, &cache_key_string).unwrap();
+
+                if let Some(cached_namespace) = cache_obj.get(scope, cache_key.into()) {
+                    if !cached_namespace.is_undefined() {
+                        if let Some(graph_fingerprints) = fingerprint_cache_obj
+                            .get(scope, cache_key.into())
+                            .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
+                        {
+                            match Self::cached_esm_namespace_graph_is_fresh(
+                                scope,
+                                graph_fingerprints,
+                            ) {
+                                Ok(true) => {
+                                    retval.set(cached_namespace);
+                                    return;
+                                }
+                                Ok(false) => {}
+                                Err(error) => {
+                                    let error_str = v8::String::new(scope, &error).unwrap();
+                                    let error_obj = v8::Exception::type_error(scope, error_str);
+                                    scope.throw_exception(error_obj.into());
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if let Err(error) = crate::permissions::check_global_permission(
+                    crate::permissions::PermissionKind::FileSystem,
+                    crate::permissions::PermissionAction::Read,
+                    crate::permissions::ResourceId::Path(module_path.clone()),
+                ) {
+                    let error_str = v8::String::new(scope, &error.to_string()).unwrap();
+                    let error_obj = v8::Exception::type_error(scope, error_str);
+                    scope.throw_exception(error_obj.into());
+                    return;
+                }
+
+                let module_code = match std::fs::read_to_string(&module_path) {
+                    Ok(module_code) => module_code,
+                    Err(error) => {
+                        let error_msg = format!(
+                            "Error loading ES module '{}': {}",
+                            module_path.display(),
+                            error
+                        );
+                        let error_str = v8::String::new(scope, &error_msg).unwrap();
+                        let error_obj = v8::Exception::error(scope, error_str);
+                        scope.throw_exception(error_obj.into());
+                        return;
+                    }
+                };
+
+                let module_filename = module_path.to_string_lossy().to_string();
+                match Self::execute_esm_module_namespace(
+                    scope,
+                    &module_code,
+                    &module_filename,
+                    Self::DEFAULT_TIMER_DRAIN_LIMIT_MS,
+                ) {
+                    Ok((namespace, source_fingerprints)) => {
+                        let graph_fingerprints =
+                            Self::create_esm_namespace_graph_fingerprint_object(
+                                scope,
+                                &source_fingerprints,
+                            );
+                        cache_obj.set(scope, cache_key.into(), namespace);
+                        fingerprint_cache_obj.set(
+                            scope,
+                            cache_key.into(),
+                            graph_fingerprints.into(),
+                        );
+                        retval.set(namespace);
+                    }
+                    Err(error) => {
+                        let error_str = v8::String::new(scope, &error).unwrap();
+                        let error_obj = v8::Exception::error(scope, error_str);
+                        scope.throw_exception(error_obj.into());
+                    }
+                }
+                return;
+            }
+
+            let cache_global_key = v8::String::new(scope, "__amberjsModuleCache").unwrap();
+            let cache_obj = match global
+                .get(scope, cache_global_key.into())
+                .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
+            {
+                Some(cache_obj) => cache_obj,
+                None => {
+                    let cache_obj = v8::Object::new(scope);
+                    global.set(scope, cache_global_key.into(), cache_obj.into());
+                    cache_obj
+                }
+            };
+            let cache_key_string = module_path.to_string_lossy().to_string();
+            let cache_key = v8::String::new(scope, &cache_key_string).unwrap();
+
+            if let Some(cached_exports) = cache_obj.get(scope, cache_key.into()) {
+                if !cached_exports.is_undefined() {
+                    retval.set(cached_exports);
+                    return;
+                }
+            }
+
+            // Read and execute the module file
+            if let Err(error) = crate::permissions::check_global_permission(
+                crate::permissions::PermissionKind::FileSystem,
+                crate::permissions::PermissionAction::Read,
+                crate::permissions::ResourceId::Path(module_path.clone()),
+            ) {
+                let error_str = v8::String::new(scope, &error.to_string()).unwrap();
+                let error_obj = v8::Exception::type_error(scope, error_str);
+                scope.throw_exception(error_obj.into());
+                return;
+            }
+
+            match std::fs::read_to_string(&module_path) {
+                Ok(code) => {
+                    if module_format
+                        == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::Json
+                    {
+                        let json_value = match serde_json::from_str::<serde_json::Value>(&code) {
+                            Ok(value) => value,
+                            Err(error) => {
+                                let error_msg = format!(
+                                    "Error parsing JSON module '{}': {}",
+                                    module_path.display(),
+                                    error
+                                );
+                                let error_str = v8::String::new(scope, &error_msg).unwrap();
+                                let error_obj = v8::Exception::syntax_error(scope, error_str);
+                                scope.throw_exception(error_obj.into());
+                                return;
+                            }
+                        };
+                        let json_exports = serde_json_value_to_v8(scope, &json_value);
+                        cache_obj.set(scope, cache_key.into(), json_exports);
+                        retval.set(json_exports);
+                        return;
+                    }
+
+                    let code = if module_format
+                        == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScript
+                    {
+                        let module_filename = module_path.to_string_lossy().to_string();
+                        match Self::compile_typescript_commonjs_module(
+                            &code,
+                            &module_filename,
+                        ) {
+                            Ok(js_code) => js_code,
+                            Err(error) => {
+                                let error_msg = format!(
+                                    "Error compiling TypeScript module '{}': {}",
+                                    module_path.display(),
+                                    error
+                                );
+                                let error_str =
+                                    v8::String::new(scope, &error_msg).unwrap();
+                                let error_obj =
+                                    v8::Exception::syntax_error(scope, error_str);
+                                scope.throw_exception(error_obj.into());
+                                return;
+                            }
+                        }
+                    } else if module_format
+                        == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScriptJsx
+                    {
+                        let module_filename = module_path.to_string_lossy().to_string();
+                        match crate::typescript::compile_typescript(
+                            &code,
+                            &module_filename,
+                        ) {
+                            Ok(output) => output.js_code,
+                            Err(error) => {
+                                let error_msg = format!(
+                                    "Error compiling TypeScript module '{}': {}",
+                                    module_path.display(),
+                                    error
+                                );
+                                let error_str =
+                                    v8::String::new(scope, &error_msg).unwrap();
+                                let error_obj =
+                                    v8::Exception::syntax_error(scope, error_str);
+                                scope.throw_exception(error_obj.into());
+                                return;
+                            }
+                        }
+                    } else {
+                        code
+                    };
+
+                    // Create new module and exports objects for this module
+                    let module_obj = v8::Object::new(scope);
+                    let exports_obj = v8::Object::new(scope);
+                    let module_exports_key = v8::String::new(scope, "exports").unwrap().into();
+                    module_obj.set(scope, module_exports_key, exports_obj.clone().into());
+                    cache_obj.set(scope, cache_key.into(), exports_obj.clone().into());
+
+                    // Set up __dirname and __filename for the module
+                    let module_dirname = module_path
+                        .parent()
+                        .map(|p| p.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "/".to_string());
+                    let module_filename = module_path.to_string_lossy().to_string();
+
+                    // Create a wrapper function to execute the module code.
+                    // The local require captures this module directory, so module
+                    // code cannot break sibling resolution by mutating global
+                    // __dirname before calling require("./sibling").
+                    let module_dir_json = serde_json::to_string(&module_dirname).unwrap();
+                    let wrapper_code = format!(
+                        r#"(function(module, exports, __dirname, __filename) {{
+const __amberjsModuleDir = {module_dir_json};
+const __amberjsGlobalRequire = globalThis.require;
+function require(specifier) {{
+  const __previousDirname = globalThis.__dirname;
+  const __previousFilename = globalThis.__filename;
+  globalThis.__dirname = __amberjsModuleDir;
+  globalThis.__filename = __filename;
+  try {{
+    return __amberjsGlobalRequire(specifier);
+  }} finally {{
+    globalThis.__dirname = __previousDirname;
+    globalThis.__filename = __previousFilename;
+  }}
+}}
+require.main = __amberjsGlobalRequire.main;
+require.resolve = function(specifier) {{
+  const __previousDirname = globalThis.__dirname;
+  const __previousFilename = globalThis.__filename;
+  globalThis.__dirname = __amberjsModuleDir;
+  globalThis.__filename = __filename;
+  try {{
+    return __amberjsGlobalRequire.resolve(specifier);
+  }} finally {{
+    globalThis.__dirname = __previousDirname;
+    globalThis.__filename = __previousFilename;
+  }}
+}};
+{code}
+}})"#
+                    );
+
+                    // Compile and run the module code
+                    let script_source = v8::String::new(scope, &wrapper_code).unwrap();
+                    let Some(script) = v8::Script::compile(scope, script_source, None) else {
+                        let error_msg = format!(
+                            "Error compiling CommonJS module '{}'",
+                            module_path.display()
+                        );
+                        let error_str = v8::String::new(scope, &error_msg).unwrap();
+                        let error_obj = v8::Exception::syntax_error(scope, error_str);
+                        scope.throw_exception(error_obj.into());
+                        return;
+                    };
+                    let Some(wrapper_func_val) = script.run(scope) else {
+                        return;
+                    };
+
+                    // Convert to function
+                    let wrapper_func =
+                        v8::Local::<v8::Function>::try_from(wrapper_func_val).unwrap();
+
+                    // Call the wrapper with module context
+                    let undefined = v8::undefined(scope);
+                    let dirname_val = v8::String::new(scope, &module_dirname).unwrap().into();
+                    let filename_val = v8::String::new(scope, &module_filename).unwrap().into();
+                    let global_dirname_key = v8::String::new(scope, "__dirname").unwrap();
+                    let global_filename_key = v8::String::new(scope, "__filename").unwrap();
+                    let previous_dirname = global.get(scope, global_dirname_key.into());
+                    let previous_filename = global.get(scope, global_filename_key.into());
+                    let set_dirname_key = v8::String::new(scope, "__dirname").unwrap().into();
+                    global.set(scope, set_dirname_key, dirname_val);
+                    let set_filename_key = v8::String::new(scope, "__filename").unwrap().into();
+                    global.set(scope, set_filename_key, filename_val);
+
+                    let call_result = wrapper_func.call(
+                        scope,
+                        undefined.into(),
+                        &[
+                            module_obj.clone().into(),
+                            exports_obj.clone().into(),
+                            dirname_val,
+                            filename_val,
+                        ],
+                    );
+
+                    if let Some(previous_dirname) = previous_dirname {
+                        let restore_dirname_key =
+                            v8::String::new(scope, "__dirname").unwrap().into();
+                        global.set(scope, restore_dirname_key, previous_dirname);
+                    }
+                    if let Some(previous_filename) = previous_filename {
+                        let restore_filename_key =
+                            v8::String::new(scope, "__filename").unwrap().into();
+                        global.set(scope, restore_filename_key, previous_filename);
+                    }
+
+                    if call_result.is_none() {
+                        return;
+                    }
+
+                    // Return module.exports so assignments like
+                    // module.exports = { ... } are reflected.
+                    let module_exports_lookup_key =
+                        v8::String::new(scope, "exports").unwrap().into();
+                    if let Some(module_exports) = module_obj.get(scope, module_exports_lookup_key) {
+                        cache_obj.set(scope, cache_key.into(), module_exports);
+                        retval.set(module_exports);
+                    } else {
+                        cache_obj.set(scope, cache_key.into(), exports_obj.clone().into());
+                        retval.set(exports_obj.into());
+                    }
+                    return;
+                }
+                Err(e) => {
+                    let error_msg =
+                        format!("Error loading module '{}': {}", module_path.display(), e);
+                    let error_str = v8::String::new(scope, &error_msg).unwrap();
+                    let error_obj = v8::Exception::error(scope, error_str);
+                    scope.throw_exception(error_obj.into());
+                    return;
+                }
+            }
+        }
+
+        // Throw error for unknown modules
+        let error_msg = format!("Cannot find module '{}'", module_id_str);
+        let error_str = v8::String::new(scope, &error_msg).unwrap();
+        let error_obj = v8::Exception::error(scope, error_str);
+        scope.throw_exception(error_obj.into());
+        return;
+    }
+
     /// Set up CommonJS module system (require, module, exports, __dirname, __filename)
     /// v0.3.x: Simplified module system for MinimalRuntime
     fn setup_module_system(
@@ -16530,8 +18318,14 @@ impl MinimalRuntime {
         module_obj.set(scope, module_exports_key, exports_obj.clone().into());
 
         // Create require function
-        let require_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-            if args.length() >= 1 {
+        let require_fn = v8::Function::new(
+            scope,
+            |scope: &mut v8::PinScope,
+             args: v8::FunctionCallbackArguments,
+             retval: v8::ReturnValue| {
+                if args.length() < 1 {
+                    return;
+                }
                 let module_id = args.get(0);
                 let requested_module_id_str = if let Some(s) = module_id.to_string(scope) {
                     s.to_rust_string_lossy(scope)
@@ -16550,11 +18344,10 @@ impl MinimalRuntime {
                         scope.throw_exception(error_obj.into());
                         return;
                     }
-                } else if let Some(amber_name) = requested_module_id_str
-                    .strip_prefix("amber:")
-                {
-                    if crate::nodejs_core::commonjs_resolver::is_builtin_module(&requested_module_id_str)
-                        || crate::nodejs_core::commonjs_resolver::is_builtin_module(amber_name)
+                } else if let Some(amber_name) = requested_module_id_str.strip_prefix("amber:") {
+                    if crate::nodejs_core::commonjs_resolver::is_builtin_module(
+                        &requested_module_id_str,
+                    ) || crate::nodejs_core::commonjs_resolver::is_builtin_module(amber_name)
                     {
                         amber_name.to_string()
                     } else {
@@ -16568,1507 +18361,17 @@ impl MinimalRuntime {
                     requested_module_id_str
                 };
 
-                // Return appropriate module object based on module id
-                let result_obj = v8::Object::new(scope);
-
-                match module_id_str.as_str() {
-                    "buffer" => {
-                        // Always return the same Buffer installed on globalThis.
-                        let context = scope.get_current_context();
-                        let global = context.global(scope);
-                        let buffer_key = v8::String::new(scope, "Buffer").unwrap();
-                        if let Some(buffer_val) = global.get(scope, buffer_key.into()) {
-                            if !buffer_val.is_undefined() {
-                                result_obj.set(scope, buffer_key.into(), buffer_val);
-                                let default_key = v8::String::new(scope, "default").unwrap();
-                                let default_obj = v8::Object::new(scope);
-                                default_obj.set(scope, buffer_key.into(), buffer_val);
-                                result_obj.set(scope, default_key.into(), default_obj.into());
-                                retval.set(result_obj.into());
-                                return;
-                            }
-                        }
-                        let error_str = v8::String::new(scope, "Buffer global is not available")
-                            .unwrap();
-                        let error_obj = v8::Exception::error(scope, error_str);
-                        scope.throw_exception(error_obj.into());
-                        return;
-                    }
-                    "process" => {
-                        let context = scope.get_current_context();
-                        let global = context.global(scope);
-                        let process_key = v8::String::new(scope, "process").unwrap();
-                        if let Some(process_value) = global.get(scope, process_key.into()) {
-                            if !process_value.is_undefined() {
-                                retval.set(process_value);
-                                return;
-                            }
-                        }
-
-                        let error_str = v8::String::new(scope, "process global is not available")
-                            .unwrap();
-                        let error_obj = v8::Exception::error(scope, error_str);
-                        scope.throw_exception(error_obj.into());
-                        return;
-                    }
-                    "path" => {
-                        // Unify with the global path installed by nodejs_core::path.
-                        let context = scope.get_current_context();
-                        let global = context.global(scope);
-                        let path_key = v8::String::new(scope, "path").unwrap();
-                        if let Some(path_val) = global.get(scope, path_key.into()) {
-                            if !path_val.is_undefined() {
-                                retval.set(path_val);
-                                return;
-                            }
-                        }
-                        let error_str =
-                            v8::String::new(scope, "path global is not available").unwrap();
-                        let error_obj = v8::Exception::error(scope, error_str);
-                        scope.throw_exception(error_obj.into());
-                        return;
-                    }
-                    "fs" => {
-                        let ctx = scope.get_current_context();
-                        let global_obj = ctx.global(scope);
-                        let fs_key = v8::String::new(scope, "fs").unwrap();
-                        if let Some(fs_value) = global_obj.get(scope, fs_key.into()) {
-                            if !fs_value.is_undefined() && !fs_value.is_null() {
-                                retval.set(fs_value);
-                                return;
-                            }
-                        }
-
-                        if !legacy_fs_fallback_enabled() {
-                            let error = v8::String::new(
-                                scope,
-                                "Cannot load builtin module 'fs': global fs binding is unavailable",
-                            )
-                            .unwrap();
-                            let exception = v8::Exception::type_error(scope, error);
-                            scope.throw_exception(exception);
-                            return;
-                        }
-
-                        // Return fs module with file system methods (v0.3.5)
-                        let fs_obj = v8::Object::new(scope);
-
-                        // Add readFile function
-                        let readfile_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() >= 1 {
-                                if let Some(path_val) = args.get(0).to_string(scope) {
-                                    let path = path_val.to_rust_string_lossy(scope);
-                                    match std::fs::read_to_string(&path) {
-                                        Ok(contents) => {
-                                            let contents_val = v8::String::new(scope, &contents).unwrap();
-                                            retval.set(contents_val.into());
-                                        }
-                                        Err(e) => {
-                                            let error_msg = format!("Error reading file: {}", e);
-                                            let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                            retval.set(error_val.into());
-                                        }
-                                    }
-                                }
-                            }
-                        }).unwrap();
-                        let readfile_key = v8::String::new(scope, "readFileSync").unwrap().into();
-                        fs_obj.set(scope, readfile_key, readfile_fn.into());
-
-                        // Add writeFile function
-                        let writefile_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() >= 2 {
-                                if let (Some(path_val), Some(data_val)) = (args.get(0).to_string(scope), args.get(1).to_string(scope)) {
-                                    let path = path_val.to_rust_string_lossy(scope);
-                                    let data = data_val.to_rust_string_lossy(scope);
-                                    match std::fs::write(&path, data) {
-                                        Ok(_) => {
-                                            let success_val = v8::undefined(scope).into();
-                                            retval.set(success_val);
-                                        }
-                                        Err(e) => {
-                                            let error_msg = format!("Error writing file: {}", e);
-                                            let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                            retval.set(error_val.into());
-                                        }
-                                    }
-                                }
-                            }
-                        }).unwrap();
-                        let writefile_key = v8::String::new(scope, "writeFileSync").unwrap().into();
-                        fs_obj.set(scope, writefile_key, writefile_fn.into());
-
-                        // Add existsSync function
-                        let exists_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() >= 1 {
-                                if let Some(path_val) = args.get(0).to_string(scope) {
-                                    let path = path_val.to_rust_string_lossy(scope);
-                                    let exists = std::path::Path::new(&path).exists();
-                                    let exists_val = v8::Boolean::new(scope, exists);
-                                    retval.set(exists_val.into());
-                                }
-                            }
-                        }).unwrap();
-                        let exists_key = v8::String::new(scope, "existsSync").unwrap().into();
-                        fs_obj.set(scope, exists_key, exists_fn.into());
-
-                        // Add mkdirSync function
-                        let mkdir_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() >= 1 {
-                                if let Some(path_val) = args.get(0).to_string(scope) {
-                                    let path = path_val.to_rust_string_lossy(scope);
-                                    match std::fs::create_dir_all(&path) {
-                                        Ok(_) => {
-                                            retval.set(v8::undefined(scope).into());
-                                        }
-                                        Err(e) => {
-                                            let error_msg = format!("Error creating directory: {}", e);
-                                            let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                            retval.set(error_val.into());
-                                        }
-                                    }
-                                }
-                            }
-                        }).unwrap();
-                        let mkdir_key = v8::String::new(scope, "mkdirSync").unwrap().into();
-                        fs_obj.set(scope, mkdir_key, mkdir_fn.into());
-
-                        // Add readdirSync function
-                        let readdir_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() >= 1 {
-                                if let Some(path_val) = args.get(0).to_string(scope) {
-                                    let path = path_val.to_rust_string_lossy(scope);
-                                    match std::fs::read_dir(&path) {
-                                        Ok(entries) => {
-                                            let mut file_names = Vec::new();
-                                            for entry in entries {
-                                                if let Ok(entry) = entry {
-                                                    if let Ok(file_name) = entry.file_name().into_string() {
-                                                        file_names.push(file_name);
-                                                    }
-                                                }
-                                            }
-                                            let js_array = v8::Array::new(scope, file_names.len() as i32);
-                                            for (i, name) in file_names.iter().enumerate() {
-                                                let name_val = v8::String::new(scope, name).unwrap();
-                                                js_array.set_index(scope, i as u32, name_val.into());
-                                            }
-                                            retval.set(js_array.into());
-                                        }
-                                        Err(e) => {
-                                            let error_msg = format!("Error reading directory: {}", e);
-                                            let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                            retval.set(error_val.into());
-                                        }
-                                    }
-                                }
-                            }
-                        }).unwrap();
-                        let readdir_key = v8::String::new(scope, "readdirSync").unwrap().into();
-                        fs_obj.set(scope, readdir_key, readdir_fn.into());
-
-                        // Add unlinkSync function
-                        let unlink_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() >= 1 {
-                                if let Some(path_val) = args.get(0).to_string(scope) {
-                                    let path = path_val.to_rust_string_lossy(scope);
-                                    match std::fs::remove_file(&path) {
-                                        Ok(_) => {
-                                            retval.set(v8::undefined(scope).into());
-                                        }
-                                        Err(e) => {
-                                            let error_msg = format!("Error deleting file: {}", e);
-                                            let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                            let exception = v8::Exception::type_error(scope, error_val);
-                                            scope.throw_exception(exception.into());
-                                        }
-                                    }
-                                }
-                            }
-                        }).unwrap();
-                        let unlink_key = v8::String::new(scope, "unlinkSync").unwrap().into();
-                        fs_obj.set(scope, unlink_key, unlink_fn.into());
-
-                        // Add rmdirSync function
-                        let rmdir_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() >= 1 {
-                                if let Some(path_val) = args.get(0).to_string(scope) {
-                                    let path = path_val.to_rust_string_lossy(scope);
-                                    match std::fs::remove_dir(&path) {
-                                        Ok(_) => {
-                                            retval.set(v8::undefined(scope).into());
-                                        }
-                                        Err(e) => {
-                                            let error_msg = format!("Error removing directory: {}", e);
-                                            let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                            let exception = v8::Exception::type_error(scope, error_val);
-                                            scope.throw_exception(exception.into());
-                                        }
-                                    }
-                                }
-                            }
-                        }).unwrap();
-                        let rmdir_key = v8::String::new(scope, "rmdirSync").unwrap().into();
-                        fs_obj.set(scope, rmdir_key, rmdir_fn.into());
-
-                        // Add readFile function (async with callback) - v0.3.6
-                        let readfile_async_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
-                            if args.length() < 2 {
-                                let error = v8::String::new(scope, "readFile: missing arguments").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            let path_val = args.get(0);
-
-                            // Find the callback - it's at index 1 if index 1 is a function,
-                            // otherwise it's at index 2 (index 1 is options)
-                            let callback_val = if args.get(1).is_function() {
-                                args.get(1)
-                            } else if args.length() >= 3 && args.get(2).is_function() {
-                                args.get(2)
-                            } else {
-                                let error = v8::String::new(scope, "readFile: callback must be a function").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            };
-
-                            let path = path_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-
-                            // Determine encoding from index 1 if it's a string and index 2 is the callback
-                            let _encoding = if !args.get(1).is_function() && args.get(1).is_string() {
-                                args.get(1).to_string(scope)
-                                    .map(|s| s.to_rust_string_lossy(scope))
-                                    .unwrap_or_else(|| "utf8".to_string())
-                            } else {
-                                "utf8".to_string()
-                            };
-
-                            // Execute read asynchronously using tokio runtime
-                            let callback_func = v8::Local::<v8::Function>::try_from(callback_val).unwrap();
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            let read_result = rt.block_on(async {
-                                tokio::fs::read_to_string(&path).await
-                            });
-
-                            let undefined = v8::undefined(scope);
-                            let null_val: v8::Local<v8::Value> = v8::null(scope).into();
-                            match read_result {
-                                Ok(contents) => {
-                                    let contents_val = v8::String::new(scope, &contents).unwrap();
-                                    let _ = callback_func.call(scope, undefined.into(), &[null_val, contents_val.into()]);
-                                }
-                                Err(e) => {
-                                    let error_msg = format!("Error reading file: {}", e);
-                                    let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                    let _ = callback_func.call(scope, undefined.into(), &[error_val.into(), undefined.into()]);
-                                }
-                            }
-                        }).ok_or_else(|| -> anyhow::Error { anyhow::anyhow!("Failed to create readFile function") }).unwrap();
-                        let readfile_async_key = v8::String::new(scope, "readFile").unwrap().into();
-                        fs_obj.set(scope, readfile_async_key, readfile_async_fn.into());
-
-                        // Add writeFile function (async with callback) - v0.3.6
-                        let writefile_async_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
-                            if args.length() >= 2 {
-                                let path_val = args.get(0);
-                                let data_val = args.get(1);
-                                let callback_val = args.get(2);
-
-                                if callback_val.is_function() {
-                                    let path = path_val.to_string(scope)
-                                        .map(|s| s.to_rust_string_lossy(scope))
-                                        .unwrap_or_else(|| "".to_string());
-                                    let data = data_val.to_string(scope)
-                                        .map(|s| s.to_rust_string_lossy(scope))
-                                        .unwrap_or_else(|| "".to_string());
-
-                                    let callback_func = v8::Local::<v8::Function>::try_from(callback_val).unwrap();
-
-                                    let rt = tokio::runtime::Runtime::new().unwrap();
-                                    let write_result = rt.block_on(async {
-                                        tokio::fs::write(&path, &data).await
-                                    });
-
-                                    let undefined = v8::undefined(scope);
-                                    match write_result {
-                                        Ok(_) => {
-                                            let null_val = v8::null(scope).into();
-                                            let _ = callback_func.call(scope, undefined.into(), &[null_val]);
-                                        }
-                                        Err(e) => {
-                                            let error_msg = format!("Error writing file: {}", e);
-                                            let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                            let _ = callback_func.call(scope, undefined.into(), &[error_val.into()]);
-                                        }
-                                    }
-                                } else {
-                                    let error = v8::String::new(scope, "writeFile: callback must be a function").unwrap();
-                                    let error_obj = v8::Exception::type_error(scope, error);
-                                    scope.throw_exception(error_obj.into());
-                                }
-                            } else {
-                                let error = v8::String::new(scope, "writeFile: missing arguments").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                            }
-                        }).ok_or_else(|| -> anyhow::Error { anyhow::anyhow!("Failed to create writeFile function") }).unwrap();
-                        let writefile_async_key = v8::String::new(scope, "writeFile").unwrap().into();
-                        fs_obj.set(scope, writefile_async_key, writefile_async_fn.into());
-
-                        // Add appendFile function (async with callback) - v0.3.6
-                        let appendfile_async_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _retval: v8::ReturnValue| {
-                            if args.length() >= 3 {
-                                let path_val = args.get(0);
-                                let data_val = args.get(1);
-                                let callback_val = args.get(2);
-
-                                let path = path_val.to_string(scope)
-                                    .map(|s| s.to_rust_string_lossy(scope))
-                                    .unwrap_or_else(|| "".to_string());
-                                let data = data_val.to_string(scope)
-                                    .map(|s| s.to_rust_string_lossy(scope))
-                                    .unwrap_or_else(|| "".to_string());
-
-                                let callback_func = v8::Local::<v8::Function>::try_from(callback_val).unwrap();
-
-                                // Use tokio runtime for async file append
-                                let rt = tokio::runtime::Runtime::new().unwrap();
-                                let append_result = rt.block_on(async {
-                                    // Read existing content, append, then write
-                                    let mut content = tokio::fs::read_to_string(&path).await.unwrap_or_default();
-                                    content.push_str(&data);
-                                    tokio::fs::write(&path, &content).await
-                                });
-
-                                let undefined = v8::undefined(scope);
-                                match append_result {
-                                    Ok(_) => {
-                                        let null_val = v8::null(scope).into();
-                                        let _ = callback_func.call(scope, undefined.into(), &[null_val]);
-                                    }
-                                    Err(e) => {
-                                        let error_msg = format!("Error appending to file: {}", e);
-                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                        let _ = callback_func.call(scope, undefined.into(), &[error_val.into()]);
-                                    }
-                                }
-                            } else {
-                                let error = v8::String::new(scope, "appendFile: missing arguments").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                            }
-                        }).ok_or_else(|| -> anyhow::Error { anyhow::anyhow!("Failed to create appendFile function") }).unwrap();
-                        let appendfile_async_key = v8::String::new(scope, "appendFile").unwrap().into();
-                        fs_obj.set(scope, appendfile_async_key, appendfile_async_fn.into());
-
-                        // For fs module, directly return fs_obj as the module exports
-                        retval.set(fs_obj.into());
-                        return;
-                    }
-                    "fs/promises" => {
-                        let ctx = scope.get_current_context();
-                        let global_obj = ctx.global(scope);
-                        let fs_key = v8::String::new(scope, "fs").unwrap();
-                        if let Some(fs_value) = global_obj.get(scope, fs_key.into()) {
-                            if let Ok(fs_obj) = v8::Local::<v8::Object>::try_from(fs_value) {
-                                let promises_key = v8::String::new(scope, "promises").unwrap();
-                                if let Some(promises_value) =
-                                    fs_obj.get(scope, promises_key.into())
-                                {
-                                    if !promises_value.is_undefined() && !promises_value.is_null() {
-                                        retval.set(promises_value);
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        if !legacy_fs_fallback_enabled() {
-                            let error = v8::String::new(
-                                scope,
-                                "Cannot load builtin module 'fs/promises': global fs.promises binding is unavailable",
-                            )
-                            .unwrap();
-                            let exception = v8::Exception::type_error(scope, error);
-                            scope.throw_exception(exception);
-                            return;
-                        }
-
-                        // Return fs/promises module with Promise-based API (v0.3.7)
-                        let promises_obj = v8::Object::new(scope);
-
-                        // Create Promise-based readFile
-                        let readfile_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() < 1 {
-                                let error = v8::String::new(scope, "readFile: missing path argument").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            let path_val = args.get(0);
-                            let path = path_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-
-                            // Determine encoding from index 1 if it's a string
-                            let _encoding = if args.length() >= 2 {
-                                let enc = args.get(1);
-                                if enc.is_string() {
-                                    enc.to_string(scope).map(|s| s.to_rust_string_lossy(scope))
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            };
-
-                            // Create a promise resolver
-                            let resolver = v8::PromiseResolver::new(scope).unwrap();
-                            let promise = resolver.get_promise(scope);
-
-                            // Return the promise immediately
-                            retval.set(promise.into());
-
-                            // Now resolve the promise asynchronously using tokio
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            rt.block_on(async {
-                                match tokio::fs::read_to_string(&path).await {
-                                    Ok(contents) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let value = v8::String::new(scope, &contents).unwrap();
-                                        resolver.resolve(scope, value.into());
-                                    }
-                                    Err(e) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let error_msg = format!("Error reading file: {}", e);
-                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_val);
-                                        resolver.reject(scope, error_obj);
-                                    }
-                                }
-                            });
-                        }).ok_or_else(|| anyhow::anyhow!("Failed to create readFile Promise function")).unwrap();
-                        let readfile_promise_key = v8::String::new(scope, "readFile").unwrap().into();
-                        promises_obj.set(scope, readfile_promise_key, readfile_promise_fn.into());
-
-                        // Create Promise-based writeFile
-                        let writefile_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() < 2 {
-                                let error = v8::String::new(scope, "writeFile: missing arguments").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            let path_val = args.get(0);
-                            let data_val = args.get(1);
-                            let path = path_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-                            let data = data_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-
-                            // Create a promise resolver
-                            let resolver = v8::PromiseResolver::new(scope).unwrap();
-                            let promise = resolver.get_promise(scope);
-                            retval.set(promise.into());
-
-                            // Resolve asynchronously
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            rt.block_on(async {
-                                match tokio::fs::write(&path, &data).await {
-                                    Ok(_) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let undefined = v8::undefined(scope);
-                                        resolver.resolve(scope, undefined.into());
-                                    }
-                                    Err(e) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let error_msg = format!("Error writing file: {}", e);
-                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_val);
-                                        resolver.reject(scope, error_obj);
-                                    }
-                                }
-                            });
-                        }).ok_or_else(|| anyhow::anyhow!("Failed to create writeFile Promise function")).unwrap();
-                        let writefile_promise_key = v8::String::new(scope, "writeFile").unwrap().into();
-                        promises_obj.set(scope, writefile_promise_key, writefile_promise_fn.into());
-
-                        // Create Promise-based appendFile
-                        let appendfile_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() < 2 {
-                                let error = v8::String::new(scope, "appendFile: missing arguments").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            let path_val = args.get(0);
-                            let data_val = args.get(1);
-                            let path = path_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-                            let data = data_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-
-                            // Create a promise resolver
-                            let resolver = v8::PromiseResolver::new(scope).unwrap();
-                            let promise = resolver.get_promise(scope);
-                            retval.set(promise.into());
-
-                            // Resolve asynchronously
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            rt.block_on(async {
-                                // Read existing content, append, then write
-                                let mut content = tokio::fs::read_to_string(&path).await.unwrap_or_default();
-                                content.push_str(&data);
-                                match tokio::fs::write(&path, &content).await {
-                                    Ok(_) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let undefined = v8::undefined(scope);
-                                        resolver.resolve(scope, undefined.into());
-                                    }
-                                    Err(e) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let error_msg = format!("Error appending to file: {}", e);
-                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_val);
-                                        resolver.reject(scope, error_obj);
-                                    }
-                                }
-                            });
-                        }).ok_or_else(|| anyhow::anyhow!("Failed to create appendFile Promise function")).unwrap();
-                        let appendfile_promise_key = v8::String::new(scope, "appendFile").unwrap().into();
-                        promises_obj.set(scope, appendfile_promise_key, appendfile_promise_fn.into());
-
-                        // Create Promise-based unlink
-                        let unlink_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() < 1 {
-                                let error = v8::String::new(scope, "unlink: missing path argument").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            let path_val = args.get(0);
-                            let path = path_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-
-                            let resolver = v8::PromiseResolver::new(scope).unwrap();
-                            let promise = resolver.get_promise(scope);
-                            retval.set(promise.into());
-
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            rt.block_on(async {
-                                match tokio::fs::remove_file(&path).await {
-                                    Ok(_) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let undefined = v8::undefined(scope);
-                                        resolver.resolve(scope, undefined.into());
-                                    }
-                                    Err(e) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let error_msg = format!("Error unlinking file: {}", e);
-                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_val);
-                                        resolver.reject(scope, error_obj);
-                                    }
-                                }
-                            });
-                        }).ok_or_else(|| anyhow::anyhow!("Failed to create unlink Promise function")).unwrap();
-                        let unlink_promise_key = v8::String::new(scope, "unlink").unwrap().into();
-                        promises_obj.set(scope, unlink_promise_key, unlink_promise_fn.into());
-
-                        // Create Promise-based mkdir
-                        let mkdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() < 1 {
-                                let error = v8::String::new(scope, "mkdir: missing path argument").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            let path_val = args.get(0);
-                            let path = path_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-
-                            let resolver = v8::PromiseResolver::new(scope).unwrap();
-                            let promise = resolver.get_promise(scope);
-                            retval.set(promise.into());
-
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            rt.block_on(async {
-                                match tokio::fs::create_dir_all(&path).await {
-                                    Ok(_) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let undefined = v8::undefined(scope);
-                                        resolver.resolve(scope, undefined.into());
-                                    }
-                                    Err(e) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let error_msg = format!("Error creating directory: {}", e);
-                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_val);
-                                        resolver.reject(scope, error_obj);
-                                    }
-                                }
-                            });
-                        }).ok_or_else(|| anyhow::anyhow!("Failed to create mkdir Promise function")).unwrap();
-                        let mkdir_promise_key = v8::String::new(scope, "mkdir").unwrap().into();
-                        promises_obj.set(scope, mkdir_promise_key, mkdir_promise_fn.into());
-
-                        // Create Promise-based rmdir
-                        let rmdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() < 1 {
-                                let error = v8::String::new(scope, "rmdir: missing path argument").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            let path_val = args.get(0);
-                            let path = path_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-
-                            let resolver = v8::PromiseResolver::new(scope).unwrap();
-                            let promise = resolver.get_promise(scope);
-                            retval.set(promise.into());
-
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            rt.block_on(async {
-                                match tokio::fs::remove_dir_all(&path).await {
-                                    Ok(_) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let undefined = v8::undefined(scope);
-                                        resolver.resolve(scope, undefined.into());
-                                    }
-                                    Err(e) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let error_msg = format!("Error removing directory: {}", e);
-                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_val);
-                                        resolver.reject(scope, error_obj);
-                                    }
-                                }
-                            });
-                        }).ok_or_else(|| anyhow::anyhow!("Failed to create rmdir Promise function")).unwrap();
-                        let rmdir_promise_key = v8::String::new(scope, "rmdir").unwrap().into();
-                        promises_obj.set(scope, rmdir_promise_key, rmdir_promise_fn.into());
-
-                        // Create Promise-based readdir
-                        let readdir_promise_fn = v8::Function::new(scope, |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, mut retval: v8::ReturnValue| {
-                            if args.length() < 1 {
-                                let error = v8::String::new(scope, "readdir: missing path argument").unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            let path_val = args.get(0);
-                            let path = path_val.to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_else(|| "".to_string());
-
-                            let resolver = v8::PromiseResolver::new(scope).unwrap();
-                            let promise = resolver.get_promise(scope);
-                            retval.set(promise.into());
-
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            rt.block_on(async {
-                                match tokio::fs::read_dir(&path).await {
-                                    Ok(mut entries) => {
-                                        let mut names: Vec<String> = Vec::new();
-                                        while let Ok(Some(entry)) = entries.next_entry().await {
-                                            if let Ok(name) = entry.file_name().into_string() {
-                                                names.push(name);
-                                            }
-                                        }
-                                        // Create a JS array with the names
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let arr = v8::Array::new(scope, names.len() as i32);
-                                        for (i, name) in names.iter().enumerate() {
-                                            let name_str = v8::String::new(scope, name).unwrap();
-                                            arr.set_index(scope, i as u32, name_str.into());
-                                        }
-                                        resolver.resolve(scope, arr.into());
-                                    }
-                                    Err(e) => {
-                                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                                        let error_msg = format!("Error reading directory: {}", e);
-                                        let error_val = v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_val);
-                                        resolver.reject(scope, error_obj);
-                                    }
-                                }
-                            });
-                        }).ok_or_else(|| anyhow::anyhow!("Failed to create readdir Promise function")).unwrap();
-                        let readdir_promise_key = v8::String::new(scope, "readdir").unwrap().into();
-                        promises_obj.set(scope, readdir_promise_key, readdir_promise_fn.into());
-
-                        // Return the promises object
-                        retval.set(promises_obj.into());
-                        return;
-                    }
-                    // v0.3.194: Fixed to return actual global objects instead of fallback messages
-                    // v0.3.281: Added readline to the list of builtin modules
-                    "os" | "crypto" | "events" | "net" | "http" | "http2" | "https" | "tls" | "util"
-                    | "url" | "querystring" | "dns" | "child_process" | "tcp_async" | "stream"
-                    | "stream/promises" | "timers" | "timers/promises"
-                    | "readline" | "performance" | "perf_hooks" | "assert" | "assert/strict"
-                    | "diagnostics_channel" | "async_hooks" | "wasm" | "amber:wasm"
-                    | "ai" | "amber:ai" | "replay" | "amber:replay" | "weights" | "amber:weights"
-                    | "security" | "amber:security" | "permissions" | "amber:permissions"
-                    | "kv" | "amber:kv" | "tools" | "amber:tools" | "sandbox" | "amber:sandbox" | "vfs" | "amber:vfs"
-                    | "bus" | "amber:bus" | "grammar" | "amber:grammar" | "checkpoint" | "amber:checkpoint"
-                    | "sockets" | "amber:sockets" | "wintertc:sockets" | "std:cli" | "amber:std/cli" => {
-                        // Get context and global object
-                        let ctx = scope.get_current_context();
-                        let global_obj = ctx.global(scope);
-
-                        if module_id_str == "stream/promises" {
-                            let js = r#"
-                            (function() {
-                                const stream = globalThis.stream || require('stream');
-                                function pipeline(...args) {
-                                    return new Promise((resolve, reject) => {
-                                        stream.pipeline(...args, (err, val) => {
-                                            if (err) reject(err);
-                                            else resolve(val);
-                                        });
-                                    });
-                                }
-                                function finished(s, opts) {
-                                    return new Promise((resolve, reject) => {
-                                        if (stream.finished) {
-                                            stream.finished(s, opts, (err) => {
-                                                if (err) reject(err);
-                                                else resolve();
-                                            });
-                                        } else {
-                                            s.on('finish', () => resolve());
-                                            s.on('end', () => resolve());
-                                            s.on('close', () => resolve());
-                                            s.on('error', (err) => reject(err));
-                                        }
-                                    });
-                                }
-                                return { pipeline, finished, default: { pipeline, finished } };
-                            })()
-                            "#;
-                            if let Some(code) = v8::String::new(scope, js) {
-                                if let Some(s) = v8::Script::compile(scope, code, None) {
-                                    if let Some(val) = s.run(scope) {
-                                        retval.set(val);
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        if module_id_str == "timers/promises" {
-                            let js = r#"
-                            (function() {
-                                function setTimeout(delay = 0, value, options) {
-                                    return new Promise((resolve, reject) => {
-                                        if (options && options.signal && options.signal.aborted) {
-                                            return reject(options.signal.reason || new Error('The operation was aborted'));
-                                        }
-                                        const timer = globalThis.setTimeout(() => resolve(value), delay);
-                                        if (options && options.signal) {
-                                            options.signal.addEventListener('abort', () => {
-                                                globalThis.clearTimeout(timer);
-                                                reject(options.signal.reason || new Error('The operation was aborted'));
-                                            });
-                                        }
-                                    });
-                                }
-                                function setImmediate(value, options) {
-                                    return setTimeout(0, value, options);
-                                }
-                                return { setTimeout, setImmediate, default: { setTimeout, setImmediate } };
-                            })()
-                            "#;
-                            if let Some(code) = v8::String::new(scope, js) {
-                                if let Some(s) = v8::Script::compile(scope, code, None) {
-                                    if let Some(val) = s.run(scope) {
-                                        retval.set(val);
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        if module_id_str == "module" {
-                            let module_exports = v8::Object::new(scope);
-                            let module_key = v8::String::new(scope, "module").unwrap();
-                            if let Some(current_module) = global_obj.get(scope, module_key.into()) {
-                                if let Ok(current_obj) =
-                                    v8::Local::<v8::Object>::try_from(current_module)
-                                {
-                                    let create_key = v8::String::new(scope, "createRequire").unwrap();
-                                    if let Some(create_require) =
-                                        current_obj.get(scope, create_key.into())
-                                    {
-                                        module_exports.set(
-                                            scope,
-                                            create_key.into(),
-                                            create_require,
-                                        );
-                                    }
-                                }
-                            }
-                            retval.set(module_exports.into());
-                            return;
-                        }
-
-                        if module_id_str == "events" {
-                            // Node shape: require('events') => { EventEmitter, ... }
-                            let events_key = v8::String::new(scope, "events").unwrap();
-                            if let Some(events_val) = global_obj.get(scope, events_key.into()) {
-                                if !events_val.is_undefined() {
-                                    retval.set(events_val);
-                                    return;
-                                }
-                            }
-                        }
-
-                        if module_id_str == "assert" || module_id_str == "assert/strict" {
-                            let assert_key = v8::String::new(scope, "assert").unwrap();
-                            if let Some(assert_val) = global_obj.get(scope, assert_key.into()) {
-                                if !assert_val.is_undefined() {
-                                    retval.set(assert_val);
-                                    return;
-                                }
-                            }
-                        }
-
-                        if module_id_str == "perf_hooks" {
-                            let hooks_key = v8::String::new(scope, "perf_hooks").unwrap();
-                            if let Some(hooks_val) = global_obj.get(scope, hooks_key.into()) {
-                                if !hooks_val.is_undefined() {
-                                    retval.set(hooks_val);
-                                    return;
-                                }
-                            }
-                        }
-
-                        if module_id_str == "ai" {
-                            let ai_key = v8::String::new(scope, "__amber_ai").unwrap();
-                            if let Some(ai_val) = global_obj.get(scope, ai_key.into()) {
-                                if !ai_val.is_undefined() {
-                                    retval.set(ai_val);
-                                    return;
-                                }
-                            }
-                        }
-
-                        if module_id_str == "string_decoder" {
-                            let sd_key = v8::String::new(scope, "__string_decoder").unwrap();
-                            if let Some(sd_val) = global_obj.get(scope, sd_key.into()) {
-                                if !sd_val.is_undefined() {
-                                    retval.set(sd_val);
-                                    return;
-                                }
-                            }
-                        }
-
-                        if module_id_str == "url" {
-                            let url_module = v8::Object::new(scope);
-                            let url_key = v8::String::new(scope, "URL").unwrap();
-                            if let Some(url_constructor) = global_obj.get(scope, url_key.into()) {
-                                url_module.set(scope, url_key.into(), url_constructor);
-                            }
-
-                            let search_params_key =
-                                v8::String::new(scope, "URLSearchParams").unwrap();
-                            if let Some(search_params_constructor) =
-                                global_obj.get(scope, search_params_key.into())
-                            {
-                                url_module.set(
-                                    scope,
-                                    search_params_key.into(),
-                                    search_params_constructor,
-                                );
-                            }
-
-                            // Legacy Node helpers
-                            let file_url_to_path = v8::Function::new(
-                                scope,
-                                |scope: &mut v8::PinScope,
-                                 args: v8::FunctionCallbackArguments,
-                                 mut rv: v8::ReturnValue| {
-                                    let input = args
-                                        .get(0)
-                                        .to_string(scope)
-                                        .map(|s| s.to_rust_string_lossy(scope))
-                                        .unwrap_or_default();
-                                    let path = input
-                                        .strip_prefix("file://")
-                                        .unwrap_or(&input)
-                                        .to_string();
-                                    let out = v8::String::new(scope, &path).unwrap();
-                                    rv.set(out.into());
-                                },
-                            )
-                            .unwrap();
-                            let path_to_file_url = v8::Function::new(
-                                scope,
-                                |scope: &mut v8::PinScope,
-                                 args: v8::FunctionCallbackArguments,
-                                 mut rv: v8::ReturnValue| {
-                                    let path = args
-                                        .get(0)
-                                        .to_string(scope)
-                                        .map(|s| s.to_rust_string_lossy(scope))
-                                        .unwrap_or_default();
-                                    let href = if path.starts_with("file://") {
-                                        path
-                                    } else {
-                                        format!("file://{}", path)
-                                    };
-                                    // Return a minimal URL-like object with href
-                                    let obj = v8::Object::new(scope);
-                                    let href_key = v8::String::new(scope, "href").unwrap();
-                                    let href_val = v8::String::new(scope, &href).unwrap();
-                                    obj.set(scope, href_key.into(), href_val.into());
-                                    rv.set(obj.into());
-                                },
-                            )
-                            .unwrap();
-                            let futp_key = v8::String::new(scope, "fileURLToPath").unwrap();
-                            let ptfu_key = v8::String::new(scope, "pathToFileURL").unwrap();
-                            url_module.set(scope, futp_key.into(), file_url_to_path.into());
-                            url_module.set(scope, ptfu_key.into(), path_to_file_url.into());
-
-                            retval.set(url_module.into());
-                            return;
-                        }
-
-                        if module_id_str == "sockets"
-                            || module_id_str == "amber:sockets"
-                            || module_id_str == "wintertc:sockets"
-                        {
-                            let sock_key = v8::String::new(scope, "__amber_sockets").unwrap();
-                            if let Some(sock_val) = global_obj.get(scope, sock_key.into()) {
-                                if !sock_val.is_undefined() {
-                                    retval.set(sock_val);
-                                    return;
-                                }
-                            }
-                        }
-
-                        // Try to get the module from global
-                        let clean_id = module_id_str
-                            .strip_prefix("amber:")
-                            .unwrap_or(&module_id_str);
-                        let mod_key = v8::String::new(scope, clean_id).unwrap();
-                        if let Some(mod_val) = global_obj.get(scope, mod_key.into()) {
-                            if !mod_val.is_undefined() {
-                                if module_id_str == "readline" {
-                                    if let Ok(module_obj) =
-                                        v8::Local::<v8::Object>::try_from(mod_val)
-                                    {
-                                        let default_key =
-                                            v8::String::new(scope, "default").unwrap();
-                                        module_obj.set(scope, default_key.into(), mod_val);
-                                    }
-                                }
-                                retval.set(mod_val);
-                                return;
-                            }
-                        }
-
-                        let amber_mod_key =
-                            v8::String::new(scope, &format!("__amber_{}", clean_id)).unwrap();
-                        if let Some(mod_val) = global_obj.get(scope, amber_mod_key.into()) {
-                            if !mod_val.is_undefined() {
-                                retval.set(mod_val);
-                                return;
-                            }
-                        }
-
-                        // Fail closed — never return a silent fake module object.
-                        let error_msg = format!(
-                            "ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: {}",
-                            module_id_str
-                        );
-                        let error_str = v8::String::new(scope, &error_msg).unwrap();
-                        let error_obj = v8::Exception::error(scope, error_str);
-                        scope.throw_exception(error_obj.into());
-                        return;
-                    }
-                    _ => {
-                        // First, try to get __dirname from global context for relative path resolution
-                        let context = scope.get_current_context();
-                        let global = context.global(scope);
-                        let dirname_key = v8::String::new(scope, "__dirname").unwrap();
-                        let current_dirname = global.get(scope, dirname_key.into())
-                            .and_then(|v| v.to_string(scope))
-                            .map(|s| s.to_rust_string_lossy(scope))
-                            .unwrap_or_else(|| String::from("."));
-
-                        let module_path = match crate::nodejs_core::commonjs_resolver::resolve_commonjs_module(
-                            &module_id_str,
-                            std::path::Path::new(&current_dirname),
-                        ) {
-                            Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::File(path)) => path,
-                            Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::Builtin(name)) => {
-                                let clean = name
-                                    .strip_prefix("amber:")
-                                    .unwrap_or(&name);
-                                for candidate in &[
-                                    name.as_str(),
-                                    clean,
-                                ] {
-                                    let lookup_key = v8::String::new(scope, candidate).unwrap();
-                                    if let Some(val) = global.get(scope, lookup_key.into()) {
-                                        if !val.is_undefined() && !val.is_null() {
-                                            retval.set(val);
-                                            return;
-                                        }
-                                    }
-                                    let amber_key = v8::String::new(scope, &format!("__{}", candidate)).unwrap();
-                                    if let Some(val) = global.get(scope, amber_key.into()) {
-                                        if !val.is_undefined() && !val.is_null() {
-                                            retval.set(val);
-                                            return;
-                                        }
-                                    }
-                                    let full_amber_key = v8::String::new(scope, &format!("__amber_{}", candidate)).unwrap();
-                                    if let Some(val) = global.get(scope, full_amber_key.into()) {
-                                        if !val.is_undefined() && !val.is_null() {
-                                            retval.set(val);
-                                            return;
-                                        }
-                                    }
-                                }
-                                let error_msg = format!("Cannot load builtin module '{}' from file resolver", name);
-                                let error_str = v8::String::new(scope, &error_msg).unwrap();
-                                let error_obj = v8::Exception::error(scope, error_str);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-                            Err(error) => {
-                                // v0.3.281: Handle readline module - return from global.readline
-                                if module_id_str == "readline" {
-                                    let readline_key = v8::String::new(scope, "readline").unwrap().into();
-                                    if let Some(readline_val) = global.get(scope, readline_key) {
-                                        if !readline_val.is_undefined() && !readline_val.is_null() {
-                                            // Set as 'default' property for CommonJS compatibility
-                                            let default_key = v8::String::new(scope, "default").unwrap().into();
-                                            result_obj.set(scope, default_key, readline_val);
-                                            retval.set(result_obj.into());
-                                            return;
-                                        }
-                                    }
-                                    // Fallback if readline not found
-                                    let error_msg = "Cannot find module 'readline' - readline API not available";
-                                    let error_str = v8::String::new(scope, error_msg).unwrap();
-                                    let error_obj = v8::Exception::error(scope, error_str);
-                                    scope.throw_exception(error_obj.into());
-                                    return;
-                                }
-
-                                let error_str = v8::String::new(scope, &error.to_string()).unwrap();
-                                let error_obj = v8::Exception::error(scope, error_str);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-                        };
-
-                        // Try to resolve as file path
-                        if module_path.exists() && module_path.is_file() {
-                            let module_format = match crate::nodejs_core::commonjs_resolver::classify_commonjs_file(&module_path) {
-                                Ok(module_format) => module_format,
-                                Err(error) => {
-                                    let error_str =
-                                        v8::String::new(scope, &error.to_string()).unwrap();
-                                    let error_obj = v8::Exception::error(scope, error_str);
-                                    scope.throw_exception(error_obj.into());
-                                    return;
-                                }
-                            };
-                            if module_format
-                                == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule
-                            {
-                                let cache_global_key = v8::String::new(scope, "__amberjsEsmNamespaceCache").unwrap();
-                                let cache_obj = match global.get(scope, cache_global_key.into())
-                                    .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
-                                {
-                                    Some(cache_obj) => cache_obj,
-                                    None => {
-                                        let cache_obj = v8::Object::new(scope);
-                                        global.set(scope, cache_global_key.into(), cache_obj.into());
-                                        cache_obj
-                                    }
-                                };
-                                let fingerprint_cache_global_key =
-                                    v8::String::new(scope, "__amberjsEsmNamespaceFingerprintCache").unwrap();
-                                let fingerprint_cache_obj = match global.get(scope, fingerprint_cache_global_key.into())
-                                    .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
-                                {
-                                    Some(cache_obj) => cache_obj,
-                                    None => {
-                                        let cache_obj = v8::Object::new(scope);
-                                        global.set(
-                                            scope,
-                                            fingerprint_cache_global_key.into(),
-                                            cache_obj.into(),
-                                        );
-                                        cache_obj
-                                    }
-                                };
-                                let cache_key_string = module_path.to_string_lossy().to_string();
-                                let cache_key = v8::String::new(scope, &cache_key_string).unwrap();
-
-                                if let Some(cached_namespace) = cache_obj.get(scope, cache_key.into()) {
-                                    if !cached_namespace.is_undefined() {
-                                        if let Some(graph_fingerprints) = fingerprint_cache_obj
-                                            .get(scope, cache_key.into())
-                                            .and_then(|value| {
-                                                v8::Local::<v8::Object>::try_from(value).ok()
-                                            })
-                                        {
-                                            match Self::cached_esm_namespace_graph_is_fresh(
-                                                scope,
-                                                graph_fingerprints,
-                                            ) {
-                                                Ok(true) => {
-                                                    retval.set(cached_namespace);
-                                                    return;
-                                                }
-                                                Ok(false) => {}
-                                                Err(error) => {
-                                                    let error_str =
-                                                        v8::String::new(scope, &error).unwrap();
-                                                    let error_obj =
-                                                        v8::Exception::type_error(scope, error_str);
-                                                    scope.throw_exception(error_obj.into());
-                                                    return;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if let Err(error) = crate::permissions::check_global_permission(
-                                    crate::permissions::PermissionKind::FileSystem,
-                                    crate::permissions::PermissionAction::Read,
-                                    crate::permissions::ResourceId::Path(module_path.clone()),
-                                ) {
-                                    let error_str =
-                                        v8::String::new(scope, &error.to_string()).unwrap();
-                                    let error_obj = v8::Exception::type_error(scope, error_str);
-                                    scope.throw_exception(error_obj.into());
-                                    return;
-                                }
-
-                                let module_code = match std::fs::read_to_string(&module_path) {
-                                    Ok(module_code) => module_code,
-                                    Err(error) => {
-                                        let error_msg = format!(
-                                            "Error loading ES module '{}': {}",
-                                            module_path.display(),
-                                            error
-                                        );
-                                        let error_str =
-                                            v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_str);
-                                        scope.throw_exception(error_obj.into());
-                                        return;
-                                    }
-                                };
-
-                                let module_filename = module_path.to_string_lossy().to_string();
-                                match Self::execute_esm_module_namespace(
-                                    scope,
-                                    &module_code,
-                                    &module_filename,
-                                    Self::DEFAULT_TIMER_DRAIN_LIMIT_MS,
-                                ) {
-                                    Ok((namespace, source_fingerprints)) => {
-                                        let graph_fingerprints =
-                                            Self::create_esm_namespace_graph_fingerprint_object(
-                                                scope,
-                                                &source_fingerprints,
-                                            );
-                                        cache_obj.set(scope, cache_key.into(), namespace);
-                                        fingerprint_cache_obj.set(
-                                            scope,
-                                            cache_key.into(),
-                                            graph_fingerprints.into(),
-                                        );
-                                        retval.set(namespace);
-                                    }
-                                    Err(error) => {
-                                        let error_str = v8::String::new(scope, &error).unwrap();
-                                        let error_obj = v8::Exception::error(scope, error_str);
-                                        scope.throw_exception(error_obj.into());
-                                    }
-                                }
-                                return;
-                            }
-
-                            let cache_global_key = v8::String::new(scope, "__amberjsModuleCache").unwrap();
-                            let cache_obj = match global.get(scope, cache_global_key.into())
-                                .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
-                            {
-                                Some(cache_obj) => cache_obj,
-                                None => {
-                                    let cache_obj = v8::Object::new(scope);
-                                    global.set(scope, cache_global_key.into(), cache_obj.into());
-                                    cache_obj
-                                }
-                            };
-                            let cache_key_string = module_path.to_string_lossy().to_string();
-                            let cache_key = v8::String::new(scope, &cache_key_string).unwrap();
-
-                            if let Some(cached_exports) = cache_obj.get(scope, cache_key.into()) {
-                                if !cached_exports.is_undefined() {
-                                    retval.set(cached_exports);
-                                    return;
-                                }
-                            }
-
-                            // Read and execute the module file
-                            if let Err(error) = crate::permissions::check_global_permission(
-                                crate::permissions::PermissionKind::FileSystem,
-                                crate::permissions::PermissionAction::Read,
-                                crate::permissions::ResourceId::Path(module_path.clone()),
-                            ) {
-                                let error_str =
-                                    v8::String::new(scope, &error.to_string()).unwrap();
-                                let error_obj = v8::Exception::type_error(scope, error_str);
-                                scope.throw_exception(error_obj.into());
-                                return;
-                            }
-
-                            match std::fs::read_to_string(&module_path) {
-                                Ok(code) => {
-                                    if module_format
-                                        == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::Json
-                                    {
-                                        let json_value = match serde_json::from_str::<serde_json::Value>(&code) {
-                                            Ok(value) => value,
-                                            Err(error) => {
-                                                let error_msg = format!(
-                                                    "Error parsing JSON module '{}': {}",
-                                                    module_path.display(),
-                                                    error
-                                                );
-                                                let error_str =
-                                                    v8::String::new(scope, &error_msg).unwrap();
-                                                let error_obj = v8::Exception::syntax_error(scope, error_str);
-                                                scope.throw_exception(error_obj.into());
-                                                return;
-                                            }
-                                        };
-                                        let json_exports = serde_json_value_to_v8(scope, &json_value);
-                                        cache_obj.set(scope, cache_key.into(), json_exports);
-                                        retval.set(json_exports);
-                                        return;
-                                    }
-
-                                    let code = if module_format
-                                        == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScript
-                                    {
-                                        let module_filename = module_path.to_string_lossy().to_string();
-                                        match Self::compile_typescript_commonjs_module(
-                                            &code,
-                                            &module_filename,
-                                        ) {
-                                            Ok(js_code) => js_code,
-                                            Err(error) => {
-                                                let error_msg = format!(
-                                                    "Error compiling TypeScript module '{}': {}",
-                                                    module_path.display(),
-                                                    error
-                                                );
-                                                let error_str =
-                                                    v8::String::new(scope, &error_msg).unwrap();
-                                                let error_obj =
-                                                    v8::Exception::syntax_error(scope, error_str);
-                                                scope.throw_exception(error_obj.into());
-                                                return;
-                                            }
-                                        }
-                                    } else if module_format
-                                        == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScriptJsx
-                                    {
-                                        let module_filename = module_path.to_string_lossy().to_string();
-                                        match crate::typescript::compile_typescript(
-                                            &code,
-                                            &module_filename,
-                                        ) {
-                                            Ok(output) => output.js_code,
-                                            Err(error) => {
-                                                let error_msg = format!(
-                                                    "Error compiling TypeScript module '{}': {}",
-                                                    module_path.display(),
-                                                    error
-                                                );
-                                                let error_str =
-                                                    v8::String::new(scope, &error_msg).unwrap();
-                                                let error_obj =
-                                                    v8::Exception::syntax_error(scope, error_str);
-                                                scope.throw_exception(error_obj.into());
-                                                return;
-                                            }
-                                        }
-                                    } else {
-                                        code
-                                    };
-
-                                    // Create new module and exports objects for this module
-                                    let module_obj = v8::Object::new(scope);
-                                    let exports_obj = v8::Object::new(scope);
-                                    let module_exports_key = v8::String::new(scope, "exports").unwrap().into();
-                                    module_obj.set(scope, module_exports_key, exports_obj.clone().into());
-                                    cache_obj.set(scope, cache_key.into(), exports_obj.clone().into());
-
-                                    // Set up __dirname and __filename for the module
-                                    let module_dirname = module_path.parent()
-                                        .map(|p| p.to_string_lossy().to_string())
-                                        .unwrap_or_else(|| "/".to_string());
-                                    let module_filename = module_path.to_string_lossy().to_string();
-
-                                    // Create a wrapper function to execute the module code.
-                                    // The local require captures this module directory, so module
-                                    // code cannot break sibling resolution by mutating global
-                                    // __dirname before calling require("./sibling").
-                                    let module_dir_json =
-                                        serde_json::to_string(&module_dirname).unwrap();
-                                    let wrapper_code = format!(
-                                        r#"(function(module, exports, __dirname, __filename) {{
-const __amberjsModuleDir = {module_dir_json};
-const __amberjsGlobalRequire = globalThis.require;
-function require(specifier) {{
-  const __previousDirname = globalThis.__dirname;
-  const __previousFilename = globalThis.__filename;
-  globalThis.__dirname = __amberjsModuleDir;
-  globalThis.__filename = __filename;
-  try {{
-    return __amberjsGlobalRequire(specifier);
-  }} finally {{
-    globalThis.__dirname = __previousDirname;
-    globalThis.__filename = __previousFilename;
-  }}
-}}
-require.main = __amberjsGlobalRequire.main;
-require.resolve = function(specifier) {{
-  const __previousDirname = globalThis.__dirname;
-  const __previousFilename = globalThis.__filename;
-  globalThis.__dirname = __amberjsModuleDir;
-  globalThis.__filename = __filename;
-  try {{
-    return __amberjsGlobalRequire.resolve(specifier);
-  }} finally {{
-    globalThis.__dirname = __previousDirname;
-    globalThis.__filename = __previousFilename;
-  }}
-}};
-{code}
-}})"#
-                                    );
-
-                                    // Compile and run the module code
-                                    let script_source = v8::String::new(scope, &wrapper_code).unwrap();
-                                    let Some(script) = v8::Script::compile(scope, script_source, None) else {
-                                        let error_msg = format!(
-                                            "Error compiling CommonJS module '{}'",
-                                            module_path.display()
-                                        );
-                                        let error_str =
-                                            v8::String::new(scope, &error_msg).unwrap();
-                                        let error_obj =
-                                            v8::Exception::syntax_error(scope, error_str);
-                                        scope.throw_exception(error_obj.into());
-                                        return;
-                                    };
-                                    let Some(wrapper_func_val) = script.run(scope) else {
-                                        return;
-                                    };
-
-                                    // Convert to function
-                                    let wrapper_func = v8::Local::<v8::Function>::try_from(wrapper_func_val).unwrap();
-
-                                    // Call the wrapper with module context
-                                    let undefined = v8::undefined(scope);
-                                    let dirname_val = v8::String::new(scope, &module_dirname).unwrap().into();
-                                    let filename_val = v8::String::new(scope, &module_filename).unwrap().into();
-                                    let global_dirname_key = v8::String::new(scope, "__dirname").unwrap();
-                                    let global_filename_key = v8::String::new(scope, "__filename").unwrap();
-                                    let previous_dirname = global.get(scope, global_dirname_key.into());
-                                    let previous_filename = global.get(scope, global_filename_key.into());
-                                    let set_dirname_key =
-                                        v8::String::new(scope, "__dirname").unwrap().into();
-                                    global.set(scope, set_dirname_key, dirname_val);
-                                    let set_filename_key =
-                                        v8::String::new(scope, "__filename").unwrap().into();
-                                    global.set(scope, set_filename_key, filename_val);
-
-                                    let call_result = wrapper_func.call(scope, undefined.into(), &[module_obj.clone().into(), exports_obj.clone().into(), dirname_val, filename_val]);
-
-                                    if let Some(previous_dirname) = previous_dirname {
-                                        let restore_dirname_key =
-                                            v8::String::new(scope, "__dirname").unwrap().into();
-                                        global.set(scope, restore_dirname_key, previous_dirname);
-                                    }
-                                    if let Some(previous_filename) = previous_filename {
-                                        let restore_filename_key =
-                                            v8::String::new(scope, "__filename").unwrap().into();
-                                        global.set(scope, restore_filename_key, previous_filename);
-                                    }
-
-                                    if call_result.is_none() {
-                                        return;
-                                    }
-
-                                    // Return module.exports so assignments like
-                                    // module.exports = { ... } are reflected.
-                                    let module_exports_lookup_key = v8::String::new(scope, "exports").unwrap().into();
-                                    if let Some(module_exports) = module_obj.get(scope, module_exports_lookup_key) {
-                                        cache_obj.set(scope, cache_key.into(), module_exports);
-                                        retval.set(module_exports);
-                                    } else {
-                                        cache_obj.set(scope, cache_key.into(), exports_obj.clone().into());
-                                        retval.set(exports_obj.into());
-                                    }
-                                    return;
-                                }
-                                Err(e) => {
-                                    let error_msg = format!("Error loading module '{}': {}", module_path.display(), e);
-                                    let error_str = v8::String::new(scope, &error_msg).unwrap();
-                                    let error_obj = v8::Exception::error(scope, error_str);
-                                    scope.throw_exception(error_obj.into());
-                                    return;
-                                }
-                            }
-                        }
-
-                        // Throw error for unknown modules
-                        let error_msg = format!("Cannot find module '{}'", module_id_str);
-                        let error_str = v8::String::new(scope, &error_msg).unwrap();
-                        let error_obj = v8::Exception::error(scope, error_str);
-                        scope.throw_exception(error_obj.into());
-                        return;
-                    }
+                // File loads must not re-enter the builtin arm: that function is large
+                // enough that a handful of nested requires overflow the stack while
+                // compiling the next module.
+                if Self::cjs_require_uses_builtin_arm(&module_id_str) {
+                    Self::cjs_require_builtin_module(scope, &module_id_str, retval);
+                } else {
+                    Self::cjs_require_user_module(scope, &module_id_str, retval);
                 }
-
-            }
-        }).ok_or_else(|| anyhow::anyhow!("Failed to create require function"))?;
+            },
+        )
+        .ok_or_else(|| anyhow::anyhow!("Failed to create require function"))?;
 
         // v0.3.329: Add resolve method to require function for CommonJS compatibility
         let resolve_fn = v8::Function::new(
