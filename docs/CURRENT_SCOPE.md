@@ -50,7 +50,7 @@ Optimization sprint notes (2026-09-10 v1.9.1):
 v1.9.0 notes (kept for history):
 
 - Native Agentic AI Engine 1.0 (`amber:ai` promoted to **Stable**): Zero-copy `Tensor` (TypedArray-backed, matmul, dot, norm, softmax, cosineSimilarity), local streaming `LLM` (`load`, `generate`, `generateStream`, `embed`), and `AgentPipeline` with deterministic execution.
-- Node conformance fixtures live in `tests/conformance/` (scorecard-driven, 100% PASS across 50+ fixtures).
+- Node conformance fixtures live in `tests/conformance/`. The CI job `Format, Lint, Test, Package` fails closed unless the scorecard is at least **55/55 PASS** (0 FAIL, 0 SKIP). Adding fixtures that still all pass stays green.
 - V8 Startup Snapshot 2.0 with zero-copy `mmap` backing: instant cold start with copy-on-write memory mapping across isolate processes.
 - Native Test Runner 2.0 (`amber test` **Stable**): zero-argument discovery excluding `manual`, `node_modules`, and `__snapshots__`; built-in `--watch` mode.
 - Agent Deterministic Sandbox & Virtual Time 1.0 (Deterministic Replay): `--seed <u64>` (deterministic PRNG for `Math.random()`, `crypto.getRandomValues()`, `crypto.randomBytes()`) and `--freeze-time <spec>` (virtual deterministic clock for `Date.now()`, `new Date()`, `performance.now()`).

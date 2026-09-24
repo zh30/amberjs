@@ -16,7 +16,11 @@ This directory is the north-star metric for Amber Node compatibility work.
 AMBER_BIN=./target/release/amber ./tests/conformance/run_conformance.sh
 ```
 
-Exit code is non-zero if any fixture fails. CI publishes the printed pass rate.
+Exit code is non-zero if any fixture fails, if any fixture prints `CONFORMANCE_SKIP`, or if PASS is below **55**. A larger suite that is still 0 FAIL and 0 SKIP stays green. CI job `Format, Lint, Test, Package` (required on `main`) runs this script in the `Node conformance scorecard` step; that step has no `continue-on-error`, so a failed gate fails the job and blocks merge.
+
+```bash
+./tests/conformance/run_conformance.sh --self-test
+```
 
 ## Scope policy
 

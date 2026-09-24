@@ -80,6 +80,9 @@ jobs:
       - name: Node conformance scorecard
         run: |
           cargo build -q
+          # Fail-closed (#104): run_conformance.sh exits non-zero unless
+          # PASS >= 55, FAIL == 0, and SKIP == 0. This job is a required
+          # status check on main ("Format, Lint, Test, Package").
           ./tests/conformance/run_conformance.sh
           echo "Scorecard:"
           cat tests/conformance/scorecard.md
