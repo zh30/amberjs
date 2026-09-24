@@ -77,6 +77,16 @@ jobs:
       - name: amber compile Stable contract
         run: cargo test --test compile_contract_tests -- --test-threads=1
 
+      - name: Install Node conformance framework deps
+        run: |
+          # express_smoke / fastify_smoke / hono_smoke look for these packages
+          # under benchmarks/idle_memory/node_modules and print CONFORMANCE_SKIP
+          # when they are missing. node_modules is gitignored, so a clean CI
+          # checkout skips them and the 55/55 gate fails. Versions match
+          # benchmarks/idle_memory/package.json. --no-save avoids rewriting it.
+          npm install --prefix benchmarks/idle_memory --no-save --no-audit --no-fund --ignore-scripts \
+            express@5.2.1 fastify@5.12.3 hono@4.13.5 @hono/node-server@2.1.1
+
       - name: Node conformance scorecard
         run: |
           cargo build -q
