@@ -433,9 +433,7 @@ fn test_agent_timeout_watchdog() {
     let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime");
     // Install APIs before the watchdog. terminate_execution during startup makes
     // Script::compile return None, and structuredClone setup unwraps that.
-    runtime
-        .execute_code("1")
-        .expect("warmup before watchdog");
+    runtime.execute_code("1").expect("warmup before watchdog");
     let handle = runtime.isolate_handle();
 
     // Watchdog thread: pulse terminate_execution every 20ms to handle any scheduling race
