@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://amberjs.com"><img src="https://img.shields.io/badge/docs-amberjs.com-0f172a" alt="Docs"></a>
-  <a href="https://github.com/zh30/amberjs/releases/tag/v1.16.0"><img src="https://img.shields.io/badge/release-v1.16.0-22c55e" alt="Release"></a>
+  <a href="https://github.com/zh30/amberjs/releases/tag/v1.17.0"><img src="https://img.shields.io/badge/release-v1.17.0-22c55e" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
   <a href="https://github.com/zh30/amberjs/actions/workflows/ci.yml"><img src="https://github.com/zh30/amberjs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://crates.io/crates/amberjs"><img src="https://img.shields.io/crates/v/amberjs.svg" alt="crates.io"></a>
@@ -60,7 +60,7 @@ Prebuilt archives: macOS (arm64, x64), Linux gnu (x64, arm64), Windows (x64 zip)
 curl -fsSL https://get.amberjs.com/install.sh | sh
 
 # pin a release
-curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
+curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.17.0 sh
 ```
 
 Windows (PowerShell):
@@ -228,7 +228,7 @@ Full flags: [CLI usage guide](docs/CLI_USAGE_GUIDE.md).
 
 ## Compatibility
 
-| | Amber 1.16.0 | Node.js | Bun | Deno |
+| | Amber 1.17.0 | Node.js | Bun | Deno |
 | --- | --- | --- | --- | --- |
 | Engine | V8 + Rust | V8 + C++ | JavaScriptCore + Zig | V8 + Rust |
 | TypeScript | oxc, transpile-only | loaders / `tsc` | built-in | built-in |
