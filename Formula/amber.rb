@@ -3,7 +3,7 @@
 class Amber < Formula
   desc "JavaScript/TypeScript runtime built with Rust and V8"
   homepage "https://amberjs.com"
-  version "1.16.0"
+  version "1.17.0"
   license "MIT"
 
   on_macos do

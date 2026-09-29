@@ -7,7 +7,7 @@
 
 ## 🧭 当前总览与版本坐标
 
-- **当前版本**: `v1.16.1` (2026-09)
+- **当前版本**: `v1.17.0` (2026-09)
 - **能力边界**: 用户可见的 Stable / Preview / Experimental 以 [`docs/CURRENT_SCOPE.md`](./CURRENT_SCOPE.md) 为准。本文勾选记录交付进度，**不**自动晋升 Stable。
 - **底层引擎**: 官方最新现代 `v8 = "152.2.0"` (Chromium 134+) + `PinScope` 栈固定内存安全架构
 - **网络核心**: Tokio 异步多线程反应堆 + 零延迟即时唤醒 (Zero-Hop) + V8 单态 JIT 分发，吞吐 70k+ req/s

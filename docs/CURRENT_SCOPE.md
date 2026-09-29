@@ -75,7 +75,7 @@ Use these files and checks as the current fact sources:
 
 Current facts from those sources:
 
-- Package version is `1.16.1`.
+- Package version is `1.17.0`.
 - The active Cargo binary is `amber`, built from `src/main.rs`.
 - Default Cargo features are empty: `default = []`.
 - The default runtime path used by the CLI is `src/runtime_minimal.rs`.
@@ -85,11 +85,11 @@ Current facts from those sources:
 
 ### Stable
 
-Stable means the capability is part of the official v1.16.1 release scope, is reachable from the active `amber` binary or default library surface, and is verified by focused smoke tests, Rust integration tests, and conformance suites.
+Stable means the capability is part of the official v1.17.0 release scope, is reachable from the active `amber` binary or default library surface, and is verified by focused smoke tests, Rust integration tests, and conformance suites.
 
 Current stable scope:
 
-- Build Amber from source with Cargo (`v1.16.1`).
+- Build Amber from source with Cargo (`v1.17.0`).
 - Inspect the CLI with `amber --help`, `amber --version`, or `amber version`.
 - Evaluate simple JavaScript snippets with `amber eval <code>`.
 - Run JavaScript files with `amber run <file>`.
@@ -180,7 +180,7 @@ cargo check --features observability
 cargo check --features benchmarks
 ```
 
-`enterprise`, `cloudnative`, `multilang`, `tch`, and empty `ai` are not in the v1.16.1 CI matrix.
+`enterprise`, `cloudnative`, `multilang`, `tch`, and empty `ai` are not in the v1.17.0 CI matrix.
 
 If a feature build fails or has not been checked in the current branch, document the related capability as Experimental, not Stable.
 
