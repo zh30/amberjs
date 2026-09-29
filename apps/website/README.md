@@ -21,7 +21,7 @@ The production bundle is written to `dist/`. The `prebuild` step copies repo-roo
 
 `get.amberjs.com` is a custom domain on the same Worker as `amberjs.com` (`apps/website/wrangler.toml`).
 
-Production deploys run through GitHub Actions on the **`production`** Environment (secret `CLOUDFLARE_API_TOKEN`, variable `CLOUDFLARE_ACCOUNT_ID`). The workflow publishes on push to `main` when `apps/website/**`, `install.sh`, `install.ps1`, or the workflow file change. Tokens are not stored in the YAML.
+Production deploys run through GitHub Actions on the **`production`** Environment (secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`). The workflow publishes on push to `main` when `apps/website/**`, `install.sh`, `install.ps1`, or the workflow file change. Tokens are not stored in the YAML.
 
 To publish manually: **Actions → Deploy website → Run workflow**.
 
