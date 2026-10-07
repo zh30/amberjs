@@ -2080,15 +2080,19 @@ mod http_tests {
             const response = fetch('__URL__', {
                 redirect: 'follow'
             });
-            response.status;
+            `${response.status}:${response.redirected}:${response.ok}:${response.url}:${response.text()}`;
         "#
             .replace("__URL__", &redirect_url),
         );
 
         assert!(result.is_ok());
         let binding = result.unwrap();
-        let status = binding.trim();
-        assert_valid_http_status(status, "redirect=follow");
+        let output = binding.trim();
+        let expected = format!("200:true:true:{target_url}:");
+        assert!(
+            output.starts_with(&expected) && output.contains("Amber fixture"),
+            "Expected redirect=follow to land on the target body, got: {output}"
+        );
     }
 
     #[test]
@@ -2201,6 +2205,521 @@ mod http_tests {
         assert_eq!(
             output, "true",
             "Expected clone() to reject after body consumption, got: {output}"
+        );
+    }
+
+    struct RecordedHttp {
+        method: String,
+        target: String,
+        header_text: String,
+        body: Vec<u8>,
+    }
+
+    fn read_one_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {
+        let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(2)));
+        let mut request = Vec::new();
+        let mut buffer = [0u8; 1024];
+        loop {
+            let read_len = match stream.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(read_len) => read_len,
+                Err(_) => break,
+            };
+            request.extend_from_slice(&buffer[..read_len]);
+            let Some(header_end) = http_header_end(&request) else {
+                if request.len() > 64 * 1024 {
+                    break;
+                }
+                continue;
+            };
+            let headers = String::from_utf8_lossy(&request[..header_end]);
+            let content_len = headers.lines().find_map(|line| {
+                let (name, value) = line.split_once(':')?;
+                if name.eq_ignore_ascii_case("content-length") {
+                    value.trim().parse::<usize>().ok()
+                } else {
+                    None
+                }
+            });
+            let body_start = header_end + b"\r\n\r\n".len();
+            if request.len() >= body_start + content_len.unwrap_or(0) {
+                request.truncate(body_start + content_len.unwrap_or(0));
+                break;
+            }
+        }
+        request
+    }
+
+    fn parse_recorded_http(bytes: &[u8]) -> RecordedHttp {
+        let header_end = http_header_end(bytes).unwrap_or(bytes.len());
+        let head = String::from_utf8_lossy(&bytes[..header_end]).to_string();
+        let mut lines = head.lines();
+        let request_line = lines.next().unwrap_or("");
+        let mut parts = request_line.split_whitespace();
+        let method = parts.next().unwrap_or("").to_string();
+        let target = parts.next().unwrap_or("").to_string();
+        let body_start = if http_header_end(bytes).is_some() {
+            header_end + 4
+        } else {
+            bytes.len()
+        };
+        RecordedHttp {
+            method,
+            target,
+            header_text: head,
+            body: bytes.get(body_start..).unwrap_or_default().to_vec(),
+        }
+    }
+
+    fn http_response(
+        status: u16,
+        reason: &str,
+        extra_headers: &[(&str, &str)],
+        body: &str,
+    ) -> String {
+        let mut response = format!("HTTP/1.1 {status} {reason}\r\n");
+        for (name, value) in extra_headers {
+            response.push_str(&format!("{name}: {value}\r\n"));
+        }
+        response.push_str(&format!(
+            "Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        ));
+        response
+    }
+
+    fn spawn_http_server<F>(handler: F) -> String
+    where
+        F: Fn(RecordedHttp) -> String + Send + 'static,
+    {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("test server should bind");
+        let address = listener
+            .local_addr()
+            .expect("test server should expose a local address");
+        thread::spawn(move || {
+            for _ in 0..40 {
+                let Ok((mut stream, _)) = listener.accept() else {
+                    break;
+                };
+                let request = read_one_http_request(&mut stream);
+                if request.is_empty() {
+                    continue;
+                }
+                let response = handler(parse_recorded_http(&request));
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        format!("http://{address}")
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_default_get_follows_absolute_redirect() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let target_url = spawn_json_server();
+        let redirect_url = spawn_redirect_server(&target_url);
+
+        let result = runtime.execute_code(
+            &r#"
+            const response = fetch('__URL__');
+            `${response.status}:${response.redirected}:${response.type}:${response.url}:${response.text().includes('Amber fixture')}`;
+        "#
+            .replace("__URL__", &redirect_url),
+        );
+
+        assert!(
+            result.is_ok(),
+            "Expected default GET redirect script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert_eq!(
+            output,
+            format!("200:true:basic:{target_url}:true"),
+            "Expected default fetch() to follow an absolute Location, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_default_get_follows_relative_redirect_chain() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let url = spawn_http_server(|request| match request.target.as_str() {
+            "/start" => http_response(302, "Found", &[("Location", "next")], ""),
+            "/next" => http_response(302, "Found", &[("Location", "/done?via=relative")], ""),
+            "/done?via=relative" => {
+                http_response(200, "OK", &[("Content-Type", "text/plain")], "landed")
+            }
+            other => http_response(404, "Not Found", &[], other),
+        });
+
+        let result = runtime.execute_code(
+            &format!(
+                r#"
+                const response = fetch('{url}/start');
+                `${{response.status}}:${{response.redirected}}:${{response.url}}:${{response.text()}}`;
+                "#
+            ),
+        );
+
+        assert!(
+            result.is_ok(),
+            "Expected relative redirect chain script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert_eq!(
+            output,
+            format!("200:true:{url}/done?via=relative:landed"),
+            "Expected a relative Location chain to resolve against the current URL, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_redirect_manual_returns_redirect_response() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let target_url = spawn_json_server();
+        let redirect_url = spawn_redirect_server(&target_url);
+
+        let result = runtime.execute_code(
+            &r#"
+            const response = fetch('__URL__', { redirect: 'manual' });
+            `${response.status}:${response.redirected}:${response.ok}:${response.headers.get('location')}`;
+        "#
+            .replace("__URL__", &redirect_url),
+        );
+
+        assert!(
+            result.is_ok(),
+            "Expected manual redirect script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert_eq!(
+            output,
+            format!("302:false:false:{target_url}"),
+            "Expected redirect=manual to expose the 3xx and Location, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_redirect_error_rejects() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let target_url = spawn_json_server();
+        let redirect_url = spawn_redirect_server(&target_url);
+
+        let result = runtime.execute_code(
+            &r#"
+            let message = '';
+            try {
+                fetch('__URL__', { redirect: 'error' });
+                message = 'no-throw';
+            } catch (error) {
+                message = String(error && error.message ? error.message : error);
+            }
+            message;
+        "#
+            .replace("__URL__", &redirect_url),
+        );
+
+        assert!(
+            result.is_ok(),
+            "Expected redirect=error script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert!(
+            output.contains("redirect not allowed"),
+            "Expected redirect=error to reject, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_invalid_redirect_mode_throws_before_connect() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+
+        let result = runtime.execute_code(
+            r#"
+            let message = '';
+            try {
+                fetch('http://127.0.0.1:9/', { redirect: 'sideways' });
+                message = 'no-throw';
+            } catch (error) {
+                message = String(error && error.message ? error.message : error);
+            }
+            message;
+        "#,
+        );
+
+        assert!(
+            result.is_ok(),
+            "Expected invalid redirect script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert!(
+            output.contains("Invalid redirect mode"),
+            "Expected an invalid redirect mode to throw TypeError, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_request_redirect_manual_is_honored() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let target_url = spawn_json_server();
+        let redirect_url = spawn_redirect_server(&target_url);
+
+        let result = runtime.execute_code(
+            &r#"
+            const request = new Request('__URL__', { redirect: 'manual' });
+            const response = fetch(request);
+            `${request.redirect}:${response.status}:${response.redirected}:${response.headers.get('location')}`;
+        "#
+            .replace("__URL__", &redirect_url),
+        );
+
+        assert!(
+            result.is_ok(),
+            "Expected Request redirect script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert_eq!(
+            output,
+            format!("manual:302:false:{target_url}"),
+            "Expected fetch(request) to honor Request.redirect, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_post_303_becomes_get_without_body() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let url = spawn_http_server(|request| {
+            if request.target == "/start" {
+                return http_response(303, "See Other", &[("Location", "/done")], "");
+            }
+            let body = String::from_utf8_lossy(&request.body);
+            http_response(
+                200,
+                "OK",
+                &[("Content-Type", "text/plain")],
+                &format!("{}:{body}", request.method),
+            )
+        });
+
+        let result = runtime.execute_code(&format!(
+            r#"
+                const response = fetch('{url}/start', {{
+                    method: 'POST',
+                    body: 'secret',
+                    redirect: 'follow'
+                }});
+                `${{response.status}}:${{response.redirected}}:${{response.text()}}`;
+                "#
+        ));
+
+        assert!(
+            result.is_ok(),
+            "Expected 303 rewrite script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert_eq!(
+            output, "200:true:GET:",
+            "Expected 303 to replay as GET without the POST body, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_post_307_preserves_method_and_body() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let url = spawn_http_server(|request| {
+            if request.target == "/start" {
+                return http_response(307, "Temporary Redirect", &[("Location", "/done")], "");
+            }
+            let body = String::from_utf8_lossy(&request.body);
+            http_response(
+                200,
+                "OK",
+                &[("Content-Type", "text/plain")],
+                &format!("{}:{body}", request.method),
+            )
+        });
+
+        let result = runtime.execute_code(&format!(
+            r#"
+                const response = fetch('{url}/start', {{
+                    method: 'POST',
+                    body: 'secret',
+                    redirect: 'follow'
+                }});
+                `${{response.status}}:${{response.redirected}}:${{response.text()}}`;
+                "#
+        ));
+
+        assert!(
+            result.is_ok(),
+            "Expected 307 preserve script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert_eq!(
+            output, "200:true:POST:secret",
+            "Expected 307 to replay POST and the body, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_cross_origin_redirect_strips_authorization() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let destination = spawn_http_server(|request| {
+            let kept = request
+                .header_text
+                .to_ascii_lowercase()
+                .contains("authorization:");
+            http_response(
+                200,
+                "OK",
+                &[("Content-Type", "text/plain")],
+                if kept { "kept" } else { "stripped" },
+            )
+        });
+        let location = destination.clone();
+        let start =
+            spawn_http_server(move |_| http_response(302, "Found", &[("Location", &location)], ""));
+
+        let result = runtime.execute_code(
+            &format!(
+                r#"
+                const response = fetch('{start}/start', {{
+                    headers: {{ Authorization: 'Bearer secret' }},
+                    redirect: 'follow'
+                }});
+                `${{response.status}}:${{response.redirected}}:${{response.url}}:${{response.text()}}`;
+                "#
+            ),
+        );
+
+        assert!(
+            result.is_ok(),
+            "Expected cross-origin redirect script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert_eq!(
+            output,
+            format!("200:true:{destination}:stripped"),
+            "Expected Authorization to be removed on a cross-origin redirect, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_too_many_redirects_rejects() {
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let url = spawn_http_server(|_| http_response(302, "Found", &[("Location", "/loop")], ""));
+
+        let result = runtime.execute_code(&format!(
+            r#"
+                let message = '';
+                try {{
+                    fetch('{url}/loop');
+                    message = 'no-throw';
+                }} catch (error) {{
+                    message = String(error && error.message ? error.message : error);
+                }}
+                message;
+                "#
+        ));
+
+        assert!(
+            result.is_ok(),
+            "Expected redirect loop script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert!(
+            output.contains("Too many redirects"),
+            "Expected a redirect loop to reject, got: {output}"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_fetch_redirect_to_denied_host_fails_closed() {
+        use amberjs::permissions::{
+            global_resource_broker, PermissionAction, PermissionKind, ResourceBroker, ResourceId,
+        };
+        use std::sync::atomic::Ordering;
+
+        struct RestorePermissions {
+            broker: ResourceBroker,
+        }
+        impl Drop for RestorePermissions {
+            fn drop(&mut self) {
+                amberjs::permissions::reset_runtime_permission_state();
+                if let Ok(mut broker) = global_resource_broker().write() {
+                    *broker = self.broker.clone();
+                }
+            }
+        }
+
+        let saved = global_resource_broker()
+            .read()
+            .expect("broker lock")
+            .clone();
+        let _guard = RestorePermissions { broker: saved };
+        {
+            let mut broker = global_resource_broker().write().expect("broker lock");
+            *broker = ResourceBroker::default();
+            broker.deny_all();
+            broker.allow(
+                PermissionKind::Network,
+                PermissionAction::Connect,
+                ResourceId::Name("127.0.0.1".to_string()),
+            );
+        }
+        amberjs::permissions::HAS_RESTRICTIONS.store(true, Ordering::SeqCst);
+
+        let mut runtime = MinimalRuntime::new().unwrap();
+        let url = spawn_http_server(|_| {
+            http_response(
+                302,
+                "Found",
+                &[("Location", "http://example.com/secret")],
+                "",
+            )
+        });
+
+        let result = runtime.execute_code(&format!(
+            r#"
+                let message = '';
+                try {{
+                    const response = fetch('{url}/start');
+                    message = `no-throw:${{response.status}}:${{response.url}}`;
+                }} catch (error) {{
+                    message = String(error && error.message ? error.message : error);
+                }}
+                message;
+                "#
+        ));
+
+        assert!(
+            result.is_ok(),
+            "Expected denied-redirect script to run, got: {result:?}"
+        );
+        let output = result.unwrap();
+        let output = output.trim();
+        assert!(
+            output.contains("permission denied") && output.contains("example.com"),
+            "Expected a redirect onto a denied host to fail closed, got: {output}"
         );
     }
 }

@@ -67,6 +67,10 @@ fn get_fetch_client() -> &'static reqwest::Client {
             .timeout(std::time::Duration::from_secs(30))
             .pool_idle_timeout(std::time::Duration::from_secs(90))
             .pool_max_idle_per_host(32)
+            // Amber applies follow / error / manual itself so each hop is visible
+            // to the permission broker. Reqwest's default policy would follow
+            // before that check and would hide 3xx from manual and error modes.
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .expect("Failed to initialize fetch client")
     })
@@ -79,7 +83,7 @@ fn get_blocking_fetch_client() -> &'static reqwest::blocking::Client {
             .timeout(std::time::Duration::from_secs(30))
             .pool_idle_timeout(std::time::Duration::from_secs(90))
             .pool_max_idle_per_host(32)
-            .redirect(reqwest::redirect::Policy::limited(20))
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .expect("Failed to initialize blocking fetch client")
     })
@@ -100,28 +104,138 @@ fn connect_http_stream(host: &str, port: u16) -> Result<TcpStream> {
     Ok(stream)
 }
 
+/// Same cap as `FetchConfig::max_redirects`. One follow consumes one hop.
+const MAX_REDIRECTS: u32 = 20;
+
+fn is_redirect_status(status: u16) -> bool {
+    matches!(status, 301 | 302 | 303 | 307 | 308)
+}
+
+fn header_lookup<'a>(headers: &'a HashMap<String, String>, name: &str) -> Option<&'a str> {
+    headers
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case(name))
+        .map(|(_, value)| value.as_str())
+}
+
+fn is_redirect_mode(mode: &str) -> bool {
+    matches!(mode, "follow" | "error" | "manual")
+}
+
+/// Resolve a redirect `Location` against the current request URL.
+///
+/// Absolute locations are returned unchanged when they parse as the same URL
+/// the resolver produced, so `response.url` can match a `Location` header that
+/// has no trailing slash. Relative, protocol-relative, query-only, and
+/// dot-segment locations go through the WHATWG `url` crate.
+fn resolve_redirect_location(current: &str, location: &str) -> Result<String> {
+    let location = location.trim();
+    if location.is_empty() {
+        return Err(anyhow::anyhow!("redirect Location is empty"));
+    }
+    let base = url::Url::parse(current)
+        .map_err(|error| anyhow::anyhow!("invalid URL {current}: {error}"))?;
+    let joined = base
+        .join(location)
+        .map_err(|error| anyhow::anyhow!("invalid redirect Location {location}: {error}"))?;
+    if let Ok(absolute) = url::Url::parse(location) {
+        if absolute == joined {
+            return Ok(location.to_string());
+        }
+    }
+    Ok(joined.to_string())
+}
+
+fn same_http_origin(left: &str, right: &str) -> bool {
+    match (url::Url::parse(left), url::Url::parse(right)) {
+        (Ok(left), Ok(right)) => left.origin() == right.origin(),
+        _ => false,
+    }
+}
+
+fn is_body_request_header(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "content-encoding"
+            | "content-language"
+            | "content-length"
+            | "content-location"
+            | "content-type"
+            | "transfer-encoding"
+    )
+}
+
+fn is_credential_request_header(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "authorization" | "cookie" | "cookie2" | "proxy-authorization"
+    )
+}
+
+/// 301/302 rewrite non-GET/HEAD to GET. 303 rewrites everything except HEAD to GET.
+/// Dropping the body also drops headers that only describe that body.
+fn apply_redirect_method(
+    status: u16,
+    method: &mut HttpMethod,
+    body: &mut Option<Vec<u8>>,
+    headers: &mut HashMap<String, String>,
+) {
+    let rewrite_to_get = match status {
+        301 | 302 => !matches!(method, HttpMethod::GET | HttpMethod::HEAD),
+        303 => !matches!(method, HttpMethod::HEAD),
+        _ => false,
+    };
+    if rewrite_to_get {
+        *method = HttpMethod::GET;
+    }
+    if rewrite_to_get || status == 303 {
+        *body = None;
+        headers.retain(|name, _| !is_body_request_header(name));
+    }
+}
+
+fn strip_cross_origin_request_headers(headers: &mut HashMap<String, String>) {
+    headers.retain(|name, _| !is_credential_request_header(name));
+}
+
 fn parse_http_url(url: &str) -> Option<(String, u16, String)> {
-    let rest = url.strip_prefix("http://")?;
-    let (hostport, path) = match rest.find('/') {
-        Some(i) => (&rest[..i], &rest[i..]),
-        None => (rest, "/"),
-    };
-    let (host, port) = if let Some(colon) = hostport.rfind(':') {
-        let port: u16 = hostport[colon + 1..].parse().ok()?;
-        (&hostport[..colon], port)
+    let parsed = url::Url::parse(url).ok()?;
+    if parsed.scheme() != "http" {
+        return None;
+    }
+    let host = parsed.host_str()?.to_string();
+    let port = parsed.port_or_known_default().unwrap_or(80);
+    let mut path = parsed.path().to_string();
+    if path.is_empty() {
+        path = "/".to_string();
+    }
+    if let Some(query) = parsed.query() {
+        path.push('?');
+        path.push_str(query);
+    }
+    Some((host, port, path))
+}
+
+fn http_host_header(host: &str, port: u16) -> String {
+    let bracketed = if host.contains(':') {
+        format!("[{host}]")
     } else {
-        (hostport, 80)
+        host.to_string()
     };
-    Some((host.to_string(), port, path.to_string()))
+    if port == 80 {
+        bracketed
+    } else {
+        format!("{bracketed}:{port}")
+    }
 }
 
 fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
     let (host, port, path) = parse_http_url(url)
         .ok_or_else(|| anyhow::anyhow!("http1 fast path requires http:// URL"))?;
     let endpoint = format!("{}:{}", host, port);
+    let host_header = http_host_header(&host, port);
     let request = format!(
-        "GET {} HTTP/1.1\r\nHost: {}\r\nConnection: keep-alive\r\nAccept: */*\r\n\r\n",
-        path, host
+        "GET {path} HTTP/1.1\r\nHost: {host_header}\r\nConnection: keep-alive\r\nAccept: */*\r\n\r\n"
     );
 
     HTTP1_CONN.with(|slot| {
@@ -159,6 +273,7 @@ fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
         }
         let header_text = String::from_utf8_lossy(&buf[..header_end]);
         let mut status: u16 = 200;
+        let mut status_text = String::new();
         let mut content_length: Option<usize> = None;
         let mut headers = HashMap::new();
         for (i, line) in header_text.split("\r\n").enumerate() {
@@ -168,6 +283,7 @@ fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
                 if let Some(code) = parts.next() {
                     status = code.parse().unwrap_or(200);
                 }
+                status_text = parts.collect::<Vec<_>>().join(" ");
                 continue;
             }
             if line.is_empty() {
@@ -193,15 +309,19 @@ fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
             }
             body.truncate(len);
         }
-        *slot = Some((endpoint, stream));
+        let reuse = headers
+            .get("connection")
+            .map(|value| !value.eq_ignore_ascii_case("close"))
+            .unwrap_or(true);
+        if reuse {
+            *slot = Some((endpoint, stream));
+        } else {
+            *slot = None;
+        }
         Ok(FetchResponse {
             url: url.to_string(),
             status,
-            status_text: if status == 200 {
-                "OK".to_string()
-            } else {
-                String::new()
-            },
+            status_text,
             ok: (200..300).contains(&status),
             headers,
             body: Some(body),
@@ -212,7 +332,7 @@ fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
     })
 }
 
-fn execute_simple_get(url: &str) -> Result<FetchResponse> {
+fn check_fetch_permission(url: &str) -> Result<()> {
     if crate::permissions::has_restrictions() {
         crate::permissions::check_global_permission(
             crate::permissions::PermissionKind::Network,
@@ -221,6 +341,10 @@ fn execute_simple_get(url: &str) -> Result<FetchResponse> {
         )
         .map_err(|error| anyhow::anyhow!(error.to_string()))?;
     }
+    Ok(())
+}
+
+fn fetch_once_without_redirect(url: &str) -> Result<FetchResponse> {
     if url.starts_with("http://") {
         if let Ok(response) = http1_keepalive_get(url) {
             return Ok(response);
@@ -229,7 +353,7 @@ fn execute_simple_get(url: &str) -> Result<FetchResponse> {
     let response = get_blocking_fetch_client()
         .get(url)
         .send()
-        .map_err(|error| anyhow::anyhow!("failed to fetch {}: {}", url, error))?;
+        .map_err(|error| anyhow::anyhow!("failed to fetch {url}: {error}"))?;
     let status = response.status().as_u16();
     let status_text = response
         .status()
@@ -240,13 +364,13 @@ fn execute_simple_get(url: &str) -> Result<FetchResponse> {
     let final_url = response.url().to_string();
     let mut headers = HashMap::new();
     for (key, value) in response.headers().iter() {
-        if let Ok(v) = value.to_str() {
-            headers.insert(key.as_str().to_string(), v.to_string());
+        if let Ok(value) = value.to_str() {
+            headers.insert(key.as_str().to_string(), value.to_string());
         }
     }
     let body = response
         .bytes()
-        .map_err(|error| anyhow::anyhow!("failed to read body: {}", error))?
+        .map_err(|error| anyhow::anyhow!("failed to read body: {error}"))?
         .to_vec();
     Ok(FetchResponse {
         url: final_url,
@@ -259,6 +383,34 @@ fn execute_simple_get(url: &str) -> Result<FetchResponse> {
         redirected: false,
         response_type: "basic".to_string(),
     })
+}
+
+/// Default `fetch(url)` GET. Stays on the HTTP/1.1 fast path and follows
+/// `Location` itself so a 3xx is not returned as the final response.
+fn execute_simple_get(url: &str) -> Result<FetchResponse> {
+    let mut current_url = url.to_string();
+    let mut redirected = false;
+    let mut followed = 0u32;
+    loop {
+        check_fetch_permission(&current_url)?;
+        let mut response = fetch_once_without_redirect(&current_url)?;
+        let location = header_lookup(&response.headers, "location")
+            .map(str::trim)
+            .filter(|location| !location.is_empty())
+            .map(str::to_string);
+        if !is_redirect_status(response.status) || location.is_none() {
+            response.url = current_url;
+            response.redirected = redirected;
+            return Ok(response);
+        }
+        if followed >= MAX_REDIRECTS {
+            return Err(anyhow::anyhow!("Too many redirects"));
+        }
+        let location = location.expect("location checked above");
+        current_url = resolve_redirect_location(&current_url, &location)?;
+        followed += 1;
+        redirected = true;
+    }
 }
 
 /// Fetch API configuration
@@ -486,6 +638,7 @@ fn fetch_callback(
     let mut request_headers: HashMap<String, String> = HashMap::new();
     let mut request_body: Option<Vec<u8>> = None;
     let mut request_content_type = String::new();
+    let mut request_redirect = String::from("follow");
 
     if input.is_string() {
         // Input is a URL string
@@ -532,6 +685,15 @@ fn fetch_callback(
                     }
                 }
             }
+
+            let redirect_key = v8::String::new(scope, "redirect").unwrap().into();
+            if let Some(redirect_val) = input_obj.get(scope, redirect_key) {
+                if redirect_val.is_string() {
+                    if let Some(redirect_str) = redirect_val.to_string(scope) {
+                        request_redirect = redirect_str.to_rust_string_lossy(scope);
+                    }
+                }
+            }
         }
     }
     if url_str.is_empty() {
@@ -561,7 +723,7 @@ fn fetch_callback(
     let mut headers = request_headers;
     let mut body = request_body;
     let mut content_type = request_content_type;
-    let mut redirect = String::from("follow"); // Default redirect mode
+    let mut redirect = request_redirect;
 
     // Parse init object for method, headers, body, redirect (overrides Request properties)
     if init.is_object() {
@@ -613,11 +775,14 @@ fn fetch_callback(
                 }
             }
 
-            // Parse redirect option
+            // Parse redirect option. A missing property is undefined; toString()
+            // would turn that into the mode "undefined" and reject a normal init.
             let redirect_key = v8::String::new(scope, "redirect").unwrap().into();
             if let Some(redirect_val) = init_obj.get(scope, redirect_key) {
-                if let Some(redirect_str) = redirect_val.to_string(scope) {
-                    redirect = redirect_str.to_rust_string_lossy(scope);
+                if redirect_val.is_string() {
+                    if let Some(redirect_str) = redirect_val.to_string(scope) {
+                        redirect = redirect_str.to_rust_string_lossy(scope);
+                    }
                 }
             }
         }
@@ -629,6 +794,14 @@ fn fetch_callback(
         .any(|header| header.eq_ignore_ascii_case("content-type"));
     if !content_type.is_empty() && !has_content_type_header {
         headers.insert(normalize_header_name("Content-Type"), content_type);
+    }
+
+    if !is_redirect_mode(&redirect) {
+        let message =
+            v8::String::new(scope, &format!("Invalid redirect mode: {redirect}")).unwrap();
+        let error = v8::Exception::type_error(scope, message);
+        scope.throw_exception(error.into());
+        return;
     }
 
     // Execute fetch synchronously in a blocking task
@@ -654,55 +827,86 @@ fn fetch_callback(
         }
     }
 }
-/// Execute actual HTTP fetch using reqwest with redirect support
+fn method_to_reqwest(method: &HttpMethod) -> reqwest::Method {
+    match method {
+        HttpMethod::GET => reqwest::Method::GET,
+        HttpMethod::POST => reqwest::Method::POST,
+        HttpMethod::PUT => reqwest::Method::PUT,
+        HttpMethod::DELETE => reqwest::Method::DELETE,
+        HttpMethod::PATCH => reqwest::Method::PATCH,
+        HttpMethod::HEAD => reqwest::Method::HEAD,
+        HttpMethod::OPTIONS => reqwest::Method::OPTIONS,
+    }
+}
+
+fn headers_from_reqwest(headers: &reqwest::header::HeaderMap) -> HashMap<String, String> {
+    let mut response_headers = HashMap::new();
+    for (key, value) in headers {
+        response_headers.insert(key.to_string(), value.to_str().unwrap_or("").to_string());
+    }
+    response_headers
+}
+
+async fn collect_fetch_response(
+    response: reqwest::Response,
+    url: String,
+    redirected: bool,
+) -> Result<FetchResponse> {
+    let status = response.status().as_u16();
+    let status_text = response
+        .status()
+        .canonical_reason()
+        .unwrap_or("Unknown")
+        .to_string();
+    let ok = response.status().is_success();
+    let headers = headers_from_reqwest(response.headers());
+    let body_vec = response
+        .bytes()
+        .await
+        .map_err(|error| anyhow::anyhow!("failed to read fetch body from {url}: {error}"))?;
+    Ok(FetchResponse {
+        url,
+        status,
+        status_text,
+        ok,
+        headers,
+        body: Some(body_vec.to_vec()),
+        body_used: false,
+        redirected,
+        // Followed responses stay "default". `opaqueredirect` is only the
+        // browser filtered view of redirect: "manual", which this runtime does
+        // not apply (the 3xx status and Location header stay readable).
+        response_type: "default".to_string(),
+    })
+}
+
+/// Execute actual HTTP fetch using reqwest. Redirect policy is Amber's:
+/// `follow` resolves Location and rewrites 301/302/303 methods, `manual`
+/// returns the 3xx, and `error` rejects.
 async fn execute_fetch(
     url: &str,
-    method: HttpMethod,
-    headers: HashMap<String, String>,
-    body: Option<Vec<u8>>,
-    redirect: &str, // "follow", "error", "manual"
+    mut method: HttpMethod,
+    mut headers: HashMap<String, String>,
+    mut body: Option<Vec<u8>>,
+    redirect: &str,
 ) -> Result<FetchResponse> {
+    if !is_redirect_mode(redirect) {
+        return Err(anyhow::anyhow!("invalid redirect mode: {redirect}"));
+    }
     let mut current_url = url.to_string();
     let mut redirected = false;
-    let mut redirect_count = 0;
-    const MAX_REDIRECTS: u32 = 20;
+    let mut followed = 0u32;
 
     loop {
-        // Check redirect limit
-        if redirect_count > MAX_REDIRECTS {
-            return Err(anyhow::anyhow!("Too many redirects"));
-        }
-
-        crate::permissions::check_global_permission(
-            crate::permissions::PermissionKind::Network,
-            crate::permissions::PermissionAction::Connect,
-            crate::permissions::ResourceId::Url(current_url.clone()),
-        )
-        .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+        check_fetch_permission(&current_url)?;
 
         let client = get_fetch_client();
-
-        let request: _ = client.request(
-            match method {
-                HttpMethod::GET => reqwest::Method::GET,
-                HttpMethod::POST => reqwest::Method::POST,
-                HttpMethod::PUT => reqwest::Method::PUT,
-                HttpMethod::DELETE => reqwest::Method::DELETE,
-                HttpMethod::PATCH => reqwest::Method::PATCH,
-                HttpMethod::HEAD => reqwest::Method::HEAD,
-                HttpMethod::OPTIONS => reqwest::Method::OPTIONS,
-            },
-            &current_url,
-        );
-
-        // Only add body for non-GET/HEAD requests
+        let request = client.request(method_to_reqwest(&method), &current_url);
         let request = if matches!(method, HttpMethod::GET | HttpMethod::HEAD) || body.is_none() {
             request
         } else {
             request.body(body.clone().unwrap())
         };
-
-        // Add headers
         let mut req_builder = request;
         for (key, value) in &headers {
             req_builder = req_builder.header(key, value);
@@ -711,160 +915,42 @@ async fn execute_fetch(
         let response = match req_builder.send().await {
             Ok(response) => response,
             Err(error) => {
-                return Err(anyhow::anyhow!(
-                    "failed to fetch {}: {}",
-                    current_url,
-                    error
-                ));
+                return Err(anyhow::anyhow!("failed to fetch {current_url}: {error}"));
             }
         };
 
         let status = response.status().as_u16();
-        let status_text = response
-            .status()
-            .canonical_reason()
-            .unwrap_or("Unknown")
-            .to_string();
-        let ok = response.status().is_success();
-
-        // Check for redirect status codes
-        if matches!(status, 301 | 302 | 303 | 307 | 308) {
-            redirect_count += 1;
-
-            match redirect {
-                "error" => {
-                    // Return the redirect response as an error
-                    return Ok(FetchResponse {
-                        url: current_url.clone(),
-                        status,
-                        status_text,
-                        ok: false,
-                        headers: HashMap::new(),
-                        body: Some(format!("Redirect not allowed: {}", status).into_bytes()),
-                        body_used: false,
-                        redirected: false,
-                        response_type: "error".to_string(),
-                    });
+        let location = response
+            .headers()
+            .get("location")
+            .and_then(|value| value.to_str().ok())
+            .map(str::trim)
+            .filter(|location| !location.is_empty())
+            .map(str::to_string);
+        if is_redirect_status(status) && redirect == "error" {
+            return Err(anyhow::anyhow!("redirect not allowed: {status}"));
+        }
+        if is_redirect_status(status) && redirect == "follow" {
+            if let Some(location) = location {
+                if followed >= MAX_REDIRECTS {
+                    return Err(anyhow::anyhow!("Too many redirects"));
                 }
-                "manual" => {
-                    // Return the redirect response without following
-                    let mut response_headers: HashMap<String, String> = HashMap::new();
-                    for (key, value) in response.headers() {
-                        response_headers
-                            .insert(key.to_string(), value.to_str().unwrap_or("").to_string());
-                    }
-                    let body_vec: Vec<u8> = match response.bytes().await {
-                        Ok(bytes) => bytes.to_vec(),
-                        Err(error) => {
-                            return Err(anyhow::anyhow!(
-                                "failed to read fetch body from {}: {}",
-                                current_url,
-                                error
-                            ));
-                        }
-                    };
-                    return Ok(FetchResponse {
-                        url: current_url.clone(),
-                        status,
-                        status_text,
-                        ok: false,
-                        headers: response_headers,
-                        body: Some(body_vec),
-                        body_used: false,
-                        redirected: false,
-                        response_type: "default".to_string(),
-                    });
+                let next_url = resolve_redirect_location(&current_url, &location)?;
+                if !same_http_origin(&current_url, &next_url) {
+                    strip_cross_origin_request_headers(&mut headers);
                 }
-                "follow" | _ => {
-                    // Follow the redirect
-                    if let Some(location) = response.headers().get("location") {
-                        let location_str = location.to_str().unwrap_or("");
-                        let new_url = if location_str.starts_with("http") {
-                            location_str.to_string()
-                        } else if location_str.starts_with("/") {
-                            // Relative URL - construct from current URL
-                            let base_url =
-                                current_url.split('/').take(3).collect::<Vec<_>>().join("/");
-                            format!("{}{}", base_url, location_str)
-                        } else {
-                            location_str.to_string()
-                        };
-
-                        redirected = true;
-                        current_url = new_url;
-                        continue;
-                    } else {
-                        // No location header - treat as normal response
-                        let mut response_headers: HashMap<String, String> = HashMap::new();
-                        for (key, value) in response.headers() {
-                            response_headers
-                                .insert(key.to_string(), value.to_str().unwrap_or("").to_string());
-                        }
-                        let body_vec: Vec<u8> = match response.bytes().await {
-                            Ok(bytes) => bytes.to_vec(),
-                            Err(error) => {
-                                return Err(anyhow::anyhow!(
-                                    "failed to read fetch body from {}: {}",
-                                    current_url,
-                                    error
-                                ));
-                            }
-                        };
-                        return Ok(FetchResponse {
-                            url: current_url.clone(),
-                            status,
-                            status_text,
-                            ok,
-                            headers: response_headers,
-                            body: Some(body_vec),
-                            body_used: false,
-                            redirected,
-                            response_type: if redirected {
-                                "opaqueredirect".to_string()
-                            } else {
-                                "default".to_string()
-                            },
-                        });
-                    }
-                }
+                apply_redirect_method(status, &mut method, &mut body, &mut headers);
+                response.bytes().await.map_err(|error| {
+                    anyhow::anyhow!("failed to read redirect body from {current_url}: {error}")
+                })?;
+                followed += 1;
+                redirected = true;
+                current_url = next_url;
+                continue;
             }
         }
 
-        // Extract headers BEFORE consuming the response
-        let mut response_headers: HashMap<String, String> = HashMap::new();
-        for (key, value) in response.headers() {
-            response_headers.insert(key.to_string(), value.to_str().unwrap_or("").to_string());
-        }
-        // Get response body
-        let body_vec: Vec<u8> = match response.bytes().await {
-            Ok(bytes) => bytes.to_vec(),
-            Err(error) => {
-                return Err(anyhow::anyhow!(
-                    "failed to read fetch body from {}: {}",
-                    current_url,
-                    error
-                ));
-            }
-        };
-
-        // Determine response type
-        let response_type = if redirected {
-            "opaqueredirect".to_string()
-        } else {
-            "default".to_string()
-        };
-
-        return Ok(FetchResponse {
-            url: current_url.clone(),
-            status,
-            status_text,
-            ok,
-            headers: response_headers,
-            body: Some(body_vec),
-            body_used: false,
-            redirected,
-            response_type,
-        });
+        return collect_fetch_response(response, current_url, redirected).await;
     }
 }
 
@@ -1088,11 +1174,13 @@ fn request_constructor_callback(
                 }
             }
 
-            // Parse redirect
+            // Parse redirect. Missing properties are undefined, not the mode string.
             let redirect_key = v8::String::new(scope, "redirect").unwrap().into();
             if let Some(redirect_val) = init.get(scope, redirect_key) {
-                if let Some(redirect_str) = redirect_val.to_string(scope) {
-                    init_redirect = redirect_str.to_rust_string_lossy(scope);
+                if redirect_val.is_string() {
+                    if let Some(redirect_str) = redirect_val.to_string(scope) {
+                        init_redirect = redirect_str.to_rust_string_lossy(scope);
+                    }
                 }
             }
 
@@ -2339,7 +2427,10 @@ fn response_body_for_object(
 
 #[cfg(test)]
 mod tests {
-    use super::{FetchConfig, HttpMethod};
+    use super::{
+        apply_redirect_method, resolve_redirect_location, FetchConfig, HttpMethod, MAX_REDIRECTS,
+    };
+    use std::collections::HashMap;
 
     #[test]
     fn test_http_method_from_string() {
@@ -2362,6 +2453,78 @@ mod tests {
         );
         assert_eq!(config.timeout, std::time::Duration::from_secs(30));
         assert_eq!(config.max_redirects, 20);
+        assert_eq!(config.max_redirects, MAX_REDIRECTS);
+    }
+
+    #[test]
+    fn test_resolve_redirect_location_relative_query_and_absolute() {
+        let base = "http://127.0.0.1:9/a/b?q=1#frag";
+        assert_eq!(
+            resolve_redirect_location(base, "c").unwrap(),
+            "http://127.0.0.1:9/a/c"
+        );
+        assert_eq!(
+            resolve_redirect_location(base, "/landed").unwrap(),
+            "http://127.0.0.1:9/landed"
+        );
+        assert_eq!(
+            resolve_redirect_location(base, "?x=2").unwrap(),
+            "http://127.0.0.1:9/a/b?x=2"
+        );
+        assert_eq!(
+            resolve_redirect_location(base, "../c").unwrap(),
+            "http://127.0.0.1:9/c"
+        );
+        assert_eq!(
+            resolve_redirect_location("http://h/a/b/", "../c").unwrap(),
+            "http://h/a/c"
+        );
+        assert_eq!(
+            resolve_redirect_location(base, "http://example.com/z").unwrap(),
+            "http://example.com/z"
+        );
+        assert_eq!(
+            resolve_redirect_location(base, "//cdn.example/x").unwrap(),
+            "http://cdn.example/x"
+        );
+    }
+
+    #[test]
+    fn test_apply_redirect_method_rewrites_301_and_303_but_not_307() {
+        let mut headers = HashMap::from([
+            ("Content-Type".to_string(), "text/plain".to_string()),
+            ("Authorization".to_string(), "Bearer keep".to_string()),
+            ("X-Trace".to_string(), "1".to_string()),
+        ]);
+        let mut method = HttpMethod::POST;
+        let mut body = Some(b"secret".to_vec());
+        apply_redirect_method(302, &mut method, &mut body, &mut headers);
+        assert_eq!(method, HttpMethod::GET);
+        assert!(body.is_none());
+        assert!(!headers
+            .keys()
+            .any(|name| name.eq_ignore_ascii_case("content-type")));
+        assert_eq!(
+            headers.get("Authorization").map(String::as_str),
+            Some("Bearer keep")
+        );
+        assert_eq!(headers.get("X-Trace").map(String::as_str), Some("1"));
+
+        let mut headers = HashMap::from([("Content-Length".to_string(), "4".to_string())]);
+        let mut method = HttpMethod::POST;
+        let mut body = Some(b"keep".to_vec());
+        apply_redirect_method(307, &mut method, &mut body, &mut headers);
+        assert_eq!(method, HttpMethod::POST);
+        assert_eq!(body.as_deref(), Some(b"keep".as_slice()));
+        assert_eq!(headers.get("Content-Length").map(String::as_str), Some("4"));
+
+        let mut headers = HashMap::from([("Content-Type".to_string(), "text/plain".to_string())]);
+        let mut method = HttpMethod::HEAD;
+        let mut body = Some(b"drop".to_vec());
+        apply_redirect_method(303, &mut method, &mut body, &mut headers);
+        assert_eq!(method, HttpMethod::HEAD);
+        assert!(body.is_none());
+        assert!(headers.is_empty());
     }
 
     // v0.3.344: Tests for arrayBuffer() and blob() Body mixin methods
