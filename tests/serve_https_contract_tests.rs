@@ -5,6 +5,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -192,37 +193,73 @@ fn curl(port: u16, path: &str, args: &[&str]) -> (String, String) {
     (header_text, body_text)
 }
 
-fn s_client(port: u16, alpn: &str, request: &[u8]) -> String {
-    let connect = format!("127.0.0.1:{port}");
-    let mut child = Command::new("timeout")
-        .args([
-            "5",
-            "openssl",
-            "s_client",
-            "-connect",
-            &connect,
-            "-servername",
-            "localhost",
-            "-alpn",
-            alpn,
-            "-ign_eof",
-            "-quiet",
-        ])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("openssl s_client");
-    {
-        let mut stdin = child.stdin.take().expect("stdin");
-        let _ = stdin.write_all(request);
+/// HTTPS request against the live `amber serve --https` process.
+/// Uses rustls so the contract test does not need the openssl CLI.
+fn tls_http(port: u16, alpn: &[u8], request: &[u8]) -> Result<String, String> {
+    let mut tcp =
+        std::net::TcpStream::connect(("127.0.0.1", port)).map_err(|err| err.to_string())?;
+    tcp.set_read_timeout(Some(Duration::from_secs(5)))
+        .map_err(|err| err.to_string())?;
+    tcp.set_write_timeout(Some(Duration::from_secs(5)))
+        .map_err(|err| err.to_string())?;
+    let name = rustls::ServerName::try_from("localhost").map_err(|err| err.to_string())?;
+    let mut conn = rustls::ClientConnection::new(tls_client_config(alpn), name)
+        .map_err(|err| err.to_string())?;
+    let mut stream = rustls::Stream::new(&mut conn, &mut tcp);
+    // A limit rejection can close the socket while this write is still going.
+    // Keep any HTTP bytes already decrypted.
+    let write_err = stream.write_all(request).err();
+    let _ = stream.flush();
+    let mut out = Vec::new();
+    let mut tmp = [0u8; 4096];
+    loop {
+        match stream.read(&mut tmp) {
+            Ok(0) => break,
+            Ok(n) => out.extend_from_slice(&tmp[..n]),
+            Err(err) if err.kind() == std::io::ErrorKind::TimedOut => break,
+            Err(err) if err.kind() == std::io::ErrorKind::UnexpectedEof && !out.is_empty() => break,
+            Err(err) if out.is_empty() => {
+                if let Some(write_err) = write_err {
+                    return Err(format!("{write_err}; {err}"));
+                }
+                return Err(err.to_string());
+            }
+            Err(_) => break,
+        }
     }
-    let output = child.wait_with_output().expect("wait s_client");
-    format!(
-        "{}{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    )
+    if out.is_empty() {
+        return Err(write_err
+            .map(|err| err.to_string())
+            .unwrap_or_else(|| "empty TLS response".to_string()));
+    }
+    Ok(String::from_utf8_lossy(&out).into_owned())
+}
+
+fn tls_http_text(port: u16, alpn: &[u8], request: &[u8]) -> String {
+    tls_http(port, alpn, request).unwrap_or_else(|err| panic!("tls http failed: {err}"))
+}
+
+fn tls_client_config(alpn: &[u8]) -> Arc<rustls::ClientConfig> {
+    struct AcceptAny;
+    impl rustls::client::ServerCertVerifier for AcceptAny {
+        fn verify_server_cert(
+            &self,
+            _end_entity: &rustls::Certificate,
+            _intermediates: &[rustls::Certificate],
+            _server_name: &rustls::ServerName,
+            _scts: &mut dyn Iterator<Item = &[u8]>,
+            _ocsp_response: &[u8],
+            _now: std::time::SystemTime,
+        ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
+            Ok(rustls::client::ServerCertVerified::assertion())
+        }
+    }
+    let mut config = rustls::ClientConfig::builder()
+        .with_safe_defaults()
+        .with_custom_certificate_verifier(Arc::new(AcceptAny))
+        .with_no_client_auth();
+    config.alpn_protocols = vec![alpn.to_vec()];
+    Arc::new(config)
 }
 
 #[test]
@@ -513,11 +550,10 @@ fn health_server_enforces_http11_limits() {
     assert_eq!(json["version"], version);
     assert!(body.ends_with('\n'), "{body:?}");
 
-    // curl -X HEAD still waits for Content-Length body bytes (exit 18). The
-    // wire check is openssl: headers only, with the GET body's length.
-    let head = s_client(
+    // curl -X HEAD still waits for Content-Length body bytes (exit 18).
+    let head = tls_http_text(
         server.port,
-        "http/1.1",
+        b"http/1.1",
         b"HEAD / HTTP/1.1\r\nHost: localhost\r\n\r\n",
     );
     assert!(head.contains("HTTP/1.1 200 OK"), "{head}");
@@ -528,9 +564,9 @@ fn health_server_enforces_http11_limits() {
         "HEAD must not include a body: {head}"
     );
 
-    let http10 = s_client(
+    let http10 = tls_http_text(
         server.port,
-        "http/1.1",
+        b"http/1.1",
         b"GET / HTTP/1.0\r\nHost: localhost\r\n\r\n",
     );
     assert!(
@@ -538,15 +574,15 @@ fn health_server_enforces_http11_limits() {
         "{http10}"
     );
 
-    let no_host = s_client(server.port, "http/1.1", b"GET / HTTP/1.1\r\n\r\n");
+    let no_host = tls_http_text(server.port, b"http/1.1", b"GET / HTTP/1.1\r\n\r\n");
     assert!(
         no_host.contains("400") && no_host.contains("host header required"),
         "{no_host}"
     );
 
-    let chunked = s_client(
+    let chunked = tls_http_text(
         server.port,
-        "http/1.1",
+        b"http/1.1",
         b"POST / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n",
     );
     assert!(
@@ -554,9 +590,9 @@ fn health_server_enforces_http11_limits() {
         "{chunked}"
     );
 
-    let expect = s_client(
+    let expect = tls_http_text(
         server.port,
-        "http/1.1",
+        b"http/1.1",
         b"GET / HTTP/1.1\r\nHost: localhost\r\nExpect: 100-continue\r\n\r\n",
     );
     assert!(
@@ -567,7 +603,7 @@ fn health_server_enforces_http11_limits() {
     let mut huge = b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Big: ".to_vec();
     huge.extend(std::iter::repeat_n(b'a', MAX_HEADER_BYTES));
     huge.extend_from_slice(b"\r\n\r\n");
-    let too_many_headers = s_client(server.port, "http/1.1", &huge);
+    let too_many_headers = tls_http_text(server.port, b"http/1.1", &huge);
     assert!(
         too_many_headers.contains("431") && too_many_headers.contains("request headers too large"),
         "{too_many_headers}"
@@ -577,16 +613,17 @@ fn health_server_enforces_http11_limits() {
         "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n",
         MAX_BODY_BYTES + 1
     );
-    let payload = s_client(server.port, "http/1.1", too_big.as_bytes());
+    let payload = tls_http_text(server.port, b"http/1.1", too_big.as_bytes());
     assert!(
         payload.contains("413") && payload.contains("request body too large"),
         "{payload}"
     );
 
-    let h2 = s_client(server.port, "h2", b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
+    let h2 = tls_http(server.port, b"h2", b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
+    let h2_text = h2.as_deref().unwrap_or("");
     assert!(
-        !h2.contains("HTTP/1.1 200") && !h2.contains("\"ok\":true"),
-        "h2 ALPN must not receive the health document: {h2}"
+        h2.is_err() || (!h2_text.contains("HTTP/1.1 200") && !h2_text.contains("\"ok\":true")),
+        "h2 ALPN must not receive the health document: {h2:?}"
     );
 
     // The listener is still the health server after the rejected handshake.
