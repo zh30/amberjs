@@ -38,3 +38,63 @@ pub fn compile_typescript_file(file_path: &std::path::Path) -> Result<Compilatio
     let file_name = file_path.to_string_lossy().to_string();
     compile_typescript(&source, &file_name)
 }
+
+/// Transpile many files. Each item is `(source, file_name)`.
+///
+/// Results stay in input order. More than one file is split across threads;
+/// a single file uses the same path as [`compile_typescript`].
+pub fn compile_typescript_batch(files: &[(&str, &str)]) -> Vec<Result<CompilationOutput, String>> {
+    if files.len() <= 1 {
+        return files
+            .iter()
+            .map(|(source, file_name)| compile_typescript(source, file_name))
+            .collect();
+    }
+    let workers = std::thread::available_parallelism()
+        .map(|count| count.get())
+        .unwrap_or(1)
+        .clamp(1, files.len());
+    let chunk_size = files.len().div_ceil(workers);
+    std::thread::scope(|scope| {
+        let mut handles = Vec::with_capacity(workers);
+        for chunk in files.chunks(chunk_size) {
+            handles.push(scope.spawn(move || {
+                chunk
+                    .iter()
+                    .map(|(source, file_name)| compile_typescript(source, file_name))
+                    .collect::<Vec<_>>()
+            }));
+        }
+        let mut compiled = Vec::with_capacity(files.len());
+        for handle in handles {
+            compiled.extend(handle.join().expect("TypeScript transpile thread panicked"));
+        }
+        compiled
+    })
+}
+
+#[cfg(test)]
+mod batch_tests {
+    use super::*;
+
+    #[test]
+    fn batch_preserves_order_and_matches_sequential() {
+        let files = [
+            ("export const a: number = 1;\n", "batch_a.ts"),
+            ("export const b: string = \"two\";\n", "batch_b.ts"),
+            ("export const c: boolean = true;\n", "batch_c.ts"),
+        ];
+        let batched = compile_typescript_batch(&files);
+        assert_eq!(batched.len(), files.len());
+        for (index, (source, file_name)) in files.iter().enumerate() {
+            let batched_js = batched[index].as_ref().expect("batch item").js_code.clone();
+            let sequential = compile_typescript(source, file_name).expect("sequential");
+            assert_eq!(batched_js, sequential.js_code);
+            assert!(sequential.source_map.is_some());
+        }
+        assert!(batched[0].as_ref().unwrap().js_code.contains('1'));
+        assert!(batched[1].as_ref().unwrap().js_code.contains("two"));
+        assert!(batched[2].as_ref().unwrap().js_code.contains("true"));
+        cache::clear_cache();
+    }
+}
