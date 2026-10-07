@@ -560,8 +560,51 @@ fn allow_sandbox_entry_file(sandbox: bool, file: &Path) -> Result<()> {
     Ok(())
 }
 
-fn print_exported_tools(file: &Path) -> Result<()> {
-    let tools = amberjs::agent::export_tools_from_entry(file)?;
+fn allow_sandbox_export_manifest(sandbox: bool, file: &Path) -> Result<()> {
+    if !sandbox {
+        return Ok(());
+    }
+    let manifest = amberjs::agent::tools_json_path(file);
+    if !manifest.is_file() {
+        return Ok(());
+    }
+    let mut broker = amberjs::permissions::global_resource_broker()
+        .write()
+        .map_err(|_| anyhow!("resource broker lock poisoned"))?;
+    broker.allow(
+        amberjs::permissions::PermissionKind::FileSystem,
+        amberjs::permissions::PermissionAction::Read,
+        amberjs::permissions::ResourceId::Path(manifest),
+    );
+    Ok(())
+}
+
+fn export_tools_cli_fail(err: impl std::fmt::Display) -> ! {
+    let msg = err.to_string();
+    if msg.contains(amberjs::agent::EXPORT_TOOLS_ERROR_PREFIX) {
+        eprintln!("{msg}");
+    } else {
+        eprintln!("{} {msg}", amberjs::agent::EXPORT_TOOLS_ERROR_PREFIX);
+    }
+    std::process::exit(1);
+}
+
+/// Print tool schemas and exit. Does not execute the module, start the
+/// inspector, watch files, or run a package.json script.
+fn run_export_tools_command(options: &PermissionCliOptions, file: &Path) -> Result<()> {
+    apply_permission_cli_options(options)?;
+    allow_sandbox_entry_file(options.sandbox, file)?;
+    allow_sandbox_export_manifest(options.sandbox, file)?;
+    // Metadata only. A missing path or a directory must not touch the broker,
+    // and a real file must be allowed before load_export_tools reads it.
+    if file.is_file() {
+        check_file_read_permission(file)?;
+        let manifest = amberjs::agent::tools_json_path(file);
+        if manifest.is_file() {
+            check_file_read_permission(&manifest)?;
+        }
+    }
+    let tools = amberjs::agent::load_export_tools(file)?;
     println!(
         "{}",
         serde_json::to_string_pretty(&amberjs::agent::tools_list_json(&tools))?
@@ -3962,6 +4005,13 @@ fn main() -> Result<()> {
             inspect_port,
             warm,
         }) => {
+            // Schema export exits before inspect, watch, preload, and package scripts.
+            if export_tools {
+                if let Err(err) = run_export_tools_command(&permissions, &file) {
+                    export_tools_cli_fail(err);
+                }
+                return Ok(());
+            }
             let inspector = if inspect || inspect_brk {
                 let inspector = amberjs::tooling::inspector::InspectorServer::new(
                     "127.0.0.1",
@@ -3997,10 +4047,6 @@ fn main() -> Result<()> {
 
             apply_permission_cli_options(&permissions)?;
             allow_sandbox_entry_file(permissions.sandbox, &file)?;
-            if export_tools {
-                print_exported_tools(&file)?;
-                return Ok(());
-            }
 
             // Combine preloads and require (they are equivalent)
             let all_preloads: Vec<String> =
