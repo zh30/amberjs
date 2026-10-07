@@ -823,15 +823,20 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
         }
     }
 
-    // 2. Process and transform each module
-    let mut bundled_modules = Vec::new();
-    let mut module_analyses = Vec::new();
-    let mut module_dep_maps = Vec::new();
-    for (id, path) in modules.iter().enumerate() {
+    // 2. Rewrite each module, then transpile TypeScript off the graph walk.
+    struct PreparedModule {
+        path: PathBuf,
+        analysis: ModuleAnalysis,
+        dep_map: HashMap<String, usize>,
+        code: String,
+        transpile: bool,
+    }
+
+    let mut prepared = Vec::with_capacity(modules.len());
+    for path in modules.iter() {
         let source = fs::read_to_string(path)
             .map_err(|e| bundle_err(format!("failed to read '{}': {}", path.display(), e)))?;
 
-        // Map specifiers to module IDs first
         let mut dep_map = HashMap::new();
         for specifier in scan_import_specifiers(&source) {
             if let Some(resolved) = resolve_bundle_dep(path, &specifier, import_map.as_ref())? {
@@ -842,9 +847,8 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
             }
         }
 
-        // Transform ESM imports/exports
-        let is_json = path.extension().map_or(false, |ext| ext == "json");
-        let (transformed, analysis) = if is_json {
+        let is_json = path.extension().is_some_and(|ext| ext == "json");
+        let (code, analysis) = if is_json {
             (
                 format!("module.exports = {};", source.trim()),
                 ModuleAnalysis::default(),
@@ -852,33 +856,57 @@ pub fn bundle_project(options: &BundleOptions) -> Result<BundleOutput> {
         } else {
             transform_module_code(&source, path, &dep_map)
         };
-        module_analyses.push(analysis);
-        module_dep_maps.push(dep_map);
+        let transpile = !is_json
+            && path
+                .extension()
+                .is_some_and(|ext| matches!(ext.to_str(), Some("ts" | "tsx" | "mts" | "cts")));
+        prepared.push(PreparedModule {
+            path: path.clone(),
+            analysis,
+            dep_map,
+            code,
+            transpile,
+        });
+    }
 
-        // If TS/TSX, transpile to JavaScript
-        let file_str = path.to_string_lossy();
-        let js_code = if is_json {
-            transformed
-        } else if path.extension().map_or(false, |ext| {
-            ext == "ts" || ext == "tsx" || ext == "mts" || ext == "cts"
-        }) {
-            crate::typescript::compile_typescript(&transformed, &file_str)
-                .map_err(|e| {
-                    bundle_err(format!(
-                        "TypeScript compile failed for '{}': {}",
-                        path.display(),
-                        e
-                    ))
-                })?
-                .js_code
-        } else {
-            transformed
-        };
+    let mut ts_slots = Vec::new();
+    let mut ts_names = Vec::new();
+    for (index, module) in prepared.iter().enumerate() {
+        if module.transpile {
+            ts_slots.push(index);
+            ts_names.push(module.path.to_string_lossy().into_owned());
+        }
+    }
+    let compiled = {
+        let ts_inputs: Vec<(&str, &str)> = ts_slots
+            .iter()
+            .enumerate()
+            .map(|(job, &index)| (prepared[index].code.as_str(), ts_names[job].as_str()))
+            .collect();
+        crate::typescript::compile_typescript_batch(&ts_inputs)
+    };
+    for (job, output) in compiled.into_iter().enumerate() {
+        let index = ts_slots[job];
+        let output = output.map_err(|error| {
+            bundle_err(format!(
+                "TypeScript compile failed for '{}': {}",
+                prepared[index].path.display(),
+                error
+            ))
+        })?;
+        prepared[index].code = output.js_code;
+    }
 
+    let mut bundled_modules = Vec::with_capacity(prepared.len());
+    let mut module_analyses = Vec::with_capacity(prepared.len());
+    let mut module_dep_maps = Vec::with_capacity(prepared.len());
+    for (id, module) in prepared.into_iter().enumerate() {
+        module_analyses.push(module.analysis);
+        module_dep_maps.push(module.dep_map);
         bundled_modules.push(BundledModule {
             id,
-            path: path.clone(),
-            processed_code: js_code,
+            path: module.path,
+            processed_code: module.code,
         });
     }
 

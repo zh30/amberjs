@@ -5,6 +5,7 @@
 //! to something rusty_v8 0.22 can execute.
 
 use std::path::Path;
+use std::sync::OnceLock;
 
 use oxc::allocator::Allocator;
 use oxc::codegen::{Codegen, CodegenOptions, CodegenReturn};
@@ -36,8 +37,11 @@ pub fn transpile(source: &str, file_name: &str) -> Result<CompilationOutput, Str
     }
 
     let mut program = parser_ret.program;
+    // `with_excess_capacity` is a fraction on top of the counted symbol tables
+    // (0.2 = +20%). The previous 2.0 reserved 3x scopes/symbols/references.
+    // Exact counts (`0.0`) match that emit on a 10k-file tree and avoid the extra tables.
     let semantic_ret = SemanticBuilder::new()
-        .with_excess_capacity(2.0)
+        .with_excess_capacity(0.0)
         .with_check_syntax_error(true)
         .with_enum_eval(true)
         .build(&program);
@@ -50,20 +54,7 @@ pub fn transpile(source: &str, file_name: &str) -> Result<CompilationOutput, Str
     }
 
     let scoping = semantic_ret.semantic.into_scoping();
-    let mut transform_options = TransformOptions::from_target("es2022")
-        .map_err(|error| format!("invalid oxc transform target: {error}"))?;
-    transform_options.jsx = classic_jsx_options();
-    // Keep unused value imports (they may have side effects). Only `import type` is erased.
-    transform_options.typescript.only_remove_type_imports = true;
-    // Inline helpers panic in oxc 0.147. External emit uses `babelHelpers.*`.
-    transform_options.helper_loader.mode = HelperLoaderMode::External;
-    transform_options.decorator = DecoratorOptions {
-        legacy: true,
-        emit_decorator_metadata: false,
-        strict_null_checks: true,
-    };
-
-    let transform_ret = Transformer::new(&allocator, source_path, &transform_options)
+    let transform_ret = Transformer::new(&allocator, source_path, transform_options())
         .build_with_scoping(scoping, &mut program);
     if !transform_ret.diagnostics.is_empty() {
         return Err(format_oxc_diagnostics(
@@ -160,6 +151,25 @@ const BABEL_HELPERS_PRELUDE: &str = r#"
   }
 })(typeof globalThis !== "undefined" ? globalThis : this);
 "#;
+
+fn transform_options() -> &'static TransformOptions {
+    static OPTIONS: OnceLock<TransformOptions> = OnceLock::new();
+    OPTIONS.get_or_init(|| {
+        let mut transform_options = TransformOptions::from_target("es2022")
+            .expect("es2022 is a valid oxc transform target");
+        transform_options.jsx = classic_jsx_options();
+        // Keep unused value imports (they may have side effects). Only `import type` is erased.
+        transform_options.typescript.only_remove_type_imports = true;
+        // Inline helpers panic in oxc 0.147. External emit uses `babelHelpers.*`.
+        transform_options.helper_loader.mode = HelperLoaderMode::External;
+        transform_options.decorator = DecoratorOptions {
+            legacy: true,
+            emit_decorator_metadata: false,
+            strict_null_checks: true,
+        };
+        transform_options
+    })
+}
 
 fn classic_jsx_options() -> JsxOptions {
     let mut jsx = JsxOptions::enable();

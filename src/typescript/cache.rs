@@ -1,16 +1,79 @@
 //! Disk + memory cache for TypeScript transpile output (content-hash keyed).
+//!
+//! The memory tier is capped. A project-sized transpile used to retain every
+//! JavaScript output and source map until process exit (hundreds of MiB on a
+//! VS Code-sized tree). Disk entries stay so a later process can reuse them.
 
 use crate::typescript::compiler::{CompilationOutput, TypeScriptError};
 use crate::typescript::oxc_backend::BACKEND_ID;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
-static MEMORY_CACHE: Lazy<Mutex<HashMap<u64, CompilationOutput>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+/// Resident JavaScript + source map bytes kept in this process.
+/// One oversized entry is allowed so a single large file still hits memory.
+const MEMORY_CACHE_BUDGET: usize = 32 * 1024 * 1024;
+
+static MEMORY_CACHE: Lazy<Mutex<MemoryCache>> = Lazy::new(|| Mutex::new(MemoryCache::new()));
+
+/// Test-only override. `0` means [`MEMORY_CACHE_BUDGET`].
+static BUDGET_OVERRIDE: AtomicUsize = AtomicUsize::new(0);
+
+struct MemoryCache {
+    map: HashMap<u64, CompilationOutput>,
+    order: VecDeque<u64>,
+    bytes: usize,
+}
+
+impl MemoryCache {
+    fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+            order: VecDeque::new(),
+            bytes: 0,
+        }
+    }
+
+    fn insert(&mut self, key: u64, output: CompilationOutput) {
+        if self.map.contains_key(&key) {
+            return;
+        }
+        let size = output_bytes(&output);
+        self.map.insert(key, output);
+        self.order.push_back(key);
+        self.bytes += size;
+        let budget = memory_budget();
+        while self.map.len() > 1 && self.bytes > budget {
+            let Some(old) = self.order.pop_front() else {
+                break;
+            };
+            if let Some(removed) = self.map.remove(&old) {
+                self.bytes = self.bytes.saturating_sub(output_bytes(&removed));
+            }
+        }
+    }
+
+    fn clear(&mut self) {
+        self.map.clear();
+        self.order.clear();
+        self.bytes = 0;
+    }
+}
+
+fn memory_budget() -> usize {
+    match BUDGET_OVERRIDE.load(Ordering::Relaxed) {
+        0 => MEMORY_CACHE_BUDGET,
+        budget => budget,
+    }
+}
+
+fn output_bytes(output: &CompilationOutput) -> usize {
+    output.js_code.len() + output.source_map.as_ref().map_or(0, String::len)
+}
 
 fn hash_source(source: &str, file_name: &str) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
@@ -27,7 +90,7 @@ fn cache_dir() -> PathBuf {
 pub fn get_cached(source: &str, file_name: &str) -> Option<CompilationOutput> {
     let key = hash_source(source, file_name);
     if let Ok(cache) = MEMORY_CACHE.lock() {
-        if let Some(hit) = cache.get(&key) {
+        if let Some(hit) = cache.map.get(&key) {
             return Some(hit.clone());
         }
     }
@@ -77,11 +140,44 @@ pub fn clear_cache() {
 }
 
 #[cfg(test)]
+fn memory_cache_resident_bytes() -> usize {
+    MEMORY_CACHE.lock().map(|cache| cache.bytes).unwrap_or(0)
+}
+
+#[cfg(test)]
+fn memory_cache_len() -> usize {
+    MEMORY_CACHE
+        .lock()
+        .map(|cache| cache.map.len())
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
+struct BudgetGuard;
+
+#[cfg(test)]
+impl Drop for BudgetGuard {
+    fn drop(&mut self) {
+        BUDGET_OVERRIDE.store(0, Ordering::Relaxed);
+    }
+}
+
+#[cfg(test)]
+fn set_test_budget(budget: usize) -> BudgetGuard {
+    BUDGET_OVERRIDE.store(budget, Ordering::Relaxed);
+    BudgetGuard
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static CACHE_TEST: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_cache_preserves_source_map() {
+        let _guard = CACHE_TEST.lock().expect("cache test lock");
         clear_cache();
         let source = "const x: number = 42;";
         let file_name = "test_cache_map.ts";
@@ -113,6 +209,32 @@ mod tests {
             Some("{\"version\":3,\"mappings\":\"AAAA\"}".to_string())
         );
 
+        clear_cache();
+    }
+
+    #[test]
+    fn memory_cache_evicts_oldest_and_disk_still_hits() {
+        let _guard = CACHE_TEST.lock().expect("cache test lock");
+        let _budget = set_test_budget(64);
+        clear_cache();
+        let older = CompilationOutput {
+            js_code: "a".repeat(40),
+            source_map: Some("m".repeat(20)),
+            diagnostics: Vec::new(),
+        };
+        let newer = CompilationOutput {
+            js_code: "b".repeat(40),
+            source_map: Some("n".repeat(20)),
+            diagnostics: Vec::new(),
+        };
+        put_cached("source-older", "older.ts", &older);
+        put_cached("source-newer", "newer.ts", &newer);
+
+        assert_eq!(memory_cache_len(), 1, "oldest entry should be evicted");
+        assert!(memory_cache_resident_bytes() <= 64);
+        let restored = get_cached("source-older", "older.ts").expect("disk hit");
+        assert_eq!(restored.js_code, older.js_code);
+        assert_eq!(restored.source_map, older.source_map);
         clear_cache();
     }
 }
