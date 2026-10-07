@@ -5187,93 +5187,7 @@ fn main() -> Result<()> {
             check_network_listen_permission(&bind_target)?;
 
             if https {
-                let cert_path = match cert {
-                    Some(path) => path,
-                    None => {
-                        eprintln!(
-                            "error: amber serve --https requires --cert PATH (PEM certificate)"
-                        );
-                        std::process::exit(2);
-                    }
-                };
-                let key_path = match key {
-                    Some(path) => path,
-                    None => {
-                        eprintln!(
-                            "error: amber serve --https requires --key PATH (PEM private key)"
-                        );
-                        std::process::exit(2);
-                    }
-                };
-                if !Path::new(&cert_path).is_file() {
-                    eprintln!("error: TLS certificate not found: {cert_path} (pass --cert PATH)");
-                    std::process::exit(2);
-                }
-                if !Path::new(&key_path).is_file() {
-                    eprintln!("error: TLS private key not found: {key_path} (pass --key PATH)");
-                    std::process::exit(2);
-                }
-                let tls_cert =
-                    amberjs::nodejs_core::http::load_tls_certificate(&cert_path, &key_path)
-                        .map_err(|e| anyhow!("invalid TLS material: {e}"))?;
-                let tls_config =
-                    amberjs::nodejs_core::http::try_create_tls_server_config_http11(&tls_cert)
-                        .map_err(|e| anyhow!(e))?;
-
-                let effective_file = if let Some(f) = file {
-                    Some(f)
-                } else {
-                    [
-                        "app.ts",
-                        "app.js",
-                        "server.ts",
-                        "server.js",
-                        "index.ts",
-                        "index.js",
-                    ]
-                    .iter()
-                    .map(PathBuf::from)
-                    .find(|p| p.exists() && p.is_file())
-                };
-
-                let addr = format!("{}:{}", host, port);
-                let listener = std::net::TcpListener::bind(&addr)
-                    .map_err(|e| anyhow!("failed to bind {addr}: {e}"))?;
-                let bound = listener
-                    .local_addr()
-                    .unwrap_or_else(|_| addr.parse().unwrap());
-                println!("🚀 Starting Amber Web Server on https://{}", bound);
-                if let Some(ref file_path) = effective_file {
-                    println!("📄 Serving application: {}", file_path.display());
-                    check_file_read_permission(file_path)?;
-                    let code = read_and_compile_source(file_path)?;
-                    let mut runtime = if let Some(mem_mb) = permissions.max_memory {
-                        amberjs::runtime_minimal::MinimalRuntime::with_memory_limit(mem_mb)?
-                    } else {
-                        amberjs::runtime_minimal::MinimalRuntime::new()?
-                    };
-                    runtime.set_main_module_path(file_path);
-                    runtime.execute_code(HTTPS_FETCH_BRIDGE)?;
-                    let wrapped_user_code = format!(
-                        r#"
-                    (function() {{
-                        const module = {{ exports: {{}} }};
-                        const exports = module.exports;
-                        {}
-                        globalThis.__amberjs_app__ = (module.exports && (module.exports.default || module.exports.fetch)) ? module.exports : (typeof fetch !== 'undefined' ? {{ fetch }} : module.exports);
-                    }})();
-                    "#,
-                        code
-                    );
-                    let _ = runtime.execute_code(&wrapped_user_code);
-                    println!("✅ Listening on https://{} (Ctrl+C to stop)", bound);
-                    serve_https_fetch_loop(listener, tls_config, &mut runtime, &bound)?;
-                } else {
-                    println!("💡 No script specified, serving default health status");
-                    println!("✅ Listening on https://{} (Ctrl+C to stop)", bound);
-                    serve_https_health_loop(listener, tls_config)?;
-                }
-                return Ok(());
+                return run_https_serve(&permissions, file, port, &host, cert, key);
             }
 
             let effective_file = if let Some(f) = file {
@@ -6235,158 +6149,136 @@ globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bo
     }
 }
 
-const HTTPS_FETCH_BRIDGE: &str = r#"
-globalThis.__amberjs_app__ = undefined;
-globalThis.__amberjs_handle_http__ = async function(method, url, headersJson, bodyStr) {
-    try {
-        const headers = JSON.parse(headersJson);
-        const reqInit = { method, headers };
-        if (method !== "GET" && method !== "HEAD" && bodyStr && bodyStr.length > 0) {
-            reqInit.body = bodyStr;
-        }
-        const req = new Request(url, reqInit);
-        let handler = globalThis.__amberjs_app__;
-        if (handler && typeof handler.default === 'object' && typeof handler.default.fetch === 'function') {
-            handler = handler.default.fetch.bind(handler.default);
-        } else if (handler && typeof handler.default === 'function') {
-            handler = handler.default;
-        } else if (handler && typeof handler.fetch === 'function') {
-            handler = handler.fetch;
-        } else if (typeof globalThis.fetchHandler === 'function') {
-            handler = globalThis.fetchHandler;
-        }
-        if (typeof handler !== 'function') {
-            return JSON.stringify({ status: 404, headers: { "content-type": "text/plain" }, body: "Not Found: No fetch handler exported" });
-        }
-        const res = await handler(req);
-        const status = (res && res.status) ? res.status : 200;
-        const resHeaders = {};
-        if (res && res.headers && typeof res.headers.forEach === 'function') {
-            res.headers.forEach((v, k) => { resHeaders[k] = v; });
-        }
-        let bodyText = "";
-        if (res) {
-            if (typeof res._bodyText === 'string') {
-                bodyText = res._bodyText;
-            } else if (typeof res.text === 'function') {
-                try { bodyText = await res.text(); } catch (_) { bodyText = res.body ? String(res.body) : ""; }
-            } else {
-                bodyText = res.body ? String(res.body) : "";
-            }
-        }
-        return JSON.stringify({ status, headers: resHeaders, body: bodyText });
-    } catch (e) {
-        return JSON.stringify({ status: 500, headers: { "content-type": "text/plain" }, body: "Internal Server Error: " + (e ? e.message : e) });
-    }
-};
-"#;
-
-fn serve_https_health_loop(
-    listener: std::net::TcpListener,
-    tls_config: std::sync::Arc<rustls::ServerConfig>,
-) -> Result<()> {
-    let body = format!(
-        "{{\"runtime\":\"amberjs\",\"ok\":true,\"version\":\"{}\"}}\n",
-        env!("CARGO_PKG_VERSION")
-    );
-    for tcp in listener.incoming() {
-        let Ok(tcp) = tcp else { continue };
-        let Ok(conn) = rustls::ServerConnection::new(tls_config.clone()) else {
-            continue;
-        };
-        let mut stream = rustls::StreamOwned::new(conn, tcp);
-        let _ = read_http11_request(&mut stream);
-        let resp = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-            body.len(),
-            body
-        );
-        let _ = std::io::Write::write_all(&mut stream, resp.as_bytes());
-    }
-    Ok(())
+fn serve_https_exit(err: impl std::fmt::Display) -> ! {
+    eprintln!("{err}");
+    std::process::exit(2);
 }
 
-fn serve_https_fetch_loop(
-    listener: std::net::TcpListener,
-    tls_config: std::sync::Arc<rustls::ServerConfig>,
-    runtime: &mut amberjs::runtime_minimal::MinimalRuntime,
-    bound: &std::net::SocketAddr,
+fn run_https_serve(
+    permissions: &PermissionCliOptions,
+    file: Option<PathBuf>,
+    port: u16,
+    host: &str,
+    cert: Option<String>,
+    key: Option<String>,
 ) -> Result<()> {
-    for tcp in listener.incoming() {
-        let Ok(tcp) = tcp else { continue };
-        let Ok(conn) = rustls::ServerConnection::new(tls_config.clone()) else {
-            continue;
+    let cert_path = match cert {
+        Some(path) => path,
+        None => serve_https_exit(amberjs::https_serve::ServeHttpsError::MissingCert),
+    };
+    let key_path = match key {
+        Some(path) => path,
+        None => serve_https_exit(amberjs::https_serve::ServeHttpsError::MissingKey),
+    };
+    let tls_config =
+        match amberjs::https_serve::load_server_config(Path::new(&cert_path), Path::new(&key_path))
+        {
+            Ok(config) => config,
+            Err(err) => serve_https_exit(err),
         };
-        let mut stream = rustls::StreamOwned::new(conn, tcp);
-        let Some((method, path, headers, body_str)) = read_http11_request(&mut stream) else {
-            continue;
+
+    let effective_file = if let Some(path) = file {
+        Some(path)
+    } else {
+        [
+            "app.ts",
+            "app.js",
+            "server.ts",
+            "server.js",
+            "index.ts",
+            "index.js",
+        ]
+        .into_iter()
+        .map(PathBuf::from)
+        .find(|path| path.is_file())
+    };
+
+    // Load the script before bind so a bad file never listens.
+    let mut fetch_runtime = if let Some(ref file_path) = effective_file {
+        let code = match read_and_compile_source(file_path) {
+            Ok(code) => code,
+            Err(err) => serve_https_exit(amberjs::https_serve::ServeHttpsError::Script(
+                err.to_string(),
+            )),
         };
-        let url = format!("https://{}{}", bound, path);
-        let headers_json = serde_json::to_string(&headers).unwrap_or_else(|_| "{}".to_string());
-        let dispatch_script = format!(
-            r#"globalThis.__amberjs_handle_http__({}, {}, {}, {});"#,
-            serde_json::to_string(&method).unwrap(),
-            serde_json::to_string(&url).unwrap(),
-            serde_json::to_string(&headers_json).unwrap(),
-            serde_json::to_string(&body_str).unwrap(),
-        );
-        let resp_json = match runtime.execute_code(&dispatch_script) {
-            Ok(raw_json) => raw_json,
-            Err(e) => format!(
-                r#"{{"status":500,"headers":{{"content-type":"text/plain"}},"body":"Handler error: {}"}}"#,
-                e
-            ),
+        let runtime = match permissions.max_memory {
+            Some(mem_mb) => amberjs::runtime_minimal::MinimalRuntime::with_memory_limit(mem_mb),
+            None => amberjs::runtime_minimal::MinimalRuntime::new(),
         };
-        let val: serde_json::Value = serde_json::from_str(resp_json.trim()).unwrap_or_default();
-        let status_code = val.get("status").and_then(|s| s.as_u64()).unwrap_or(200);
-        let body_text = val.get("body").and_then(|b| b.as_str()).unwrap_or("");
-        let mut header_lines = String::from("Content-Type: text/plain\r\n");
-        if let Some(headers_obj) = val.get("headers").and_then(|h| h.as_object()) {
-            header_lines.clear();
-            for (k, v) in headers_obj {
-                if let Some(v_str) = v.as_str() {
-                    header_lines.push_str(&format!("{k}: {v_str}\r\n"));
-                }
-            }
+        let mut runtime = match runtime {
+            Ok(runtime) => runtime,
+            Err(err) => serve_https_exit(amberjs::https_serve::ServeHttpsError::Script(
+                err.to_string(),
+            )),
+        };
+        runtime.set_main_module_path(file_path);
+        if let Err(err) = runtime.execute_code(amberjs::https_serve::FETCH_BRIDGE) {
+            serve_https_exit(amberjs::https_serve::ServeHttpsError::Script(
+                err.to_string(),
+            ));
         }
-        let resp = format!(
-            "HTTP/1.1 {status_code} OK\r\n{header_lines}Content-Length: {}\r\nConnection: close\r\n\r\n{}",
-            body_text.len(),
-            body_text
-        );
-        let _ = std::io::Write::write_all(&mut stream, resp.as_bytes());
+        let wrapped_user_code = amberjs::https_serve::wrap_user_script(&code);
+        if let Err(err) = runtime.execute_code(&wrapped_user_code) {
+            serve_https_exit(amberjs::https_serve::ServeHttpsError::Script(
+                err.to_string(),
+            ));
+        }
+        Some(runtime)
+    } else {
+        None
+    };
+
+    let addr = format!("{host}:{port}");
+    let listener = match std::net::TcpListener::bind(&addr) {
+        Ok(listener) => listener,
+        Err(err) => serve_https_exit(amberjs::https_serve::ServeHttpsError::Bind(format!(
+            "{addr}: {err}"
+        ))),
+    };
+    let bound = match listener.local_addr() {
+        Ok(bound) => bound,
+        Err(err) => serve_https_exit(amberjs::https_serve::ServeHttpsError::Bind(format!(
+            "{addr}: {err}"
+        ))),
+    };
+    println!("🚀 Starting Amber Web Server on https://{bound}");
+    if let Some(ref file_path) = effective_file {
+        println!("📄 Serving application: {}", file_path.display());
+    } else {
+        println!("💡 No script specified, serving default health status");
+    }
+    println!("✅ Listening on https://{bound} (Ctrl+C to stop)");
+
+    let limits = amberjs::https_serve::ServeLimits::default();
+    if let Some(ref mut runtime) = fetch_runtime {
+        amberjs::https_serve::serve_connections(listener, tls_config, limits, |request| {
+            let body_str = String::from_utf8_lossy(&request.body).into_owned();
+            let headers_json =
+                serde_json::to_string(&request.headers).unwrap_or_else(|_| "{}".to_string());
+            let url = format!("https://{bound}{}", request.target);
+            let dispatch_script = format!(
+                r#"globalThis.__amberjs_handle_http__({}, {}, {}, {});"#,
+                serde_json::to_string(&request.method).unwrap_or_else(|_| "\"GET\"".to_string()),
+                serde_json::to_string(&url).unwrap_or_else(|_| "\"\"".to_string()),
+                serde_json::to_string(&headers_json).unwrap_or_else(|_| "\"{}\"".to_string()),
+                serde_json::to_string(&body_str).unwrap_or_else(|_| "\"\"".to_string()),
+            );
+            let resp_json = match runtime.execute_code(&dispatch_script) {
+                Ok(raw_json) => raw_json,
+                Err(err) => serde_json::json!({
+                    "status": 500,
+                    "headers": { "content-type": "text/plain" },
+                    "body": format!("Handler error: {err}"),
+                })
+                .to_string(),
+            };
+            amberjs::https_serve::response_from_handler_json(&resp_json)
+        });
+    } else {
+        let version = env!("CARGO_PKG_VERSION");
+        amberjs::https_serve::serve_connections(listener, tls_config, limits, |_request| {
+            amberjs::https_serve::health_response(version)
+        });
     }
     Ok(())
-}
-
-fn read_http11_request<S: std::io::Read>(
-    stream: &mut S,
-) -> Option<(
-    String,
-    String,
-    std::collections::HashMap<String, String>,
-    String,
-)> {
-    let mut buf = Vec::new();
-    let mut tmp = [0u8; 1024];
-    loop {
-        let n = stream.read(&mut tmp).ok()?;
-        if n == 0 {
-            break;
-        }
-        buf.extend_from_slice(&tmp[..n]);
-        if buf.windows(4).any(|w| w == b"\r\n\r\n") {
-            break;
-        }
-        if buf.len() > 1024 * 1024 {
-            break;
-        }
-    }
-    let req = amberjs::nodejs_core::http::parse_http_request(&buf)?;
-    Some((
-        req.method,
-        req.url,
-        req.headers,
-        String::from_utf8_lossy(&req.body).into_owned(),
-    ))
 }

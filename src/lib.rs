@@ -41,6 +41,7 @@ pub mod performance_reporter;
 
 pub mod agent; // Tool export, JSON-RPC session, MCP stdio
 pub mod event_loop;
+pub mod https_serve; // `amber serve --https` rustls HTTP/1.1 terminator
 pub mod isolate_prewarmer; // Modern Isolate pre-warming and pool system
 pub mod mcp; // Official Model Context Protocol (MCP) Server & Client
 pub mod nodejs_core; // Core Node.js compatible modules (fs, path, crypto, http, net, timers)
