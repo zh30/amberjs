@@ -5,11 +5,12 @@
 // in real-time, enabling hot module replacement (HMR) and live reload.
 
 use futures_util::{SinkExt, StreamExt};
+use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, Notify};
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 
 /// WebSocket hot reload server configuration
@@ -48,6 +49,13 @@ pub struct HotReloadEvent {
     pub message: Option<String>,
 }
 
+fn unix_millis() -> u64 {
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
 fn check_network_bind_permission(addr: &str) -> Result<(), String> {
     crate::permissions::check_global_permission(
         crate::permissions::PermissionKind::Network,
@@ -57,14 +65,20 @@ fn check_network_bind_permission(addr: &str) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
-/// WebSocket hot reload server
+/// WebSocket hot reload server.
+///
+/// `start` binds on the calling task and returns the real address (port `0`
+/// included). A fresh shutdown notify is installed per `start`, so `stop`
+/// cannot leak a permit into the next listen.
 #[derive(Debug, Clone)]
 pub struct WebSocketHotReloader {
     config: WebSocketConfig,
     /// Broadcast sender for sending events to all connected clients
     tx: broadcast::Sender<HotReloadEvent>,
     /// Server running flag
-    running: Arc<std::sync::atomic::AtomicBool>,
+    running: Arc<AtomicBool>,
+    shutdown: Arc<Mutex<Arc<Notify>>>,
+    bound_addr: Arc<Mutex<Option<SocketAddr>>>,
 }
 
 impl WebSocketHotReloader {
@@ -75,11 +89,13 @@ impl WebSocketHotReloader {
 
     /// Create a new WebSocket hot reloader with custom config
     pub fn with_config(config: WebSocketConfig) -> Self {
-        let channel_capacity = config.channel_capacity;
+        let channel_capacity = config.channel_capacity.max(1);
         Self {
             config,
             tx: broadcast::channel(channel_capacity).0,
             running: Arc::new(AtomicBool::new(false)),
+            shutdown: Arc::new(Mutex::new(Arc::new(Notify::new()))),
+            bound_addr: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -88,21 +104,12 @@ impl WebSocketHotReloader {
         self.tx.subscribe()
     }
 
-    /// TODO: 实现广播函数 - 向所有连接的客户端发送热重载事件
+    /// Send `event` to every subscribed client.
     ///
-    /// 这里是你的贡献机会！这个函数需要：
-    /// 1. 接收 HotReloadEvent 参数
-    /// 2. 通过 self.tx.broadcast() 发送事件
-    /// 3. 处理发送失败的错误
-    ///
-    /// 考虑点：
-    /// - 是否需要返回 Result<(), String>？
-    /// - 如何处理没有客户端连接的情况？
-    /// - 是否需要记录发送统计？
+    /// Zero subscribers is success. `broadcast::Sender::send` returns `Err`
+    /// in that case, and a reload must still be recorded when no browser is
+    /// connected.
     pub fn broadcast(&self, event: HotReloadEvent) -> Result<(), String> {
-        // 使用 send 发送事件到所有订阅的客户端
-        // broadcast::channel 的 send 返回 Result<usize, T> - 成功发送的接收者数量
-        // 如果没有客户端，Ok(0) 也是成功，不需要错误处理
         let _ = self.tx.send(event);
         Ok(())
     }
@@ -137,68 +144,90 @@ impl WebSocketHotReloader {
         let _ = self.broadcast(event);
     }
 
-    /// Start the WebSocket server and accept connections
+    /// Bind the listen socket, then accept connections until [`stop`](Self::stop).
     ///
-    /// This function:
-    /// 1. Creates a TCP listener on the configured host/port
-    /// 2. Accepts WebSocket connections asynchronously
-    /// 3. Spawns a handler task for each client
-    /// 4. Listens for broadcast events and sends them to all connected clients
-    #[allow(dead_code)]
-    pub async fn start(&self) -> Result<(), String> {
+    /// The returned address is the socket actually bound. Permission checks and
+    /// bind failures return before `is_running` stays true and before any
+    /// client can connect.
+    pub async fn start(&self) -> Result<SocketAddr, String> {
+        if self.running.swap(true, Ordering::SeqCst) {
+            return Err("WebSocket hot reload server is already running".to_string());
+        }
+
         let addr = format!("{}:{}", self.config.host, self.config.port);
-        check_network_bind_permission(&addr)?;
+        if let Err(error) = check_network_bind_permission(&addr) {
+            self.running.store(false, Ordering::SeqCst);
+            return Err(error);
+        }
 
-        // Create TCP listener
         let listener = match TcpListener::bind(&addr).await {
-            Ok(l) => l,
-            Err(e) => return Err(format!("Failed to bind to {}: {}", addr, e)),
+            Ok(listener) => listener,
+            Err(error) => {
+                self.running.store(false, Ordering::SeqCst);
+                return Err(format!("Failed to bind to {addr}: {error}"));
+            }
         };
+        let local = match listener.local_addr() {
+            Ok(local) => local,
+            Err(error) => {
+                self.running.store(false, Ordering::SeqCst);
+                return Err(format!("Failed to read bound address: {error}"));
+            }
+        };
+        if let Ok(mut slot) = self.bound_addr.lock() {
+            *slot = Some(local);
+        }
 
-        self.running.store(true, Ordering::SeqCst);
+        let shutdown = Arc::new(Notify::new());
+        if let Ok(mut slot) = self.shutdown.lock() {
+            *slot = shutdown.clone();
+        }
+        let this = self.clone();
+        tokio::spawn(async move {
+            this.accept_loop(listener, shutdown).await;
+            this.running.store(false, Ordering::SeqCst);
+        });
+        Ok(local)
+    }
 
-        println!(
-            "\n\x1b[36m[amberjs]\x1b[0m 🔌 WebSocket server listening on ws://{}",
-            addr
-        );
-
-        // Accept connections loop
-        while self.running.load(Ordering::SeqCst) {
-            match listener.accept().await {
-                Ok((stream, addr)) => {
-                    // Accept WebSocket handshake
-                    match accept_async(stream).await {
-                        Ok(ws_stream) => {
-                            let rx = self.subscribe();
-                            let running = self.running.clone();
-
-                            // Spawn handler task for each client
-                            tokio::spawn(async move {
-                                handle_client(ws_stream, rx, running).await;
-                            });
-
-                            println!("\x1b[36m[amberjs]\x1b[0m 📡 Client connected: {}", addr);
+    async fn accept_loop(&self, listener: TcpListener, shutdown: Arc<Notify>) {
+        loop {
+            tokio::select! {
+                _ = shutdown.notified() => break,
+                accepted = listener.accept() => {
+                    match accepted {
+                        Ok((stream, peer)) => match accept_async(stream).await {
+                            Ok(ws_stream) => {
+                                let rx = self.subscribe();
+                                let running = self.running.clone();
+                                tokio::spawn(async move {
+                                    handle_client(ws_stream, rx, running).await;
+                                });
+                                println!("\x1b[36m[amberjs]\x1b[0m 📡 Client connected: {peer}");
+                            }
+                            Err(error) => {
+                                eprintln!("[amberjs] WebSocket handshake failed: {error}");
+                            }
+                        },
+                        Err(error) => {
+                            if self.running.load(Ordering::SeqCst) {
+                                eprintln!("[amberjs] Failed to accept connection: {error}");
+                            }
+                            break;
                         }
-                        Err(e) => {
-                            eprintln!("[amberjs] WebSocket handshake failed: {}", e);
-                        }
-                    }
-                }
-                Err(e) => {
-                    // Only log if we're still running
-                    if self.running.load(Ordering::SeqCst) {
-                        eprintln!("[amberjs] Failed to accept connection: {}", e);
                     }
                 }
             }
         }
-
-        Ok(())
     }
 
-    /// Stop the server
+    /// Stop accepting connections. The bound port is released once the accept
+    /// loop observes the shutdown notify.
     pub fn stop(&self) {
         self.running.store(false, Ordering::SeqCst);
+        if let Ok(shutdown) = self.shutdown.lock() {
+            shutdown.notify_one();
+        }
     }
 
     /// Check if server is running
@@ -206,8 +235,13 @@ impl WebSocketHotReloader {
         self.running.load(Ordering::SeqCst)
     }
 
-    /// Get server address
+    /// Configured `host:port` before [`start`](Self::start), then the bound address.
     pub fn server_addr(&self) -> String {
+        if let Ok(slot) = self.bound_addr.lock() {
+            if let Some(addr) = *slot {
+                return addr.to_string();
+            }
+        }
         format!("{}:{}", self.config.host, self.config.port)
     }
 }
@@ -233,6 +267,19 @@ async fn handle_client(
     // Split the WebSocket stream into sender and receiver
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
+    let hello = HotReloadEvent {
+        event_type: "status".to_string(),
+        file_path: None,
+        change_type: None,
+        timestamp: unix_millis(),
+        message: Some("connected".to_string()),
+    };
+    if let Ok(json) = serde_json::to_string(&hello) {
+        if ws_sender.send(Message::Text(json)).await.is_err() {
+            return;
+        }
+    }
+
     // Clone running flag for use in select
     let running_clone = running.clone();
 
@@ -253,12 +300,10 @@ async fn handle_client(
                         }
                     }
                     Err(broadcast::error::RecvError::Closed) => {
-                        // Channel closed
                         break;
                     }
-                    Err(_) => {
-                        // Unexpected error
-                        break;
+                    Err(broadcast::error::RecvError::Lagged(_)) => {
+                        continue;
                     }
                 }
             }
@@ -361,7 +406,9 @@ mod tests {
 
         let error = match result {
             Ok(Err(error)) => error,
-            Ok(Ok(())) => panic!("denied WebSocket hot reload bind must not succeed"),
+            Ok(Ok(addr)) => {
+                panic!("denied WebSocket hot reload bind must not succeed, bound {addr}")
+            }
             Err(_) => panic!("denied WebSocket hot reload bind must fail before listener bind"),
         };
         assert!(

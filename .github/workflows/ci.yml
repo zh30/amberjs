@@ -111,6 +111,9 @@ jobs:
       - name: amber run --export-tools Stable contract
         run: cargo test --test export_tools_contract_tests -- --test-threads=1
 
+      - name: amber watch Stable contract
+        run: cargo test --test watch_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 
