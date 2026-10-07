@@ -30,6 +30,59 @@ struct ToolsFile {
     tools: Vec<ToolSchema>,
 }
 
+/// Stderr prefix for contracted `amber run --export-tools` failures.
+pub const EXPORT_TOOLS_ERROR_PREFIX: &str = "error: amber run --export-tools:";
+
+pub fn export_tools_error(message: impl std::fmt::Display) -> anyhow::Error {
+    anyhow!("{EXPORT_TOOLS_ERROR_PREFIX} {message}")
+}
+
+/// Load the schema list printed by `amber run --export-tools`.
+///
+/// Does not execute the module. Session and MCP keep calling
+/// [`export_tools_from_entry`] so their success payloads stay the same;
+/// this wrapper adds the CLI existence checks and the print-time checks
+/// (non-empty unique names, object `inputSchema`).
+pub fn load_export_tools(entry: &Path) -> Result<Vec<ToolSchema>> {
+    if !entry.exists() {
+        return Err(export_tools_error(format!(
+            "entry file not found: {}",
+            entry.display()
+        )));
+    }
+    if !entry.is_file() {
+        return Err(export_tools_error(format!(
+            "entry must be a file: {}",
+            entry.display()
+        )));
+    }
+    let tools = export_tools_from_entry(entry).map_err(|err| export_tools_error(err))?;
+    validate_printed_tools(&tools)?;
+    Ok(tools)
+}
+
+fn validate_printed_tools(tools: &[ToolSchema]) -> Result<()> {
+    let mut seen = std::collections::HashSet::new();
+    for tool in tools {
+        if tool.name.is_empty() {
+            return Err(export_tools_error("tool name must be non-empty"));
+        }
+        if !seen.insert(tool.name.clone()) {
+            return Err(export_tools_error(format!(
+                "duplicate tool name '{}'",
+                tool.name
+            )));
+        }
+        if !tool.input_schema.is_object() {
+            return Err(export_tools_error(format!(
+                "inputSchema for '{}' must be a JSON object",
+                tool.name
+            )));
+        }
+    }
+    Ok(())
+}
+
 pub fn export_tools_from_entry(entry: &Path) -> Result<Vec<ToolSchema>> {
     let sidecar = tools_json_path(entry);
     if sidecar.is_file() {
@@ -79,29 +132,60 @@ fn wrap_source_for_tool_exports(source: &str) -> String {
     )
 }
 
-fn tools_json_path(entry: &Path) -> PathBuf {
+pub fn tools_json_path(entry: &Path) -> PathBuf {
     entry
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .join("tools.json")
 }
 
+fn push_doc_line(pending_doc: &mut Vec<String>, trimmed: &str) {
+    let clean = trimmed
+        .trim_start_matches("/**")
+        .trim_end_matches("*/")
+        .trim_start_matches('*')
+        .trim_start_matches("//")
+        .trim();
+    if !clean.is_empty() && !clean.starts_with('@') {
+        pending_doc.push(clean.to_string());
+    }
+}
+
 fn scan_exported_functions(source: &str) -> Vec<ToolSchema> {
     let mut tools = Vec::new();
     let mut pending_doc = Vec::new();
+    // Line-oriented. A `/* */` block hides exports inside it. `/** */` is still
+    // the description. This is not a JavaScript parser.
+    let mut in_block = false;
+    let mut block_is_doc = false;
 
     for line in source.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with("/**") || trimmed.starts_with('*') || trimmed.starts_with("//") {
-            let clean = trimmed
-                .trim_start_matches("/**")
-                .trim_end_matches("*/")
-                .trim_start_matches('*')
-                .trim_start_matches("//")
-                .trim();
-            if !clean.is_empty() && !clean.starts_with('@') {
-                pending_doc.push(clean.to_string());
+
+        if in_block {
+            if block_is_doc {
+                push_doc_line(&mut pending_doc, trimmed);
             }
+            if trimmed.contains("*/") {
+                in_block = false;
+                block_is_doc = false;
+            }
+            continue;
+        }
+
+        if trimmed.starts_with("/*") {
+            block_is_doc = trimmed.starts_with("/**");
+            if block_is_doc {
+                push_doc_line(&mut pending_doc, trimmed);
+            }
+            if !trimmed.contains("*/") {
+                in_block = true;
+            }
+            continue;
+        }
+
+        if trimmed.starts_with("//") || trimmed.starts_with('*') {
+            push_doc_line(&mut pending_doc, trimmed);
             continue;
         }
 
