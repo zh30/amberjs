@@ -14,7 +14,7 @@ Year-1 checklist vs this page (Graduation Rule):
 
 - [`docs/THREE_YEAR_EXECUTION_CHECKLIST.md`](THREE_YEAR_EXECUTION_CHECKLIST.md) tasks 1.1–1.4 are marked done as **delivery progress**. That does not auto-promote capabilities here.
 - `amber:ai`, V8 snapshot / CoW, permission-broker sandbox, `amber session` / `amber mcp`, and Wasm streaming stay **Stable** as already listed. The v1.16.0 zero-copy Memory / `amber:wasm` notes are unchanged; this review does not promote or demote them.
-- `amber bundle` is **Stable** (G1). `amber compile` is **Stable** (G2). `amber install` is **Stable** (G3). `amber run --export-tools` is **Stable** (G4). Executable tests: `tests/bundle_contract_tests.rs`, `tests/bundler_integration_tests.rs`, `tests/compile_contract_tests.rs`, `tests/install_contract_tests.rs`, `tests/export_tools_contract_tests.rs`. The install promise is the subset in [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md), not npm/yarn/pnpm. Schema export does not execute the tool file or call a model.
+- `amber bundle` is **Stable** (G1). `amber compile` is **Stable** (G2). `amber install` is **Stable** (G3). `amber run --export-tools` is **Stable** (G4). `amber run --inspect` / `--inspect-brk` is **Stable** (G5). Executable tests: `tests/bundle_contract_tests.rs`, `tests/bundler_integration_tests.rs`, `tests/compile_contract_tests.rs`, `tests/install_contract_tests.rs`, `tests/export_tools_contract_tests.rs`, `tests/inspect_contract_tests.rs`. The install promise is the subset in [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md), not npm/yarn/pnpm. Schema export does not execute the tool file or call a model.
 - N-API hello loader stays **Experimental** (Year-2: [#101](https://github.com/zh30/amberjs/issues/101)).
 - `multilang` / `cloudnative` / `enterprise` / empty `ai` stay **Experimental** and are not CI-gated (Year-2: [#100](https://github.com/zh30/amberjs/issues/100)–[#104](https://github.com/zh30/amberjs/issues/104)).
 
@@ -33,6 +33,10 @@ G3 graduation (2026-09-22):
 G4 graduation (2026-10-07):
 
 - `amber run --export-tools` is **Stable** under the Graduation Rule. The schema contract (what is read, what is printed, failure diagnostics, non-goals) is [`docs/EXPORT_TOOLS_CONTRACT.md`](EXPORT_TOOLS_CONTRACT.md), pinned by `tests/export_tools_contract_tests.rs` and the CI step `amber run --export-tools Stable contract`. The command prints JSON and exits. It does not execute the tool file and does not call a model. `amber session` and `amber mcp` stay on their existing Stable surface.
+
+G5 graduation (2026-10-07):
+
+- `amber run --inspect` / `--inspect-brk` is **Stable** for the CDP subset in [`docs/INSPECT_CONTRACT.md`](INSPECT_CONTRACT.md), pinned by `tests/inspect_contract_tests.rs`. This is not Chrome DevTools, the VS Code Node debug adapter, or `v8::inspector` on the `v8` 152.2.0 binding.
 
 v1.16.0 notes:
 
@@ -97,6 +101,7 @@ Current stable scope:
 - Inspect the CLI with `amber --help`, `amber --version`, or `amber version`.
 - Evaluate simple JavaScript snippets with `amber eval <code>`.
 - Run JavaScript files with `amber run <file>`.
+- `amber run --inspect` / `--inspect-brk`: CDP on `127.0.0.1` (`--inspect-port`, default 9229). `GET /json/version`, `GET /json/list`, and `Runtime.evaluate` on the user isolate. `--inspect-brk` does not run the user script until `Runtime.runIfWaitingForDebugger` or `Debugger.resume`. Contract: [`docs/INSPECT_CONTRACT.md`](INSPECT_CONTRACT.md). Limits: not Chrome DevTools or `v8::inspector`; no breakpoints, stepping, or scopes; other CDP methods return JSON-RPC `-32601`; evaluate runs only while the isolate thread is free (the pause, or between event-loop tasks) and does not preempt a synchronous turn; objects have `description` only; `--watch` and `--workers` > 1 are rejected; bind failures print `error: amber run:` and do not run the script.
 - Native Agentic AI runtime (`amber:ai`): zero-copy `Tensor` (TypedArray-backed, matmul, dot, norm, softmax, cosineSimilarity), local streaming `LLM`, and `AgentPipeline`.
 - Native Test Runner (`amber test [files...]` and `amber test --watch`): automatic discovery and execution.
 - Deterministic Sandbox & Virtual Time (`--seed <u64>`, `--freeze-time <spec>`).
@@ -123,7 +128,6 @@ Current preview scope:
 
 - TypeScript and TSX entry files are accepted by the CLI and pass through oxc before execution. This is transpile-only: types are erased, `using` / Stage 3 decorators are downleveled to ES2022, and TSX emits classic `React.createElement`. Thrown stacks map back to `.ts` lines when oxc emits a source map. There is no project-wide `tsc` type-check.
 - `amber serve --https` terminates TLS with rustls (HTTP/1.1 only). `--cert` and `--key` PEM files are required; missing material exits non-zero.
-- `amber run --inspect` / `--inspect-brk` expose CDP `/json/version` and `Runtime.evaluate` on the isolate. This is not a full Chrome DevTools / V8 Inspector Protocol on the current `v8` 152.2.0 binding.
 - Node.js compatibility modules under `src/nodejs_core/` are installed into the runtime, including areas such as `fs`, `crypto`, `events`, `buffer`, `path`, `os`, `url`, `dns`, `process`, `child_process` (`execSync`, `spawnSync`), `util`, `zlib`, timers, streams, HTTP, networking, readline, and CommonJS `require`. Treat these as compatibility work in progress unless a behavior is covered by current executable tests.
 - Web API modules under `src/web_api/` are installed into the runtime, including areas such as fetch, WebSocket, Web Crypto, URL, events, FormData, Abort, Blob, timers, encoding, performance, streams, compression, structured clone, workers, service workers, broadcast channels, and message channels. Treat these as API-specific preview work, not blanket Web platform compatibility.
 - Watch and hot reload code paths exist through `amber run --watch`, `amber test --watch`, `src/watcher.rs`, and `src/watcher_websocket.rs`.

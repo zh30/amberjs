@@ -8712,6 +8712,9 @@ impl MinimalRuntime {
         let timer_drain_started_at = std::time::Instant::now();
 
         loop {
+            // Between tasks only. v8 152.2.0 interrupt callbacks must not reenter.
+            crate::tooling::inspector::service_pending_evaluations(scope);
+
             // A new iteration makes previously deferred setImmediate callbacks
             // eligible again (they were deferred to skip the iteration that
             // registered them).
@@ -8755,6 +8758,7 @@ impl MinimalRuntime {
             const MAX_WAIT_ITERATIONS: usize = 400_000; // safety valve (~2.7h at 25ms)
 
             while iterations_without_progress < MAX_WAIT_ITERATIONS {
+                crate::tooling::inspector::service_pending_evaluations(scope);
                 let timer_manager = crate::event_loop::get_async_timer_manager();
                 let has_fired = timer_manager.has_fired_timers();
                 let has_scheduled = timer_manager.has_scheduled_timers();
@@ -8951,6 +8955,7 @@ impl MinimalRuntime {
             let mut idle_ticks: u32 = 0;
             let mut last_trim_time = std::time::Instant::now();
             loop {
+                crate::tooling::inspector::service_pending_evaluations(scope);
                 let pumped = {
                     let p = crate::nodejs_core::http::pump_pending_http_requests_in_scope(
                         scope, &context,
