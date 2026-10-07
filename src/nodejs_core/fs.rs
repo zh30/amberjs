@@ -10,21 +10,29 @@ use crate::permissions::{
     check_global_permission, PermissionAction, PermissionError, PermissionKind, ResourceId,
 };
 
-/// 创建 Buffer 对象（v8::ArrayBuffer）- v0.3.66
-/// 用于 'buffer' 编码读取时返回二进制数据
+/// Copy file bytes into a Uint8Array that uses Buffer.prototype.
+/// Callers index the result and use Buffer.toString; a length-only object drops the bytes.
 fn create_buffer_from_bytes<'a>(
     scope: &mut v8::PinScope<'a, '_>,
     bytes: &[u8],
 ) -> v8::Local<'a, v8::Value> {
-    let _buffer: v8::Local<v8::ArrayBuffer> = v8::ArrayBuffer::new(scope, bytes.len());
-    // Note: rusty_v8 0.22 不支持直接访问 backing_store
-    // 创建一个具有 _length 属性的对象来模拟 Buffer
-    let buffer_obj = v8::Object::new(scope);
-    let length_key = v8::String::new(scope, "_length").unwrap();
-    let length_val = v8::Integer::new(scope, bytes.len() as i32);
-    buffer_obj.set(scope, length_key.into(), length_val.into());
-    // 如果有 backing_store 访问权限，可以存储实际数据
-    buffer_obj.into()
+    let len = bytes.len();
+    let ab = v8::ArrayBuffer::new(scope, len);
+    if len > 0 {
+        let store = ab.get_backing_store();
+        let ptr = store.as_ref().as_ptr() as *mut u8;
+        if !ptr.is_null() {
+            unsafe {
+                std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, len);
+            }
+        }
+    }
+    if let Some(u8_arr) = v8::Uint8Array::new(scope, ab, 0, len) {
+        crate::runtime_minimal::set_buffer_prototype_fast(scope, u8_arr);
+        u8_arr.into()
+    } else {
+        v8::undefined(scope).into()
+    }
 }
 
 fn throw_permission_error(scope: &mut v8::PinScope, error: PermissionError) {
@@ -178,6 +186,11 @@ pub fn setup_fs_api(
     let write_instance = write_func.get_function(scope).unwrap();
     let write_key = v8::String::new(scope, "writeFileSync").unwrap();
     fs_obj.set(scope, write_key.into(), write_instance.into());
+
+    let append_sync_func = v8::FunctionTemplate::new(scope, fs_append_file_sync_callback);
+    let append_sync_instance = append_sync_func.get_function(scope).unwrap();
+    let append_sync_key = v8::String::new(scope, "appendFileSync").unwrap();
+    fs_obj.set(scope, append_sync_key.into(), append_sync_instance.into());
 
     // existsSync - 检查文件是否存在
     let exists_func = v8::FunctionTemplate::new(scope, fs_exists_sync_callback);
@@ -408,6 +421,375 @@ fn direct_write_sync(
     std::fs::write(path_str, data)
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum FileEncoding {
+    Utf8,
+    Hex,
+    Base64,
+    Latin1,
+    /// No text encoding: readFile returns a Buffer. Not a Node write encoding.
+    Buffer,
+}
+
+struct FileIoOptions {
+    encoding: FileEncoding,
+    flag: Option<String>,
+}
+
+impl FileIoOptions {
+    fn append(&self, default_append: bool) -> bool {
+        match self.flag.as_deref() {
+            Some(flag) => flag.to_ascii_lowercase().starts_with('a'),
+            None => default_append,
+        }
+    }
+
+    fn exclusive(&self) -> bool {
+        self.flag
+            .as_deref()
+            .map(|flag| flag.to_ascii_lowercase().contains('x'))
+            .unwrap_or(false)
+    }
+}
+
+fn file_encoding_from_name(name: &str) -> Result<FileEncoding, String> {
+    match name.to_ascii_lowercase().as_str() {
+        "utf8" | "utf-8" | "utf8mb4" => Ok(FileEncoding::Utf8),
+        "hex" => Ok(FileEncoding::Hex),
+        "base64" => Ok(FileEncoding::Base64),
+        "latin1" | "binary" | "ascii" => Ok(FileEncoding::Latin1),
+        "buffer" | "raw" => Ok(FileEncoding::Buffer),
+        other => Err(format!("Unknown encoding: {other}")),
+    }
+}
+
+fn option_string(
+    scope: &mut v8::PinScope,
+    obj: v8::Local<v8::Object>,
+    key: &str,
+) -> Option<String> {
+    let key = v8::String::new(scope, key)?;
+    let value = obj.get(scope, key.into())?;
+    if value.is_undefined() || value.is_null() {
+        return None;
+    }
+    value
+        .to_string(scope)
+        .map(|text| text.to_rust_string_lossy(scope))
+}
+
+/// Node accepts a string encoding or `{ encoding, flag }`.
+/// Missing encoding uses `default_encoding` (Buffer for reads, utf8 for writes).
+fn parse_file_io_options(
+    scope: &mut v8::PinScope,
+    value: v8::Local<v8::Value>,
+    default_encoding: FileEncoding,
+) -> Result<FileIoOptions, String> {
+    if value.is_undefined() || value.is_null() {
+        return Ok(FileIoOptions {
+            encoding: default_encoding,
+            flag: None,
+        });
+    }
+    if value.is_string() {
+        let name = value
+            .to_string(scope)
+            .map(|text| text.to_rust_string_lossy(scope))
+            .unwrap_or_default();
+        return Ok(FileIoOptions {
+            encoding: file_encoding_from_name(&name)?,
+            flag: None,
+        });
+    }
+    if value.is_object() && !value.is_function() {
+        let obj = v8::Local::<v8::Object>::try_from(value)
+            .map_err(|_| "Invalid file options".to_string())?;
+        let encoding = match option_string(scope, obj, "encoding") {
+            Some(name) => file_encoding_from_name(&name)?,
+            None => default_encoding,
+        };
+        return Ok(FileIoOptions {
+            encoding,
+            flag: option_string(scope, obj, "flag"),
+        });
+    }
+    Err("Invalid file options".to_string())
+}
+
+fn throw_coded_type_error(scope: &mut v8::PinScope, code: &str, message: &str) {
+    let message = v8::String::new(scope, message).unwrap();
+    let exception = v8::Exception::type_error(scope, message);
+    if let Some(obj) = exception.to_object(scope) {
+        let code_key = v8::String::new(scope, "code").unwrap();
+        let code_val = v8::String::new(scope, code).unwrap();
+        obj.set(scope, code_key.into(), code_val.into());
+    }
+    scope.throw_exception(exception);
+}
+
+fn io_error_code(err: &std::io::Error) -> &'static str {
+    match err.kind() {
+        std::io::ErrorKind::NotFound => "ENOENT",
+        std::io::ErrorKind::PermissionDenied => "EACCES",
+        std::io::ErrorKind::AlreadyExists => "EEXIST",
+        std::io::ErrorKind::InvalidInput => "EINVAL",
+        std::io::ErrorKind::IsADirectory => "EISDIR",
+        std::io::ErrorKind::NotADirectory => "ENOTDIR",
+        _ => "EIO",
+    }
+}
+
+fn fs_error_value<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    syscall: &str,
+    path: &str,
+    err: &std::io::Error,
+) -> v8::Local<'a, v8::Value> {
+    let code = io_error_code(err);
+    let message = format!("{code}: {err}, {syscall} '{path}'");
+    let message = v8::String::new(scope, &message).unwrap();
+    let exception = v8::Exception::error(scope, message);
+    if let Some(obj) = exception.to_object(scope) {
+        let code_key = v8::String::new(scope, "code").unwrap();
+        let code_val = v8::String::new(scope, code).unwrap();
+        obj.set(scope, code_key.into(), code_val.into());
+        let syscall_key = v8::String::new(scope, "syscall").unwrap();
+        let syscall_val = v8::String::new(scope, syscall).unwrap();
+        obj.set(scope, syscall_key.into(), syscall_val.into());
+        let path_key = v8::String::new(scope, "path").unwrap();
+        let path_val = v8::String::new(scope, path).unwrap();
+        obj.set(scope, path_key.into(), path_val.into());
+        if let Some(raw) = err.raw_os_error() {
+            let errno_key = v8::String::new(scope, "errno").unwrap();
+            let errno_val = v8::Integer::new(scope, -raw.abs());
+            obj.set(scope, errno_key.into(), errno_val.into());
+        }
+    }
+    exception
+}
+
+fn throw_fs_io_error(scope: &mut v8::PinScope, syscall: &str, path: &str, err: &std::io::Error) {
+    let exception = fs_error_value(scope, syscall, path, err);
+    scope.throw_exception(exception);
+}
+
+fn read_file_bytes(path: &str) -> std::io::Result<Vec<u8>> {
+    if crate::sandbox::virtual_fs::is_enabled() {
+        crate::sandbox::virtual_fs::vfs_read(Path::new(path))
+    } else {
+        std::fs::read(path)
+    }
+}
+
+fn write_file_bytes(
+    c_path: Option<*const libc::c_char>,
+    path: &str,
+    data: &[u8],
+    append: bool,
+    exclusive: bool,
+) -> std::io::Result<()> {
+    if crate::sandbox::virtual_fs::is_enabled() {
+        if append {
+            let mut existing = match crate::sandbox::virtual_fs::vfs_read(Path::new(path)) {
+                Ok(bytes) => bytes,
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+                Err(err) => return Err(err),
+            };
+            existing.extend_from_slice(data);
+            return crate::sandbox::virtual_fs::vfs_write(Path::new(path), &existing);
+        }
+        return crate::sandbox::virtual_fs::vfs_write(Path::new(path), data);
+    }
+    if !append && !exclusive {
+        return direct_write_sync(c_path, path, data);
+    }
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true);
+    if exclusive {
+        opts.create_new(true);
+    } else {
+        opts.create(true);
+    }
+    if append {
+        opts.append(true);
+    } else {
+        opts.truncate(true);
+    }
+    let mut file = opts.open(path)?;
+    file.write_all(data)
+}
+
+fn copy_array_buffer(ab: v8::Local<v8::ArrayBuffer>, offset: usize, len: usize) -> Vec<u8> {
+    if len == 0 {
+        return Vec::new();
+    }
+    let store = ab.get_backing_store();
+    let ptr = store.as_ref().as_ptr() as *const u8;
+    if ptr.is_null() {
+        return vec![0u8; len];
+    }
+    unsafe { std::slice::from_raw_parts(ptr.add(offset), len).to_vec() }
+}
+
+fn copy_binary_value(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> Option<Vec<u8>> {
+    if value.is_array_buffer_view() || value.is_typed_array() || value.is_data_view() {
+        if let Ok(view) = v8::Local::<v8::ArrayBufferView>::try_from(value) {
+            let len = view.byte_length();
+            let offset = view.byte_offset();
+            if let Some(ab) = view.buffer(scope) {
+                return Some(copy_array_buffer(ab, offset, len));
+            }
+            return Some(vec![0u8; len]);
+        }
+    }
+    if value.is_array_buffer() {
+        if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(value) {
+            return Some(copy_array_buffer(ab, 0, ab.byte_length()));
+        }
+    }
+    if value.is_object() && !value.is_string() {
+        if let Ok(obj) = v8::Local::<v8::Object>::try_from(value) {
+            let buf_key = v8::String::new(scope, "buffer")?;
+            if let Some(buf_val) = obj.get(scope, buf_key.into()) {
+                if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(buf_val) {
+                    let len_key = v8::String::new(scope, "length")?;
+                    let len = obj
+                        .get(scope, len_key.into())
+                        .and_then(|v| v.to_integer(scope))
+                        .map(|i| i.value() as usize)
+                        .unwrap_or_else(|| ab.byte_length());
+                    let len = len.min(ab.byte_length());
+                    return Some(copy_array_buffer(ab, 0, len));
+                }
+            }
+        }
+    }
+    None
+}
+
+fn string_to_file_bytes(text: &str, encoding: FileEncoding) -> Result<Vec<u8>, String> {
+    match encoding {
+        FileEncoding::Utf8 | FileEncoding::Buffer => Ok(text.as_bytes().to_vec()),
+        FileEncoding::Hex => {
+            hex::decode(text).map_err(|_| "The data argument is not valid hex".to_string())
+        }
+        FileEncoding::Base64 => {
+            use base64::Engine;
+            let cleaned: String = text.chars().filter(|ch| !ch.is_whitespace()).collect();
+            base64::engine::general_purpose::STANDARD
+                .decode(&cleaned)
+                .or_else(|_| {
+                    base64::engine::general_purpose::STANDARD_NO_PAD
+                        .decode(cleaned.trim_end_matches('='))
+                })
+                .map_err(|_| "The data argument is not valid base64".to_string())
+        }
+        FileEncoding::Latin1 => Ok(text.chars().map(|ch| (ch as u32 & 0xff) as u8).collect()),
+    }
+}
+
+fn value_to_file_bytes(
+    scope: &mut v8::PinScope,
+    value: v8::Local<v8::Value>,
+    encoding: FileEncoding,
+) -> Result<Vec<u8>, String> {
+    if value.is_undefined() || value.is_null() {
+        return Err(
+            "The \"data\" argument must be of type string or an instance of Buffer, TypedArray, or DataView"
+                .to_string(),
+        );
+    }
+    if let Some(bytes) = copy_binary_value(scope, value) {
+        return Ok(bytes);
+    }
+    if value.is_string() {
+        let text = value
+            .to_string(scope)
+            .map(|text| text.to_rust_string_lossy(scope))
+            .unwrap_or_default();
+        let encoding = if encoding == FileEncoding::Buffer {
+            FileEncoding::Utf8
+        } else {
+            encoding
+        };
+        return string_to_file_bytes(&text, encoding);
+    }
+    Err(
+        "The \"data\" argument must be of type string or an instance of Buffer, TypedArray, or DataView"
+            .to_string(),
+    )
+}
+
+fn bytes_to_js<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    bytes: &[u8],
+    encoding: FileEncoding,
+) -> v8::Local<'a, v8::Value> {
+    let text = match encoding {
+        FileEncoding::Buffer => return create_buffer_from_bytes(scope, bytes),
+        FileEncoding::Utf8 => String::from_utf8_lossy(bytes).into_owned(),
+        FileEncoding::Hex => hex::encode(bytes),
+        FileEncoding::Base64 => {
+            use base64::Engine;
+            base64::engine::general_purpose::STANDARD.encode(bytes)
+        }
+        FileEncoding::Latin1 => bytes
+            .iter()
+            .map(|byte| char::from_u32(u32::from(*byte)).unwrap_or('\u{FFFD}'))
+            .collect(),
+    };
+    v8::String::new(scope, &text)
+        .map(|value| value.into())
+        .unwrap_or_else(|| v8::undefined(scope).into())
+}
+
+fn set_bytes_property(
+    scope: &mut v8::PinScope,
+    obj: v8::Local<v8::Object>,
+    name: &str,
+    bytes: &[u8],
+) {
+    let key = v8::String::new(scope, name).unwrap();
+    let value = create_buffer_from_bytes(scope, bytes);
+    obj.set(scope, key.into(), value);
+}
+
+fn bytes_from_property(
+    scope: &mut v8::PinScope,
+    obj: v8::Local<v8::Object>,
+    name: &str,
+) -> Vec<u8> {
+    let key = match v8::String::new(scope, name) {
+        Some(key) => key,
+        None => return Vec::new(),
+    };
+    match obj.get(scope, key.into()) {
+        Some(value) => copy_binary_value(scope, value).unwrap_or_default(),
+        None => Vec::new(),
+    }
+}
+
+fn set_bool_property(
+    scope: &mut v8::PinScope,
+    obj: v8::Local<v8::Object>,
+    name: &str,
+    value: bool,
+) {
+    let key = v8::String::new(scope, name).unwrap();
+    let value = v8::Boolean::new(scope, value);
+    obj.set(scope, key.into(), value.into());
+}
+
+fn bool_from_property(scope: &mut v8::PinScope, obj: v8::Local<v8::Object>, name: &str) -> bool {
+    let key = match v8::String::new(scope, name) {
+        Some(key) => key,
+        None => return false,
+    };
+    obj.get(scope, key.into())
+        .map(|value| value.is_true())
+        .unwrap_or(false)
+}
+
 /// fs.readFileSync(path, encoding) - 读取文件
 fn fs_read_file_sync_callback(
     scope: &mut v8::PinScope,
@@ -421,73 +803,17 @@ fn fs_read_file_sync_callback(
         return;
     }
 
-    let encoding = if args.length() > 1 {
-        let arg1 = args.get(1);
-        if arg1.is_string() {
-            arg1.to_string(scope).map(|s| s.to_rust_string_lossy(scope))
-        } else if arg1.is_object() {
-            let enc_key = v8::String::new(scope, "encoding").unwrap();
-            v8::Local::<v8::Object>::try_from(arg1)
-                .ok()
-                .and_then(|o| o.get(scope, enc_key.into()))
-                .and_then(|v| v.to_string(scope))
-                .map(|s| s.to_rust_string_lossy(scope))
-        } else {
-            None
+    let options = match parse_file_io_options(scope, args.get(1), FileEncoding::Buffer) {
+        Ok(options) => options,
+        Err(message) => {
+            throw_coded_type_error(scope, "ERR_UNKNOWN_ENCODING", &message);
+            return;
         }
-    } else {
-        None
     };
 
-    if crate::sandbox::virtual_fs::is_enabled() {
-        match crate::sandbox::virtual_fs::vfs_read(std::path::Path::new(path.as_ref())) {
-            Ok(bytes) => {
-                if let Some(enc) = encoding {
-                    let s = match enc.to_ascii_lowercase().as_str() {
-                        "utf8" | "utf-8" => String::from_utf8_lossy(&bytes).into_owned(),
-                        "hex" => hex::encode(&bytes),
-                        "base64" => {
-                            use base64::Engine;
-                            base64::engine::general_purpose::STANDARD.encode(&bytes)
-                        }
-                        _ => String::from_utf8_lossy(&bytes).into_owned(),
-                    };
-                    if let Some(v8_str) = v8::String::new(scope, &s) {
-                        retval.set(v8_str.into());
-                    }
-                } else {
-                    let len = bytes.len();
-                    let ab = v8::ArrayBuffer::new(scope, len);
-                    if len > 0 {
-                        let store = ab.get_backing_store();
-                        let ptr = store.as_ref().as_ptr() as *mut u8;
-                        if !ptr.is_null() {
-                            unsafe {
-                                std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, len);
-                            }
-                        }
-                    }
-                    if let Some(u8_arr) = v8::Uint8Array::new(scope, ab, 0, len) {
-                        crate::runtime_minimal::set_buffer_prototype_fast(scope, u8_arr);
-                        retval.set(u8_arr.into());
-                    } else {
-                        retval.set(v8::undefined(scope).into());
-                    }
-                }
-                return;
-            }
-            Err(e) => {
-                let error_msg = format!("Error reading file: {}", e);
-                let error = v8::String::new(scope, &error_msg).unwrap();
-                let exc = v8::Exception::type_error(scope, error);
-                scope.throw_exception(exc);
-                return;
-            }
-        }
-    }
-
+    // Buffer reads stay on the direct fd path so the common case does not allocate a Vec.
     #[cfg(unix)]
-    if encoding.is_none() {
+    if options.encoding == FileEncoding::Buffer && !crate::sandbox::virtual_fs::is_enabled() {
         if let Some(ptr) = c_path {
             let fd = unsafe { libc::open(ptr, libc::O_RDONLY) };
             if fd >= 0 {
@@ -528,63 +854,11 @@ fn fs_read_file_sync_callback(
         }
     }
 
-    let file_res = std::fs::File::open(path.as_ref());
-    match file_res {
-        Ok(mut file) => {
-            let len = file.metadata().map(|m| m.len() as usize).unwrap_or(0);
-            if let Some(enc) = encoding {
-                let mut bytes = Vec::with_capacity(len);
-                use std::io::Read;
-                if let Err(e) = file.read_to_end(&mut bytes) {
-                    let error_msg = format!("Error reading file: {}", e);
-                    let error = v8::String::new(scope, &error_msg).unwrap();
-                    let exc = v8::Exception::type_error(scope, error);
-                    scope.throw_exception(exc);
-                    return;
-                }
-                let s = match enc.to_ascii_lowercase().as_str() {
-                    "utf8" | "utf-8" => String::from_utf8_lossy(&bytes).into_owned(),
-                    "hex" => hex::encode(&bytes),
-                    "base64" => {
-                        use base64::Engine;
-                        base64::engine::general_purpose::STANDARD.encode(&bytes)
-                    }
-                    _ => String::from_utf8_lossy(&bytes).into_owned(),
-                };
-                if let Some(v8_str) = v8::String::new(scope, &s) {
-                    retval.set(v8_str.into());
-                }
-            } else {
-                let ab = v8::ArrayBuffer::new(scope, len);
-                if len > 0 {
-                    let store = ab.get_backing_store();
-                    let ptr = store.as_ref().as_ptr() as *mut u8;
-                    if !ptr.is_null() {
-                        use std::io::Read;
-                        let slice = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
-                        if let Err(e) = file.read_exact(slice) {
-                            let error_msg = format!("Error reading file: {}", e);
-                            let error = v8::String::new(scope, &error_msg).unwrap();
-                            let exc = v8::Exception::type_error(scope, error);
-                            scope.throw_exception(exc);
-                            return;
-                        }
-                    }
-                }
-                if let Some(u8_arr) = v8::Uint8Array::new(scope, ab, 0, len) {
-                    crate::runtime_minimal::set_buffer_prototype_fast(scope, u8_arr);
-                    retval.set(u8_arr.into());
-                } else {
-                    retval.set(v8::undefined(scope).into());
-                }
-            }
+    match read_file_bytes(path.as_ref()) {
+        Ok(bytes) => {
+            retval.set(bytes_to_js(scope, &bytes, options.encoding));
         }
-        Err(e) => {
-            let error_msg = format!("Error reading file: {}", e);
-            let error = v8::String::new(scope, &error_msg).unwrap();
-            let exc = v8::Exception::type_error(scope, error);
-            scope.throw_exception(exc);
-        }
+        Err(err) => throw_fs_io_error(scope, "open", path.as_ref(), &err),
     }
 }
 
@@ -592,11 +866,11 @@ thread_local! {
     static TLS_FS_WRITE_BUFFER: std::cell::RefCell<Vec<u8>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
-/// fs.writeFileSync(path, data, encoding) - 写入文件
-fn fs_write_file_sync_callback(
+fn write_sync_inner(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
+    default_append: bool,
 ) {
     let mut path_buf = [0u8; 512];
     let (path, c_path) = get_path_fast(scope, args.get(0), &mut path_buf);
@@ -605,8 +879,24 @@ fn fs_write_file_sync_callback(
         return;
     }
 
+    let options = match parse_file_io_options(scope, args.get(2), FileEncoding::Utf8) {
+        Ok(options) => options,
+        Err(message) => {
+            throw_coded_type_error(scope, "ERR_UNKNOWN_ENCODING", &message);
+            return;
+        }
+    };
+    let append = options.append(default_append);
+    let exclusive = options.exclusive();
     let val = args.get(1);
-    let res = if val.is_string() {
+    // Plain utf8 strings keep the thread-local write path. hex/base64/latin1 and
+    // append/exclusive must decode or open with different flags first.
+    let utf8_fast = val.is_string()
+        && matches!(options.encoding, FileEncoding::Utf8 | FileEncoding::Buffer)
+        && !append
+        && !exclusive;
+
+    let res = if utf8_fast {
         if let Some(s) = val.to_string(scope) {
             if s.contains_only_onebyte() {
                 let len = s.length();
@@ -632,84 +922,48 @@ fn fs_write_file_sync_callback(
         } else {
             direct_write_sync(c_path, path.as_ref(), b"")
         }
-    } else if val.is_array_buffer_view() || val.is_typed_array() {
-        if let Ok(view) = v8::Local::<v8::ArrayBufferView>::try_from(val) {
-            if let Some(ab) = view.buffer(scope) {
-                let offset = view.byte_offset();
-                let len = view.byte_length();
-                let store = ab.get_backing_store();
-                let ptr = store.as_ref().as_ptr() as *const u8;
-                if !ptr.is_null() {
-                    let slice = unsafe { std::slice::from_raw_parts(ptr.add(offset), len) };
-                    direct_write_sync(c_path, path.as_ref(), slice)
-                } else {
-                    direct_write_sync(c_path, path.as_ref(), b"")
-                }
-            } else {
-                direct_write_sync(c_path, path.as_ref(), b"")
-            }
-        } else {
-            direct_write_sync(c_path, path.as_ref(), b"")
-        }
-    } else if val.is_object() {
-        if let Ok(obj) = v8::Local::<v8::Object>::try_from(val) {
-            let buf_key = v8::String::new(scope, "buffer").unwrap();
-            if let Some(buf_val) = obj.get(scope, buf_key.into()) {
-                if let Ok(ab) = v8::Local::<v8::ArrayBuffer>::try_from(buf_val) {
-                    let len_key = v8::String::new(scope, "length").unwrap();
-                    let len = obj
-                        .get(scope, len_key.into())
-                        .and_then(|v| v.to_integer(scope))
-                        .map(|i| i.value() as usize)
-                        .unwrap_or_else(|| ab.byte_length());
-                    let store = ab.get_backing_store();
-                    let ptr = store.as_ref().as_ptr() as *const u8;
-                    if !ptr.is_null() {
-                        let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
-                        direct_write_sync(c_path, path.as_ref(), slice)
-                    } else {
-                        direct_write_sync(c_path, path.as_ref(), b"")
-                    }
-                } else {
-                    let rust_s = val
-                        .to_string(scope)
-                        .map(|s| s.to_rust_string_lossy(scope))
-                        .unwrap_or_default();
-                    direct_write_sync(c_path, path.as_ref(), rust_s.as_bytes())
-                }
-            } else {
-                let rust_s = val
-                    .to_string(scope)
-                    .map(|s| s.to_rust_string_lossy(scope))
-                    .unwrap_or_default();
-                direct_write_sync(c_path, path.as_ref(), rust_s.as_bytes())
-            }
-        } else {
-            let rust_s = val
-                .to_string(scope)
-                .map(|s| s.to_rust_string_lossy(scope))
-                .unwrap_or_default();
-            direct_write_sync(c_path, path.as_ref(), rust_s.as_bytes())
-        }
     } else {
-        let rust_s = val
-            .to_string(scope)
-            .map(|s| s.to_rust_string_lossy(scope))
-            .unwrap_or_default();
-        direct_write_sync(c_path, path.as_ref(), rust_s.as_bytes())
+        match value_to_file_bytes(scope, val, options.encoding) {
+            Ok(bytes) => {
+                let direct = if append || exclusive { None } else { c_path };
+                write_file_bytes(direct, path.as_ref(), &bytes, append, exclusive)
+            }
+            Err(message) => {
+                let code = if message.contains("not valid") {
+                    "ERR_INVALID_ARG_VALUE"
+                } else {
+                    "ERR_INVALID_ARG_TYPE"
+                };
+                throw_coded_type_error(scope, code, &message);
+                return;
+            }
+        }
     };
 
     match res {
         Ok(()) => {
             retval.set(v8::undefined(scope).into());
         }
-        Err(e) => {
-            let error_msg = format!("Error writing file: {}", e);
-            let error = v8::String::new(scope, &error_msg).unwrap();
-            let exc = v8::Exception::type_error(scope, error);
-            scope.throw_exception(exc);
-        }
+        Err(err) => throw_fs_io_error(scope, "open", path.as_ref(), &err),
     }
+}
+
+/// fs.writeFileSync(path, data[, options])
+fn fs_write_file_sync_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    retval: v8::ReturnValue,
+) {
+    write_sync_inner(scope, args, retval, false);
+}
+
+/// fs.appendFileSync(path, data[, options])
+fn fs_append_file_sync_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    retval: v8::ReturnValue,
+) {
+    write_sync_inner(scope, args, retval, true);
 }
 
 /// fs.existsSync(path) - 检查文件是否存在
@@ -1014,7 +1268,17 @@ fn fs_rmdir_sync_callback(
     }
 }
 
-/// fs.readFile(path, [encoding], callback) - callback 风格读取
+fn callback_index(args: &v8::FunctionCallbackArguments, option_index: i32) -> Option<i32> {
+    if args.get(option_index).is_function() {
+        Some(option_index)
+    } else if args.get(option_index + 1).is_function() {
+        Some(option_index + 1)
+    } else {
+        None
+    }
+}
+
+/// fs.readFile(path[, options], callback)
 fn fs_read_file_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -1026,155 +1290,137 @@ fn fs_read_file_callback(
         .map(|s| s.to_rust_string_lossy(scope))
         .unwrap_or_default();
 
-    let callback_val = if args.get(1).is_function() {
-        args.get(1)
-    } else if args.length() >= 3 && args.get(2).is_function() {
-        args.get(2)
-    } else {
-        let error = v8::String::new(scope, "readFile: callback must be a function").unwrap();
-        let exc = v8::Exception::type_error(scope, error);
-        scope.throw_exception(exc);
+    let Some(callback_at) = callback_index(&args, 1) else {
+        throw_coded_type_error(
+            scope,
+            "ERR_INVALID_ARG_TYPE",
+            "readFile: callback must be a function",
+        );
         return;
     };
-    let callback = v8::Local::<v8::Function>::try_from(callback_val).unwrap();
+    let options_val = if callback_at == 1 {
+        v8::undefined(scope).into()
+    } else {
+        args.get(1)
+    };
+    let Ok(callback) = v8::Local::<v8::Function>::try_from(args.get(callback_at)) else {
+        return;
+    };
+    let options = match parse_file_io_options(scope, options_val, FileEncoding::Buffer) {
+        Ok(options) => options,
+        Err(message) => {
+            throw_coded_type_error(scope, "ERR_UNKNOWN_ENCODING", &message);
+            return;
+        }
+    };
 
     if !ensure_fs_permission(scope, PermissionAction::Read, &path) {
         return;
     }
 
-    let read_res = if crate::sandbox::virtual_fs::is_enabled() {
-        crate::sandbox::virtual_fs::vfs_read_to_string(Path::new(&path))
-    } else {
-        std::fs::read_to_string(&path)
-    };
-
-    match read_res {
-        Ok(content) => {
-            let content = v8::String::new(scope, &content).unwrap();
-            let undefined = v8::undefined(scope);
+    let undefined = v8::undefined(scope);
+    match read_file_bytes(&path) {
+        Ok(bytes) => {
+            let data = bytes_to_js(scope, &bytes, options.encoding);
             let null: v8::Local<v8::Value> = v8::null(scope).into();
-            let _ = callback.call(scope, undefined.into(), &[null, content.into()]);
-            retval.set(v8::undefined(scope).into());
+            let _ = callback.call(scope, undefined.into(), &[null, data]);
         }
-        Err(e) => {
-            let error_msg = format!("Error reading file: {}", e);
-            let error = v8::String::new(scope, &error_msg).unwrap();
-            let undefined = v8::undefined(scope);
-            let data: v8::Local<v8::Value> = v8::undefined(scope).into();
-            let _ = callback.call(scope, undefined.into(), &[error.into(), data]);
-            retval.set(v8::undefined(scope).into());
+        Err(err) => {
+            let error = fs_error_value(scope, "open", &path, &err);
+            let _ = callback.call(scope, undefined.into(), &[error]);
         }
     }
+    retval.set(undefined.into());
 }
 
-/// fs.writeFile(path, data, callback) - callback 风格写入
+fn write_callback_inner(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+    default_append: bool,
+    name: &str,
+) {
+    let path: String = args
+        .get(0)
+        .to_string(scope)
+        .map(|s| s.to_rust_string_lossy(scope))
+        .unwrap_or_default();
+    let Some(callback_at) = callback_index(&args, 2) else {
+        throw_coded_type_error(
+            scope,
+            "ERR_INVALID_ARG_TYPE",
+            &format!("{name}: callback must be a function"),
+        );
+        return;
+    };
+    let options_val = if callback_at == 2 {
+        v8::undefined(scope).into()
+    } else {
+        args.get(2)
+    };
+    let Ok(callback) = v8::Local::<v8::Function>::try_from(args.get(callback_at)) else {
+        return;
+    };
+    let options = match parse_file_io_options(scope, options_val, FileEncoding::Utf8) {
+        Ok(options) => options,
+        Err(message) => {
+            throw_coded_type_error(scope, "ERR_UNKNOWN_ENCODING", &message);
+            return;
+        }
+    };
+    let bytes = match value_to_file_bytes(scope, args.get(1), options.encoding) {
+        Ok(bytes) => bytes,
+        Err(message) => {
+            let code = if message.contains("not valid") {
+                "ERR_INVALID_ARG_VALUE"
+            } else {
+                "ERR_INVALID_ARG_TYPE"
+            };
+            throw_coded_type_error(scope, code, &message);
+            return;
+        }
+    };
+
+    if !ensure_fs_permission(scope, PermissionAction::Write, &path) {
+        return;
+    }
+
+    let undefined = v8::undefined(scope);
+    match write_file_bytes(
+        None,
+        &path,
+        &bytes,
+        options.append(default_append),
+        options.exclusive(),
+    ) {
+        Ok(()) => {
+            let null: v8::Local<v8::Value> = v8::null(scope).into();
+            let _ = callback.call(scope, undefined.into(), &[null]);
+        }
+        Err(err) => {
+            let error = fs_error_value(scope, "open", &path, &err);
+            let _ = callback.call(scope, undefined.into(), &[error]);
+        }
+    }
+    retval.set(undefined.into());
+}
+
+/// fs.writeFile(path, data[, options], callback)
 fn fs_write_file_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
+    retval: v8::ReturnValue,
 ) {
-    let path: String = args
-        .get(0)
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
-    let data: String = args
-        .get(1)
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
-
-    let callback_val = if args.get(2).is_function() {
-        args.get(2)
-    } else if args.get(1).is_function() {
-        args.get(1)
-    } else {
-        let error = v8::String::new(scope, "writeFile: callback must be a function").unwrap();
-        let exc = v8::Exception::type_error(scope, error);
-        scope.throw_exception(exc);
-        return;
-    };
-    let callback = v8::Local::<v8::Function>::try_from(callback_val).unwrap();
-
-    if !ensure_fs_permission(scope, PermissionAction::Write, &path) {
-        return;
-    }
-
-    let write_res = if crate::sandbox::virtual_fs::is_enabled() {
-        crate::sandbox::virtual_fs::vfs_write(Path::new(&path), data.as_bytes())
-    } else {
-        std::fs::write(&path, data)
-    };
-
-    match write_res {
-        Ok(()) => {
-            let undefined = v8::undefined(scope);
-            let null: v8::Local<v8::Value> = v8::null(scope).into();
-            let _ = callback.call(scope, undefined.into(), &[null]);
-        }
-        Err(e) => {
-            let error_msg = format!("Error writing file: {}", e);
-            let error = v8::String::new(scope, &error_msg).unwrap();
-            let undefined = v8::undefined(scope);
-            let _ = callback.call(scope, undefined.into(), &[error.into()]);
-        }
-    }
-    retval.set(v8::undefined(scope).into());
+    write_callback_inner(scope, args, retval, false, "writeFile");
 }
 
-/// fs.appendFile(path, data, callback) - callback 风格追加写入
+/// fs.appendFile(path, data[, options], callback)
 fn fs_append_file_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
-    mut retval: v8::ReturnValue,
+    retval: v8::ReturnValue,
 ) {
-    let path: String = args
-        .get(0)
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
-    let data: String = args
-        .get(1)
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
-
-    let callback_val = if args.get(2).is_function() {
-        args.get(2)
-    } else if args.get(1).is_function() {
-        args.get(1)
-    } else {
-        let error = v8::String::new(scope, "appendFile: callback must be a function").unwrap();
-        let exc = v8::Exception::type_error(scope, error);
-        scope.throw_exception(exc);
-        return;
-    };
-    let callback = v8::Local::<v8::Function>::try_from(callback_val).unwrap();
-
-    if !ensure_fs_permission(scope, PermissionAction::Write, &path) {
-        return;
-    }
-
-    let result = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-        .and_then(|mut file| file.write_all(data.as_bytes()));
-
-    match result {
-        Ok(()) => {
-            let undefined = v8::undefined(scope);
-            let null: v8::Local<v8::Value> = v8::null(scope).into();
-            let _ = callback.call(scope, undefined.into(), &[null]);
-        }
-        Err(e) => {
-            let error_msg = format!("Error appending to file: {}", e);
-            let error = v8::String::new(scope, &error_msg).unwrap();
-            let undefined = v8::undefined(scope);
-            let _ = callback.call(scope, undefined.into(), &[error.into()]);
-        }
-    }
-    retval.set(v8::undefined(scope).into());
+    write_callback_inner(scope, args, retval, true, "appendFile");
 }
 
 // ============ fs.promises API - v0.3.66 ============
@@ -1182,50 +1428,18 @@ fn fs_append_file_callback(
 // 真正的异步执行需要完整的 async runtime，这是 Amber 未来的目标
 // 使用 V8 对象的内部字段存储路径数据，避免闭包捕获问题
 
-/// 编码类型枚举 - v0.3.66
-enum Encoding {
-    Utf8,
-    Base64,
-    Hex,
-    Buffer,
+fn promises_encoding_name(encoding: FileEncoding) -> &'static str {
+    match encoding {
+        FileEncoding::Utf8 => "utf-8",
+        FileEncoding::Base64 => "base64",
+        FileEncoding::Hex => "hex",
+        FileEncoding::Latin1 => "latin1",
+        FileEncoding::Buffer => "buffer",
+    }
 }
 
-/// 提取编码选项 - v0.3.66
-fn extract_encoding_option(scope: &mut v8::PinScope, options: &v8::Local<v8::Value>) -> Encoding {
-    if options.is_undefined() || options.is_null() {
-        return Encoding::Utf8;
-    }
-
-    // 如果是字符串直接返回
-    if let Some(s) = options.to_string(scope) {
-        let encoding_str = s.to_rust_string_lossy(scope).to_lowercase();
-        return match encoding_str.as_str() {
-            "utf-8" | "utf8" => Encoding::Utf8,
-            "base64" => Encoding::Base64,
-            "hex" => Encoding::Hex,
-            "buffer" | "raw" => Encoding::Buffer,
-            _ => Encoding::Utf8,
-        };
-    }
-
-    // 如果是对象，检查 encoding 属性
-    if let Ok(obj) = v8::Local::<v8::Object>::try_from(*options) {
-        let encoding_key = v8::String::new(scope, "encoding").unwrap();
-        if let Some(enc_val) = obj.get(scope, encoding_key.into()) {
-            if let Some(s) = enc_val.to_string(scope) {
-                let encoding_str = s.to_rust_string_lossy(scope).to_lowercase();
-                return match encoding_str.as_str() {
-                    "utf-8" | "utf8" => Encoding::Utf8,
-                    "base64" => Encoding::Base64,
-                    "hex" => Encoding::Hex,
-                    "buffer" | "raw" => Encoding::Buffer,
-                    _ => Encoding::Utf8,
-                };
-            }
-        }
-    }
-
-    Encoding::Utf8
+fn promises_encoding_from_name(name: &str) -> FileEncoding {
+    file_encoding_from_name(name).unwrap_or(FileEncoding::Buffer)
 }
 
 /// fs.promises.readFile(path, options) - v0.3.66 增强版
@@ -1246,9 +1460,16 @@ fn fs_promises_read_file_callback(
         return;
     }
 
-    // 提取 encoding 参数 - v0.3.66
+    // Omitted encoding is a Buffer. Check is_string before ToString so
+    // `{ encoding: "hex" }` is not reduced to "[object Object]".
     let options = args.get(1);
-    let encoding = extract_encoding_option(scope, &options);
+    let encoding = match parse_file_io_options(scope, options, FileEncoding::Buffer) {
+        Ok(options) => options.encoding,
+        Err(message) => {
+            throw_coded_type_error(scope, "ERR_UNKNOWN_ENCODING", &message);
+            return;
+        }
+    };
 
     let thenable_obj = v8::Object::new(scope);
 
@@ -1259,12 +1480,7 @@ fn fs_promises_read_file_callback(
 
     // 存储编码类型 - v0.3.66
     let encoding_key = v8::String::new(scope, "__encoding").unwrap();
-    let encoding_str = match encoding {
-        Encoding::Utf8 => "utf-8",
-        Encoding::Base64 => "base64",
-        Encoding::Hex => "hex",
-        Encoding::Buffer => "buffer",
-    };
+    let encoding_str = promises_encoding_name(encoding);
     let encoding_val = v8::String::new(scope, encoding_str).unwrap();
     thenable_obj.set(scope, encoding_key.into(), encoding_val.into());
 
@@ -1301,70 +1517,15 @@ fn fs_promises_read_file_callback(
                 return;
             }
 
-            // 根据编码类型读取文件 - v0.3.66
-            let read_result: Result<String, String> = {
-                let read_bytes = if crate::sandbox::virtual_fs::is_enabled() {
-                    crate::sandbox::virtual_fs::vfs_read(Path::new(&path_str))
-                } else {
-                    std::fs::read(&path_str)
-                };
-
-                match encoding_str.as_str() {
-                    "utf-8" | "utf8" => match read_bytes {
-                        Ok(bytes) => Ok(String::from_utf8_lossy(&bytes).to_string()),
-                        Err(e) => Err(format!("Error reading file: {}", e)),
-                    },
-                    "base64" => match read_bytes {
-                        Ok(bytes) => {
-                            use base64::{engine::general_purpose::STANDARD, Engine as _};
-                            Ok(STANDARD.encode(&bytes))
-                        }
-                        Err(e) => Err(format!("Error reading file: {}", e)),
-                    },
-                    "hex" => match read_bytes {
-                        Ok(bytes) => Ok(hex::encode(&bytes)),
-                        Err(e) => Err(format!("Error reading file: {}", e)),
-                    },
-                    "buffer" | "raw" => match read_bytes {
-                        Ok(bytes) => {
-                            // 创建 Buffer 对象
-                            let buffer_val = create_buffer_from_bytes(scope, &bytes);
-                            let mut fulfillment = None;
-                            if on_fulfilled.is_function() {
-                                if let Ok(func) = v8::Local::<v8::Function>::try_from(on_fulfilled)
-                                {
-                                    let undefined = v8::undefined(scope);
-                                    let result =
-                                        func.call(scope, undefined.into(), &[buffer_val.into()]);
-                                    if let Some(r) = result {
-                                        let result_key =
-                                            v8::String::new(scope, "__result__").unwrap();
-                                        this.set(scope, result_key.into(), r);
-                                        fulfillment = Some(r);
-                                    }
-                                }
-                            }
-                            thenable_chain_return(scope, this, fulfillment, &mut retval);
-                            return;
-                        }
-                        Err(e) => Err(format!("Error reading file: {}", e)),
-                    },
-                    _ => match read_bytes {
-                        Ok(bytes) => Ok(String::from_utf8_lossy(&bytes).to_string()),
-                        Err(e) => Err(format!("Error reading file: {}", e)),
-                    },
-                }
-            };
-
+            let encoding = promises_encoding_from_name(&encoding_str);
             let mut fulfillment = None;
-            match read_result {
-                Ok(content) => {
+            match read_file_bytes(&path_str) {
+                Ok(bytes) => {
                     if on_fulfilled.is_function() {
                         if let Ok(func) = v8::Local::<v8::Function>::try_from(on_fulfilled) {
-                            let content_val = v8::String::new(scope, &content).unwrap();
+                            let content_val = bytes_to_js(scope, &bytes, encoding);
                             let undefined = v8::undefined(scope);
-                            let result = func.call(scope, undefined.into(), &[content_val.into()]);
-                            // v0.3.64: Store result on thenable for test access
+                            let result = func.call(scope, undefined.into(), &[content_val]);
                             if let Some(r) = result {
                                 let result_key = v8::String::new(scope, "__result__").unwrap();
                                 this.set(scope, result_key.into(), r);
@@ -1373,14 +1534,13 @@ fn fs_promises_read_file_callback(
                         }
                     }
                 }
-                Err(e) => {
+                Err(err) => {
                     let on_rejected = args.get(1);
                     if on_rejected.is_function() {
                         if let Ok(func) = v8::Local::<v8::Function>::try_from(on_rejected) {
-                            let error_val = v8::String::new(scope, &e).unwrap();
+                            let error_val = fs_error_value(scope, "open", &path_str, &err);
                             let undefined = v8::undefined(scope);
-                            let result = func.call(scope, undefined.into(), &[error_val.into()]);
-                            // v0.3.64: Store result on thenable for test access
+                            let result = func.call(scope, undefined.into(), &[error_val]);
                             if let Some(r) = result {
                                 let result_key = v8::String::new(scope, "__result__").unwrap();
                                 this.set(scope, result_key.into(), r);
@@ -1419,13 +1579,12 @@ fn fs_promises_read_file_callback(
                 return;
             }
 
-            if let Err(error) = std::fs::read(&path_str) {
+            if let Err(error) = read_file_bytes(&path_str) {
                 if on_rejected.is_function() {
                     if let Ok(func) = v8::Local::<v8::Function>::try_from(on_rejected) {
-                        let error_msg = format!("Error reading file: {}", error);
-                        let error_val = v8::String::new(scope, &error_msg).unwrap();
+                        let error_val = fs_error_value(scope, "open", &path_str, &error);
                         let undefined = v8::undefined(scope);
-                        let result = func.call(scope, undefined.into(), &[error_val.into()]);
+                        let result = func.call(scope, undefined.into(), &[error_val]);
                         if let Some(r) = result {
                             let result_key = v8::String::new(scope, "__result__").unwrap();
                             this.set(scope, result_key.into(), r);
@@ -1455,11 +1614,25 @@ fn fs_promises_write_file_callback(
         .to_string(scope)
         .map(|s| s.to_rust_string_lossy(scope))
         .unwrap_or_default();
-    let data: String = args
-        .get(1)
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
+    let options = match parse_file_io_options(scope, args.get(2), FileEncoding::Utf8) {
+        Ok(options) => options,
+        Err(message) => {
+            throw_coded_type_error(scope, "ERR_UNKNOWN_ENCODING", &message);
+            return;
+        }
+    };
+    let bytes = match value_to_file_bytes(scope, args.get(1), options.encoding) {
+        Ok(bytes) => bytes,
+        Err(message) => {
+            let code = if message.contains("not valid") {
+                "ERR_INVALID_ARG_VALUE"
+            } else {
+                "ERR_INVALID_ARG_TYPE"
+            };
+            throw_coded_type_error(scope, code, &message);
+            return;
+        }
+    };
 
     if !ensure_fs_permission(scope, PermissionAction::Write, &path) {
         return;
@@ -1467,13 +1640,12 @@ fn fs_promises_write_file_callback(
 
     let thenable_obj = v8::Object::new(scope);
 
-    // 预先创建所有 V8 值，避免 borrow checker 问题
     let path_val = v8::String::new(scope, &path).unwrap();
-    let data_val = v8::String::new(scope, &data).unwrap();
     let path_key = v8::String::new(scope, "__path").unwrap();
-    let data_key = v8::String::new(scope, "__data").unwrap();
     thenable_obj.set(scope, path_key.into(), path_val.into());
-    thenable_obj.set(scope, data_key.into(), data_val.into());
+    set_bytes_property(scope, thenable_obj, "__bytes", &bytes);
+    set_bool_property(scope, thenable_obj, "__append", options.append(false));
+    set_bool_property(scope, thenable_obj, "__exclusive", options.exclusive());
 
     let then_func = v8::FunctionTemplate::new(
         scope,
@@ -1484,32 +1656,23 @@ fn fs_promises_write_file_callback(
             let on_fulfilled = args.get(0);
 
             let path_key = v8::String::new(scope, "__path").unwrap();
-            let data_key = v8::String::new(scope, "__data").unwrap();
             let path_val = this
                 .get(scope, path_key.into())
-                .unwrap_or(v8::undefined(scope).into());
-            let data_val = this
-                .get(scope, data_key.into())
                 .unwrap_or(v8::undefined(scope).into());
             let path_str = path_val
                 .to_string(scope)
                 .map(|s| s.to_rust_string_lossy(scope))
                 .unwrap_or_default();
-            let data_str = data_val
-                .to_string(scope)
-                .map(|s| s.to_rust_string_lossy(scope))
-                .unwrap_or_default();
+            let bytes = bytes_from_property(scope, this, "__bytes");
+            let append = bool_from_property(scope, this, "__append");
+            let exclusive = bool_from_property(scope, this, "__exclusive");
 
             if !ensure_fs_permission(scope, PermissionAction::Write, &path_str) {
                 return;
             }
 
             let mut fulfillment = None;
-            let write_res = if crate::sandbox::virtual_fs::is_enabled() {
-                crate::sandbox::virtual_fs::vfs_write(Path::new(&path_str), data_str.as_bytes())
-            } else {
-                std::fs::write(&path_str, &data_str)
-            };
+            let write_res = write_file_bytes(None, &path_str, &bytes, append, exclusive);
             match write_res {
                 Ok(()) => {
                     if on_fulfilled.is_function() {
@@ -1529,10 +1692,9 @@ fn fs_promises_write_file_callback(
                     let on_rejected = args.get(1);
                     if on_rejected.is_function() {
                         if let Ok(func) = v8::Local::<v8::Function>::try_from(on_rejected) {
-                            let error_msg = format!("Error writing file: {}", e);
-                            let error_val = v8::String::new(scope, &error_msg).unwrap();
+                            let error_val = fs_error_value(scope, "open", &path_str, &e);
                             let undefined = v8::undefined(scope);
-                            let result = func.call(scope, undefined.into(), &[error_val.into()]);
+                            let result = func.call(scope, undefined.into(), &[error_val]);
                             // v0.3.64: Store result on thenable for test access
                             if let Some(r) = result {
                                 let result_key = v8::String::new(scope, "__result__").unwrap();
@@ -1565,11 +1727,25 @@ fn fs_promises_append_file_callback(
         .to_string(scope)
         .map(|s| s.to_rust_string_lossy(scope))
         .unwrap_or_default();
-    let data: String = args
-        .get(1)
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
+    let options = match parse_file_io_options(scope, args.get(2), FileEncoding::Utf8) {
+        Ok(options) => options,
+        Err(message) => {
+            throw_coded_type_error(scope, "ERR_UNKNOWN_ENCODING", &message);
+            return;
+        }
+    };
+    let bytes = match value_to_file_bytes(scope, args.get(1), options.encoding) {
+        Ok(bytes) => bytes,
+        Err(message) => {
+            let code = if message.contains("not valid") {
+                "ERR_INVALID_ARG_VALUE"
+            } else {
+                "ERR_INVALID_ARG_TYPE"
+            };
+            throw_coded_type_error(scope, code, &message);
+            return;
+        }
+    };
 
     if !ensure_fs_permission(scope, PermissionAction::Write, &path) {
         return;
@@ -1578,11 +1754,11 @@ fn fs_promises_append_file_callback(
     let thenable_obj = v8::Object::new(scope);
 
     let path_val = v8::String::new(scope, &path).unwrap();
-    let data_val = v8::String::new(scope, &data).unwrap();
     let path_key = v8::String::new(scope, "__path").unwrap();
-    let data_key = v8::String::new(scope, "__data").unwrap();
     thenable_obj.set(scope, path_key.into(), path_val.into());
-    thenable_obj.set(scope, data_key.into(), data_val.into());
+    set_bytes_property(scope, thenable_obj, "__bytes", &bytes);
+    set_bool_property(scope, thenable_obj, "__append", options.append(true));
+    set_bool_property(scope, thenable_obj, "__exclusive", options.exclusive());
 
     let then_func = v8::FunctionTemplate::new(
         scope,
@@ -1593,31 +1769,22 @@ fn fs_promises_append_file_callback(
             let on_fulfilled = args.get(0);
 
             let path_key = v8::String::new(scope, "__path").unwrap();
-            let data_key = v8::String::new(scope, "__data").unwrap();
             let path_val = this
                 .get(scope, path_key.into())
-                .unwrap_or(v8::undefined(scope).into());
-            let data_val = this
-                .get(scope, data_key.into())
                 .unwrap_or(v8::undefined(scope).into());
             let path_str = path_val
                 .to_string(scope)
                 .map(|s| s.to_rust_string_lossy(scope))
                 .unwrap_or_default();
-            let data_str = data_val
-                .to_string(scope)
-                .map(|s| s.to_rust_string_lossy(scope))
-                .unwrap_or_default();
+            let bytes = bytes_from_property(scope, this, "__bytes");
+            let append = bool_from_property(scope, this, "__append");
+            let exclusive = bool_from_property(scope, this, "__exclusive");
 
             if !ensure_fs_permission(scope, PermissionAction::Write, &path_str) {
                 return;
             }
 
-            let append_result = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&path_str)
-                .and_then(|mut file| file.write_all(data_str.as_bytes()));
+            let append_result = write_file_bytes(None, &path_str, &bytes, append, exclusive);
 
             match append_result {
                 Ok(()) => {
@@ -1636,10 +1803,9 @@ fn fs_promises_append_file_callback(
                     let on_rejected = args.get(1);
                     if on_rejected.is_function() {
                         if let Ok(func) = v8::Local::<v8::Function>::try_from(on_rejected) {
-                            let error_msg = format!("Error appending file: {}", error);
-                            let error_val = v8::String::new(scope, &error_msg).unwrap();
+                            let error_val = fs_error_value(scope, "open", &path_str, &error);
                             let undefined = v8::undefined(scope);
-                            let result = func.call(scope, undefined.into(), &[error_val.into()]);
+                            let result = func.call(scope, undefined.into(), &[error_val]);
                             if let Some(r) = result {
                                 let result_key = v8::String::new(scope, "__result__").unwrap();
                                 this.set(scope, result_key.into(), r);

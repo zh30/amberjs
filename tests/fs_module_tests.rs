@@ -332,14 +332,22 @@ fn test_readfilesync_error_handling() {
             fs.readFileSync("/nonexistent/path/to/file.txt");
             "allowed";
         } catch (error) {
-            String(error && error.message ? error.message : error);
+            [
+              error instanceof Error,
+              error instanceof TypeError,
+              error.code,
+              error.syscall,
+              error.path,
+              typeof error.errno === 'number' && error.errno < 0
+            ].join('|');
         }
     "#;
 
     let result = runtime.execute_code(code).expect("Execution failed");
-    assert!(
-        result.contains("Error"),
-        "readFileSync should return error message for non-existent file"
+    assert_eq!(
+        result.trim(),
+        "true|false|ENOENT|open|/nonexistent/path/to/file.txt|true",
+        "readFileSync should throw a Node system error for a missing file"
     );
 }
 
