@@ -775,11 +775,14 @@ fn fetch_callback(
                 }
             }
 
-            // Parse redirect option
+            // Parse redirect option. A missing property is undefined; toString()
+            // would turn that into the mode "undefined" and reject a normal init.
             let redirect_key = v8::String::new(scope, "redirect").unwrap().into();
             if let Some(redirect_val) = init_obj.get(scope, redirect_key) {
-                if let Some(redirect_str) = redirect_val.to_string(scope) {
-                    redirect = redirect_str.to_rust_string_lossy(scope);
+                if redirect_val.is_string() {
+                    if let Some(redirect_str) = redirect_val.to_string(scope) {
+                        redirect = redirect_str.to_rust_string_lossy(scope);
+                    }
                 }
             }
         }
@@ -1171,11 +1174,13 @@ fn request_constructor_callback(
                 }
             }
 
-            // Parse redirect
+            // Parse redirect. Missing properties are undefined, not the mode string.
             let redirect_key = v8::String::new(scope, "redirect").unwrap().into();
             if let Some(redirect_val) = init.get(scope, redirect_key) {
-                if let Some(redirect_str) = redirect_val.to_string(scope) {
-                    init_redirect = redirect_str.to_rust_string_lossy(scope);
+                if redirect_val.is_string() {
+                    if let Some(redirect_str) = redirect_val.to_string(scope) {
+                        init_redirect = redirect_str.to_rust_string_lossy(scope);
+                    }
                 }
             }
 
