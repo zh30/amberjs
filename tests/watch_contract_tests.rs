@@ -49,6 +49,26 @@ fn recv_change(rx: &mpsc::Receiver<FileChange>, timeout: Duration) -> FileChange
     panic!("timed out waiting for a file event");
 }
 
+/// macOS temp dirs are `/var/...` while notify reports `/private/var/...`.
+fn canonical_path(path: &Path) -> std::path::PathBuf {
+    if let Ok(canonical) = path.canonicalize() {
+        return canonical;
+    }
+    // A removed file cannot be canonicalized. Resolve the parent, which still exists.
+    if let (Some(parent), Some(name)) = (path.parent(), path.file_name()) {
+        if let Ok(parent) = parent.canonicalize() {
+            return parent.join(name);
+        }
+    }
+    path.to_path_buf()
+}
+
+fn assert_same_path(actual: &Path, expected: &Path) {
+    let actual = canonical_path(actual);
+    let expected = canonical_path(expected);
+    assert_eq!(actual, expected);
+}
+
 fn assert_no_event(rx: &mpsc::Receiver<FileChange>, wait: Duration) {
     match rx.recv_timeout(wait) {
         Err(mpsc::RecvTimeoutError::Timeout) => {}
@@ -84,7 +104,7 @@ fn watch_emits_one_event_per_quiet_period_and_ignores_unwatched_paths() {
     std::fs::write(&app, "console.log('two');\n").expect("rewrite");
 
     let change = recv_change(&rx, Duration::from_secs(3));
-    assert_eq!(change.path, app);
+    assert_same_path(&change.path, &app);
     assert!(
         matches!(
             change.change_type,
@@ -97,7 +117,7 @@ fn watch_emits_one_event_per_quiet_period_and_ignores_unwatched_paths() {
 
     std::fs::remove_file(&app).expect("remove");
     let removed = recv_change(&rx, Duration::from_secs(3));
-    assert_eq!(removed.path, app);
+    assert_same_path(&removed.path, &app);
     assert!(
         matches!(
             removed.change_type,
@@ -146,7 +166,7 @@ fn non_recursive_watch_skips_nested_scripts() {
     let top = dir.path().join("top.js");
     std::fs::write(&top, "console.log('top');\n").expect("top");
     let change = recv_change(&rx, Duration::from_secs(3));
-    assert_eq!(change.path, top);
+    assert_same_path(&change.path, &top);
     reloader.stop();
     std::thread::sleep(Duration::from_millis(200));
     reset_broker();
