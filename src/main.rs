@@ -908,6 +908,87 @@ fn install_cli_fail(err: impl std::fmt::Display) -> ! {
     std::process::exit(1);
 }
 
+fn watch_cli_fail(err: impl std::fmt::Display) -> ! {
+    let msg = err.to_string();
+    if msg.contains("error: amber watch:") {
+        eprintln!("{msg}");
+    } else {
+        eprintln!("error: amber watch: {msg}");
+    }
+    std::process::exit(1);
+}
+
+/// Execute the watch entry once.
+///
+/// `Ok(false)` is a script exception: the caller keeps watching.
+/// `Err` is a read or preload failure.
+fn run_watched_entry(file: &Path, preloads: &[String], args: &[String]) -> Result<bool> {
+    let code = read_and_compile_source(file)?;
+    amberjs::v8_snapshot::enable_startup_snapshot_for_cli();
+    let mut runtime =
+        amberjs::runtime_minimal::MinimalRuntime::new().expect("Failed to create runtime");
+    runtime.set_process_argv(build_process_argv(file, args));
+    runtime.set_main_module_path(file);
+    runtime.set_http_server_keep_alive(true);
+
+    for preload in preloads {
+        let preload_code = preload_require_source(preload)?;
+        runtime
+            .execute_code(&preload_code)
+            .map_err(|e| anyhow!("Preload '{preload}' failed: {e}"))?;
+    }
+
+    match runtime.execute_code(&code) {
+        Ok(result) => {
+            if !result.trim().is_empty() {
+                println!("\n📊 Result: {result}");
+            }
+            println!("✅ Executed successfully");
+            Ok(true)
+        }
+        Err(e) => {
+            eprintln!("❌ Error: {e}");
+            Ok(false)
+        }
+    }
+}
+
+fn record_watch_result(reloader: &amberjs::watcher::HotReloader, success: bool, started: Instant) {
+    reloader.record_reload(success, started.elapsed().as_millis() as u64);
+}
+
+/// Block until a watched script changes, then invoke `on_change`.
+///
+/// The receiver error path breaks instead of spinning: a disconnected watcher
+/// used to make `if let Ok(change) = rx.recv()` busy-loop.
+fn enter_test_watch(
+    banner: &str,
+    watch_dir: &Path,
+    mut on_change: impl FnMut(&Path),
+) -> Result<()> {
+    println!("\n{banner}");
+    let watcher_config = amberjs::watcher::WatcherConfigBuilder::new()
+        .debounce_ms(200)
+        .clear_console(false)
+        .show_notifications(false)
+        .build();
+    let mut reloader = amberjs::watcher::HotReloader::with_config(watcher_config);
+    let rx = match reloader.watch(watch_dir) {
+        Ok(rx) => rx,
+        Err(error) => watch_cli_fail(error),
+    };
+    loop {
+        match rx.recv() {
+            Ok(change) => on_change(&change.path),
+            Err(error) => {
+                eprintln!("❌ Watch error: {error}");
+                break;
+            }
+        }
+    }
+    Ok(())
+}
+
 fn check_file_read_permission(path: &Path) -> Result<()> {
     amberjs::permissions::check_global_permission(
         amberjs::permissions::PermissionKind::FileSystem,
@@ -4077,19 +4158,42 @@ fn main() -> Result<()> {
             }
 
             if watch {
-                check_file_read_permission(&file)?;
+                if let Err(error) = check_file_read_permission(&file) {
+                    watch_cli_fail(error);
+                }
+                if !file.is_file() {
+                    watch_cli_fail(anyhow!("entry must be a file: {}", file.display()));
+                }
 
-                // Watch mode: enable hot reload
-                println!("🔥 Watch mode enabled (debounce: {}ms)", debounce);
+                let watch_path = file
+                    .parent()
+                    .filter(|parent| !parent.as_os_str().is_empty())
+                    .unwrap_or_else(|| Path::new("."))
+                    .to_path_buf();
 
-                // Get the directory to watch
-                let watch_path = if file.is_file() {
-                    file.parent().unwrap_or(&file).to_path_buf()
-                } else {
-                    file.clone()
+                // Watch mode is the only CLI path that needs Tokio. Keeping the
+                // runtime local avoids paying multi-thread scheduler startup for
+                // short-lived commands such as `amber eval` and `amber run`.
+                let watch_runtime = match tokio::runtime::Builder::new_multi_thread()
+                    .enable_all()
+                    .build()
+                {
+                    Ok(runtime) => runtime,
+                    Err(error) => {
+                        watch_cli_fail(anyhow!("Failed to create watch runtime: {error}"))
+                    }
                 };
 
-                // Create WebSocket hot reloader
+                let watcher_config = amberjs::watcher::WatcherConfigBuilder::new()
+                    .debounce_ms(debounce)
+                    .show_notifications(false)
+                    .build();
+                let mut reloader = amberjs::watcher::HotReloader::with_config(watcher_config);
+                let rx = match reloader.watch(&watch_path) {
+                    Ok(rx) => rx,
+                    Err(error) => watch_cli_fail(error),
+                };
+
                 let ws_config = amberjs::watcher_websocket::WebSocketConfig {
                     port: websocket_port,
                     host: "127.0.0.1".to_string(),
@@ -4097,104 +4201,66 @@ fn main() -> Result<()> {
                 };
                 let ws_reloader =
                     amberjs::watcher_websocket::WebSocketHotReloader::with_config(ws_config);
-
-                // Create a hot reloader for file watching
-                let watcher_config = amberjs::watcher::WatcherConfigBuilder::new()
-                    .debounce_ms(debounce)
-                    .build();
-                let mut reloader = amberjs::watcher::HotReloader::with_config(watcher_config);
-
-                let rx = reloader
-                    .watch(&watch_path)
-                    .map_err(|e| anyhow::anyhow!("Failed to start watcher: {}", e))?;
-
-                println!("👀 Watching for changes in {:?}...", watch_path);
-                println!(
-                    "🔌 WebSocket server ready on ws://127.0.0.1:{}",
-                    websocket_port
-                );
-
-                // Initial execution
-                let execute_file = |file: &PathBuf| -> Result<()> {
-                    let code = read_and_compile_source(file)?;
-
-                    amberjs::v8_snapshot::enable_startup_snapshot_for_cli();
-                    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new()
-                        .expect("Failed to create runtime");
-                    runtime.set_process_argv(build_process_argv(file, &args));
-                    runtime.set_main_module_path(file);
-                    runtime.set_http_server_keep_alive(true);
-
-                    match runtime.execute_code(&code) {
-                        Ok(result) => {
-                            if !result.trim().is_empty() {
-                                println!("\n📊 Result: {}", result);
-                            }
-                            println!("✅ Executed successfully");
-                        }
-                        Err(e) => {
-                            eprintln!("❌ Error: {}", e);
-                        }
+                let bound = match watch_runtime.block_on(ws_reloader.start()) {
+                    Ok(bound) => bound,
+                    Err(error) => {
+                        reloader.stop();
+                        watch_cli_fail(error);
                     }
-                    Ok(())
                 };
 
-                // Initial run
-                execute_file(&file)?;
+                println!("🔥 Watch mode enabled (debounce: {debounce}ms)");
+                println!("👀 Watching for changes in {watch_path:?}...");
+                println!("🔌 WebSocket server ready on ws://{bound}");
 
-                // Watch mode is the only CLI path that needs Tokio. Keeping the
-                // runtime local avoids paying multi-thread scheduler startup for
-                // short-lived commands such as `amber eval` and `amber run`.
-                let watch_runtime = tokio::runtime::Builder::new_multi_thread()
-                    .enable_all()
-                    .build()
-                    .map_err(|error| anyhow!("Failed to create watch runtime: {}", error))?;
+                let started = Instant::now();
+                match run_watched_entry(&file, &all_preloads, &args) {
+                    Ok(success) => record_watch_result(&reloader, success, started),
+                    Err(error) => {
+                        ws_reloader.stop();
+                        reloader.stop();
+                        watch_cli_fail(error);
+                    }
+                }
 
-                // Start WebSocket server in background
-                let ws_reloader_clone = ws_reloader.clone();
-                let _ws_handle = watch_runtime.spawn(async move {
-                    let _ = ws_reloader_clone.start().await;
-                });
-
-                // Give WebSocket server time to start
-                std::thread::sleep(std::time::Duration::from_millis(100));
-
-                // Watch for changes
                 loop {
                     match rx.recv() {
                         Ok(change) => {
                             let file_name = change
                                 .path
                                 .file_name()
-                                .map(|n| n.to_string_lossy().to_string())
+                                .map(|name| name.to_string_lossy().to_string())
                                 .unwrap_or_else(|| "unknown".to_string());
-
-                            println!("\n🔄 Detected change: {}", file_name);
-
-                            // Broadcast via WebSocket
+                            reloader.clear_console();
+                            println!(
+                                "\n🔄 Detected change: {file_name} ({})",
+                                change.change_type.as_label()
+                            );
                             ws_reloader.broadcast_reload(
                                 change.path.to_string_lossy().to_string(),
-                                "modified".to_string(),
+                                change.change_type.as_label().to_string(),
                             );
 
-                            // Clear console for better readability
-                            print!("\x1B[2J\x1B[1;1H");
-
-                            let start = std::time::Instant::now();
-                            if let Err(e) = execute_file(&file) {
-                                eprintln!("❌ Reload failed: {}", e);
+                            let started = Instant::now();
+                            match run_watched_entry(&file, &all_preloads, &args) {
+                                Ok(success) => {
+                                    record_watch_result(&reloader, success, started);
+                                    let duration = started.elapsed().as_millis();
+                                    println!("🔄 Reloaded in {duration}ms");
+                                }
+                                Err(error) => {
+                                    record_watch_result(&reloader, false, started);
+                                    eprintln!("❌ Reload failed: {error}");
+                                }
                             }
-                            let duration = start.elapsed().as_millis();
-                            println!("🔄 Reloaded in {}ms", duration);
                         }
-                        Err(e) => {
-                            eprintln!("❌ Watch error: {}", e);
+                        Err(error) => {
+                            eprintln!("❌ Watch error: {error}");
                             break;
                         }
                     }
                 }
 
-                // Stop WebSocket server
                 ws_reloader.stop();
             } else {
                 // Normal execution mode (Single or Multi-worker)
@@ -4595,6 +4661,9 @@ fn main() -> Result<()> {
                                 failed_files += 1;
                                 if bail {
                                     eprintln!("🛑 Stopping on first failure");
+                                    if watch {
+                                        break;
+                                    }
                                     std::process::exit(1);
                                 }
                             }
@@ -4602,10 +4671,13 @@ fn main() -> Result<()> {
                     }
                     if failed_files > 0 {
                         eprintln!("❌ {failed_files} test file(s) failed, {passed_files} passed");
-                        std::process::exit(1);
+                        if !watch {
+                            std::process::exit(1);
+                        }
+                    } else {
+                        println!("✅ {passed_files} test file(s) passed");
                     }
-                    println!("✅ {passed_files} test file(s) passed");
-                    if coverage {
+                    if failed_files == 0 && coverage {
                         let mut report = amberjs::tooling::coverage::CoverageReport::new();
                         for discovered in &discovery.test_files {
                             if let Ok(content) = std::fs::read_to_string(discovered) {
@@ -4614,6 +4686,32 @@ fn main() -> Result<()> {
                         }
                         report.print_summary();
                         let _ = report.write_lcov(Path::new("coverage"));
+                    }
+                    if watch {
+                        let discovered_files = discovery.test_files.clone();
+                        let banner = format!(
+                            "👀 Watching for changes in {}... (Ctrl+C to quit)",
+                            test_file.display()
+                        );
+                        enter_test_watch(&banner, &test_file, |changed| {
+                            println!(
+                                "\n🔄 File changed: {}. Re-running tests...",
+                                changed.display()
+                            );
+                            for discovered_file in &discovered_files {
+                                println!("Running test file: {}", discovered_file.display());
+                                match execute_test_file(discovered_file, &test_file_options) {
+                                    Ok(result) => println!("Test result: {result}"),
+                                    Err(e) => eprintln!(
+                                        "❌ Test failed in {}: {e}",
+                                        discovered_file.display()
+                                    ),
+                                }
+                            }
+                        })?;
+                    }
+                    if failed_files > 0 {
+                        std::process::exit(1);
                     }
                     return Ok(());
                 }
@@ -4654,37 +4752,25 @@ fn main() -> Result<()> {
                 }
 
                 if watch {
-                    println!(
-                        "\n👀 Watching for changes in {}... (Ctrl+C to quit)",
-                        test_file.display()
-                    );
                     let watch_dir = test_file
                         .parent()
+                        .filter(|parent| !parent.as_os_str().is_empty())
                         .unwrap_or_else(|| Path::new("."))
                         .to_path_buf();
-                    let watcher_config = amberjs::watcher::WatcherConfigBuilder::new()
-                        .debounce_ms(200)
-                        .build();
-                    let mut reloader = amberjs::watcher::HotReloader::with_config(watcher_config);
-                    let rx = reloader
-                        .watch(&watch_dir)
-                        .map_err(|e| anyhow::anyhow!("Failed to start watcher: {}", e))?;
-                    loop {
-                        if let Ok(change) = rx.recv() {
-                            let ext = change
-                                .path
-                                .extension()
-                                .and_then(|s| s.to_str())
-                                .unwrap_or("");
-                            if ext == "js" || ext == "ts" {
-                                println!(
-                                    "\n🔄 File changed: {}. Re-running test...",
-                                    change.path.display()
-                                );
-                                let _ = execute_test_file(&test_file, &test_file_options);
-                            }
+                    let banner = format!(
+                        "👀 Watching for changes in {}... (Ctrl+C to quit)",
+                        test_file.display()
+                    );
+                    enter_test_watch(&banner, &watch_dir, |changed| {
+                        println!(
+                            "\n🔄 File changed: {}. Re-running test...",
+                            changed.display()
+                        );
+                        match execute_test_file(&test_file, &test_file_options) {
+                            Ok(result) => println!("Test result: {result}"),
+                            Err(e) => eprintln!("❌ Test failed: {e}"),
                         }
-                    }
+                    })?;
                 }
             } else {
                 use amberjs::testing::test_discoverer::{TestDiscoverer, TestDiscovererConfig};
@@ -4738,6 +4824,9 @@ fn main() -> Result<()> {
                                 failed_files += 1;
                                 if bail {
                                     eprintln!("🛑 Stopping on first failure");
+                                    if watch {
+                                        break;
+                                    }
                                     std::process::exit(1);
                                 }
                             }
@@ -4748,35 +4837,6 @@ fn main() -> Result<()> {
                         "\n📊 Test File Summary: {} passed, {} failed",
                         passed_files, failed_files
                     );
-                    if watch {
-                        println!("\n👀 Watching for changes in workspace... (Ctrl+C to quit)");
-                        let watcher_config = amberjs::watcher::WatcherConfigBuilder::new()
-                            .debounce_ms(200)
-                            .build();
-                        let mut reloader =
-                            amberjs::watcher::HotReloader::with_config(watcher_config);
-                        let rx = reloader
-                            .watch(Path::new("."))
-                            .map_err(|e| anyhow::anyhow!("Failed to start watcher: {}", e))?;
-                        loop {
-                            if let Ok(change) = rx.recv() {
-                                let ext = change
-                                    .path
-                                    .extension()
-                                    .and_then(|s| s.to_str())
-                                    .unwrap_or("");
-                                if ext == "js" || ext == "ts" {
-                                    println!(
-                                        "\n🔄 File changed: {}. Re-running discovered tests...",
-                                        change.path.display()
-                                    );
-                                    for f in &discovery.test_files {
-                                        let _ = execute_test_file(f, &test_file_options);
-                                    }
-                                }
-                            }
-                        }
-                    }
                     if coverage {
                         let mut report = amberjs::tooling::coverage::CoverageReport::new();
                         for test_file in &discovery.test_files {
@@ -4786,6 +4846,29 @@ fn main() -> Result<()> {
                         }
                         report.print_summary();
                         let _ = report.write_lcov(Path::new("coverage"));
+                    }
+                    if watch {
+                        let discovered_files = discovery.test_files.clone();
+                        enter_test_watch(
+                            "👀 Watching for changes in workspace... (Ctrl+C to quit)",
+                            Path::new("."),
+                            |changed| {
+                                println!(
+                                    "\n🔄 File changed: {}. Re-running discovered tests...",
+                                    changed.display()
+                                );
+                                for test_file in &discovered_files {
+                                    println!("Running test file: {}", test_file.display());
+                                    match execute_test_file(test_file, &test_file_options) {
+                                        Ok(result) => println!("Test result: {result}"),
+                                        Err(e) => eprintln!(
+                                            "❌ Test failed in {}: {e}",
+                                            test_file.display()
+                                        ),
+                                    }
+                                }
+                            },
+                        )?;
                     }
                     if failed_files > 0 {
                         std::process::exit(1);

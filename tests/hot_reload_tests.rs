@@ -93,6 +93,7 @@ fn test_should_watch_ignore_dirs() {
     assert!(!reloader.should_watch(Path::new("dist/bundle.js")));
     assert!(!reloader.should_watch(Path::new("build/app.js")));
     assert!(!reloader.should_watch(Path::new(".amberjs-cache/compiled.js")));
+    assert!(!reloader.should_watch(Path::new("target/debug/app.js")));
 
     // Should watch files in normal directories
     assert!(reloader.should_watch(Path::new("src/index.js")));
