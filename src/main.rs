@@ -144,13 +144,13 @@ enum Command {
         /// Number of parallel multi-isolate worker threads for parallel HTTP execution (default: 1, or via AMBER_WORKERS)
         #[arg(short = 'W', long = "workers", default_value = "1")]
         workers: usize,
-        /// Enable V8 Inspector agent for Chrome DevTools / VS Code debugging
+        /// CDP on 127.0.0.1: /json/version and Runtime.evaluate (not full DevTools)
         #[arg(long)]
         inspect: bool,
-        /// Enable V8 Inspector agent and break at beginning of user script
+        /// Same CDP listener; do not run the user script until the client resumes
         #[arg(long = "inspect-brk")]
         inspect_brk: bool,
-        /// Port for V8 Inspector agent (default: 9229)
+        /// CDP port on 127.0.0.1 (default 9229). Port 0 is rejected.
         #[arg(long = "inspect-port", default_value = "9229")]
         inspect_port: u16,
         /// Ignored for one-shot CLI. Isolate pooling is used by `amber test`.
@@ -4012,17 +4012,6 @@ fn main() -> Result<()> {
                 }
                 return Ok(());
             }
-            let inspector = if inspect || inspect_brk {
-                let inspector = amberjs::tooling::inspector::InspectorServer::new(
-                    "127.0.0.1",
-                    inspect_port,
-                    &file.to_string_lossy(),
-                );
-                inspector.start()?;
-                Some(inspector)
-            } else {
-                None
-            };
             // Check if target is a package.json script name (e.g., `amber run build`)
             if !file.exists() {
                 if let Some(script_name) = file.to_str() {
@@ -4060,6 +4049,31 @@ fn main() -> Result<()> {
             }
             if verbose && !all_preloads.is_empty() {
                 println!("Preloaded modules: {:?}", all_preloads);
+            }
+
+            if inspect || inspect_brk {
+                if watch {
+                    eprintln!(
+                        "{} --inspect cannot be combined with --watch",
+                        amberjs::tooling::inspector::INSPECT_ERROR_PREFIX
+                    );
+                    std::process::exit(1);
+                }
+                let inspect_workers = if workers > 1 {
+                    workers
+                } else {
+                    std::env::var("AMBER_WORKERS")
+                        .ok()
+                        .and_then(|value| value.parse().ok())
+                        .unwrap_or(1)
+                };
+                if inspect_workers > 1 {
+                    eprintln!(
+                        "{} --inspect cannot be combined with --workers",
+                        amberjs::tooling::inspector::INSPECT_ERROR_PREFIX
+                    );
+                    std::process::exit(1);
+                }
             }
 
             if watch {
@@ -4286,6 +4300,22 @@ fn main() -> Result<()> {
                 runtime.set_main_module_path(&file);
                 runtime.set_http_server_keep_alive(true);
 
+                let inspector = if inspect || inspect_brk {
+                    let inspector = amberjs::tooling::inspector::InspectorServer::new(
+                        "127.0.0.1",
+                        inspect_port,
+                        &file.to_string_lossy(),
+                        inspect_brk,
+                    );
+                    if let Err(err) = inspector.start() {
+                        eprintln!("{err}");
+                        std::process::exit(1);
+                    }
+                    Some(inspector)
+                } else {
+                    None
+                };
+
                 // Execute preload modules first
                 for preload in &all_preloads {
                     if verbose {
@@ -4300,11 +4330,15 @@ fn main() -> Result<()> {
 
                 if inspect_brk {
                     if let Some(ref inspector) = inspector {
-                        inspector.wait_while_evaluating(|expression| {
-                            runtime.execute_code(expression).map_err(|e| e.to_string())
+                        inspector.wait_while_evaluating(|source| {
+                            runtime.execute_code(source).map_err(|err| err.to_string())
                         });
                     }
                 }
+
+                let _inspect_user_script = inspector
+                    .as_ref()
+                    .map(|inspector| inspector.enter_user_script());
 
                 let timeout_ms = permissions.timeout;
                 let watchdog = if let Some(ms) = timeout_ms {
@@ -4911,6 +4945,7 @@ fn main() -> Result<()> {
                 "127.0.0.1",
                 9229,
                 &file.to_string_lossy(),
+                false,
             );
             let _ = inspector.start();
 

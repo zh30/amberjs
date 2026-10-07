@@ -1,9 +1,9 @@
-# Amber debugger (v1.9.1)
+# Amber inspector
 
 The public inspector is `amber run --inspect` / `amber run --inspect-brk`, not `amber debug`.
-`amber debug <file>` still exists as an experimental extra-diagnostics command; it is not the Chrome DevTools / VS Code attach path.
+`amber debug <file>` still exists as an experimental extra-diagnostics command; it is not the CDP attach path.
 
-Default CDP port is **9229**.
+The Stable contract is [`INSPECT_CONTRACT.md`](INSPECT_CONTRACT.md). Default CDP port is **9229**, bound to `127.0.0.1` only.
 
 ## Commands
 
@@ -14,7 +14,7 @@ amber run --inspect-brk --inspect-port 9229 app.ts
 ```
 
 `--inspect` starts the CDP HTTP/WebSocket agent and runs the script.
-`--inspect-brk` does the same but **does not execute user code** until DevTools sends `Runtime.runIfWaitingForDebugger` or `Debugger.resume`.
+`--inspect-brk` does the same but **does not execute user code** until the client sends `Runtime.runIfWaitingForDebugger` or `Debugger.resume`.
 
 Discovery:
 
@@ -24,39 +24,17 @@ GET http://127.0.0.1:9229/json/list
 ws://127.0.0.1:9229/ws
 ```
 
-`/json/version` reports `Browser: Amber/<package version>`.
+`/json/version` reports `Browser: Amber/<package version>` and `Protocol-Version: 1.3`.
 `Runtime.evaluate` runs on the V8 isolate (for example `1+1` → `2`).
-This is Preview: rusty_v8 0.22 does not expose a full `v8::inspector` session, so line breakpoints and scope walking are not Chrome-complete.
+Other CDP methods, including `Debugger.enable`, stepping, and `Debugger.setBreakpoint`, return JSON-RPC `-32601`.
 
-## Chrome DevTools
+`Runtime.evaluate` is serviced while `--inspect-brk` is paused, and after the user script yields to the event loop. It does not preempt a synchronous JavaScript turn: the `v8` 152.2.0 interrupt callback must not reenter the isolate. There is no scope chain and no breakpoint list. This is not Chrome DevTools and not a VS Code Node debug adapter.
+
+## Attach
 
 1. `amber run --inspect-brk --inspect-port 9229 app.js`
-2. Open `devtools://devtools/bundled/js_app.html?ws=127.0.0.1:9229/ws`
-3. Resume execution when ready.
+2. `GET /json/version`, then connect to `ws://127.0.0.1:9229/ws`
+3. Optional: `Runtime.evaluate` while paused
+4. Send `Runtime.runIfWaitingForDebugger` or `Debugger.resume`
 
-## VS Code attach
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug with amber",
-      "runtimeExecutable": "amber",
-      "runtimeArgs": ["run", "--inspect-brk", "--inspect-port", "9229"],
-      "args": ["${file}"],
-      "port": 9229
-    },
-    {
-      "type": "node",
-      "request": "attach",
-      "name": "Attach to amber --inspect",
-      "port": 9229
-    }
-  ]
-}
-```
-
-The in-repo extension (`tools/vscode-extension`) launches the same `amber run --inspect-brk --inspect-port` command.
+A client that expects the Node inspector handshake (`Debugger.enable`, breakpoints, scopes) is outside this contract.

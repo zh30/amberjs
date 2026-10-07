@@ -288,7 +288,8 @@ fn test_inspector_http_and_websocket() {
     use tungstenite::connect;
 
     let port = 19345;
-    let inspector = amberjs::tooling::inspector::InspectorServer::new("127.0.0.1", port, "test.js");
+    let inspector =
+        amberjs::tooling::inspector::InspectorServer::new("127.0.0.1", port, "test.js", true);
     inspector.start().expect("start inspector");
 
     // Wait a brief moment for bind

@@ -28,14 +28,14 @@ amber run --preload ./setup.js app.js
 执行 `.ts` 或 `.tsx` 文件时，Amber 会先调用内置 TypeScript 转译模块，再交给 V8 执行。Error 级 TypeScript diagnostics 会使命令在执行 JS 前失败；Warning/Info diagnostics 只报告，不阻断执行。抛出的栈会尽量映射回 `.ts` 行号。
 `--preload`/`--require` 会在主脚本前通过 CommonJS 加载模块；文件型 preload 的相对 `require()` 以 preload 文件所在目录为基准。
 
-### Inspector（Preview）
+### Inspector（Stable）
 
 ```bash
 amber run --inspect app.js
 amber run --inspect-brk --inspect-port 9229 app.ts
 ```
 
-`--inspect` / `--inspect-brk` 在 `127.0.0.1:9229`（可用 `--inspect-port` 改）上提供 CDP：`GET /json/version`、`ws://127.0.0.1:9229/ws`。`--inspect-brk` 在收到 `Runtime.runIfWaitingForDebugger` 或 `Debugger.resume` 之前不执行用户脚本。`Runtime.evaluate` 在 isolate 上求值。详见 [DEBUGGER_USAGE.md](DEBUGGER_USAGE.md)。
+`--inspect` / `--inspect-brk` 在 `127.0.0.1:9229`（可用 `--inspect-port` 改）上提供 CDP 子集：`GET /json/version`、`GET /json/list`、`ws://127.0.0.1:9229/ws`。`--inspect-brk` 在收到 `Runtime.runIfWaitingForDebugger` 或 `Debugger.resume` 之前不执行用户脚本。`Runtime.evaluate` 在 isolate 上求值。这不是 Chrome DevTools，也不是完整 V8 Inspector。契约见 [INSPECT_CONTRACT.md](INSPECT_CONTRACT.md)，用法见 [DEBUGGER_USAGE.md](DEBUGGER_USAGE.md)。
 
 ## Eval
 
