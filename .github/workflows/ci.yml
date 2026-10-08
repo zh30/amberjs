@@ -141,6 +141,9 @@ jobs:
       - name: node process Stable contract
         run: cargo test --test process_contract_tests -- --test-threads=1
 
+      - name: node crypto Stable contract
+        run: cargo test --test node_crypto_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 

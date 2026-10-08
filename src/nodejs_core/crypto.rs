@@ -1279,18 +1279,39 @@ fn hmac_digest_callback(
     }
 }
 
+fn parse_random_bytes_size(
+    scope: &mut v8::PinScope,
+    args: &v8::FunctionCallbackArguments,
+) -> Option<usize> {
+    let Some(size_int) = args.get(0).to_integer(scope) else {
+        let error_msg =
+            v8::String::new(scope, "The \"size\" argument must be of type number.").unwrap();
+        let error = v8::Exception::type_error(scope, error_msg);
+        scope.throw_exception(error);
+        return None;
+    };
+    let size_i64 = size_int.value();
+    if size_i64 < 0 || size_i64 > i32::MAX as i64 {
+        let error_msg = v8::String::new(
+            scope,
+            "The value of \"size\" is out of range. It must be >= 0 && <= 2147483647.",
+        )
+        .unwrap();
+        let error = v8::Exception::range_error(scope, error_msg);
+        scope.throw_exception(error);
+        return None;
+    }
+    Some(size_i64 as usize)
+}
+
 fn random_bytes_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let size: _ = args
-        .get(0)
-        .to_integer(scope)
-        .unwrap_or(v8::Integer::new(scope, 0))
-        .value() as usize;
-
-    let size = size.max(0);
+    let Some(size) = parse_random_bytes_size(scope, &args) else {
+        return;
+    };
     let buffer_obj: _ = v8::ArrayBuffer::new(scope, size);
 
     if size > 0 {
@@ -1339,13 +1360,9 @@ fn random_bytes_sync_callback(
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let size: _ = args
-        .get(0)
-        .to_integer(scope)
-        .unwrap_or(v8::Integer::new(scope, 0))
-        .value() as usize;
-
-    let size = size.max(0);
+    let Some(size) = parse_random_bytes_size(scope, &args) else {
+        return;
+    };
     let buffer_obj: _ = v8::ArrayBuffer::new(scope, size);
 
     if size > 0 {
