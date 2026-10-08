@@ -141,6 +141,9 @@ jobs:
       - name: web workers Stable contract
         run: cargo test --test workers_contract_tests -- --test-threads=1
 
+      - name: web websocket Stable contract
+        run: cargo test --test websocket_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 
