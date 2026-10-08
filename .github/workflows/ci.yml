@@ -129,6 +129,9 @@ jobs:
       - name: web blob formdata Stable contract
         run: cargo test --test blob_formdata_contract_tests -- --test-threads=1
 
+      - name: web url encoding Stable contract
+        run: cargo test --test url_encoding_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 

@@ -3,6 +3,23 @@
 use anyhow::Result;
 use rusty_v8 as v8;
 use std::collections::HashMap;
+
+fn format_host(host: ::url::Host<&str>) -> String {
+    match host {
+        ::url::Host::Domain(domain) => domain.to_string(),
+        ::url::Host::Ipv4(ip) => ip.to_string(),
+        ::url::Host::Ipv6(ip) => format!("[{ip}]"),
+    }
+}
+
+fn format_owned_host(host: &::url::Host) -> String {
+    match host {
+        ::url::Host::Domain(domain) => domain.clone(),
+        ::url::Host::Ipv4(ip) => ip.to_string(),
+        ::url::Host::Ipv6(ip) => format!("[{ip}]"),
+    }
+}
+
 /// URL class implementation
 #[derive(Debug, Clone)]
 pub struct Url {
@@ -20,85 +37,54 @@ pub struct Url {
 }
 impl Url {
     /// Parse URL string
-    pub fn parse(url_str: &str, _base: Option<&str>) -> Result<Self> {
-        // Simple URL parsing - in production would use url crate
-        let (
-            href,
-            protocol,
-            host,
-            hostname,
-            port,
-            pathname,
-            search,
-            hash,
-            origin,
-            username,
-            password,
-        ) = if url_str.contains("://") {
-            let parts: Vec<&str> = url_str.split("://").collect();
-            let protocol: _ = parts[0].to_string();
-            let rest: _ = parts.get(1).unwrap_or(&"");
-            let (host_part, pathname, search, hash) = if let Some(path_start) = rest.find('/') {
-                let (host_path, rest_path) = rest.split_at(path_start);
-                let (path_part, hash_part) = if let Some(hash_pos) = rest_path.find('#') {
-                    let (p, h) = rest_path.split_at(hash_pos);
-                    (p, h.to_string())
-                } else {
-                    (rest_path, "".to_string())
-                };
-                let (search_part, path_part) = if let Some(search_pos) = path_part.find('?') {
-                    let (p, s) = path_part.split_at(search_pos);
-                    (s.to_string(), p.to_string())
-                } else {
-                    ("".to_string(), path_part.to_string())
-                };
-                (host_path.to_string(), path_part, search_part, hash_part)
-            } else {
-                (
-                    rest.to_string(),
-                    "/".to_string(),
-                    "".to_string(),
-                    "".to_string(),
-                )
-            };
-            let (hostname, port) = if let Some(port_pos) = host_part.find(':') {
-                let (h, p) = host_part.split_at(port_pos);
-                (h.to_string(), p[1..].to_string()) // Skip the ':' prefix
-            } else {
-                (host_part.clone(), "".to_string())
-            };
-            let origin: _ = format!("{}://{}", protocol, host_part);
-            (
-                url_str.to_string(),
-                protocol,
-                host_part,
-                hostname,
-                port,
-                pathname,
-                search,
-                hash,
-                origin,
-                "".to_string(), // username
-                "".to_string(), // password
-            )
+    pub fn parse(url_str: &str, base: Option<&str>) -> Result<Self> {
+        let parsed = if let Some(base) = base {
+            ::url::Url::parse(base)?.join(url_str)?
         } else {
-            // Relative URL - would need base URL
-            (
-                url_str.to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                url_str.to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-            )
+            ::url::Url::parse(url_str)?
+        };
+        let protocol = format!("{}:", parsed.scheme());
+        let hostname = parsed.host().map(format_host).unwrap_or_default();
+        let port = parsed
+            .port()
+            .map(|port| port.to_string())
+            .unwrap_or_default();
+        let host = if port.is_empty() {
+            hostname.clone()
+        } else {
+            format!("{hostname}:{port}")
+        };
+        let pathname = parsed.path().to_string();
+        let search = parsed
+            .query()
+            .map(|query| format!("?{query}"))
+            .unwrap_or_default();
+        let hash = parsed
+            .fragment()
+            .map(|fragment| format!("#{fragment}"))
+            .unwrap_or_default();
+        let origin = match parsed.origin() {
+            ::url::Origin::Tuple(scheme, origin_host, origin_port) => {
+                let host = format_owned_host(&origin_host);
+                let default_port = matches!(
+                    (scheme.as_str(), origin_port),
+                    ("http" | "ws", 80) | ("https" | "wss", 443) | ("ftp", 21)
+                );
+                let origin_scheme = match scheme.as_str() {
+                    "ws" => "http",
+                    "wss" => "https",
+                    other => other,
+                };
+                if default_port {
+                    format!("{origin_scheme}://{host}")
+                } else {
+                    format!("{origin_scheme}://{host}:{origin_port}")
+                }
+            }
+            ::url::Origin::Opaque(_) => "null".to_string(),
         };
         Ok(Self {
-            href,
+            href: parsed.to_string(),
             protocol,
             host,
             hostname,
@@ -107,8 +93,8 @@ impl Url {
             search,
             hash,
             origin,
-            username,
-            password,
+            username: parsed.username().to_string(),
+            password: parsed.password().unwrap_or("").to_string(),
         })
     }
     /// Get search params
@@ -304,7 +290,7 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(url.protocol, "https");
+        assert_eq!(url.protocol, "https:");
         assert_eq!(url.host, "example.com:8080");
         assert_eq!(url.hostname, "example.com");
         assert_eq!(url.port, "8080");
@@ -315,8 +301,12 @@ mod tests {
     }
     #[test]
     fn test_url_parse_relative() {
-        let url: _ = Url::parse("/path/to/page", None).unwrap();
+        let url = Url::parse("/path/to/page", Some("https://example.com/a/b")).unwrap();
+        assert_eq!(url.href, "https://example.com/path/to/page");
         assert_eq!(url.pathname, "/path/to/page");
+        let resolved = Url::parse("../c", Some("https://example.com/a/b")).unwrap();
+        assert_eq!(resolved.href, "https://example.com/c");
+        assert_eq!(resolved.pathname, "/c");
     }
     #[test]
     fn test_url_search_params() {

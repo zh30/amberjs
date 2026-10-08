@@ -21,6 +21,14 @@ fn url_decode(value: &str) -> String {
         .to_string()
 }
 
+fn set_size(scope: &mut v8::PinScope, obj: v8::Local<v8::Object>, len: usize) {
+    let Some(key) = v8::String::new(scope, "size") else {
+        return;
+    };
+    let value = v8::Integer::new(scope, len as i32);
+    obj.set(scope, key.into(), value.into());
+}
+
 fn throw_type_error(scope: &mut v8::PinScope, message: &str) {
     let Some(message) = v8::String::new(scope, message) else {
         return;
@@ -309,6 +317,7 @@ fn url_search_params_constructor(
     // Store pairs in the object using External
     let data = Arc::new(Mutex::new(pairs));
     set_params_data(scope, &params_obj, &data);
+    set_size(scope, params_obj, data.lock().unwrap().len());
 
     // Add toString method
     let to_string_fn = v8::Function::new(
@@ -348,6 +357,9 @@ fn url_search_params_constructor(
                 };
                 let mut pairs = data.lock().unwrap();
                 pairs.push((name, value));
+                let len = pairs.len();
+                drop(pairs);
+                set_size(scope, this_obj, len);
             }
         },
     )
@@ -368,8 +380,26 @@ fn url_search_params_constructor(
                 } else {
                     return;
                 };
+                let value_filter = if args.length() > 1 && !args.get(1).is_undefined() {
+                    args.get(1)
+                        .to_string(scope)
+                        .map(|text| text.to_rust_string_lossy(scope))
+                } else {
+                    None
+                };
                 let mut pairs = data.lock().unwrap();
-                pairs.retain(|(n, _)| *n != name);
+                pairs.retain(|(entry_name, entry_value)| {
+                    if entry_name != &name {
+                        return true;
+                    }
+                    match &value_filter {
+                        Some(expected) => entry_value != expected,
+                        None => false,
+                    }
+                });
+                let len = pairs.len();
+                drop(pairs);
+                set_size(scope, this_obj, len);
             }
         },
     )
@@ -454,7 +484,19 @@ fn url_search_params_constructor(
                     return;
                 };
                 let pairs = data.lock().unwrap();
-                let found = pairs.iter().any(|(n, _)| *n == name);
+                let found = if args.length() > 1 && !args.get(1).is_undefined() {
+                    let Some(value) = args
+                        .get(1)
+                        .to_string(scope)
+                        .map(|text| text.to_rust_string_lossy(scope))
+                    else {
+                        retval.set(v8::Boolean::new(scope, false).into());
+                        return;
+                    };
+                    pairs.iter().any(|(n, v)| n == &name && v == &value)
+                } else {
+                    pairs.iter().any(|(n, _)| *n == name)
+                };
                 retval.set(v8::Boolean::new(scope, found).into());
             } else {
                 retval.set(v8::Boolean::new(scope, false).into());
@@ -486,8 +528,10 @@ fn url_search_params_constructor(
                 let mut pairs = data.lock().unwrap();
                 // Remove existing entries with this name
                 pairs.retain(|(n, _)| *n != name);
-                // Add the new entry
                 pairs.push((name, value));
+                let len = pairs.len();
+                drop(pairs);
+                set_size(scope, this_obj, len);
             }
         },
     )
