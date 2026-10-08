@@ -451,7 +451,7 @@ fn get_path_fast<'a>(
 
 #[inline]
 fn direct_write_sync(
-    c_path: Option<*const libc::c_char>,
+    #[cfg_attr(not(unix), allow(unused_variables))] c_path: Option<*const libc::c_char>,
     path_str: &str,
     data: &[u8],
 ) -> std::io::Result<()> {
@@ -956,6 +956,9 @@ fn fs_read_file_sync_callback(
 ) {
     let mut path_buf = [0u8; 512];
     let (path, c_path) = get_path_fast(scope, args.get(0), &mut path_buf);
+    // The raw pointer is only used by the Unix read fast path.
+    #[cfg(not(unix))]
+    let _ = c_path;
 
     if !ensure_fs_permission(scope, PermissionAction::Read, path.as_ref()) {
         return;
@@ -1692,6 +1695,12 @@ use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 
 const COPYFILE_EXCL: i32 = 1;
+// POSIX access(2) bits. Node exposes these numbers on every platform.
+// Windows `libc` does not define R_OK / W_OK / X_OK.
+const F_OK: i32 = 0;
+const X_OK: i32 = 1;
+const W_OK: i32 = 2;
+const R_OK: i32 = 4;
 
 struct OpenedFile {
     file: std::fs::File,
@@ -2301,7 +2310,12 @@ fn access_path(path: &str, mode: i32) -> std::io::Result<()> {
     }
 }
 
-fn open_fd(path: &str, mode: OpenMode, perm: u32) -> std::io::Result<i32> {
+fn open_fd(
+    path: &str,
+    mode: OpenMode,
+    #[cfg_attr(not(unix), allow(unused_variables))] perm: u32,
+) -> std::io::Result<i32> {
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut opts = mode.to_open_options();
     #[cfg(unix)]
     if mode.create || mode.exclusive {
@@ -3365,10 +3379,10 @@ fn install_stable_fs_methods(scope: &mut v8::PinScope, fs_obj: v8::Local<v8::Obj
     bind_fn!(fs_obj, "mkdir", fs_mkdir_callback);
 
     let constants = v8::Object::new(scope);
-    set_constant(scope, constants, "F_OK", 0);
-    set_constant(scope, constants, "R_OK", libc::R_OK as i32);
-    set_constant(scope, constants, "W_OK", libc::W_OK as i32);
-    set_constant(scope, constants, "X_OK", libc::X_OK as i32);
+    set_constant(scope, constants, "F_OK", F_OK);
+    set_constant(scope, constants, "R_OK", R_OK);
+    set_constant(scope, constants, "W_OK", W_OK);
+    set_constant(scope, constants, "X_OK", X_OK);
     set_constant(scope, constants, "O_RDONLY", libc::O_RDONLY as i32);
     set_constant(scope, constants, "O_WRONLY", libc::O_WRONLY as i32);
     set_constant(scope, constants, "O_RDWR", libc::O_RDWR as i32);
