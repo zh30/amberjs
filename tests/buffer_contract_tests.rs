@@ -17,8 +17,7 @@ fn run(code: &str) -> String {
 #[test]
 #[serial]
 fn require_buffer_is_global_buffer() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const mod = require('buffer');
         const node = require('node:buffer');
         [
@@ -28,16 +27,14 @@ fn require_buffer_is_global_buffer() {
           mod.default && mod.default.Buffer === Buffer,
           Buffer.poolSize === 8192
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "true|true|true|true|true");
 }
 
 #[test]
 #[serial]
 fn from_string_encodings_and_to_string() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const utf = Buffer.from('hello', 'utf8');
         const hex = Buffer.from('414243', 'hex');
         const b64 = Buffer.from('YWJj', 'base64');
@@ -58,16 +55,14 @@ fn from_string_encodings_and_to_string() {
           utf.toString('hex'),
           Buffer.from('hi').toString('utf8', 0, 1)
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "5|hello|ABC|abc|2|65|66|255|68656c6c6f|h");
 }
 
 #[test]
 #[serial]
 fn from_array_typed_array_and_array_buffer() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const arr = Buffer.from([0x41, 0x42, 0xff]);
         const u8 = new Uint8Array([1, 2, 3, 4]);
         const copied = Buffer.from(u8);
@@ -83,16 +78,14 @@ fn from_array_typed_array_and_array_buffer() {
           copied[0], copied[1],
           shared.length, shared[0], view[1]
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "3|65|66|255|1|2|3|55|55");
 }
 
 #[test]
 #[serial]
 fn alloc_alloc_unsafe_and_write() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const z = Buffer.alloc(4);
         const f = Buffer.alloc(4, 0xaa);
         const s = Buffer.alloc(6, 'AB', 'utf8');
@@ -107,16 +100,14 @@ fn alloc_alloc_unsafe_and_write() {
           u.length, u.toString('utf8', 0, 2),
           n, w.toString('utf8', 1, 5)
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "0|0|0|0|170|170|ABABAB|3|xy|4|Hell");
 }
 
 #[test]
 #[serial]
 fn concat_byte_length_is_buffer_slice() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const a = Buffer.from('Hello');
         const b = Buffer.from('World');
         const c = Buffer.concat([a, b]);
@@ -137,8 +128,7 @@ fn concat_byte_length_is_buffer_slice() {
           isBuf, isU8, notBuf,
           a instanceof Buffer
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(
         out,
         "HelloWorld|HelloWo|5|2|Zde|abZdef|true|true|false|true"
@@ -148,8 +138,7 @@ fn concat_byte_length_is_buffer_slice() {
 #[test]
 #[serial]
 fn pool_size_and_alloc_unsafe_small_uses_pool() {
-    let out = run(
-        r#"
+    let out = run(r#"
         // Two small allocUnsafe calls should share one ArrayBuffer when under poolSize/2.
         const a = Buffer.allocUnsafe(16);
         const b = Buffer.allocUnsafe(16);
@@ -164,7 +153,6 @@ fn pool_size_and_alloc_unsafe_small_uses_pool() {
           typeof Buffer.from === 'function',
           typeof Buffer.concat === 'function'
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "8192|true|true|true|true|true");
 }
