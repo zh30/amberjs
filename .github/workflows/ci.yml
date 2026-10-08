@@ -132,6 +132,9 @@ jobs:
       - name: web url encoding Stable contract
         run: cargo test --test url_encoding_contract_tests -- --test-threads=1
 
+      - name: web events channels Stable contract
+        run: cargo test --test events_channels_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 

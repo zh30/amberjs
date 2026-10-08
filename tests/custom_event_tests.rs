@@ -242,8 +242,9 @@ mod tests {
     #[serial]
     fn test_custom_event_no_args() {
         let code = r#"
-            const event = new CustomEvent();
-            event.type === 'custom'
+            let threw = false;
+            try { new CustomEvent(); } catch (e) { threw = e instanceof TypeError; }
+            threw
         "#;
 
         let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");

@@ -594,7 +594,10 @@ fn test_watch_reruns_file_and_directory_without_regressing_plain_test() {
         &["test", "--watch", watched.to_str().expect("utf8")],
         dir.path(),
     );
-    let started = proc.wait_for("TEST_WATCH_ALPHA", Duration::from_secs(90));
+    proc.wait_for("TEST_WATCH_ALPHA", Duration::from_secs(90));
+    // The test log can land before the banner is flushed. Wait for the line.
+    let started = proc.wait_for("Watching for changes", Duration::from_secs(20));
+    assert_contains(&started, "TEST_WATCH_ALPHA");
     assert_contains(&started, "Watching for changes");
     std::fs::write(
         &watched,
@@ -616,7 +619,10 @@ fn test_watch_reruns_file_and_directory_without_regressing_plain_test() {
         &["test", "--watch", suite.to_str().expect("utf8")],
         dir.path(),
     );
-    let started = dir_proc.wait_for("DIR_WATCH_ALPHA", Duration::from_secs(90));
+    dir_proc.wait_for("DIR_WATCH_ALPHA", Duration::from_secs(90));
+    // The test log can land before the banner is flushed. Wait for the line.
+    let started = dir_proc.wait_for("Watching for changes", Duration::from_secs(20));
+    assert_contains(&started, "DIR_WATCH_ALPHA");
     assert_contains(&started, "Watching for changes");
     std::fs::write(
         &one,
