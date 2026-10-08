@@ -457,9 +457,27 @@ fn abort_flag_from_signal(
     flag
 }
 
+/// Missing, null, and JavaScript `undefined` arrive as `""`, `"null"`, or
+/// `"undefined"` once V8 stringifies them. Those skip the digest, same as an
+/// empty string. Only a real integrity string is checked.
+fn integrity_is_absent(integrity: &str) -> bool {
+    matches!(integrity.trim(), "" | "undefined" | "null")
+}
+
+fn js_integrity_string(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
+    if !value.is_string() {
+        return String::new();
+    }
+    value
+        .to_string(scope)
+        .map(|text| text.to_rust_string_lossy(scope))
+        .filter(|text| !integrity_is_absent(text))
+        .unwrap_or_default()
+}
+
 fn check_body_integrity(bytes: &[u8], integrity: &str) -> Result<()> {
     let integrity = integrity.trim();
-    if integrity.is_empty() {
+    if integrity_is_absent(integrity) {
         return Ok(());
     }
     use base64::Engine as _;
@@ -1080,11 +1098,7 @@ fn fetch_callback(
 
             let integrity_key = v8::String::new(scope, "integrity").unwrap().into();
             if let Some(integrity_val) = input_obj.get(scope, integrity_key) {
-                if integrity_val.is_string() {
-                    if let Some(integrity_str) = integrity_val.to_string(scope) {
-                        request_integrity = integrity_str.to_rust_string_lossy(scope);
-                    }
-                }
+                request_integrity = js_integrity_string(scope, integrity_val);
             }
 
             let signal_key = v8::String::new(scope, "signal").unwrap().into();
@@ -1199,11 +1213,7 @@ fn fetch_callback(
 
             let integrity_key = v8::String::new(scope, "integrity").unwrap().into();
             if let Some(integrity_val) = init_obj.get(scope, integrity_key) {
-                if integrity_val.is_string() {
-                    if let Some(integrity_str) = integrity_val.to_string(scope) {
-                        integrity = integrity_str.to_rust_string_lossy(scope);
-                    }
-                }
+                integrity = js_integrity_string(scope, integrity_val);
             }
 
             let signal_key = v8::String::new(scope, "signal").unwrap().into();
@@ -1328,7 +1338,7 @@ async fn consume_hop_body(
     aborted: &AtomicBool,
 ) -> Result<Vec<u8>> {
     let mut collected = Vec::new();
-    let check = !integrity.trim().is_empty();
+    let check = !integrity_is_absent(integrity);
     loop {
         ensure_not_aborted(aborted)?;
         match response.chunk().await {
@@ -1425,7 +1435,7 @@ async fn execute_fetch(
         }
 
         let mut response = response;
-        let built = if integrity.trim().is_empty() {
+        let built = if integrity_is_absent(integrity) {
             collect_fetch_response(response, current_url, redirected).await?
         } else {
             let status = response.status().as_u16();
@@ -1706,12 +1716,11 @@ fn request_constructor_callback(
                 }
             }
 
-            // Parse integrity
+            // Parse integrity. A missing property is JavaScript `undefined`;
+            // toString() would store the word "undefined" and fail the check.
             let integrity_key = v8::String::new(scope, "integrity").unwrap().into();
             if let Some(integrity_val) = init.get(scope, integrity_key) {
-                if let Some(integrity_str) = integrity_val.to_string(scope) {
-                    init_integrity = integrity_str.to_rust_string_lossy(scope);
-                }
+                init_integrity = js_integrity_string(scope, integrity_val);
             }
 
             // Parse keepalive
