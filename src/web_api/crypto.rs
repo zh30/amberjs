@@ -169,6 +169,141 @@ fn aes_kw_unwrap_key_data(
     Ok(output)
 }
 
+/// AES-GCM with a 12-byte nonce and a 16-byte tag.
+/// 128- and 256-bit keys use ring. 192-bit keys use OpenSSL because ring has no AES-192-GCM.
+fn aes_gcm_seal(key: &[u8], iv: &[u8], aad: &[u8], plaintext: &[u8]) -> Result<Vec<u8>, String> {
+    match key.len() {
+        16 | 32 => {
+            let algorithm: &'static Algorithm = if key.len() == 32 {
+                &AES_256_GCM
+            } else {
+                &AES_128_GCM
+            };
+            let unbound = UnboundKey::new(algorithm, key)
+                .map_err(|error| format!("invalid key: {:?}", error))?;
+            let sealing_key = LessSafeKey::new(unbound);
+            let nonce_bytes: [u8; 12] = iv
+                .try_into()
+                .map_err(|_| "AES-GCM iv must be 12 bytes".to_string())?;
+            let mut output = plaintext.to_vec();
+            sealing_key
+                .seal_in_place_append_tag(
+                    Nonce::assume_unique_for_key(nonce_bytes),
+                    Aad::from(aad),
+                    &mut output,
+                )
+                .map_err(|error| format!("encryption failed: {:?}", error))?;
+            Ok(output)
+        }
+        24 => aes_192_gcm_seal(key, iv, aad, plaintext),
+        _ => Err("invalid key length for AES-GCM (must be 128, 192, or 256 bits)".to_string()),
+    }
+}
+
+fn aes_gcm_open(key: &[u8], iv: &[u8], aad: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, String> {
+    match key.len() {
+        16 | 32 => {
+            let algorithm: &'static Algorithm = if key.len() == 32 {
+                &AES_256_GCM
+            } else {
+                &AES_128_GCM
+            };
+            let unbound = UnboundKey::new(algorithm, key)
+                .map_err(|error| format!("invalid key: {:?}", error))?;
+            let opening_key = LessSafeKey::new(unbound);
+            let nonce_bytes: [u8; 12] = iv
+                .try_into()
+                .map_err(|_| "AES-GCM iv must be 12 bytes".to_string())?;
+            let mut buffer = ciphertext.to_vec();
+            let plaintext = opening_key
+                .open_in_place(
+                    Nonce::assume_unique_for_key(nonce_bytes),
+                    Aad::from(aad),
+                    &mut buffer,
+                )
+                .map_err(|error| {
+                    format!(
+                        "decryption failed (authentication failed or data corrupted): {:?}",
+                        error
+                    )
+                })?;
+            Ok(plaintext.to_vec())
+        }
+        24 => aes_192_gcm_open(key, iv, aad, ciphertext),
+        _ => Err("invalid key length for AES-GCM (must be 128, 192, or 256 bits)".to_string()),
+    }
+}
+
+fn aes_192_gcm_seal(
+    key: &[u8],
+    iv: &[u8],
+    aad: &[u8],
+    plaintext: &[u8],
+) -> Result<Vec<u8>, String> {
+    let cipher = OpensslCipher::aes_192_gcm();
+    let mut crypter = Crypter::new(cipher, Mode::Encrypt, key, Some(iv))
+        .map_err(|error| format!("invalid key: {}", error))?;
+    crypter.pad(false);
+    if !aad.is_empty() {
+        crypter
+            .aad_update(aad)
+            .map_err(|error| format!("encryption failed: {}", error))?;
+    }
+    let mut output = vec![0u8; plaintext.len() + 16];
+    let count = crypter
+        .update(plaintext, &mut output)
+        .map_err(|error| format!("encryption failed: {}", error))?;
+    let rest = crypter
+        .finalize(&mut output[count..])
+        .map_err(|error| format!("encryption failed: {}", error))?;
+    output.truncate(count + rest);
+    let mut tag = [0u8; 16];
+    crypter
+        .get_tag(&mut tag)
+        .map_err(|error| format!("encryption failed: {}", error))?;
+    output.extend_from_slice(&tag);
+    Ok(output)
+}
+
+fn aes_192_gcm_open(
+    key: &[u8],
+    iv: &[u8],
+    aad: &[u8],
+    ciphertext_and_tag: &[u8],
+) -> Result<Vec<u8>, String> {
+    if ciphertext_and_tag.len() < 16 {
+        return Err(
+            "decryption failed (authentication failed or data corrupted): ciphertext shorter than tag"
+                .to_string(),
+        );
+    }
+    let (ciphertext, tag) = ciphertext_and_tag.split_at(ciphertext_and_tag.len() - 16);
+    let cipher = OpensslCipher::aes_192_gcm();
+    let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, Some(iv))
+        .map_err(|error| format!("invalid key: {}", error))?;
+    crypter.pad(false);
+    if !aad.is_empty() {
+        crypter
+            .aad_update(aad)
+            .map_err(|error| format!("decryption failed: {}", error))?;
+    }
+    let mut output = vec![0u8; ciphertext.len() + 16];
+    let count = crypter
+        .update(ciphertext, &mut output)
+        .map_err(|error| format!("decryption failed: {}", error))?;
+    crypter
+        .set_tag(tag)
+        .map_err(|error| format!("decryption failed: {}", error))?;
+    let rest = crypter.finalize(&mut output[count..]).map_err(|error| {
+        format!(
+            "decryption failed (authentication failed or data corrupted): {}",
+            error
+        )
+    })?;
+    output.truncate(count + rest);
+    Ok(output)
+}
+
 fn get_required_algorithm_bytes_property(
     scope: &mut v8::PinScope,
     operation: &str,
@@ -1153,6 +1288,39 @@ fn get_jwk_okp_key_data(
         key_ops: get_object_string_array_property(scope, jwk, "key_ops")?,
         ext: get_object_bool_property(scope, jwk, "ext")?,
     })
+}
+
+fn oct_jwk_alg(algo_name: &str, key_len: usize, hash_name: Option<&str>) -> Option<String> {
+    match algo_name.to_ascii_uppercase().as_str() {
+        "HMAC" | "HS256" | "HS384" | "HS512" => hash_name
+            .and_then(hmac_jwk_alg_from_hash)
+            .map(|alg| alg.to_string()),
+        "AES-GCM" => Some(format!("A{}GCM", key_len * 8)),
+        "AES-CBC" => Some(format!("A{}CBC", key_len * 8)),
+        "AES-CTR" => Some(format!("A{}CTR", key_len * 8)),
+        "AES-KW" => Some(format!("A{}KW", key_len * 8)),
+        _ => None,
+    }
+}
+
+fn raw_export_rejection(algo_name: &str, key_type: &str) -> Option<String> {
+    if is_eddsa_algorithm_name(algo_name) && key_type != "public" {
+        return Some(format!(
+            "Unable to export {} private key using raw format",
+            algo_name
+        ));
+    }
+    let upper = algo_name.to_ascii_uppercase();
+    if (upper == "ECDSA" || upper == "ECDH") && key_type != "public" {
+        return Some(format!(
+            "Unable to export {} private key using raw format",
+            algo_name
+        ));
+    }
+    if is_rsa_oaep_algorithm_name(algo_name) || is_rsassa_algorithm_name(algo_name) {
+        return Some(format!("raw export is not supported for {}", algo_name));
+    }
+    None
 }
 
 fn expected_jwk_alg(
@@ -2804,6 +2972,65 @@ fn hmac_verify_callback(
     retval.set(promise.into());
 }
 
+fn optional_algorithm_bytes(
+    scope: &mut v8::PinScope,
+    algo_obj: Option<&v8::Local<v8::Object>>,
+    property_name: &str,
+) -> Option<Vec<u8>> {
+    let obj = algo_obj?;
+    let key = v8::String::new(scope, property_name)?;
+    let value = obj.get(scope, key.into())?;
+    if value.is_undefined() || value.is_null() {
+        return None;
+    }
+    get_array_buffer_data(scope, value)
+}
+
+/// AES-GCM here always uses a 128-bit tag. A caller-supplied `tagLength` other than 128 is rejected.
+fn ensure_aes_gcm_tag_length(
+    scope: &mut v8::PinScope,
+    operation: &str,
+    algo_obj: Option<&v8::Local<v8::Object>>,
+) -> bool {
+    let Some(obj) = algo_obj else {
+        return true;
+    };
+    let Some(key) = v8::String::new(scope, "tagLength") else {
+        return true;
+    };
+    let Some(value) = obj.get(scope, key.into()) else {
+        return true;
+    };
+    if value.is_undefined() || value.is_null() {
+        return true;
+    }
+    let bits = if value.is_number() {
+        value.integer_value(scope).unwrap_or(0)
+    } else {
+        0
+    };
+    if bits == 128 {
+        return true;
+    }
+    let error = v8::String::new(
+        scope,
+        &format!("{operation}: AES-GCM tagLength must be 128"),
+    )
+    .unwrap();
+    let error_obj = v8::Exception::error(scope, error);
+    scope.throw_exception(error_obj.into());
+    false
+}
+
+fn resolve_bytes_promise(scope: &mut v8::PinScope, retval: &mut v8::ReturnValue, bytes: &[u8]) {
+    let array_buffer = v8::ArrayBuffer::new(scope, bytes.len());
+    copy_to_array_buffer(array_buffer, bytes);
+    let resolver = v8::PromiseResolver::new(scope).unwrap();
+    resolver.resolve(scope, array_buffer.into());
+    let promise = resolver.get_promise(scope);
+    retval.set(promise.into());
+}
+
 /// AES-GCM encrypt callback - real cryptographic encryption using ring
 fn aes_encrypt_callback(
     scope: &mut v8::PinScope,
@@ -3013,77 +3240,23 @@ fn aes_encrypt_callback(
         return;
     }
 
-    // Amber' AES-GCM backend currently supports the standard 96-bit
-    // nonce only; never substitute an all-zero nonce.
+    // The AES-GCM backend supports the standard 96-bit nonce only.
+    // Never substitute an all-zero nonce.
     let iv = match get_required_algorithm_iv(scope, "encrypt", "AES-GCM", algo_obj.as_ref(), 12) {
         Some(iv) => iv,
         None => return,
     };
-
-    // Get additional authenticated data (AAD) if present.
-    let aad = if let Some(ref obj) = algo_obj {
-        let aad_key = v8::String::new(scope, "additionalData").unwrap();
-        if let Some(aad_val) = obj.get(scope, aad_key.into()) {
-            get_array_buffer_data(scope, aad_val)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
-    let algorithm: &'static Algorithm = if key_bytes.len() == 32 {
-        &AES_256_GCM
-    } else if key_bytes.len() == 16 {
-        &AES_128_GCM
-    } else {
-        let error = v8::String::new(
-            scope,
-            "encrypt: invalid key length for AES-GCM (must be 128 or 256 bits)",
-        )
-        .unwrap();
-        let error_obj = v8::Exception::error(scope, error);
-        scope.throw_exception(error_obj.into());
+    if !ensure_aes_gcm_tag_length(scope, "encrypt", algo_obj.as_ref()) {
         return;
-    };
+    }
 
-    match UnboundKey::new(algorithm, &key_bytes) {
-        Ok(unbound_key) => {
-            let less_safe_key = LessSafeKey::new(unbound_key);
-            let nonce = Nonce::assume_unique_for_key(iv.try_into().unwrap());
-
-            // Encrypt with optional AAD
-            let aad_ref = aad
-                .as_ref()
-                .map(|v| Aad::from(v.as_slice()))
-                .unwrap_or_else(|| Aad::from(&[][..]));
-            let mut plaintext = data.clone();
-            let result = less_safe_key.seal_in_place_append_tag(nonce, aad_ref, &mut plaintext);
-
-            match result {
-                Ok(()) => {
-                    let array_buffer = v8::ArrayBuffer::new(scope, plaintext.len());
-                    let backing_store = array_buffer.get_backing_store();
-                    for (i, &byte) in plaintext.iter().enumerate() {
-                        backing_store[i].set(byte);
-                    }
-
-                    let resolver = v8::PromiseResolver::new(scope).unwrap();
-                    resolver.resolve(scope, array_buffer.into());
-                    let promise = resolver.get_promise(scope);
-                    retval.set(promise.into());
-                }
-                Err(e) => {
-                    let error =
-                        v8::String::new(scope, &format!("encrypt: encryption failed: {:?}", e))
-                            .unwrap();
-                    let error_obj = v8::Exception::error(scope, error);
-                    scope.throw_exception(error_obj.into());
-                }
-            }
+    let aad = optional_algorithm_bytes(scope, algo_obj.as_ref(), "additionalData");
+    match aes_gcm_seal(&key_bytes, &iv, aad.as_deref().unwrap_or(&[]), &data) {
+        Ok(ciphertext) => {
+            resolve_bytes_promise(scope, &mut retval, &ciphertext);
         }
-        Err(e) => {
-            let error = v8::String::new(scope, &format!("encrypt: invalid key: {:?}", e)).unwrap();
+        Err(error_message) => {
+            let error = v8::String::new(scope, &format!("encrypt: {}", error_message)).unwrap();
             let error_obj = v8::Exception::error(scope, error);
             scope.throw_exception(error_obj.into());
         }
@@ -3298,75 +3471,27 @@ fn aes_decrypt_callback(
         return;
     }
 
-    // Amber' AES-GCM backend currently supports the standard 96-bit
-    // nonce only; never substitute an all-zero nonce.
+    // The AES-GCM backend supports the standard 96-bit nonce only.
     let iv = match get_required_algorithm_iv(scope, "decrypt", "AES-GCM", algo_obj.as_ref(), 12) {
         Some(iv) => iv,
         None => return,
     };
-
-    // Get additional authenticated data (AAD) if present.
-    let aad = if let Some(ref obj) = algo_obj {
-        let aad_key = v8::String::new(scope, "additionalData").unwrap();
-        if let Some(aad_val) = obj.get(scope, aad_key.into()) {
-            get_array_buffer_data(scope, aad_val)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
-    let algorithm: &'static Algorithm = if key_bytes.len() == 32 {
-        &AES_256_GCM
-    } else if key_bytes.len() == 16 {
-        &AES_128_GCM
-    } else {
-        let error = v8::String::new(
-            scope,
-            "decrypt: invalid key length for AES-GCM (must be 128 or 256 bits)",
-        )
-        .unwrap();
-        let error_obj = v8::Exception::error(scope, error);
-        scope.throw_exception(error_obj.into());
+    if !ensure_aes_gcm_tag_length(scope, "decrypt", algo_obj.as_ref()) {
         return;
-    };
+    }
 
-    match UnboundKey::new(algorithm, &key_bytes) {
-        Ok(unbound_key) => {
-            let less_safe_key = LessSafeKey::new(unbound_key);
-            let nonce = Nonce::assume_unique_for_key(iv.try_into().unwrap());
-
-            // Decrypt with optional AAD
-            let aad_ref = aad
-                .as_ref()
-                .map(|v| Aad::from(v.as_slice()))
-                .unwrap_or_else(|| Aad::from(&[][..]));
-            let mut ciphertext = encrypted_data.clone();
-            let result = less_safe_key.open_in_place(nonce, aad_ref, &mut ciphertext);
-
-            match result {
-                Ok(plaintext) => {
-                    let array_buffer = v8::ArrayBuffer::new(scope, plaintext.len());
-                    let backing_store = array_buffer.get_backing_store();
-                    for (i, &byte) in plaintext.iter().enumerate() {
-                        backing_store[i].set(byte);
-                    }
-
-                    let resolver = v8::PromiseResolver::new(scope).unwrap();
-                    resolver.resolve(scope, array_buffer.into());
-                    let promise = resolver.get_promise(scope);
-                    retval.set(promise.into());
-                }
-                Err(e) => {
-                    let error = v8::String::new(scope, &format!("decrypt: decryption failed (authentication failed or data corrupted): {:?}", e)).unwrap();
-                    let error_obj = v8::Exception::error(scope, error);
-                    scope.throw_exception(error_obj.into());
-                }
-            }
+    let aad = optional_algorithm_bytes(scope, algo_obj.as_ref(), "additionalData");
+    match aes_gcm_open(
+        &key_bytes,
+        &iv,
+        aad.as_deref().unwrap_or(&[]),
+        &encrypted_data,
+    ) {
+        Ok(plaintext) => {
+            resolve_bytes_promise(scope, &mut retval, &plaintext);
         }
-        Err(e) => {
-            let error = v8::String::new(scope, &format!("decrypt: invalid key: {:?}", e)).unwrap();
+        Err(error_message) => {
+            let error = v8::String::new(scope, &format!("decrypt: {}", error_message)).unwrap();
             let error_obj = v8::Exception::error(scope, error);
             scope.throw_exception(error_obj.into());
         }
@@ -3539,58 +3664,15 @@ fn wrap_key_callback(
             }
         }
     } else if algo_name.eq_ignore_ascii_case("AES-GCM") {
-        let algorithm: &'static Algorithm = if wrapping_key_bytes.len() == 32 {
-            &AES_256_GCM
-        } else if wrapping_key_bytes.len() == 16 {
-            &AES_128_GCM
-        } else {
-            let error = v8::String::new(
-                scope,
-                "wrapKey: invalid key length for AES-GCM (must be 128 or 256 bits)",
-            )
-            .unwrap();
-            let error_obj = v8::Exception::error(scope, error);
-            scope.throw_exception(error_obj.into());
+        if !ensure_aes_gcm_tag_length(scope, "wrapKey", algo_obj.as_ref()) {
             return;
-        };
-
-        match UnboundKey::new(algorithm, &wrapping_key_bytes) {
-            Ok(unbound_key) => {
-                let less_safe_key = LessSafeKey::new(unbound_key);
-                let nonce = Nonce::assume_unique_for_key(
-                    iv.clone().try_into().expect("validated AES-GCM iv length"),
-                );
-
-                let mut plaintext = key_payload.clone();
-                let result = less_safe_key.seal_in_place_append_tag(
-                    nonce,
-                    Aad::from(&[][..]),
-                    &mut plaintext,
-                );
-
-                match result {
-                    Ok(_) => {
-                        let array_buffer = v8::ArrayBuffer::new(scope, plaintext.len());
-                        let backing_store = array_buffer.get_backing_store();
-                        for (i, &byte) in plaintext.iter().enumerate() {
-                            backing_store[i].set(byte);
-                        }
-
-                        let resolver = v8::PromiseResolver::new(scope).unwrap();
-                        resolver.resolve(scope, array_buffer.into());
-                        let promise = resolver.get_promise(scope);
-                        retval.set(promise.into());
-                    }
-                    Err(_) => {
-                        let error = v8::String::new(scope, "wrapKey: encryption failed").unwrap();
-                        let error_obj = v8::Exception::error(scope, error);
-                        scope.throw_exception(error_obj.into());
-                    }
-                }
+        }
+        match aes_gcm_seal(&wrapping_key_bytes, &iv, &[], &key_payload) {
+            Ok(wrapped_key) => {
+                resolve_bytes_promise(scope, &mut retval, &wrapped_key);
             }
-            Err(_) => {
-                let error =
-                    v8::String::new(scope, "wrapKey: failed to create encryption key").unwrap();
+            Err(error_message) => {
+                let error = v8::String::new(scope, &format!("wrapKey: {}", error_message)).unwrap();
                 let error_obj = v8::Exception::error(scope, error);
                 scope.throw_exception(error_obj.into());
             }
@@ -3790,60 +3872,27 @@ fn unwrap_key_callback(
             }
         }
     } else if unwrap_algo_name.eq_ignore_ascii_case("AES-GCM") {
-        let algorithm: &'static Algorithm = if unwrapping_key_bytes.len() == 32 {
-            &AES_256_GCM
-        } else if unwrapping_key_bytes.len() == 16 {
-            &AES_128_GCM
-        } else {
-            let error = v8::String::new(
-                scope,
-                "unwrapKey: invalid key length for AES-GCM (must be 128 or 256 bits)",
-            )
-            .unwrap();
-            let error_obj = v8::Exception::error(scope, error);
-            scope.throw_exception(error_obj.into());
+        if !ensure_aes_gcm_tag_length(scope, "unwrapKey", unwrap_algo_obj.as_ref()) {
             return;
-        };
-
-        match UnboundKey::new(algorithm, &unwrapping_key_bytes) {
-            Ok(unbound_key) => {
-                let less_safe_key = LessSafeKey::new(unbound_key);
-                let nonce = Nonce::assume_unique_for_key(
-                    unwrap_iv
-                        .try_into()
-                        .expect("validated AES-GCM unwrap iv length"),
+        }
+        match aes_gcm_open(&unwrapping_key_bytes, &unwrap_iv, &[], &wrapped_key_data) {
+            Ok(unencrypted_data) => {
+                resolve_unwrapped_secret_key_promise(
+                    scope,
+                    &mut retval,
+                    &format_str,
+                    key_algo_value,
+                    extractable_value,
+                    usages_value,
+                    &unencrypted_data,
                 );
-
-                let mut encrypted_data = wrapped_key_data.clone();
-                let result =
-                    less_safe_key.open_in_place(nonce, Aad::from(&[][..]), &mut encrypted_data);
-
-                match result {
-                    Ok(unencrypted_data) => {
-                        resolve_unwrapped_secret_key_promise(
-                            scope,
-                            &mut retval,
-                            &format_str,
-                            key_algo_value,
-                            extractable_value,
-                            usages_value,
-                            unencrypted_data,
-                        );
-                    }
-                    Err(_) => {
-                        let error = v8::String::new(
-                            scope,
-                            "unwrapKey: decryption failed - invalid key or corrupted data",
-                        )
-                        .unwrap();
-                        let error_obj = v8::Exception::error(scope, error);
-                        scope.throw_exception(error_obj.into());
-                    }
-                }
             }
             Err(_) => {
-                let error =
-                    v8::String::new(scope, "unwrapKey: failed to create decryption key").unwrap();
+                let error = v8::String::new(
+                    scope,
+                    "unwrapKey: decryption failed - invalid key or corrupted data",
+                )
+                .unwrap();
                 let error_obj = v8::Exception::error(scope, error);
                 scope.throw_exception(error_obj.into());
             }
@@ -5356,11 +5405,8 @@ fn export_key_payload_for_wrap(
 
     match format_str {
         "raw" => {
-            if is_eddsa_algorithm_name(&algo_name) && key_type != "public" {
-                return Err(format!(
-                    "Unable to export {} private key using raw format",
-                    algo_name
-                ));
+            if let Some(error_message) = raw_export_rejection(&algo_name, &key_type) {
+                return Err(error_message);
             }
 
             Ok(key_data.to_vec())
@@ -5407,18 +5453,10 @@ fn export_key_payload_for_wrap(
                     .map_err(|error| error.to_string());
             }
 
-            let alg = match algo_name.as_str() {
-                "HMAC" | "HS256" | "HS384" | "HS512" => {
-                    let hash_name = get_key_hmac_hash_name(scope, key_obj);
-                    hmac_jwk_alg_from_hash(&hash_name)
-                        .unwrap_or("HS256")
-                        .to_string()
-                }
-                "AES-GCM" => format!("A{}GCM", key_data.len() * 8),
-                "AES-CBC" => format!("A{}CBC", key_data.len() * 8),
-                "AES-CTR" => format!("A{}CTR", key_data.len() * 8),
-                "AES-KW" => format!("A{}KW", key_data.len() * 8),
-                _ => {
+            let hash_name = get_key_hmac_hash_name(scope, key_obj);
+            let alg = match oct_jwk_alg(&algo_name, key_data.len(), Some(hash_name.as_str())) {
+                Some(alg) => alg,
+                None => {
                     return Err(format!(
                         "unsupported key algorithm '{}' for JWK wrap",
                         algo_name
@@ -5519,15 +5557,9 @@ fn export_key_callback(
     // Export based on format
     match format_str.as_str() {
         "raw" => {
-            if is_eddsa_algorithm_name(&algo_name) && key_type != "public" {
-                let error = v8::String::new(
-                    scope,
-                    &format!(
-                        "exportKey: Unable to export {} private key using raw format",
-                        algo_name
-                    ),
-                )
-                .unwrap();
+            if let Some(error_message) = raw_export_rejection(&algo_name, &key_type) {
+                let error =
+                    v8::String::new(scope, &format!("exportKey: {}", error_message)).unwrap();
                 let error_obj = v8::Exception::error(scope, error);
                 resolver.reject(scope, error_obj.into());
                 return;
@@ -5608,32 +5640,23 @@ fn export_key_callback(
             let kty_val = v8::String::new(scope, "oct").unwrap();
             jwk_obj.set(scope, kty_key.into(), kty_val.into());
 
-            // Set alg based on algorithm
-            let alg_key = v8::String::new(scope, "alg").unwrap();
-            let alg_val = match algo_name.as_str() {
-                "HMAC" | "HS256" | "HS384" | "HS512" => {
-                    let hash_name = get_key_hmac_hash_name(scope, key_obj);
-                    let alg = hmac_jwk_alg_from_hash(&hash_name).unwrap_or("HS256");
-                    v8::String::new(scope, alg).unwrap()
-                }
-                "AES-GCM" => {
-                    let length = key_data.len() * 8;
-                    v8::String::new(scope, &format!("A{}GCM", length)).unwrap()
-                }
-                "AES-CBC" => {
-                    let length = key_data.len() * 8;
-                    v8::String::new(scope, &format!("A{}CBC", length)).unwrap()
-                }
-                "AES-CTR" => {
-                    let length = key_data.len() * 8;
-                    v8::String::new(scope, &format!("A{}CTR", length)).unwrap()
-                }
-                "AES-KW" => {
-                    let length = key_data.len() * 8;
-                    v8::String::new(scope, &format!("A{}KW", length)).unwrap()
-                }
-                _ => v8::String::new(scope, "A256").unwrap(),
+            let hash_name = get_key_hmac_hash_name(scope, key_obj);
+            let Some(alg) = oct_jwk_alg(&algo_name, key_data.len(), Some(hash_name.as_str()))
+            else {
+                let error = v8::String::new(
+                    scope,
+                    &format!(
+                        "exportKey: JWK export is not supported for algorithm '{}'",
+                        algo_name
+                    ),
+                )
+                .unwrap();
+                let error_obj = v8::Exception::error(scope, error);
+                resolver.reject(scope, error_obj.into());
+                return;
             };
+            let alg_key = v8::String::new(scope, "alg").unwrap();
+            let alg_val = v8::String::new(scope, &alg).unwrap();
             jwk_obj.set(scope, alg_key.into(), alg_val.into());
 
             // Set key operations
@@ -5850,5 +5873,33 @@ mod tests {
         let data = b"hello world";
         let result = compute_sha_digest(data, "MD5");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_aes_128_gcm_matches_known_vector() {
+        let key: Vec<u8> = (0..16).collect();
+        let iv: Vec<u8> = (0..12).collect();
+        let ciphertext = aes_gcm_seal(&key, &iv, b"aad", b"hello webcrypto").expect("seal");
+        assert_eq!(
+            hex::encode(&ciphertext),
+            "fb09cba2093b803129b113f346d71f59b79f4d532710bc643f0371142b373b"
+        );
+    }
+
+    #[test]
+    fn test_aes_192_gcm_matches_known_vector() {
+        let key: Vec<u8> = (0..24).collect();
+        let iv: Vec<u8> = (0..12).collect();
+        let ciphertext = aes_gcm_seal(&key, &iv, b"aad", b"hello webcrypto").expect("seal");
+        assert_eq!(
+            hex::encode(&ciphertext),
+            "8e9c4ef7f699be6bb250aefb8fddb3fb63348d5da6b204a2ca92c73d8dc446"
+        );
+        let plaintext = aes_gcm_open(&key, &iv, b"aad", &ciphertext).expect("open");
+        assert_eq!(plaintext, b"hello webcrypto");
+        let mut tampered = ciphertext.clone();
+        let last = tampered.len() - 1;
+        tampered[last] ^= 0x01;
+        assert!(aes_gcm_open(&key, &iv, b"aad", &tampered).is_err());
     }
 }
