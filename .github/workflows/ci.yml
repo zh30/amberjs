@@ -147,6 +147,9 @@ jobs:
       - name: node stream Stable contract
         run: cargo test --test node_stream_contract_tests -- --test-threads=1
 
+      - name: node child_process Stable contract
+        run: cargo test --test child_process_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
