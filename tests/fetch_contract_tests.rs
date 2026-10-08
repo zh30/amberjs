@@ -451,10 +451,7 @@ fn fetch_redirect_error_rejects() {
         "#
     );
     let output = run_js(&script).expect("redirect error");
-    assert!(
-        output.contains("redirect not allowed"),
-        "got {output}"
-    );
+    assert!(output.contains("redirect not allowed"), "got {output}");
 }
 
 #[test]
@@ -492,10 +489,7 @@ fn fetch_follow_rewrites_303_and_preserves_307() {
         "#
     );
     let output = run_js(&script).expect("follow rewrite");
-    assert_eq!(
-        output, "200:true:GET:#200:true:POST:secret",
-        "got {output}"
-    );
+    assert_eq!(output, "200:true:GET:#200:true:POST:secret", "got {output}");
 }
 
 #[test]
