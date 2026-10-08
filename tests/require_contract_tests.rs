@@ -1,7 +1,5 @@
 //! Pins docs/REQUIRE_CONTRACT.md for CommonJS require and Node-shaped resolution.
-use amberjs::nodejs_core::commonjs_resolver::{
-    resolve_commonjs_module, ResolvedModule,
-};
+use amberjs::nodejs_core::commonjs_resolver::{resolve_commonjs_module, ResolvedModule};
 use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
@@ -196,7 +194,11 @@ fn package_main_exports_conditions_and_ignores_module_field() {
         r#"{"name":"pkg","main":"dist/main.js"}"#,
     )
     .unwrap();
-    fs::write(pkg.join("dist/main.js"), "module.exports = { answer: 123 };").unwrap();
+    fs::write(
+        pkg.join("dist/main.js"),
+        "module.exports = { answer: 123 };",
+    )
+    .unwrap();
     fs::write(
         cond.join("package.json"),
         r#"{"name":"cond","exports":{".":{"require":"./cjs.js","import":"./esm.js","default":"./def.js"}}}"#,
@@ -272,7 +274,11 @@ fn package_imports_hash_and_node_modules_walk() {
         r##"{"name":"app","imports":{"#config":"./src/config.js"}}"##,
     )
     .unwrap();
-    fs::write(app.join("src/config.js"), "module.exports = { answer: 42 };").unwrap();
+    fs::write(
+        app.join("src/config.js"),
+        "module.exports = { answer: 42 };",
+    )
+    .unwrap();
     fs::write(dep.join("index.js"), "module.exports = { name: 'dep' };").unwrap();
 
     let from = js_path(&nested);
