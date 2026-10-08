@@ -406,7 +406,9 @@ fn run_watch_reexecutes_entry_and_publishes_reload() {
     assert!(hello.contains("\"event_type\":\"status\""), "{hello}");
 
     std::fs::write(dir.path().join("app.js"), "console.log('RUN_BETA');\n").expect("rewrite");
-    let reloaded = proc.wait_for("RUN_BETA", Duration::from_secs(20));
+    // RUN_BETA can land before the reload line is flushed. Wait for the line.
+    let reloaded = proc.wait_for("Reloaded in", Duration::from_secs(20));
+    assert_contains(&reloaded, "RUN_BETA");
     assert_contains(&reloaded, "PRELOAD_OK");
     assert!(
         reloaded.matches("PRELOAD_OK").count() >= 2,
