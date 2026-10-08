@@ -1,9 +1,10 @@
 // ServiceWorker API boundary for Web standard compatibility.
 //
-// Amber exposes the discovery surface (`navigator.serviceWorker`) but does not
-// yet have a real registration store, worker lifecycle, fetch interception, or
-// `waitUntil`/`respondWith` scheduling. Registration must therefore fail closed
-// instead of returning a resolved ServiceWorkerRegistration-shaped object.
+// `navigator.serviceWorker.register` starts the script on a WorkerHost isolate.
+// install / activate run in that script, `registration.scope` is the recorded
+// scope string, and `clients.claim()` publishes `navigator.serviceWorker.controller`.
+// Page and worker exchange JSON `postMessage`. Cache, Push, `waitUntil`, and
+// fetch interception are not implemented: `fetch` is left unchanged.
 
 use anyhow::Result;
 use rusty_v8 as v8;
@@ -75,6 +76,280 @@ pub fn setup_service_worker_api(
     // Setup Push API (v0.3.326)
     setup_push_api(scope, context, global)?;
 
+    install_service_worker_registration(scope)?;
+
+    Ok(())
+}
+
+/// Replace the fail-closed `register` with a WorkerHost-backed registration.
+///
+/// The script runs on its own isolate. Control frames (`install`, `activate`,
+/// `message`) travel through the same postMessage channel as dedicated workers.
+fn install_service_worker_registration(
+    scope: &mut v8::ContextScope<v8::HandleScope>,
+) -> Result<()> {
+    let wrapper = r#"
+const { parentPort, workerData } = require('worker_threads');
+const listeners = {};
+globalThis.addEventListener = function(type, fn) {
+  if (typeof type !== 'string' || typeof fn !== 'function') return;
+  (listeners[type] = listeners[type] || []).push(fn);
+};
+globalThis.removeEventListener = function(type, fn) {
+  const list = listeners[type];
+  if (!list) return;
+  listeners[type] = list.filter((cb) => cb !== fn);
+};
+function dispatch(type, event) {
+  const list = (listeners[type] || []).slice();
+  for (let i = 0; i < list.length; i++) {
+    try {
+      list[i].call(globalThis, event);
+    } catch (err) {
+      parentPort.postMessage({
+        __amberSw: 'error',
+        message: err && err.message ? String(err.message) : String(err)
+      });
+    }
+  }
+}
+globalThis.skipWaiting = function() {
+  parentPort.postMessage({ __amberSw: 'skipWaiting' });
+};
+globalThis.clients = {
+  claim() {
+    parentPort.postMessage({ __amberSw: 'claim' });
+  }
+};
+globalThis.__amber_before_user_message = function(data) {
+  if (!data || typeof data !== 'object' || typeof data.__amberSw !== 'string') {
+    return undefined;
+  }
+  if (data.__amberSw === 'install') {
+    dispatch('install', { type: 'install' });
+    parentPort.postMessage({ __amberSw: 'installed' });
+    return { __amberConsume: true };
+  }
+  if (data.__amberSw === 'activate') {
+    dispatch('activate', { type: 'activate' });
+    parentPort.postMessage({ __amberSw: 'activated' });
+    return { __amberConsume: true };
+  }
+  if (data.__amberSw === 'message') {
+    dispatch('message', {
+      type: 'message',
+      data: data.data,
+      source: {
+        postMessage(payload) {
+          parentPort.postMessage({ __amberSw: 'reply', data: payload });
+        }
+      }
+    });
+    return { __amberRewrite: true, value: data.data };
+  }
+  return undefined;
+};
+globalThis.__amber_worker_listening = true;
+(0, eval)(workerData.source);
+parentPort.postMessage({ __amberSw: 'ready' });
+"#;
+    let wrapper_json = serde_json::to_string(wrapper).unwrap_or_else(|_| "\"\"".to_string());
+    let installer = format!(
+        r#"(function() {{
+  const SW_WRAPPER = {wrapper_json};
+  const container = (typeof navigator !== 'undefined') ? navigator.serviceWorker : null;
+  if (!container || typeof __amber_spawn_worker !== 'function') return;
+
+  const registrations = [];
+  let controller = null;
+  let readyResolve = null;
+  const readyPromise = new Promise((resolve) => {{ readyResolve = resolve; }});
+  try {{ container.ready = readyPromise; }} catch (_) {{}}
+  container.onmessage = null;
+  const containerListeners = {{}};
+  container.addEventListener = function(type, fn) {{
+    if (typeof type !== 'string' || typeof fn !== 'function') return;
+    (containerListeners[type] = containerListeners[type] || []).push(fn);
+  }};
+  container.removeEventListener = function(type, fn) {{
+    const list = containerListeners[type];
+    if (!list) return;
+    containerListeners[type] = list.filter((cb) => cb !== fn);
+  }};
+  function dispatchContainer(event) {{
+    if (typeof container.onmessage === 'function') {{
+      try {{ container.onmessage(event); }} catch (_) {{}}
+    }}
+    const list = (containerListeners.message || []).slice();
+    for (let i = 0; i < list.length; i++) {{
+      try {{ list[i].call(container, event); }} catch (_) {{}}
+    }}
+  }}
+  Object.defineProperty(container, 'controller', {{
+    configurable: true,
+    enumerable: true,
+    get() {{ return controller; }}
+  }});
+
+  function defaultScope(scriptUrl) {{
+    if (typeof scriptUrl === 'string' && scriptUrl.indexOf('data:') === 0) return '/';
+    const path = String(scriptUrl || '').split('?')[0];
+    const slash = path.lastIndexOf('/');
+    if (slash < 0) return './';
+    return path.slice(0, slash + 1);
+  }}
+
+  container.register = function(scriptURL, options) {{
+    if (typeof scriptURL !== 'string' || scriptURL.length === 0) {{
+      throw new TypeError('ServiceWorker registration requires a script URL');
+    }}
+    if (options && options.type != null && options.type !== 'classic') {{
+      throw new TypeError('ServiceWorker type "' + options.type + '" is not supported');
+    }}
+    if (options && options.scope !== undefined && typeof options.scope !== 'string') {{
+      throw new TypeError('ServiceWorker scope must be a string');
+    }}
+    if (options && options.scope === '') {{
+      throw new TypeError('ServiceWorker scope must not be empty');
+    }}
+    let resolved;
+    try {{
+      resolved = __amber_resolve_script_file(scriptURL);
+    }} catch (err) {{
+      return Promise.reject(err);
+    }}
+    const scope = (options && typeof options.scope === 'string') ? options.scope : defaultScope(resolved.url);
+    const worker = {{
+      scriptURL: resolved.url,
+      state: 'installing'
+    }};
+    const registration = {{
+      scope: scope,
+      installing: worker,
+      waiting: null,
+      active: null
+    }};
+    let resolveReg;
+    let rejectReg;
+    const promise = new Promise((resolve, reject) => {{
+      resolveReg = resolve;
+      rejectReg = reject;
+    }});
+    let settled = false;
+    let skipWaiting = false;
+    let claimed = false;
+    let id = 0;
+
+    function markRedundant() {{
+      worker.state = 'redundant';
+      if (registration.installing === worker) registration.installing = null;
+      if (registration.waiting === worker) registration.waiting = null;
+      if (registration.active === worker) registration.active = null;
+      if (controller === worker) controller = null;
+    }}
+
+    function fail(err) {{
+      if (settled) return;
+      settled = true;
+      markRedundant();
+      try {{ __amber_worker_terminate(id); }} catch (_) {{}}
+      const error = (err instanceof Error) ? err : new Error(String(err && err.message || err));
+      rejectReg(error);
+    }}
+
+    function finishResolve() {{
+      if (settled) return;
+      settled = true;
+      if (claimed) controller = worker;
+      if (worker.state === 'activated' && readyResolve) {{
+        const resolveReady = readyResolve;
+        readyResolve = null;
+        resolveReady(registration);
+      }}
+      resolveReg(registration);
+    }}
+
+    worker.postMessage = function(data) {{
+      if (worker.state === 'redundant') {{
+        throw new Error('Cannot postMessage to a redundant service worker');
+      }}
+      __amber_worker_post(id, JSON.stringify({{ __amberSw: 'message', data: data }}));
+    }};
+
+    registration.unregister = function() {{
+      const pending = !settled;
+      settled = true;
+      try {{ __amber_worker_terminate(id); }} catch (_) {{}}
+      markRedundant();
+      if (pending) {{
+        rejectReg(new Error('ServiceWorker was unregistered'));
+      }}
+      return Promise.resolve(true);
+    }};
+
+    id = __amber_spawn_worker(SW_WRAPPER, resolved.url, JSON.stringify({{ source: resolved.source }}));
+    globalThis.__amber_workers[id] = {{
+      emit(event) {{
+        if (event === 'exit') fail(new Error('ServiceWorker stopped before it finished installing'));
+      }},
+      onmessage(event) {{
+        const data = event && event.data;
+        if (!data || typeof data.__amberSw !== 'string') return;
+        if (data.__amberSw === 'error') {{
+          fail(new Error(data.message || 'ServiceWorker script error'));
+          return;
+        }}
+        if (data.__amberSw === 'ready') {{
+          __amber_worker_post(id, JSON.stringify({{ __amberSw: 'install' }}));
+          return;
+        }}
+        if (data.__amberSw === 'skipWaiting') {{
+          skipWaiting = true;
+          return;
+        }}
+        if (data.__amberSw === 'claim') {{
+          claimed = true;
+          return;
+        }}
+        if (data.__amberSw === 'installed') {{
+          worker.state = 'installed';
+          registration.installing = null;
+          registration.waiting = worker;
+          if (skipWaiting) {{
+            worker.state = 'activating';
+            registration.waiting = null;
+            registration.active = worker;
+            __amber_worker_post(id, JSON.stringify({{ __amberSw: 'activate' }}));
+          }} else {{
+            finishResolve();
+          }}
+          return;
+        }}
+        if (data.__amberSw === 'activated') {{
+          worker.state = 'activated';
+          registration.installing = null;
+          registration.waiting = null;
+          registration.active = worker;
+          finishResolve();
+          return;
+        }}
+        if (data.__amberSw === 'reply') {{
+          dispatchContainer({{ data: data.data }});
+        }}
+      }},
+      onerror(err) {{ fail(err); }}
+    }};
+    registrations.push(registration);
+    return promise;
+  }};
+}})();
+"#
+    );
+
+    let source = v8::String::new(scope, &installer).unwrap();
+    if let Some(script) = v8::Script::compile(scope, source, None) {
+        let _ = script.run(scope);
+    }
     Ok(())
 }
 
