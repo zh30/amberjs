@@ -5633,6 +5633,8 @@ impl MinimalRuntime {
                     v8::String::new(scope, "default").unwrap(),
                     v8::String::new(scope, "URL").unwrap(),
                     v8::String::new(scope, "URLSearchParams").unwrap(),
+                    v8::String::new(scope, "fileURLToPath").unwrap(),
+                    v8::String::new(scope, "pathToFileURL").unwrap(),
                 ];
                 let module_name = v8::String::new(scope, "node:url").unwrap();
                 Some(v8::Module::create_synthetic_module(
@@ -5927,15 +5929,13 @@ impl MinimalRuntime {
         module: v8::Local<'scope, v8::Module>,
     ) -> Option<v8::Local<'scope, v8::Value>> {
         v8::callback_scope!(unsafe let scope, context);
-        let global = context.global(scope);
-        let url_module = v8::Object::new(scope);
+        let url_module = crate::nodejs_core::url::create_require_url_module(scope);
 
-        for export_name in ["URL", "URLSearchParams"] {
+        for export_name in ["URL", "URLSearchParams", "fileURLToPath", "pathToFileURL"] {
             let export_key = v8::String::new(scope, export_name).unwrap();
-            let export_value = global
+            let export_value = url_module
                 .get(scope, export_key.into())
                 .unwrap_or_else(|| v8::undefined(scope).into());
-            url_module.set(scope, export_key.into(), export_value);
             module.set_synthetic_module_export(scope, export_key, export_value)?;
         }
 
@@ -17747,65 +17747,7 @@ impl MinimalRuntime {
                 }
 
                 if module_id_str == "url" {
-                    let url_module = v8::Object::new(scope);
-                    let url_key = v8::String::new(scope, "URL").unwrap();
-                    if let Some(url_constructor) = global_obj.get(scope, url_key.into()) {
-                        url_module.set(scope, url_key.into(), url_constructor);
-                    }
-
-                    let search_params_key = v8::String::new(scope, "URLSearchParams").unwrap();
-                    if let Some(search_params_constructor) =
-                        global_obj.get(scope, search_params_key.into())
-                    {
-                        url_module.set(scope, search_params_key.into(), search_params_constructor);
-                    }
-
-                    // Legacy Node helpers
-                    let file_url_to_path = v8::Function::new(
-                        scope,
-                        |scope: &mut v8::PinScope,
-                         args: v8::FunctionCallbackArguments,
-                         mut rv: v8::ReturnValue| {
-                            let input = args
-                                .get(0)
-                                .to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_default();
-                            let path = input.strip_prefix("file://").unwrap_or(&input).to_string();
-                            let out = v8::String::new(scope, &path).unwrap();
-                            rv.set(out.into());
-                        },
-                    )
-                    .unwrap();
-                    let path_to_file_url = v8::Function::new(
-                        scope,
-                        |scope: &mut v8::PinScope,
-                         args: v8::FunctionCallbackArguments,
-                         mut rv: v8::ReturnValue| {
-                            let path = args
-                                .get(0)
-                                .to_string(scope)
-                                .map(|s| s.to_rust_string_lossy(scope))
-                                .unwrap_or_default();
-                            let href = if path.starts_with("file://") {
-                                path
-                            } else {
-                                format!("file://{}", path)
-                            };
-                            // Return a minimal URL-like object with href
-                            let obj = v8::Object::new(scope);
-                            let href_key = v8::String::new(scope, "href").unwrap();
-                            let href_val = v8::String::new(scope, &href).unwrap();
-                            obj.set(scope, href_key.into(), href_val.into());
-                            rv.set(obj.into());
-                        },
-                    )
-                    .unwrap();
-                    let futp_key = v8::String::new(scope, "fileURLToPath").unwrap();
-                    let ptfu_key = v8::String::new(scope, "pathToFileURL").unwrap();
-                    url_module.set(scope, futp_key.into(), file_url_to_path.into());
-                    url_module.set(scope, ptfu_key.into(), path_to_file_url.into());
-
+                    let url_module = crate::nodejs_core::url::create_require_url_module(scope);
                     retval.set(url_module.into());
                     return;
                 }

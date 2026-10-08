@@ -820,3 +820,454 @@ fn parse_query_string(query: &str) -> Vec<(String, String)> {
     }
     pairs
 }
+
+/// Errors from the Node-shaped `fileURLToPath` / `pathToFileURL` helpers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FileUrlError {
+    InvalidArgType { message: String },
+    InvalidUrl { message: String },
+    InvalidUrlScheme { message: String },
+    InvalidFileUrlHost { message: String },
+}
+
+impl FileUrlError {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::InvalidArgType { .. } => "ERR_INVALID_ARG_TYPE",
+            Self::InvalidUrl { .. } => "ERR_INVALID_URL",
+            Self::InvalidUrlScheme { .. } => "ERR_INVALID_URL_SCHEME",
+            Self::InvalidFileUrlHost { .. } => "ERR_INVALID_FILE_URL_HOST",
+        }
+    }
+
+    pub fn message(&self) -> &str {
+        match self {
+            Self::InvalidArgType { message }
+            | Self::InvalidUrl { message }
+            | Self::InvalidUrlScheme { message }
+            | Self::InvalidFileUrlHost { message } => message,
+        }
+    }
+}
+
+/// Build (or reuse) the CLI / CJS `require('url')` object: G10 `URL` /
+/// `URLSearchParams` plus real POSIX `fileURLToPath` / `pathToFileURL`.
+/// Cached on `globalThis.__amber_node_url` so `require('url')` and
+/// `require('node:url')` share the same function identities.
+/// Does not attach legacy `parse` / `format` / `resolve` (those stay on the
+/// separate global `url` key from `setup_url_api` and are outside the Node url
+/// Stable contract).
+pub fn create_require_url_module<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+) -> v8::Local<'s, v8::Object> {
+    let global = scope.get_current_context().global(scope);
+    let cache_key = v8::String::new(scope, "__amber_node_url").unwrap();
+    if let Some(cached) = global.get(scope, cache_key.into()) {
+        if let Ok(obj) = v8::Local::<v8::Object>::try_from(cached) {
+            if !obj.is_undefined() && !obj.is_null() {
+                let futp_key = v8::String::new(scope, "fileURLToPath").unwrap();
+                if let Some(futp) = obj.get(scope, futp_key.into()) {
+                    if futp.is_function() {
+                        return obj;
+                    }
+                }
+            }
+        }
+    }
+
+    let url_module = v8::Object::new(scope);
+
+    for name in ["URL", "URLSearchParams"] {
+        let key = v8::String::new(scope, name).unwrap();
+        if let Some(value) = global.get(scope, key.into()) {
+            url_module.set(scope, key.into(), value);
+        }
+    }
+
+    let file_url_to_path = v8::Function::new(scope, file_url_to_path_callback).unwrap();
+    let path_to_file_url = v8::Function::new(scope, path_to_file_url_callback).unwrap();
+    let futp_key = v8::String::new(scope, "fileURLToPath").unwrap();
+    let ptfu_key = v8::String::new(scope, "pathToFileURL").unwrap();
+    url_module.set(scope, futp_key.into(), file_url_to_path.into());
+    url_module.set(scope, ptfu_key.into(), path_to_file_url.into());
+
+    let cache_key = v8::String::new(scope, "__amber_node_url").unwrap();
+    global.set(scope, cache_key.into(), url_module.into());
+    url_module
+}
+
+fn throw_file_url_error(scope: &mut v8::PinScope, err: &FileUrlError) {
+    let message = v8::String::new(scope, err.message()).unwrap();
+    let exception = match err {
+        FileUrlError::InvalidArgType { .. }
+        | FileUrlError::InvalidUrlScheme { .. }
+        | FileUrlError::InvalidFileUrlHost { .. } => v8::Exception::type_error(scope, message),
+        FileUrlError::InvalidUrl { .. } => v8::Exception::type_error(scope, message),
+    };
+    if let Some(error_object) = exception.to_object(scope) {
+        if let (Some(code_key), Some(code_value)) = (
+            v8::String::new(scope, "code"),
+            v8::String::new(scope, err.code()),
+        ) {
+            error_object.set(scope, code_key.into(), code_value.into());
+        }
+    }
+    scope.throw_exception(exception);
+}
+
+fn file_url_to_path_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut rv: v8::ReturnValue,
+) {
+    let input = args.get(0);
+    let href = match file_url_input_href(scope, input) {
+        Ok(href) => href,
+        Err(err) => {
+            throw_file_url_error(scope, &err);
+            return;
+        }
+    };
+    match file_url_to_path(&href) {
+        Ok(path) => {
+            let out = v8::String::new(scope, &path).unwrap();
+            rv.set(out.into());
+        }
+        Err(err) => throw_file_url_error(scope, &err),
+    }
+}
+
+fn path_to_file_url_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut rv: v8::ReturnValue,
+) {
+    let input = args.get(0);
+    if !input.is_string() {
+        let received = js_type_name(scope, input);
+        throw_file_url_error(
+            scope,
+            &FileUrlError::InvalidArgType {
+                message: format!(
+                    "The \"path\" argument must be of type string. Received {received}"
+                ),
+            },
+        );
+        return;
+    }
+    let path = input
+        .to_string(scope)
+        .map(|s| s.to_rust_string_lossy(scope))
+        .unwrap_or_default();
+    let href = path_to_file_url_href(&path);
+    let global = scope.get_current_context().global(scope);
+    let url_key = v8::String::new(scope, "URL").unwrap();
+    let Some(url_ctor_val) = global.get(scope, url_key.into()) else {
+        throw_file_url_error(
+            scope,
+            &FileUrlError::InvalidUrl {
+                message: "Invalid URL".to_string(),
+            },
+        );
+        return;
+    };
+    let Ok(url_ctor) = v8::Local::<v8::Function>::try_from(url_ctor_val) else {
+        throw_file_url_error(
+            scope,
+            &FileUrlError::InvalidUrl {
+                message: "Invalid URL".to_string(),
+            },
+        );
+        return;
+    };
+    let href_val = v8::String::new(scope, &href).unwrap();
+    if let Some(instance) = url_ctor.new_instance(scope, &[href_val.into()]) {
+        rv.set(instance.into());
+    } else {
+        throw_file_url_error(
+            scope,
+            &FileUrlError::InvalidUrl {
+                message: "Invalid URL".to_string(),
+            },
+        );
+    }
+}
+
+fn file_url_input_href(
+    scope: &mut v8::PinScope,
+    input: v8::Local<v8::Value>,
+) -> Result<String, FileUrlError> {
+    if input.is_string() {
+        return Ok(input
+            .to_string(scope)
+            .map(|s| s.to_rust_string_lossy(scope))
+            .unwrap_or_default());
+    }
+    if let Some(obj) = input.to_object(scope) {
+        let global = scope.get_current_context().global(scope);
+        let url_key = v8::String::new(scope, "URL").unwrap();
+        if let Some(url_ctor_val) = global.get(scope, url_key.into()) {
+            if let Ok(url_ctor) = v8::Local::<v8::Object>::try_from(url_ctor_val) {
+                if obj.instance_of(scope, url_ctor).unwrap_or(false) {
+                    let href_key = v8::String::new(scope, "href").unwrap();
+                    if let Some(href_val) = obj.get(scope, href_key.into()) {
+                        if let Some(href) = href_val.to_string(scope) {
+                            return Ok(href.to_rust_string_lossy(scope));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let received = js_type_name(scope, input);
+    Err(FileUrlError::InvalidArgType {
+        message: format!(
+            "The \"path\" argument must be of type string or an instance of URL. Received {received}"
+        ),
+    })
+}
+
+fn js_type_name(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
+    if value.is_null() {
+        return "null".to_string();
+    }
+    if value.is_undefined() {
+        return "undefined".to_string();
+    }
+    if value.is_string() {
+        return "type string".to_string();
+    }
+    if value.is_number() {
+        return format!(
+            "type number ({})",
+            value
+                .to_string(scope)
+                .map(|s| s.to_rust_string_lossy(scope))
+                .unwrap_or_else(|| "NaN".to_string())
+        );
+    }
+    if value.is_boolean() {
+        return "type boolean".to_string();
+    }
+    if let Some(obj) = value.to_object(scope) {
+        let ctor_key = v8::String::new(scope, "constructor").unwrap();
+        if let Some(ctor) = obj.get(scope, ctor_key.into()) {
+            if let Some(ctor_obj) = ctor.to_object(scope) {
+                let name_key = v8::String::new(scope, "name").unwrap();
+                if let Some(name_val) = ctor_obj.get(scope, name_key.into()) {
+                    if let Some(name) = name_val.to_string(scope) {
+                        let name = name.to_rust_string_lossy(scope);
+                        if !name.is_empty() {
+                            return format!("an instance of {name}");
+                        }
+                    }
+                }
+            }
+        }
+        return "an instance of Object".to_string();
+    }
+    "an unknown value".to_string()
+}
+
+/// POSIX `path.resolve`-style resolution for a single path argument.
+pub fn posix_resolve_path(path: &str) -> String {
+    let cwd = std::env::current_dir()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "/".to_string());
+    let absolute = if path.starts_with('/') {
+        path.to_string()
+    } else if path.is_empty() {
+        cwd
+    } else {
+        format!("{}/{}", cwd.trim_end_matches('/'), path)
+    };
+    posix_normalize_absolute(&absolute)
+}
+
+fn posix_normalize_absolute(path: &str) -> String {
+    let mut segments: Vec<&str> = Vec::new();
+    for part in path.split('/') {
+        if part.is_empty() || part == "." {
+            continue;
+        }
+        if part == ".." {
+            segments.pop();
+            continue;
+        }
+        segments.push(part);
+    }
+    if segments.is_empty() {
+        return "/".to_string();
+    }
+    format!("/{}", segments.join("/"))
+}
+
+/// Encode a POSIX absolute path for a `file:` URL pathname (Node `pathToFileURL`).
+pub fn encode_file_url_path(path: &str) -> String {
+    let mut out = String::with_capacity(path.len() + 8);
+    for &byte in path.as_bytes() {
+        // Match Node pathToFileURL's encode set; returned href is G10 `URL` serialization.
+        let keep = matches!(
+            byte,
+            b'A'..=b'Z'
+                | b'a'..=b'z'
+                | b'0'..=b'9'
+                | b'/'
+                | b'-'
+                | b'.'
+                | b'_'
+                | b'!'
+                | b'$'
+                | b'&'
+                | b'\''
+                | b'('
+                | b')'
+                | b'*'
+                | b'+'
+                | b','
+                | b';'
+                | b':'
+                | b'='
+                | b'@'
+        );
+        if keep {
+            out.push(byte as char);
+        } else {
+            out.push('%');
+            out.push(char::from(HEX[(byte >> 4) as usize]));
+            out.push(char::from(HEX[(byte & 0x0f) as usize]));
+        }
+    }
+    out
+}
+
+const HEX: &[u8; 16] = b"0123456789ABCDEF";
+
+/// Node-shaped `pathToFileURL(path).href` for the POSIX host contract.
+pub fn path_to_file_url_href(path: &str) -> String {
+    let resolved = posix_resolve_path(path);
+    format!("file://{}", encode_file_url_path(&resolved))
+}
+
+/// Node-shaped POSIX `fileURLToPath` for a `file:` href string.
+pub fn file_url_to_path(input: &str) -> Result<String, FileUrlError> {
+    let trimmed = input.trim();
+    let lower = trimmed.to_ascii_lowercase();
+    if !lower.starts_with("file:") {
+        // Distinguish unparseable junk from wrong scheme when possible.
+        if !trimmed.contains(':') {
+            return Err(FileUrlError::InvalidUrl {
+                message: "Invalid URL".to_string(),
+            });
+        }
+        return Err(FileUrlError::InvalidUrlScheme {
+            message: "The URL must be of scheme file".to_string(),
+        });
+    }
+
+    let after_scheme = &trimmed["file:".len()..];
+    if !after_scheme.starts_with("//") {
+        return Err(FileUrlError::InvalidUrl {
+            message: "Invalid URL".to_string(),
+        });
+    }
+    let rest = &after_scheme[2..];
+
+    let (host, path_encoded) = if let Some(slash) = rest.find('/') {
+        (&rest[..slash], &rest[slash..])
+    } else if rest.is_empty() {
+        ("", "/")
+    } else {
+        // `file://hostname` with no path — treat path as `/` after host check.
+        (rest, "/")
+    };
+
+    let host_ok = host.is_empty() || host.eq_ignore_ascii_case("localhost");
+    if !host_ok {
+        #[cfg(windows)]
+        let platform = "windows";
+        #[cfg(not(windows))]
+        let platform = "linux";
+        return Err(FileUrlError::InvalidFileUrlHost {
+            message: format!("File URL host must be \"localhost\" or empty on {platform}"),
+        });
+    }
+
+    let decoded = percent_decode_path(path_encoded)?;
+    if decoded.is_empty() {
+        Ok("/".to_string())
+    } else {
+        Ok(decoded)
+    }
+}
+
+fn percent_decode_path(input: &str) -> Result<String, FileUrlError> {
+    let bytes = input.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let (Some(hi), Some(lo)) = (from_hex(bytes[i + 1]), from_hex(bytes[i + 2])) {
+                out.push((hi << 4) | lo);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8(out).map_err(|_| FileUrlError::InvalidUrl {
+        message: "Invalid URL".to_string(),
+    })
+}
+
+fn from_hex(b: u8) -> Option<u8> {
+    match b {
+        b'0'..=b'9' => Some(b - b'0'),
+        b'a'..=b'f' => Some(b - b'a' + 10),
+        b'A'..=b'F' => Some(b - b'A' + 10),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod file_url_tests {
+    use super::*;
+
+    #[test]
+    fn path_to_file_url_encodes_specials() {
+        assert_eq!(
+            path_to_file_url_href("/tmp/foo bar"),
+            "file:///tmp/foo%20bar"
+        );
+        assert_eq!(
+            path_to_file_url_href("/tmp/foo#bar"),
+            "file:///tmp/foo%23bar"
+        );
+        assert_eq!(
+            path_to_file_url_href("/tmp/foo?x=1"),
+            "file:///tmp/foo%3Fx=1"
+        );
+    }
+
+    #[test]
+    fn file_url_to_path_roundtrip_and_host() {
+        assert_eq!(
+            file_url_to_path("file:///tmp/foo%20bar").unwrap(),
+            "/tmp/foo bar"
+        );
+        assert_eq!(
+            file_url_to_path("file://localhost/tmp/x").unwrap(),
+            "/tmp/x"
+        );
+        assert_eq!(file_url_to_path("FILE:///tmp/x").unwrap(), "/tmp/x");
+        assert!(matches!(
+            file_url_to_path("http://example.com").unwrap_err(),
+            FileUrlError::InvalidUrlScheme { .. }
+        ));
+        assert!(matches!(
+            file_url_to_path("file://example.com/tmp").unwrap_err(),
+            FileUrlError::InvalidFileUrlHost { .. }
+        ));
+    }
+}
