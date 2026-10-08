@@ -234,7 +234,7 @@ tungstenite = "0.21"
 futures-util = "0.3"
 
 # Serial test support for V8 thread-safe testing
-serial_test = "3.0"
+serial_test = "4.0"
 
 # [[bin]]
 # name = "amberjs-benchmark"
