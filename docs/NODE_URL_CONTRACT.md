@@ -6,7 +6,7 @@ This is the user-facing contract for the Stable subset of Node `require('url')` 
 
 This is a **POSIX host** file-URL contract (Linux CI). It is not full Node `url` and not the web G10 URL contract (G10 stays separate for the globals).
 
-**Provisional numbering:** This contract is intended as **G26** after first-wave G18–G22. Do not steal G19–G22 (buffer/os/zlib/util), G23 (crypto), G24 (require), G25 (stream), G26 (child_process), or G28 (dns). Independent of web G10 URL globals.
+**Provisional numbering:** This contract is **G26** after stream **G24** and child_process **G25**. Wave-2 continues as dns **G27** → CommonJS `require` **G28** (last). Do not assign G24 to require or G28 to dns. Independent of web G10 URL globals.
 
 ## Stable surface
 

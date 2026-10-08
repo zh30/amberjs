@@ -149,8 +149,12 @@ jobs:
 
       - name: node child_process Stable contract
         run: cargo test --test child_process_contract_tests -- --test-threads=1
+
       - name: node url Stable contract
         run: cargo test --test node_url_contract_tests -- --test-threads=1
+
+      - name: node dns Stable contract
+        run: cargo test --test dns_contract_tests -- --test-threads=1
 
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
