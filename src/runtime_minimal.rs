@@ -8383,6 +8383,7 @@ impl MinimalRuntime {
         // (e.g. after an early error return). They capture V8 handles from the
         // execution that scheduled them and must not run in this one.
         clear_pending_immediates();
+        crate::web_api::websocket::begin_execution_epoch();
 
         // Transpile TypeScript-only source through oxc before V8 parse.
         // Do not treat `import` / `export` as TypeScript: those are valid JS.
@@ -8751,6 +8752,11 @@ impl MinimalRuntime {
             scope.perform_microtask_checkpoint();
             crate::nodejs_core::http::pump_pending_http_requests_in_scope(scope, &context);
             crate::web_api::worker_host::WorkerHost::pump_parent_messages(scope);
+            if crate::web_api::websocket::has_pending_websocket_work() {
+                crate::web_api::websocket::pump_websocket_events(scope);
+                execute_next_tick_callbacks(scope);
+                scope.perform_microtask_checkpoint();
+            }
 
             let has_initial_pending_work = {
                 let timer_manager = crate::event_loop::get_async_timer_manager();
@@ -8770,6 +8776,7 @@ impl MinimalRuntime {
                     || has_pending_next_ticks()
                     || has_pending_immediates()
                     || crate::web_api::worker_host::WorkerHost::has_active_workers()
+                    || crate::web_api::websocket::has_pending_websocket_work()
             };
 
             if !has_initial_pending_work {
@@ -8783,6 +8790,11 @@ impl MinimalRuntime {
 
             while iterations_without_progress < MAX_WAIT_ITERATIONS {
                 crate::tooling::inspector::service_pending_evaluations(scope);
+                if crate::web_api::websocket::has_pending_websocket_work()
+                    && crate::web_api::websocket::pump_websocket_events(scope)
+                {
+                    break;
+                }
                 let timer_manager = crate::event_loop::get_async_timer_manager();
                 let has_fired = timer_manager.has_fired_timers();
                 let has_scheduled = timer_manager.has_scheduled_timers();
@@ -8825,6 +8837,12 @@ impl MinimalRuntime {
                 }
 
                 // Unref'd / non-drainable scheduled timers must not keep the loop.
+                if crate::web_api::websocket::has_pending_websocket_work() {
+                    timer_manager.wait_timeout(std::time::Duration::from_millis(10));
+                    iterations_without_progress += 1;
+                    continue;
+                }
+
                 if has_scheduled {
                     break;
                 }
@@ -8918,6 +8936,7 @@ impl MinimalRuntime {
                 && !has_scheduled_timers
                 && !has_pending_immediates()
                 && !has_active_workers
+                && !crate::web_api::websocket::has_pending_websocket_work()
             {
                 // Run any remaining microtasks before exiting
                 scope.perform_microtask_checkpoint();
@@ -8980,10 +8999,11 @@ impl MinimalRuntime {
             let mut last_trim_time = std::time::Instant::now();
             loop {
                 crate::tooling::inspector::service_pending_evaluations(scope);
-                let pumped = {
+                let (pumped, websocket_events) = {
                     let p = crate::nodejs_core::http::pump_pending_http_requests_in_scope(
                         scope, &context,
                     );
+                    let websocket_events = crate::web_api::websocket::pump_websocket_events(scope);
                     execute_next_tick_callbacks(scope);
                     scope.perform_microtask_checkpoint();
                     execute_fired_timers(scope);
@@ -8992,7 +9012,7 @@ impl MinimalRuntime {
                     mark_immediate_callbacks_deferred();
                     execute_next_tick_callbacks(scope);
                     scope.perform_microtask_checkpoint();
-                    p
+                    (p, websocket_events)
                 };
 
                 let listening = crate::nodejs_core::http::has_listening_http_servers();
@@ -9003,10 +9023,11 @@ impl MinimalRuntime {
                     && !pending_async
                     && !has_pending_next_ticks()
                     && !has_pending_immediates()
+                    && !crate::web_api::websocket::has_pending_websocket_work()
                 {
                     break;
                 }
-                if pumped > 0 || pending_req || pending_async {
+                if pumped > 0 || pending_req || pending_async || websocket_events {
                     idle_ticks = 0;
                     // Active traffic: keep pumping without delay while there is work
                     continue;

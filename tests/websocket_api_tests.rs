@@ -24,7 +24,7 @@ mod tests {
     #[test]
     fn test_websocket_instance_creation() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.readyState
         "#;
 
@@ -37,7 +37,7 @@ mod tests {
     #[test]
     fn test_websocket_ready_state() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.readyState === 0 || ws.readyState === 1
         "#;
 
@@ -50,7 +50,7 @@ mod tests {
     #[test]
     fn test_websocket_url_property() {
         let code = r#"
-            const ws = new WebSocket('ws://example.com/socket');
+            const ws = new WebSocket('ws://127.0.0.1:1/socket');
             ws.url
         "#;
 
@@ -90,7 +90,7 @@ mod tests {
     #[test]
     fn test_websocket_event_handler() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.onopen = function() { return 'opened'; };
             typeof ws.onopen
         "#;
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_websocket_onmessage() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.onmessage = function(event) { return event.data; };
             typeof ws.onmessage
         "#;
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn test_websocket_onerror() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.onerror = function() { return 'error handled'; };
             typeof ws.onerror
         "#;
@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn test_websocket_onclose() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.onclose = function(event) { return 'closed'; };
             typeof ws.onclose
         "#;
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn test_websocket_send_method() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             typeof ws.send
         "#;
 
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn test_websocket_close_method() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             typeof ws.close
         "#;
 
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn test_websocket_buffered_amount() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             typeof ws.bufferedAmount
         "#;
 
@@ -188,7 +188,7 @@ mod tests {
     #[test]
     fn test_websocket_binary_type() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.binaryType = 'arraybuffer';
             ws.binaryType
         "#;
@@ -202,8 +202,8 @@ mod tests {
     #[test]
     fn test_multiple_websocket_instances() {
         let code = r#"
-            const ws1 = new WebSocket('ws://echo1.websocket.org');
-            const ws2 = new WebSocket('ws://echo2.websocket.org');
+            const ws1 = new WebSocket('ws://127.0.0.1:1');
+            const ws2 = new WebSocket('ws://127.0.0.1:1');
             ws1 !== ws2 && ws1.readyState !== ws2.readyState
         "#;
 
@@ -216,7 +216,7 @@ mod tests {
     #[test]
     fn test_websocket_event_object() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             const event = { type: 'open', bubbles: false, cancelable: false };
             event.type === 'open'
         "#;
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn test_websocket_secure_url() {
         let code = r#"
-            const ws = new WebSocket('wss://secure.websocket.org');
+            const ws = new WebSocket('wss://127.0.0.1:1');
             ws.url.indexOf('wss://') === 0
         "#;
 
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn test_websocket_url_with_params() {
         let code = r#"
-            const ws = new WebSocket('ws://example.com/ws?token=abc123');
+            const ws = new WebSocket('ws://127.0.0.1:1/ws?token=abc123');
             ws.url.indexOf('token=abc123') > 0
         "#;
 
@@ -262,7 +262,7 @@ mod tests {
     #[test]
     fn test_websocket_extensions_property() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             typeof ws.extensions
         "#;
 
@@ -276,7 +276,7 @@ mod tests {
     #[test]
     fn test_websocket_protocol_property() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             typeof ws.protocol
         "#;
 
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn test_websocket_binary_type_blob() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.binaryType = 'blob';
             ws.binaryType === 'blob'
         "#;
@@ -327,7 +327,7 @@ mod tests {
     #[test]
     fn test_websocket_add_event_listener() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             typeof ws.addEventListener
         "#;
 
@@ -341,7 +341,7 @@ mod tests {
     #[test]
     fn test_websocket_remove_event_listener() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             typeof ws.removeEventListener
         "#;
 
@@ -359,7 +359,7 @@ mod tests {
     #[test]
     fn test_websocket_binary_type_arraybuffer() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.binaryType = 'arraybuffer';
             ws.binaryType === 'arraybuffer'
         "#;
@@ -378,7 +378,7 @@ mod tests {
     #[test]
     fn test_websocket_binary_arraybuffer_type() {
         let code = r#"
-            const ws = new WebSocket('ws://echo.websocket.org');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             ws.binaryType = 'arraybuffer';
             // Check that event.data will be ArrayBuffer when binary message received
             // We can't test actual message reception without a server,
@@ -526,7 +526,7 @@ mod tests {
     #[test]
     fn test_websocket_onerror_handler() {
         let code = r#"
-            const ws = new WebSocket('ws://example.com');
+            const ws = new WebSocket('ws://127.0.0.1:1');
             typeof ws.onerror === 'function'
         "#;
 
