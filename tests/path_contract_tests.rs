@@ -160,7 +160,9 @@ fn posix_matches_path_and_win32_only_changes_sep_delimiter() {
 
 #[test]
 #[serial]
-fn parse_leading_dot_basename_keeps_ext_unlike_extname() {
+fn parse_leading_dot_basename_sets_name_and_ext_unlike_extname() {
+    // Amber parse: when the only `.` opens the basename, ext equals base, so
+    // name falls back to base too. extname still treats that as a dotfile.
     assert_eq!(
         eval(
             r#"
@@ -169,6 +171,6 @@ fn parse_leading_dot_basename_keeps_ext_unlike_extname() {
             [path.extname('/a/.gitignore'), p.ext, p.name, p.base].join('|');
             "#
         ),
-        "|.gitignore||.gitignore"
+        "|.gitignore|.gitignore|.gitignore"
     );
 }

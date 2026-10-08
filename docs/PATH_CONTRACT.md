@@ -29,7 +29,7 @@ This is a **POSIX** path contract for the host build used in CI (Linux). It is n
 
 - This contract is the POSIX host behavior. It does not implement Windows drive letters, UNC roots, or backslash-separated semantics in the methods.
 - `path.win32.join`, `resolve`, `normalize`, `dirname`, `basename`, `extname`, `relative`, `isAbsolute`, `parse`, and `format` are the POSIX implementations. Only `path.win32.sep` and `path.win32.delimiter` differ from `path` / `path.posix`.
-- `parse` of a basename that starts with `.` (for example `.gitignore`) puts the leading-dot segment in `ext` and leaves `name` empty. `extname` for that basename is still `""`.
+- `parse` of a basename that starts with `.` (for example `.gitignore`) sets both `ext` and `name` to that basename (and `base` matches). `extname` for that basename is still `""`.
 - Named ESM exports do not include `relative`, `parse`, `format`, `isAbsolute`, `sep`, `delimiter`, `posix`, or `win32`. Those remain properties on the default export / `require('path')` object.
 
 ## Non-goals
