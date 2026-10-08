@@ -366,11 +366,11 @@ fn test_readfile_callback_returns_content() {
     let code = format!(
         r#"
         const fs = require('fs');
-        let result;
-        fs.readFile("{}", "utf8", (err, data) => {{
-            result = err ? err : data;
+        new Promise((resolve) => {{
+            fs.readFile("{}", "utf8", (err, data) => {{
+                resolve(err ? String(err) : data);
+            }});
         }});
-        result;
     "#,
         test_file.to_string_lossy().into_owned()
     );
@@ -394,11 +394,11 @@ fn test_writefile_callback_completes() {
     let code = format!(
         r#"
         const fs = require('fs');
-        let completed = false;
-        fs.writeFile("{}", "Async write content", (err) => {{
-            completed = !err;
+        new Promise((resolve) => {{
+            fs.writeFile("{}", "Async write content", (err) => {{
+                resolve(err ? "false" : "true");
+            }});
         }});
-        completed;
     "#,
         test_file.to_string_lossy().into_owned()
     );
@@ -459,11 +459,11 @@ fn test_readfile_error_callback() {
 
     let code = r#"
         const fs = require('fs');
-        let errorReceived = false;
-        fs.readFile("/nonexistent/path.txt", "utf8", (err, data) => {
-            errorReceived = !!err;
+        new Promise((resolve) => {
+            fs.readFile("/nonexistent/path.txt", "utf8", (err, data) => {
+                resolve(err ? "true" : "false");
+            });
         });
-        errorReceived;
     "#;
 
     let result = runtime.execute_code(code).expect("Execution failed");

@@ -119,24 +119,21 @@ fn callback_read_and_write_keep_binary_and_report_enoent() {
     let code = format!(
         r#"
         const fs = require('fs');
-        let read = "";
-        fs.readFile("{path}", (err, data) => {{
-          read = err ? "err" : [Buffer.isBuffer(data), data.length, data[0], data.toString("hex")].join(",");
-        }});
-        let utf8 = "";
-        fs.readFile("{path}", "latin1", (err, data) => {{
-          utf8 = err ? "err" : data;
-        }});
         const out = "{path}.out";
-        let wrote = "";
-        fs.writeFile(out, Buffer.from([255, 0, 65]), (err) => {{
-          wrote = err ? err.code : "ok";
-        }});
-        let missing = "";
-        fs.readFile("{path}.missing", (err) => {{
-          missing = err && err.code + ":" + err.syscall;
-        }});
-        [read, utf8, wrote, fs.readFileSync(out, "hex"), missing].join('|');
+        Promise.all([
+          new Promise((resolve) => fs.readFile("{path}", (err, data) => {{
+            resolve(err ? "err" : [Buffer.isBuffer(data), data.length, data[0], data.toString("hex")].join(","));
+          }})),
+          new Promise((resolve) => fs.readFile("{path}", "latin1", (err, data) => {{
+            resolve(err ? "err" : data);
+          }})),
+          new Promise((resolve) => fs.writeFile(out, Buffer.from([255, 0, 65]), (err) => {{
+            resolve(err ? err.code : "ok");
+          }})),
+          new Promise((resolve) => fs.readFile("{path}.missing", (err) => {{
+            resolve(err && err.code + ":" + err.syscall);
+          }}))
+        ]).then((parts) => [parts[0], parts[1], parts[2], fs.readFileSync(out, "hex"), parts[3]].join('|'));
         "#
     );
     assert_eq!(
@@ -157,21 +154,16 @@ fn promises_read_defaults_to_buffer_and_honors_encoding_object() {
         r#"
         const fs = require('fs');
         const raw = fs.promises.readFile("{path}");
-        raw.then((buf) => [Buffer.isBuffer(buf), buf.length, buf[0], buf.toString("utf8")].join(","));
         const hex = fs.promises.readFile("{path}", {{ encoding: "hex" }});
-        hex.then((text) => text);
         const written = "{path}.out";
         const pending = fs.promises.writeFile(written, "aGk=", "base64");
-        pending.then(() => "wrote");
         const appended = fs.promises.appendFile(written, "21", "hex");
-        appended.then(() => "appended");
-        [
-          raw.__result__,
-          hex.__result__,
-          pending.__result__,
-          appended.__result__,
-          fs.readFileSync(written, "utf8")
-        ].join('|');
+        Promise.all([
+          raw.then((buf) => [Buffer.isBuffer(buf), buf.length, buf[0], buf.toString("utf8")].join(",")),
+          hex.then((text) => text),
+          pending.then(() => "wrote"),
+          appended.then(() => "appended")
+        ]).then((parts) => parts.concat(fs.readFileSync(written, "utf8")).join('|'));
         "#
     );
     assert_eq!(run(&code), "true,2,104,hi|6869|wrote|appended|hi!");

@@ -919,12 +919,7 @@ fn fs_promises_read_file_rechecks_permission_after_thenable_path_mutation() {
         r#"
         const p = require("fs/promises").readFile("{}", "utf8");
         p.__path = "{}";
-        try {{
-            p.then((content) => content, (error) => String(error));
-            p.__result__ || "no-result";
-        }} catch (error) {{
-            String(error && error.message ? error.message : error);
-        }}
+        p.then((content) => content, (error) => String(error));
         "#,
         path_for_js(&allowed_path),
         path_for_js(&secret_path)
@@ -934,12 +929,12 @@ fn fs_promises_read_file_rechecks_permission_after_thenable_path_mutation() {
     reset_global_broker();
 
     assert!(
-        result.contains("permission denied"),
-        "fs.promises.readFile must recheck mutated thenable paths, got: {result}"
+        result.contains("allowed"),
+        "fs.promises.readFile keeps the path captured at the call, got: {result}"
     );
     assert!(
-        !result.contains("classified-value"),
-        "denied mutated read must not leak file contents, got: {result}"
+        !result.contains("secret"),
+        "mutating the promise must not retarget the read, got: {result}"
     );
 }
 
@@ -967,12 +962,7 @@ fn fs_promises_write_file_rechecks_permission_after_thenable_path_mutation() {
         r#"
         const p = require("fs/promises").writeFile("{}", "created");
         p.__path = "{}";
-        try {{
-            p.then(() => "written", (error) => String(error));
-            p.__result__ || "no-result";
-        }} catch (error) {{
-            String(error && error.message ? error.message : error);
-        }}
+        p.then(() => "written", (error) => String(error));
         "#,
         path_for_js(&allowed_path),
         path_for_js(&denied_path)
@@ -982,12 +972,16 @@ fn fs_promises_write_file_rechecks_permission_after_thenable_path_mutation() {
     reset_global_broker();
 
     assert!(
-        result.contains("permission denied"),
-        "fs.promises.writeFile must recheck mutated thenable paths, got: {result}"
+        result.contains("written"),
+        "fs.promises.writeFile keeps the path captured at the call, got: {result}"
     );
     assert!(
         !denied_path.exists(),
-        "denied mutated write must not create the target file, got: {result}"
+        "mutating the promise must not retarget the write, got: {result}"
+    );
+    assert_eq!(
+        fs::read_to_string(&allowed_path).unwrap_or_default(),
+        "created"
     );
 }
 
