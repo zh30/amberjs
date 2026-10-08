@@ -218,7 +218,6 @@ fn test_fs_promises_readfile_content() {
         r#"
         const p = fs.promises.readFile("{}");
         p.then(content => content);
-        p.__result__;
     "#,
         test_file.to_string_lossy().into_owned()
     );
@@ -244,7 +243,6 @@ fn test_fs_promises_writefile_thenable() {
         r#"
         const p = fs.promises.writeFile("{}", "Written content");
         p.then(() => 'done');
-        p.__result__;
     "#,
         test_file.to_string_lossy().into_owned()
     );
@@ -278,7 +276,6 @@ fn test_fs_promises_unlink_thenable() {
         r#"
         const p = fs.promises.unlink("{}");
         p.then(() => 'deleted');
-        p.__result__;
     "#,
         test_file.to_string_lossy().into_owned()
     );
@@ -309,7 +306,6 @@ fn test_fs_promises_rename_thenable() {
         r#"
         const p = fs.promises.rename("{}", "{}");
         p.then(() => 'renamed');
-        p.__result__;
     "#,
         old_file.to_string_lossy().into_owned(),
         new_file.to_string_lossy().into_owned()
@@ -341,7 +337,6 @@ fn test_fs_promises_readdir_thenable() {
         r#"
         const p = fs.promises.readdir("{}");
         p.then(files => files.length);
-        p.__result__;
     "#,
         temp_dir.path().to_string_lossy().into_owned()
     );
@@ -368,7 +363,6 @@ fn test_fs_promises_stat_thenable() {
         r#"
         const p = fs.promises.stat("{}");
         p.then(stat => stat.isFile());
-        p.__result__;
     "#,
         test_file.to_string_lossy().into_owned()
     );
@@ -394,7 +388,6 @@ fn test_fs_promises_mkdir_thenable() {
         r#"
         const p = fs.promises.mkdir("{}");
         p.then(() => 'created');
-        p.__result__;
     "#,
         new_dir.to_string_lossy().into_owned()
     );
@@ -421,7 +414,6 @@ fn test_fs_promises_error_handling() {
             () => 'success',
             (err) => 'error: ' + err
         );
-        p.__result__;
     "#;
 
     let result = runtime.execute_code(code).expect("Execution failed");

@@ -117,6 +117,9 @@ jobs:
       - name: amber serve --https Stable contract
         run: cargo test --test serve_https_contract_tests -- --test-threads=1
 
+      - name: node fs Stable contract
+        run: cargo test --test fs_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 

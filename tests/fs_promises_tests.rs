@@ -384,20 +384,21 @@ fn test_promises_stat_stats_methods_match_file_and_dir() {
         r#"
         const fsPromises = require('fs/promises');
         const fileStat = fsPromises.stat("{}");
-        fileStat.then(stat => [
-          typeof stat.isFile,
-          stat.isFile(),
-          stat.isDirectory(),
-          typeof stat.size,
-          stat.size > 0
-        ].join(','));
         const dirStat = fsPromises.stat("{}");
-        dirStat.then(stat => [
-          typeof stat.isFile,
-          stat.isFile(),
-          stat.isDirectory()
-        ].join(','));
-        fileStat.__result__ + '|' + dirStat.__result__;
+        Promise.all([
+          fileStat.then(stat => [
+            typeof stat.isFile,
+            stat.isFile(),
+            stat.isDirectory(),
+            typeof stat.size,
+            stat.size > 0
+          ].join(',')),
+          dirStat.then(stat => [
+            typeof stat.isFile,
+            stat.isFile(),
+            stat.isDirectory()
+          ].join(','))
+        ]).then(parts => parts.join('|'));
     "#,
         test_file.to_string_lossy().into_owned(),
         temp_dir.path().to_string_lossy().into_owned()
