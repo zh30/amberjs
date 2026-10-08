@@ -135,6 +135,9 @@ jobs:
       - name: web events channels Stable contract
         run: cargo test --test events_channels_contract_tests -- --test-threads=1
 
+      - name: web crypto Stable contract
+        run: cargo test --test web_crypto_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 
