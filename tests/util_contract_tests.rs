@@ -162,10 +162,7 @@ fn promisify_callbackify_inherits_and_custom() {
           ].join('|');
         })()
         "#;
-    assert_eq!(
-        run(code),
-        "42|negative|99|symbol|3|true|TypeError"
-    );
+    assert_eq!(run(code), "42|negative|99|symbol|3|true|TypeError");
 }
 
 #[test]
