@@ -224,8 +224,13 @@ mod broadcast_channel_tests {
                     received = true;
                 };
                 peer.close();
-                sender.postMessage('after close');
-                received === false
+                let threw = false;
+                try {
+                    peer.postMessage('after close');
+                } catch (error) {
+                    threw = error.name === 'InvalidStateError';
+                }
+                received === false && threw
             "#,
             ])
             .output()

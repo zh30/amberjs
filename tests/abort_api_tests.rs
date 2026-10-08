@@ -30,13 +30,13 @@ mod tests {
     #[serial]
     fn test_abort_signal_global() {
         let code = r#"
-            typeof AbortSignal
+            typeof AbortSignal === 'function' ? 'function' : typeof AbortSignal
         "#;
 
         let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
         let result = runtime.execute_code(code);
         assert!(result.is_ok(), "AbortSignal should be available globally");
-        assert_eq!(result.unwrap().trim(), "object");
+        assert_eq!(result.unwrap().trim(), "function");
     }
 
     /// 测试 AbortController 基本创建
@@ -75,7 +75,7 @@ mod tests {
     #[serial]
     fn test_abort_signal_static_aborted() {
         let code = r#"
-            AbortSignal.aborted === false
+            new AbortController().signal.aborted === false
         "#;
 
         let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");

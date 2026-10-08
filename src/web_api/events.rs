@@ -161,81 +161,303 @@ impl Default for EventTarget {
         Self::new()
     }
 }
+fn set_event_constant(
+    scope: &mut v8::PinScope,
+    object: v8::Local<v8::Object>,
+    name: &str,
+    value: i32,
+) {
+    let key = v8::String::new(scope, name).unwrap();
+    let number = v8::Integer::new(scope, value);
+    object.set(scope, key.into(), number.into());
+}
+
+fn install_event_constants(scope: &mut v8::PinScope, object: v8::Local<v8::Object>) {
+    set_event_constant(scope, object, "NONE", 0);
+    set_event_constant(scope, object, "CAPTURING_PHASE", 1);
+    set_event_constant(scope, object, "AT_TARGET", 2);
+    set_event_constant(scope, object, "BUBBLING_PHASE", 3);
+}
+
 /// Setup EventTarget and Event API in V8 context
 pub fn setup_events_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
     context: &v8::Local<v8::Context>,
 ) -> anyhow::Result<()> {
-    // Create EventTarget constructor
-    let event_target_template: _ =
-        v8::FunctionTemplate::new(scope, event_target_constructor_callback);
-    let event_target_constructor: _ = event_target_template.get_function(scope).unwrap();
+    let event_target_template = v8::FunctionTemplate::new(scope, event_target_constructor_callback);
+    event_target_template.set_class_name(v8::String::new(scope, "EventTarget").unwrap());
+    let event_target_proto = event_target_template.prototype_template(scope);
+    event_target_proto.set(
+        v8::String::new(scope, "addEventListener").unwrap().into(),
+        v8::FunctionTemplate::new(scope, event_target_add_event_listener_callback).into(),
+    );
+    event_target_proto.set(
+        v8::String::new(scope, "removeEventListener")
+            .unwrap()
+            .into(),
+        v8::FunctionTemplate::new(scope, event_target_remove_event_listener_callback).into(),
+    );
+    event_target_proto.set(
+        v8::String::new(scope, "dispatchEvent").unwrap().into(),
+        v8::FunctionTemplate::new(scope, event_target_dispatch_event_callback).into(),
+    );
+    let event_target_constructor = event_target_template.get_function(scope).unwrap();
 
-    // Set EventTarget to global
-    let global: _ = context.global(scope);
-    let event_target_key: _ = v8::String::new(scope, "EventTarget").unwrap();
+    let global = context.global(scope);
     global.set(
         scope,
-        event_target_key.into(),
+        v8::String::new(scope, "EventTarget").unwrap().into(),
         event_target_constructor.into(),
     );
 
-    // Set Event constructor to global
-    let event_fn = v8::FunctionTemplate::new(scope, event_constructor_callback);
-    let event_constructor_func = event_fn.get_function(scope).unwrap();
-    let event_key: _ = v8::String::new(scope, "Event").unwrap();
-    global.set(scope, event_key.into(), event_constructor_func.into());
-
-    // Set ExtendableEvent to global
-    let extendable_event_fn =
-        v8::FunctionTemplate::new(scope, extendable_event_constructor_callback);
-    let extendable_event_func = extendable_event_fn.get_function(scope).unwrap();
-    let extendable_event_key: _ = v8::String::new(scope, "ExtendableEvent").unwrap();
+    let event_template = v8::FunctionTemplate::new(scope, event_constructor_callback);
+    event_template.set_class_name(v8::String::new(scope, "Event").unwrap());
+    let event_proto = event_template.prototype_template(scope);
+    event_proto.set(
+        v8::String::new(scope, "preventDefault").unwrap().into(),
+        v8::FunctionTemplate::new(scope, event_prevent_default_callback).into(),
+    );
+    event_proto.set(
+        v8::String::new(scope, "stopPropagation").unwrap().into(),
+        v8::FunctionTemplate::new(scope, event_stop_propagation_callback).into(),
+    );
+    event_proto.set(
+        v8::String::new(scope, "stopImmediatePropagation")
+            .unwrap()
+            .into(),
+        v8::FunctionTemplate::new(scope, event_stop_immediate_propagation_callback).into(),
+    );
+    event_proto.set(
+        v8::String::new(scope, "composedPath").unwrap().into(),
+        v8::FunctionTemplate::new(scope, event_composed_path_callback).into(),
+    );
+    let event_constructor = event_template.get_function(scope).unwrap();
+    install_event_constants(scope, event_constructor.into());
+    if let Some(prototype) = event_constructor
+        .get(scope, v8::String::new(scope, "prototype").unwrap().into())
+        .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
+    {
+        install_event_constants(scope, prototype);
+    }
     global.set(
         scope,
-        extendable_event_key.into(),
+        v8::String::new(scope, "Event").unwrap().into(),
+        event_constructor.into(),
+    );
+
+    let extendable_event_fn =
+        v8::FunctionTemplate::new(scope, extendable_event_constructor_callback);
+    extendable_event_fn.set_class_name(v8::String::new(scope, "ExtendableEvent").unwrap());
+    let extendable_event_func = extendable_event_fn.get_function(scope).unwrap();
+    global.set(
+        scope,
+        v8::String::new(scope, "ExtendableEvent").unwrap().into(),
         extendable_event_func.into(),
     );
 
     Ok(())
 }
+fn events_map<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    target: v8::Local<v8::Object>,
+) -> v8::Local<'a, v8::Object> {
+    let events_key = v8::String::new(scope, "_events").unwrap();
+    target
+        .get(scope, events_key.into())
+        .filter(|value| value.is_object())
+        .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
+        .unwrap_or_else(|| {
+            let events_obj = v8::Object::new(scope);
+            let events_key = v8::String::new(scope, "_events").unwrap();
+            target.set(scope, events_key.into(), events_obj.into());
+            events_obj
+        })
+}
+
+fn listener_bucket<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    events_obj: v8::Local<v8::Object>,
+    event_type: &str,
+) -> v8::Local<'a, v8::Array> {
+    let listeners_key = v8::String::new(scope, event_type).unwrap();
+    events_obj
+        .get(scope, listeners_key.into())
+        .filter(|value| value.is_array())
+        .and_then(|value| v8::Local::<v8::Array>::try_from(value).ok())
+        .unwrap_or_else(|| {
+            let new_array = v8::Array::new(scope, 0);
+            let listeners_key = v8::String::new(scope, event_type).unwrap();
+            events_obj.set(scope, listeners_key.into(), new_array.into());
+            new_array
+        })
+}
+
+fn object_bool(scope: &mut v8::PinScope, object: v8::Local<v8::Object>, key: &str) -> bool {
+    object
+        .get(scope, v8::String::new(scope, key).unwrap().into())
+        .is_some_and(|value| value.is_true())
+}
+
+fn is_listener_value(scope: &mut v8::PinScope, listener: v8::Local<v8::Value>) -> bool {
+    if listener.is_null() || listener.is_undefined() {
+        return false;
+    }
+    if listener.is_function() {
+        return true;
+    }
+    v8::Local::<v8::Object>::try_from(listener)
+        .ok()
+        .and_then(|object| object.get(scope, v8::String::new(scope, "handleEvent").unwrap().into()))
+        .is_some_and(|value| value.is_function())
+}
+
+fn listener_flags<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    options: v8::Local<v8::Value>,
+) -> (bool, bool, bool, Option<v8::Local<'a, v8::Object>>) {
+    if options.is_boolean() {
+        return (options.is_true(), false, false, None);
+    }
+    let Ok(object) = v8::Local::<v8::Object>::try_from(options) else {
+        return (false, false, false, None);
+    };
+    let capture = object_bool(scope, object, "capture");
+    let once = object_bool(scope, object, "once");
+    let passive = object_bool(scope, object, "passive");
+    let signal = object
+        .get(scope, v8::String::new(scope, "signal").unwrap().into())
+        .filter(|value| value.is_object())
+        .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok());
+    (capture, once, passive, signal)
+}
+
+fn record_callback<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    record: v8::Local<v8::Value>,
+) -> Option<v8::Local<'a, v8::Value>> {
+    let object = v8::Local::<v8::Object>::try_from(record).ok()?;
+    object.get(scope, v8::String::new(scope, "callback").unwrap().into())
+}
+
+fn same_listener(
+    scope: &mut v8::PinScope,
+    record: v8::Local<v8::Value>,
+    callback: v8::Local<v8::Value>,
+    capture: bool,
+) -> bool {
+    let Some(existing_callback) = record_callback(scope, record) else {
+        return false;
+    };
+    if !existing_callback.strict_equals(callback) {
+        return false;
+    }
+    let Ok(object) = v8::Local::<v8::Object>::try_from(record) else {
+        return false;
+    };
+    object_bool(scope, object, "capture") == capture
+}
+
+fn throw_type_error(scope: &mut v8::PinScope, message: &str) {
+    let message = v8::String::new(scope, message).unwrap();
+    scope.throw_exception(v8::Exception::type_error(scope, message));
+}
+
+fn throw_invalid_state(scope: &mut v8::PinScope, message: &str) {
+    let global = scope.get_current_context().global(scope);
+    let text = v8::String::new(scope, message).unwrap();
+    let name = v8::String::new(scope, "InvalidStateError").unwrap();
+    if let Some(constructor) = global
+        .get(
+            scope,
+            v8::String::new(scope, "DOMException").unwrap().into(),
+        )
+        .and_then(|value| v8::Local::<v8::Function>::try_from(value).ok())
+    {
+        if let Some(error) = constructor.new_instance(scope, &[text.into(), name.into()]) {
+            scope.throw_exception(error.into());
+            return;
+        }
+    }
+    let error = v8::Exception::error(scope, text);
+    if let Ok(object) = v8::Local::<v8::Object>::try_from(error) {
+        object.set(
+            scope,
+            v8::String::new(scope, "name").unwrap().into(),
+            name.into(),
+        );
+    }
+    scope.throw_exception(error);
+}
+
+fn bind_listener_signal(
+    scope: &mut v8::PinScope,
+    signal: v8::Local<v8::Object>,
+    target: v8::Local<v8::Object>,
+    event_type: &str,
+    callback: v8::Local<v8::Value>,
+    capture: bool,
+) {
+    let Some(add) = signal
+        .get(
+            scope,
+            v8::String::new(scope, "addEventListener").unwrap().into(),
+        )
+        .and_then(|value| v8::Local::<v8::Function>::try_from(value).ok())
+    else {
+        return;
+    };
+    let remover_source = r#"
+        (function(target, type, listener, capture) {
+            return function() { target.removeEventListener(type, listener, capture); };
+        })
+    "#;
+    let Some(source) = v8::String::new(scope, remover_source) else {
+        return;
+    };
+    let Some(script) = v8::Script::compile(scope, source, None) else {
+        return;
+    };
+    let Some(factory_value) = script.run(scope) else {
+        return;
+    };
+    let Ok(factory) = v8::Local::<v8::Function>::try_from(factory_value) else {
+        return;
+    };
+    let event_type = v8::String::new(scope, event_type).unwrap();
+    let capture_value = v8::Boolean::new(scope, capture);
+    let Some(remover) = factory.call(
+        scope,
+        v8::undefined(scope).into(),
+        &[
+            target.into(),
+            event_type.into(),
+            callback,
+            capture_value.into(),
+        ],
+    ) else {
+        return;
+    };
+    let abort_type = v8::String::new(scope, "abort").unwrap();
+    let _ = add.call(scope, signal.into(), &[abort_type.into(), remover]);
+}
+
 /// EventTarget constructor callback
 fn event_target_constructor_callback(
     scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
+    args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let event_target_obj = _args.this();
-
-    let events_key = v8::String::new(scope, "_events").unwrap();
+    if !args.is_construct_call() {
+        throw_type_error(scope, "EventTarget constructor must be called with new");
+        return;
+    }
+    let event_target_obj = args.this();
     let events_obj = v8::Object::new(scope);
-    event_target_obj.set(scope, events_key.into(), events_obj.into());
-
-    let add_event_key = v8::String::new(scope, "addEventListener").unwrap();
-    let add_event_func = v8::FunctionTemplate::new(scope, event_target_add_event_listener_callback);
-    let add_event_func_instance: _ = add_event_func.get_function(scope).unwrap();
-    event_target_obj.set(scope, add_event_key.into(), add_event_func_instance.into());
-
-    let remove_event_key = v8::String::new(scope, "removeEventListener").unwrap();
-    let remove_event_func =
-        v8::FunctionTemplate::new(scope, event_target_remove_event_listener_callback);
-    let remove_event_func_instance: _ = remove_event_func.get_function(scope).unwrap();
     event_target_obj.set(
         scope,
-        remove_event_key.into(),
-        remove_event_func_instance.into(),
+        v8::String::new(scope, "_events").unwrap().into(),
+        events_obj.into(),
     );
-
-    let dispatch_event_key = v8::String::new(scope, "dispatchEvent").unwrap();
-    let dispatch_event_func =
-        v8::FunctionTemplate::new(scope, event_target_dispatch_event_callback);
-    let dispatch_event_func_instance: _ = dispatch_event_func.get_function(scope).unwrap();
-    event_target_obj.set(
-        scope,
-        dispatch_event_key.into(),
-        dispatch_event_func_instance.into(),
-    );
-
     retval.set(event_target_obj.into());
 }
 
@@ -244,56 +466,65 @@ fn event_target_add_event_listener_callback(
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
-    let event_type = args.get(0);
+    if args.length() < 2 {
+        return;
+    }
     let listener = args.get(1);
-
-    if !event_type.is_string() {
-        let error =
-            v8::String::new(scope, "addEventListener: event type must be a string").unwrap();
-        let error_obj = v8::Exception::type_error(scope, error);
-        scope.throw_exception(error_obj.into());
+    if !is_listener_value(scope, listener) {
         return;
     }
-
-    if !listener.is_function() {
-        let error =
-            v8::String::new(scope, "addEventListener: listener must be a function").unwrap();
-        let error_obj = v8::Exception::type_error(scope, error);
-        scope.throw_exception(error_obj.into());
-        return;
-    }
-
-    let target = args.this();
-    let events_key = v8::String::new(scope, "_events").unwrap();
-    let events_obj = target
-        .get(scope, events_key.into())
-        .filter(|value| value.is_object())
-        .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
-        .unwrap_or_else(|| {
-            let events_obj = v8::Object::new(scope);
-            let events_key = v8::String::new(scope, "_events").unwrap();
-            target.set(scope, events_key.into(), events_obj.into());
-            events_obj
-        });
-    let event_type_str = event_type
+    let event_type = args
+        .get(0)
         .to_string(scope)
         .map(|value| value.to_rust_string_lossy(scope))
         .unwrap_or_default();
+    let (capture, once, passive, signal) = listener_flags(scope, args.get(2));
+    if let Some(signal) = signal {
+        if signal
+            .get(scope, v8::String::new(scope, "aborted").unwrap().into())
+            .is_some_and(|value| value.is_true())
+        {
+            return;
+        }
+    }
 
-    let listeners_key = v8::String::new(scope, &event_type_str).unwrap();
-    let listeners_array = events_obj
-        .get(scope, listeners_key.into())
-        .filter(|value| value.is_array())
-        .and_then(|value| v8::Local::<v8::Array>::try_from(value).ok())
-        .unwrap_or_else(|| {
-            let new_array = v8::Array::new(scope, 0);
-            let listeners_key = v8::String::new(scope, &event_type_str).unwrap();
-            events_obj.set(scope, listeners_key.into(), new_array.into());
-            new_array
-        });
+    let target = args.this();
+    let events_obj = events_map(scope, target);
+    let listeners = listener_bucket(scope, events_obj, &event_type);
+    for index in 0..listeners.length() {
+        if let Some(existing) = listeners.get_index(scope, index) {
+            if same_listener(scope, existing, listener, capture) {
+                return;
+            }
+        }
+    }
 
-    let index = listeners_array.length();
-    listeners_array.set_index(scope, index, listener);
+    let record = v8::Object::new(scope);
+    record.set(
+        scope,
+        v8::String::new(scope, "callback").unwrap().into(),
+        listener,
+    );
+    record.set(
+        scope,
+        v8::String::new(scope, "capture").unwrap().into(),
+        v8::Boolean::new(scope, capture).into(),
+    );
+    record.set(
+        scope,
+        v8::String::new(scope, "once").unwrap().into(),
+        v8::Boolean::new(scope, once).into(),
+    );
+    record.set(
+        scope,
+        v8::String::new(scope, "passive").unwrap().into(),
+        v8::Boolean::new(scope, passive).into(),
+    );
+    listeners.set_index(scope, listeners.length(), record.into());
+
+    if let Some(signal) = signal {
+        bind_listener_signal(scope, signal, target, &event_type, listener, capture);
+    }
 }
 
 fn event_target_remove_event_listener_callback(
@@ -301,52 +532,76 @@ fn event_target_remove_event_listener_callback(
     args: v8::FunctionCallbackArguments,
     _rv: v8::ReturnValue,
 ) {
-    let event_type = args.get(0);
-    let listener = args.get(1);
-    if !event_type.is_string() || !listener.is_function() {
+    if args.length() < 2 {
         return;
     }
-
-    let target = args.this();
-    let events_key = v8::String::new(scope, "_events").unwrap();
-    let events_obj = target
-        .get(scope, events_key.into())
-        .filter(|value| value.is_object())
-        .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
-        .unwrap_or_else(|| {
-            let events_obj = v8::Object::new(scope);
-            let events_key = v8::String::new(scope, "_events").unwrap();
-            target.set(scope, events_key.into(), events_obj.into());
-            events_obj
-        });
-    let event_type_str = event_type
+    let listener = args.get(1);
+    if !is_listener_value(scope, listener) {
+        return;
+    }
+    let event_type = args
+        .get(0)
         .to_string(scope)
         .map(|value| value.to_rust_string_lossy(scope))
         .unwrap_or_default();
-    let listeners_key = v8::String::new(scope, &event_type_str).unwrap();
-
-    let Some(listeners_value) = events_obj.get(scope, listeners_key.into()) else {
+    let (capture, _, _, _) = listener_flags(scope, args.get(2));
+    let target = args.this();
+    let events_obj = events_map(scope, target);
+    let Some(listeners_value) =
+        events_obj.get(scope, v8::String::new(scope, &event_type).unwrap().into())
+    else {
         return;
     };
-    if !listeners_value.is_array() {
+    let Ok(listeners) = v8::Local::<v8::Array>::try_from(listeners_value) else {
         return;
-    }
+    };
 
-    let listeners_array = v8::Local::<v8::Array>::try_from(listeners_value).unwrap();
-    let new_array = v8::Array::new(scope, 0);
-    let mut new_len = 0;
-
-    for i in 0..listeners_array.length() {
-        if let Some(existing_listener) = listeners_array.get_index(scope, i) {
-            if !existing_listener.strict_equals(listener) {
-                new_array.set_index(scope, new_len, existing_listener);
-                new_len += 1;
+    let filtered = v8::Array::new(scope, 0);
+    let mut next = 0u32;
+    for index in 0..listeners.length() {
+        if let Some(existing) = listeners.get_index(scope, index) {
+            if same_listener(scope, existing, listener, capture) {
+                continue;
             }
+            filtered.set_index(scope, next, existing);
+            next += 1;
         }
     }
+    events_obj.set(
+        scope,
+        v8::String::new(scope, &event_type).unwrap().into(),
+        filtered.into(),
+    );
+}
 
-    let listeners_key = v8::String::new(scope, &event_type_str).unwrap();
-    events_obj.set(scope, listeners_key.into(), new_array.into());
+fn invoke_listener(
+    scope: &mut v8::PinScope,
+    target: v8::Local<v8::Object>,
+    callback: v8::Local<v8::Value>,
+    event: v8::Local<v8::Value>,
+) {
+    let (function, receiver) = if callback.is_function() {
+        (
+            v8::Local::<v8::Function>::try_from(callback).ok(),
+            target.into(),
+        )
+    } else {
+        let function = v8::Local::<v8::Object>::try_from(callback)
+            .ok()
+            .and_then(|object| {
+                object.get(scope, v8::String::new(scope, "handleEvent").unwrap().into())
+            })
+            .and_then(|value| v8::Local::<v8::Function>::try_from(value).ok());
+        (function, callback)
+    };
+    let Some(function) = function else {
+        return;
+    };
+    v8::tc_scope!(let try_catch, scope);
+    let _ = function.call(try_catch, receiver, &[event]);
+    if try_catch.has_caught() {
+        try_catch.reset();
+    }
 }
 
 fn event_target_dispatch_event_callback(
@@ -355,59 +610,212 @@ fn event_target_dispatch_event_callback(
     mut rv: v8::ReturnValue,
 ) {
     let event = args.get(0);
-    if !event.is_object() {
-        let error = v8::String::new(scope, "dispatchEvent: event must be an object").unwrap();
-        let error_obj = v8::Exception::type_error(scope, error);
-        scope.throw_exception(error_obj.into());
+    let Ok(event_obj) = v8::Local::<v8::Object>::try_from(event) else {
+        throw_type_error(
+            scope,
+            "Failed to execute 'dispatchEvent': parameter 1 is not of type 'Event'.",
+        );
+        return;
+    };
+    if object_bool(scope, event_obj, "_dispatching") {
+        throw_invalid_state(scope, "The event is already being dispatched.");
         return;
     }
 
     let target = args.this();
-    let event_obj = v8::Local::<v8::Object>::try_from(event).unwrap();
-    let target_key = v8::String::new(scope, "target").unwrap();
-    event_obj.set(scope, target_key.into(), target.into());
-    let current_target_key = v8::String::new(scope, "currentTarget").unwrap();
-    event_obj.set(scope, current_target_key.into(), target.into());
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "_dispatching").unwrap().into(),
+        v8::Boolean::new(scope, true).into(),
+    );
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "target").unwrap().into(),
+        target.into(),
+    );
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "currentTarget").unwrap().into(),
+        target.into(),
+    );
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "eventPhase").unwrap().into(),
+        v8::Integer::new(scope, 2).into(),
+    );
 
-    let event_type_key = v8::String::new(scope, "type").unwrap();
     let event_type = event_obj
-        .get(scope, event_type_key.into())
+        .get(scope, v8::String::new(scope, "type").unwrap().into())
         .and_then(|value| value.to_string(scope))
         .map(|value| value.to_rust_string_lossy(scope))
         .unwrap_or_default();
+    let events_obj = events_map(scope, target);
+    let listeners = listener_bucket(scope, events_obj, &event_type);
+    let mut capture_listeners = Vec::new();
+    let mut bubble_listeners = Vec::new();
+    for index in 0..listeners.length() {
+        let Some(record) = listeners.get_index(scope, index) else {
+            continue;
+        };
+        let global = v8::Global::new(scope, record);
+        let is_capture = record
+            .to_object(scope)
+            .is_some_and(|object| object_bool(scope, object, "capture"));
+        if is_capture {
+            capture_listeners.push(global);
+        } else {
+            bubble_listeners.push(global);
+        }
+    }
 
-    let events_key = v8::String::new(scope, "_events").unwrap();
-    let events_obj = target
-        .get(scope, events_key.into())
-        .filter(|value| value.is_object())
-        .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
-        .unwrap_or_else(|| {
-            let events_obj = v8::Object::new(scope);
-            let events_key = v8::String::new(scope, "_events").unwrap();
-            target.set(scope, events_key.into(), events_obj.into());
-            events_obj
-        });
-    let listeners_key = v8::String::new(scope, &event_type).unwrap();
-    if let Some(listeners_value) = events_obj.get(scope, listeners_key.into()) {
-        if listeners_value.is_array() {
-            let listeners_array = v8::Local::<v8::Array>::try_from(listeners_value).unwrap();
-            for i in 0..listeners_array.length() {
-                if let Some(listener_value) = listeners_array.get_index(scope, i) {
-                    if listener_value.is_function() {
-                        let listener = v8::Local::<v8::Function>::try_from(listener_value).unwrap();
-                        let _ = listener.call(scope, target.into(), &[event]);
+    for record_global in capture_listeners.into_iter().chain(bubble_listeners) {
+        if object_bool(scope, event_obj, "_stopImmediate") {
+            break;
+        }
+        let record = v8::Local::new(scope, record_global);
+        let Some(record_obj) = record.to_object(scope) else {
+            continue;
+        };
+        let once = object_bool(scope, record_obj, "once");
+        let capture = object_bool(scope, record_obj, "capture");
+        let passive = object_bool(scope, record_obj, "passive");
+        let Some(callback) = record_callback(scope, record) else {
+            continue;
+        };
+        let events = events_map(scope, target);
+        let still_present = listener_bucket(scope, events, &event_type);
+        let mut registered = false;
+        for index in 0..still_present.length() {
+            if let Some(existing) = still_present.get_index(scope, index) {
+                if same_listener(scope, existing, callback, capture) {
+                    registered = true;
+                    break;
+                }
+            }
+        }
+        if !registered {
+            continue;
+        }
+        if once {
+            let filtered = v8::Array::new(scope, 0);
+            let mut next = 0u32;
+            for index in 0..still_present.length() {
+                if let Some(existing) = still_present.get_index(scope, index) {
+                    if same_listener(scope, existing, callback, capture) {
+                        continue;
                     }
+                    filtered.set_index(scope, next, existing);
+                    next += 1;
+                }
+            }
+            events_map(scope, target).set(
+                scope,
+                v8::String::new(scope, &event_type).unwrap().into(),
+                filtered.into(),
+            );
+        }
+        event_set_bool(scope, event_obj, "_passive", passive);
+        invoke_listener(scope, target, callback, event);
+        event_set_bool(scope, event_obj, "_passive", false);
+    }
+
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "currentTarget").unwrap().into(),
+        v8::null(scope).into(),
+    );
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "eventPhase").unwrap().into(),
+        v8::Integer::new(scope, 0).into(),
+    );
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "_dispatching").unwrap().into(),
+        v8::Boolean::new(scope, false).into(),
+    );
+    let default_prevented = object_bool(scope, event_obj, "defaultPrevented");
+    rv.set(v8::Boolean::new(scope, !default_prevented).into());
+}
+
+fn event_set_bool(scope: &mut v8::PinScope, event: v8::Local<v8::Object>, key: &str, value: bool) {
+    event.set(
+        scope,
+        v8::String::new(scope, key).unwrap().into(),
+        v8::Boolean::new(scope, value).into(),
+    );
+}
+
+fn event_timestamp(scope: &mut v8::PinScope) -> f64 {
+    let global = scope.get_current_context().global(scope);
+    if let Some(performance) = global
+        .get(scope, v8::String::new(scope, "performance").unwrap().into())
+        .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
+    {
+        if let Some(now) = performance
+            .get(scope, v8::String::new(scope, "now").unwrap().into())
+            .and_then(|value| v8::Local::<v8::Function>::try_from(value).ok())
+        {
+            if let Some(value) = now.call(scope, performance.into(), &[]) {
+                if let Some(number) = value.to_number(scope) {
+                    return number.value();
                 }
             }
         }
     }
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs_f64() * 1000.0)
+        .unwrap_or(0.0)
+}
 
-    let default_prevented_key = v8::String::new(scope, "defaultPrevented").unwrap();
-    let default_prevented = event_obj
-        .get(scope, default_prevented_key.into())
-        .map(|value| value.to_boolean(scope).boolean_value(scope))
-        .unwrap_or(false);
-    rv.set(v8::Boolean::new(scope, !default_prevented).into());
+fn event_prevent_default_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _rv: v8::ReturnValue,
+) {
+    let this = args.this();
+    if object_bool(scope, this, "_passive") {
+        return;
+    }
+    prevent_default_if_cancelable(scope, this);
+}
+
+fn event_stop_propagation_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _rv: v8::ReturnValue,
+) {
+    event_set_bool(scope, args.this(), "_stopPropagation", true);
+}
+
+fn event_stop_immediate_propagation_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _rv: v8::ReturnValue,
+) {
+    event_set_bool(scope, args.this(), "_stopPropagation", true);
+    event_set_bool(scope, args.this(), "_stopImmediate", true);
+}
+
+fn event_composed_path_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut rv: v8::ReturnValue,
+) {
+    let path = v8::Array::new(scope, 0);
+    let event = args.this();
+    if object_bool(scope, event, "_dispatching") {
+        if let Some(target) = event.get(
+            scope,
+            v8::String::new(scope, "currentTarget").unwrap().into(),
+        ) {
+            if target.is_object() {
+                path.set_index(scope, 0, target);
+            }
+        }
+    }
+    rv.set(path.into());
 }
 
 /// Event constructor callback
@@ -416,64 +824,69 @@ fn event_constructor_callback(
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
-    let event_obj = v8::Object::new(scope);
+    if !args.is_construct_call() {
+        throw_type_error(
+            scope,
+            "Failed to construct 'Event': Please use the 'new' operator.",
+        );
+        return;
+    }
+    if args.length() < 1 {
+        throw_type_error(
+            scope,
+            "Failed to construct 'Event': 1 argument required, but only 0 present.",
+        );
+        return;
+    }
 
-    // Get event type from arguments
-    let event_type = if args.length() > 0 {
-        args.get(0)
-            .to_string(scope)
-            .unwrap_or_else(|| v8::String::new(scope, "").unwrap())
-            .to_rust_string_lossy(scope)
+    let event_obj = args.this();
+    let event_type = args
+        .get(0)
+        .to_string(scope)
+        .map(|value| value.to_rust_string_lossy(scope))
+        .unwrap_or_default();
+    let init = if args.length() > 1 {
+        args.get(1)
     } else {
-        "".to_string()
+        v8::undefined(scope).into()
     };
-    let init = args.get(1);
     let bubbles = bool_option(scope, init, "bubbles", false);
     let cancelable = bool_option(scope, init, "cancelable", false);
     let composed = bool_option(scope, init, "composed", false);
-
-    // Store type as internal property (using symbol)
-    let type_key = v8::String::new(scope, "_type").unwrap();
     let type_val = v8::String::new(scope, &event_type).unwrap();
-    event_obj.set(scope, type_key.into(), type_val.into());
-
-    // Set properties - extract values first to avoid scope borrow issues
-    let type_prop_key = v8::String::new(scope, "type").unwrap();
-    event_obj.set(scope, type_prop_key.into(), type_val.into());
-
-    let bubbles_false = v8::Boolean::new(scope, bubbles);
-    let bubbles_key = v8::String::new(scope, "bubbles").unwrap();
-    event_obj.set(scope, bubbles_key.into(), bubbles_false.into());
-
-    let cancelable_true = v8::Boolean::new(scope, cancelable);
-    let cancelable_key = v8::String::new(scope, "cancelable").unwrap();
-    event_obj.set(scope, cancelable_key.into(), cancelable_true.into());
-
-    let composed_key = v8::String::new(scope, "composed").unwrap();
-    let composed_val = v8::Boolean::new(scope, composed);
-    event_obj.set(scope, composed_key.into(), composed_val.into());
-
-    let default_prevented_false = v8::Boolean::new(scope, false);
-    let default_prevented_key = v8::String::new(scope, "defaultPrevented").unwrap();
     event_obj.set(
         scope,
-        default_prevented_key.into(),
-        default_prevented_false.into(),
+        v8::String::new(scope, "type").unwrap().into(),
+        type_val.into(),
     );
-
-    let prevent_default_fn = v8::Function::new(
+    event_set_bool(scope, event_obj, "bubbles", bubbles);
+    event_set_bool(scope, event_obj, "cancelable", cancelable);
+    event_set_bool(scope, event_obj, "composed", composed);
+    event_set_bool(scope, event_obj, "defaultPrevented", false);
+    event_set_bool(scope, event_obj, "isTrusted", false);
+    event_set_bool(scope, event_obj, "_dispatching", false);
+    event_set_bool(scope, event_obj, "_stopImmediate", false);
+    event_set_bool(scope, event_obj, "_stopPropagation", false);
+    event_set_bool(scope, event_obj, "_passive", false);
+    event_obj.set(
         scope,
-        |scope: &mut v8::PinScope,
-         args: v8::FunctionCallbackArguments,
-         _retval: v8::ReturnValue| {
-            let this = args.this();
-            prevent_default_if_cancelable(scope, this);
-        },
-    )
-    .unwrap();
-    let prevent_default_key = v8::String::new(scope, "preventDefault").unwrap();
-    event_obj.set(scope, prevent_default_key.into(), prevent_default_fn.into());
-
+        v8::String::new(scope, "eventPhase").unwrap().into(),
+        v8::Integer::new(scope, 0).into(),
+    );
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "target").unwrap().into(),
+        v8::null(scope).into(),
+    );
+    event_obj.set(
+        scope,
+        v8::String::new(scope, "currentTarget").unwrap().into(),
+        v8::null(scope).into(),
+    );
+    let timestamp = event_timestamp(scope);
+    let time_key = v8::String::new(scope, "timeStamp").unwrap();
+    let time_value = v8::Number::new(scope, timestamp);
+    event_obj.set(scope, time_key.into(), time_value.into());
     rv.set(event_obj.into());
 }
 

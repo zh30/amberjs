@@ -149,7 +149,7 @@ fn test_langchain_style_streaming_and_async_iteration() {
     // 3. for await (const chunk of stream) consumption
     // 4. AbortSignal.timeout() for LLM request timeout
 
-    const timeoutSignal = AbortSignal.timeout(5000);
+    const timeoutSignal = AbortSignal.timeout(30);
     const hasSignal = !timeoutSignal.aborted && typeof timeoutSignal.addEventListener === 'function';
 
     // Token chunks from LLM

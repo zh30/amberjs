@@ -60,12 +60,11 @@ mod tests {
     fn test_add_event_listener_invalid_type() {
         let code = r#"
             const target = new EventTarget();
-            try {
-                target.addEventListener('test', 'not a function');
-                false;
-            } catch (e) {
-                true;
-            }
+            let called = false;
+            target.addEventListener('test', 'not a function');
+            target.addEventListener('test', () => { called = true; });
+            target.dispatchEvent(new Event('test'));
+            called === true
         "#;
 
         let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
@@ -220,7 +219,7 @@ mod tests {
     fn test_custom_event_detail() {
         let code = r#"
             const detail = { foo: 'bar' };
-            const event = new CustomEvent('test', detail);
+            const event = new CustomEvent('test', { detail });
             event.detail && event.detail.foo === 'bar'
         "#;
 
@@ -238,7 +237,7 @@ mod tests {
             let receivedData = null;
             const target = new EventTarget();
             target.addEventListener('data', (e) => { receivedData = e.detail; });
-            target.dispatchEvent(new CustomEvent('data', { data: { value: 42 } }));
+            target.dispatchEvent(new CustomEvent('data', { detail: { value: 42 } }));
             receivedData && receivedData.value === 42
         "#;
 

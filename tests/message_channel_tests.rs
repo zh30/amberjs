@@ -312,8 +312,13 @@ mod message_channel_tests {
                 };
                 ch.port1.start();
                 ch.port1.close();
-                ch.port2.postMessage('after receiver close');
-                console.log(received === false && ch.port1._pendingMessages === 0);
+                let threw = false;
+                try {
+                    ch.port2.postMessage('after receiver close');
+                } catch (error) {
+                    threw = error.name === 'InvalidStateError';
+                }
+                console.log(received === false && threw && ch.port1._pendingMessages === 0);
             "#,
             ])
             .output()

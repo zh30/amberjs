@@ -106,15 +106,31 @@ pub fn setup_broadcast_channel_api(
         |scope: &mut v8::PinScope,
          args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
-            // Get channel name from first argument
-            let name = if args.length() > 0 {
-                args.get(0).to_rust_string_lossy(scope)
-            } else {
-                "".to_string()
-            };
+            if !args.is_construct_call() {
+                let message = v8::String::new(
+                    scope,
+                    "Failed to construct 'BroadcastChannel': Please use the 'new' operator.",
+                )
+                .unwrap();
+                scope.throw_exception(v8::Exception::type_error(scope, message));
+                return;
+            }
+            if args.length() < 1 {
+                let message = v8::String::new(
+                    scope,
+                    "Failed to construct 'BroadcastChannel': 1 argument required, but only 0 present.",
+                )
+                .unwrap();
+                scope.throw_exception(v8::Exception::type_error(scope, message));
+                return;
+            }
+            let name = args
+                .get(0)
+                .to_string(scope)
+                .map(|value| value.to_rust_string_lossy(scope))
+                .unwrap_or_default();
 
-            // Create the BroadcastChannel object
-            let channel_obj: v8::Local<v8::Object> = v8::Object::new(scope);
+            let channel_obj = args.this();
 
             // Store name property
             let name_key = v8::String::new(scope, "name").unwrap();
@@ -144,6 +160,12 @@ pub fn setup_broadcast_channel_api(
                  args: v8::FunctionCallbackArguments,
                  _rv: v8::ReturnValue| {
                     if args.length() == 0 {
+                        let message = v8::String::new(
+                            scope,
+                            "Failed to execute 'postMessage': 1 argument required.",
+                        )
+                        .unwrap();
+                        scope.throw_exception(v8::Exception::type_error(scope, message));
                         return;
                     }
 
@@ -151,6 +173,28 @@ pub fn setup_broadcast_channel_api(
                     let this_obj = args.this();
 
                     if is_channel_closed(scope, this_obj) {
+                        let global = scope.get_current_context().global(scope);
+                        let text = v8::String::new(
+                            scope,
+                            "Failed to execute 'postMessage' on 'BroadcastChannel': Channel is closed.",
+                        )
+                        .unwrap();
+                        let name = v8::String::new(scope, "InvalidStateError").unwrap();
+                        if let Some(constructor) = global
+                            .get(
+                                scope,
+                                v8::String::new(scope, "DOMException").unwrap().into(),
+                            )
+                            .and_then(|value| v8::Local::<v8::Function>::try_from(value).ok())
+                        {
+                            if let Some(error) =
+                                constructor.new_instance(scope, &[text.into(), name.into()])
+                            {
+                                scope.throw_exception(error.into());
+                                return;
+                            }
+                        }
+                        scope.throw_exception(v8::Exception::error(scope, text));
                         return;
                     }
 
@@ -444,6 +488,7 @@ pub fn setup_broadcast_channel_api(
         },
     );
 
+    broadcast_channel_template.set_class_name(v8::String::new(scope, "BroadcastChannel").unwrap());
     let broadcast_channel_constructor: v8::Local<v8::Function> =
         broadcast_channel_template.get_function(scope).unwrap();
 
