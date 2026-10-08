@@ -306,7 +306,7 @@ jobs:
       # path: is a directory (syft scan dir:...). Cargo.lock must use file:.
       # v1.16.1 failed with: local-directory: not a directory source: Cargo.lock
       - name: Generate CycloneDX SBOM
-        uses: anchore/sbom-action@v0.24.2
+        uses: anchore/sbom-action@v0.24.3
         with:
           file: Cargo.lock
           format: cyclonedx-json

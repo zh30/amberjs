@@ -27,6 +27,33 @@ fn dockerfile_has_amber_entrypoint() -> bool {
     docker.contains("ENTRYPOINT [\"amber\"]")
 }
 
+/// `action@vMAJOR.MINOR.PATCH` from a workflow step body.
+///
+/// Rejects floating refs (`@main`, `@v0`, `@v0.24`) so a pin stays exact,
+/// while still accepting patch bumps without editing the assertion.
+fn github_action_full_semver_pin(step: &str, action: &str) -> Option<String> {
+    let marker = format!("{action}@v");
+    let rest = step.split(&marker).nth(1)?;
+    let token = rest
+        .split(|c: char| c.is_whitespace() || c == '"' || c == '\'')
+        .next()
+        .unwrap_or("");
+    let mut parts = token.split('.');
+    let major = parts
+        .next()
+        .filter(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()))?;
+    let minor = parts
+        .next()
+        .filter(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()))?;
+    let patch = parts
+        .next()
+        .filter(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()))?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some(format!("{major}.{minor}.{patch}"))
+}
+
 #[test]
 fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
     let yaml = release_assets_yaml();
@@ -74,9 +101,14 @@ fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
         sbom.contains("upload-release-assets: false"),
         "SBOM action must not upload before action-gh-release creates the Release: {sbom}"
     );
+    // Pin a full vMAJOR.MINOR.PATCH tag. A floating ref (`@main`, `@v0`,
+    // `@v0.24`) would let the action's syft `file:` mapping drift, but a
+    // Dependabot patch bump (0.24.2 -> 0.24.3) must not require editing this
+    // assertion.
+    let pinned = github_action_full_semver_pin(sbom, "anchore/sbom-action");
     assert!(
-        sbom.contains("anchore/sbom-action@v0.24.2"),
-        "SBOM action must stay pinned so syft input mapping does not float: {sbom}"
+        pinned.is_some(),
+        "SBOM action must stay pinned to anchore/sbom-action@vMAJOR.MINOR.PATCH: {sbom}"
     );
     assert!(
         yaml.contains("Verify CycloneDX SBOM"),
@@ -123,6 +155,30 @@ fn tag_v_star_publishes_non_draft_release_with_five_amber_archives() {
         yaml.contains("CARGO_REGISTRY_TOKEN is not set") || yaml.contains("skipping crates.io"),
         "missing crates.io token must be annotated, not silent success"
     );
+}
+
+#[test]
+fn sbom_action_pin_accepts_patch_bumps_and_rejects_floating_refs() {
+    assert_eq!(
+        github_action_full_semver_pin("uses: anchore/sbom-action@v0.24.3\n", "anchore/sbom-action")
+            .as_deref(),
+        Some("0.24.3")
+    );
+    assert_eq!(
+        github_action_full_semver_pin("uses: anchore/sbom-action@v0.24.2\n", "anchore/sbom-action")
+            .as_deref(),
+        Some("0.24.2")
+    );
+    for floating in [
+        "uses: anchore/sbom-action@v0.24\n",
+        "uses: anchore/sbom-action@v0\n",
+        "uses: anchore/sbom-action@main\n",
+    ] {
+        assert!(
+            github_action_full_semver_pin(floating, "anchore/sbom-action").is_none(),
+            "floating ref must not count as a pin: {floating}"
+        );
+    }
 }
 
 fn first_package_version(toml: &str) -> &str {
