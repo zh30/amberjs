@@ -51,9 +51,11 @@ oxc = { version = "0.147", default-features = false, features = [
     "ast_visit",
 ] }
 
-# WebAssembly runtime
-wasmtime = "38.0"
-wasmtime-wasi = "38.0"
+# WebAssembly runtime. Floor is 49.0.2: the 38.x line has no patch for
+# RUSTSEC-2026-0314, 0316, 0321, 0322, and 0323 (fixed in 36.0.17, 48.0.4,
+# and 49.0.2). 49.0.2 also includes 0325, 0326, and 0327.
+wasmtime = "49.0.2"
+wasmtime-wasi = "49.0.2"
 
 # JavaScript to WebAssembly compiler (unused, disabled to eliminate swc serde constraint)
 # javy-codegen = "1.0"
