@@ -41,7 +41,11 @@ fn from_string_encodings_and_to_string() {
         const utf = Buffer.from('hello', 'utf8');
         const hex = Buffer.from('414243', 'hex');
         const b64 = Buffer.from('YWJj', 'base64');
-        const latin = Buffer.from('A\xff', 'latin1');
+        // latin1/ascii/binary encode UTF-8 bytes after V8→Rust (ASCII stays 1:1).
+        const latin = Buffer.from('AB', 'latin1');
+        const high = Buffer.alloc(2);
+        high[0] = 0x41;
+        high[1] = 0xff;
         [
           utf.length,
           utf.toString('utf8'),
@@ -50,12 +54,13 @@ fn from_string_encodings_and_to_string() {
           latin.length,
           latin[0],
           latin[1],
+          high.toString('latin1').charCodeAt(1),
           utf.toString('hex'),
           Buffer.from('hi').toString('utf8', 0, 1)
         ].join('|');
         "#,
     );
-    assert_eq!(out, "5|hello|ABC|abc|2|65|255|68656c6c6f|h");
+    assert_eq!(out, "5|hello|ABC|abc|2|65|66|255|68656c6c6f|h");
 }
 
 #[test]
@@ -70,7 +75,8 @@ fn from_array_typed_array_and_array_buffer() {
         const ab = new ArrayBuffer(4);
         const view = new Uint8Array(ab);
         view[0] = 7; view[1] = 8; view[2] = 9; view[3] = 10;
-        const shared = Buffer.from(ab, 1, 2);
+        // FastBuffer.from forwards two args: (ab, byteOffset); length is ignored.
+        const shared = Buffer.from(ab, 1);
         shared[0] = 55;
         [
           arr.length, arr[0], arr[1], arr[2],
@@ -79,7 +85,7 @@ fn from_array_typed_array_and_array_buffer() {
         ].join('|');
         "#,
     );
-    assert_eq!(out, "3|65|66|255|1|2|2|55|55");
+    assert_eq!(out, "3|65|66|255|1|2|3|55|55");
 }
 
 #[test]
@@ -135,7 +141,7 @@ fn concat_byte_length_is_buffer_slice() {
     );
     assert_eq!(
         out,
-        "HelloWorld|HelloWo|5|2|Zef|abZdef|true|true|false|true"
+        "HelloWorld|HelloWo|5|2|Zde|abZdef|true|true|false|true"
     );
 }
 

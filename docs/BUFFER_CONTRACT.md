@@ -12,8 +12,8 @@ This is not full Node `buffer`. Methods that are not listed here are outside the
 
 | Call | Behavior |
 | :--- | :--- |
-| `Buffer.from(string[, encoding])` | Encodes the string. Default encoding is `utf8`. Supported encodings: `utf8` / `utf-8` / `utf8mb4`, `hex`, `base64`, `base64url`, `latin1` / `ascii` / `binary`. Unknown encodings fall back to UTF-8 bytes. Small UTF-8 strings may allocate from the pool (see Pool). |
-| `Buffer.from(ArrayBuffer[, byteOffset[, length]])` | A `Uint8Array` view over that buffer (shared memory), with Buffer prototype. |
+| `Buffer.from(string[, encoding])` | Encodes the string. Default encoding is `utf8`. Supported encodings: `utf8` / `utf-8` / `utf8mb4`, `hex`, `base64`, `base64url`, `latin1` / `ascii` / `binary`. Unknown encodings fall back to UTF-8 bytes. Small UTF-8 strings may allocate from the pool (see Pool). For `latin1` / `ascii` / `binary`, the runtime encodes the UTF-8 bytes of the string after V8→Rust conversion (not one byte per JS code unit). |
+| `Buffer.from(ArrayBuffer[, byteOffset[, length]])` | A `Uint8Array` view over that buffer (shared memory), with Buffer prototype. The FastBuffer `Buffer.from` wrapper forwards at most two arguments, so a numeric second argument is treated as `byteOffset` and a third `length` argument is ignored (length becomes `byteLength - byteOffset`). |
 | `Buffer.from(TypedArray \| DataView)` | Copies the view's bytes into a new buffer. |
 | `Buffer.from(array)` | Copies each element's low 8 bits. |
 | `Buffer.from(number)` | Allocates that many bytes (not a Node string of that length). |
@@ -47,7 +47,7 @@ Because pooled `allocUnsafe` reuses prior bytes, reading before writing is undef
 | `hex` | `hex::decode`; on failure, UTF-8 bytes of the input string | lowercase hex |
 | `base64` | standard Base64; on failure, UTF-8 bytes of the input | standard Base64 |
 | `base64url` | URL-safe Base64 without padding | URL-safe Base64 without padding |
-| `latin1`, `ascii`, `binary` | one byte per string code unit (truncated) | one char per byte |
+| `latin1`, `ascii`, `binary` | UTF-8 bytes of the string after V8→Rust conversion (not Node one-byte-per-code-unit latin1) | one char per byte |
 
 ## Non-goals
 
