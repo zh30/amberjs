@@ -32,9 +32,10 @@ The rest of `src/nodejs_core/` (`crypto`, `http`, `net`, streams, `dns`, `child_
 | `close` / `closeSync` | Releases that fd. A bad fd is `EBADF`. |
 | `chmod` / `chmodSync` | Sets the permission bits. Syscall `chmod`. |
 | `access` / `accessSync` | Unix `access(2)`. `constants.F_OK` is `0`. A missing path is `ENOENT`. Syscall `access`. |
+| `existsSync` | Synchronous boolean. An existing file or directory is `true`. A missing path is `false` (it does not throw). Follows symlinks: a link to an existing target is `true`; a broken link is `false`. Named ESM export. Under the permission broker, a denied read throws `TypeError` whose message contains `permission denied` before the path is checked. |
 | `fs.constants` | `F_OK`, `R_OK`, `W_OK`, `X_OK`, `O_RDONLY`, `O_WRONLY`, `O_RDWR`, `O_APPEND`, `O_CREAT`, `O_EXCL`, `O_TRUNC`, `COPYFILE_EXCL`. |
 
-`fs.promises` has the same methods without the `Sync` suffix. `promises.open` / `read` / `write` / `close` use the same numeric fds. They do not return a Node `FileHandle`.
+`fs.promises` has the same methods without the `Sync` suffix, except there is no `promises.exists`. `promises.open` / `read` / `write` / `close` use the same numeric fds. They do not return a Node `FileHandle`.
 
 ## Write flags
 
@@ -68,7 +69,8 @@ Failures from `mkdir`, `stat`, `lstat`, `unlink`, `rename`, and `rmdir` throw or
 
 ## Non-goals
 
-- `fs.watch`, `fs.watchFile`, `fs.glob`, `fs.cp`, `fs.opendir`, and `fs.statfs`.
+- `fs.watch`, `fs.watchFile`, `fs.glob`, `fs.cp`, `fs.opendir`, and `fs.statfs` (not implemented; `typeof fs.watch === "undefined"`).
+- `fs.exists` (callback) and `fs.promises.exists` (not installed).
 - Node `FileHandle` (`fd.close()` as a method, `readableWebStream`, and the rest of that class).
 - A worker threadpool. Async `fs` does not run concurrently with JavaScript on another thread.
 - Sorted `readdir` results.

@@ -290,6 +290,64 @@ fn system_errors_for_mkdir_stat_unlink_rename_rmdir() {
 
 #[test]
 #[serial]
+fn exists_sync_boolean_follows_links_and_is_named_esm_export() {
+    let dir = TempDir::new().expect("temp dir");
+    let file = dir.path().join("present.txt");
+    fs::write(&file, "x").expect("seed");
+    let link = dir.path().join("present.link");
+    let broken = dir.path().join("broken.link");
+    symlink(&file, &link).expect("symlink");
+    symlink(dir.path().join("missing-target"), &broken).expect("broken symlink");
+    let missing = dir.path().join("absent.txt");
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        [
+          fs.existsSync('{file}'),
+          fs.existsSync('{missing}'),
+          fs.existsSync('{link}'),
+          fs.existsSync('{broken}'),
+          fs.existsSync('{dir}'),
+          typeof fs.exists,
+          typeof fs.promises.exists,
+          typeof fs.watch
+        ].join('|');
+        "#,
+        file = js_path(&file),
+        missing = js_path(&missing),
+        link = js_path(&link),
+        broken = js_path(&broken),
+        dir = js_path(dir.path())
+    );
+    assert_eq!(
+        run(&code),
+        "true|false|true|false|true|undefined|undefined|undefined"
+    );
+
+    let main_path = dir.path().join("exists.mjs");
+    let mut runtime = runtime();
+    runtime.set_main_module_path(&main_path);
+    let esm = format!(
+        r#"
+        import {{ existsSync }} from 'fs';
+        export const forceNativeModule = true;
+        globalThis.__fsExistsEsm = [
+          existsSync('{file}'),
+          existsSync('{missing}')
+        ].join('|');
+        "#,
+        file = js_path(&file),
+        missing = js_path(&missing)
+    );
+    runtime.execute_code(&esm).expect("esm execute");
+    let result = runtime
+        .execute_code("globalThis.__fsExistsEsm")
+        .expect("read esm result");
+    assert_eq!(result.trim(), "true|false");
+}
+
+#[test]
+#[serial]
 fn esm_named_export_includes_append_file_sync() {
     let dir = TempDir::new().expect("temp dir");
     let main_path = dir.path().join("main.mjs");
@@ -333,6 +391,8 @@ fn cli_require_fs_reaches_the_contract() {
           fs.readFileSync(path + '/a.txt', 'utf8'),
           typeof fs.appendFileSync,
           typeof fs.copyFileSync,
+          typeof fs.existsSync,
+          fs.existsSync(path + '/a.txt'),
           typeof fs.constants.F_OK
         ].join('|'));
         "#,
@@ -352,6 +412,6 @@ fn cli_require_fs_reaches_the_contract() {
     );
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
-        "cli|function|function|number"
+        "cli|function|function|function|true|number"
     );
 }
