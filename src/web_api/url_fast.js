@@ -154,19 +154,36 @@
         this._list.push([String(name), String(value)]);
         if (this._sync) this._sync();
     };
-    URLSearchParams.prototype.delete = function (name) {
+    URLSearchParams.prototype.delete = function (name, value) {
         name = String(name);
+        var matchValue = arguments.length > 1 && value !== undefined;
+        if (matchValue) value = String(value);
         var list = this._list;
         var next = [];
         for (var i = 0; i < list.length; i++) {
-            if (list[i][0] !== name) next.push(list[i]);
+            if (list[i][0] !== name || (matchValue && list[i][1] !== value)) {
+                next.push(list[i]);
+            }
         }
         this._list = next;
         if (this._sync) this._sync();
     };
-    URLSearchParams.prototype.has = function (name) {
-        return this.get(name) !== null;
+    URLSearchParams.prototype.has = function (name, value) {
+        name = String(name);
+        if (arguments.length < 2 || value === undefined) return this.get(name) !== null;
+        value = String(value);
+        var list = this._list;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i][0] === name && list[i][1] === value) return true;
+        }
+        return false;
     };
+    Object.defineProperty(URLSearchParams.prototype, "size", {
+        get: function () {
+            return this._list.length;
+        },
+        configurable: true,
+    });
     URLSearchParams.prototype.sort = function () {
         this._list.sort(function (a, b) {
             if (a[0] < b[0]) return -1;
@@ -212,39 +229,187 @@
     };
     URLSearchParams.prototype[Symbol.iterator] = URLSearchParams.prototype.entries;
 
-    function parseAbs(input, base) {
-        input = String(input);
-        if (base != null && input.indexOf("://") < 0) {
-            input = resolveRelative(input, String(base));
+    function isSpecialProtocol(protocol) {
+        return (
+            protocol === "http:" ||
+            protocol === "https:" ||
+            protocol === "ws:" ||
+            protocol === "wss:" ||
+            protocol === "ftp:" ||
+            protocol === "file:"
+        );
+    }
+
+    function defaultPort(protocol) {
+        if (protocol === "http:" || protocol === "ws:") return "80";
+        if (protocol === "https:" || protocol === "wss:") return "443";
+        if (protocol === "ftp:") return "21";
+        return "";
+    }
+
+    function leadingScheme(input) {
+        var match = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(input);
+        if (!match || match[1].length < 2) return "";
+        return match[1].toLowerCase() + ":";
+    }
+
+    function cleanUrl(input) {
+        return String(input)
+            .replace(/[\t\n\r]/g, "")
+            .replace(/^[\u0000-\u001F ]+|[\u0000-\u001F ]+$/g, "");
+    }
+
+    function earlierIndex(left, right) {
+        if (left < 0) return right;
+        if (right < 0) return left;
+        return left < right ? left : right;
+    }
+
+    function encodeUser(value) {
+        return encodeURIComponent(value);
+    }
+
+    function decodeUser(value) {
+        try {
+            return decodeURIComponent(value);
+        } catch (_error) {
+            return value;
         }
-        var scheme = input.indexOf("://");
-        if (scheme <= 0) throw new TypeError("Invalid URL");
-        var afterHost = scheme + 3;
+    }
+
+    function encodePath(path) {
+        var out = "";
+        for (var i = 0; i < path.length; i++) {
+            var code = path.charCodeAt(i);
+            if (
+                code <= 0x20 ||
+                code === 0x7f ||
+                code === 0x22 ||
+                code === 0x3c ||
+                code === 0x3e ||
+                code === 0x5c ||
+                code === 0x5e ||
+                code === 0x60 ||
+                code === 0x7b ||
+                code === 0x7c ||
+                code === 0x7d
+            ) {
+                var hex = code.toString(16).toUpperCase();
+                if (hex.length < 2) hex = "0" + hex;
+                out += "%" + hex;
+            } else {
+                out += path.charAt(i);
+            }
+        }
+        return out;
+    }
+
+    function removeDotSegments(pathname) {
+        var absolute = pathname.charCodeAt(0) === 47;
+        var parts = pathname.split("/");
+        var out = [];
+        for (var i = 0; i < parts.length; i++) {
+            var part = parts[i];
+            if (part === ".") continue;
+            if (part === "..") {
+                if (out.length > 1 || (out.length === 1 && out[0] !== "")) out.pop();
+                continue;
+            }
+            out.push(part);
+        }
+        var result = out.join("/");
+        if (absolute && (result === "" || result.charCodeAt(0) !== 47)) result = "/" + result;
+        if (result === "") return absolute ? "/" : "";
+        return result;
+    }
+
+    function normalizePath(pathname, protocol) {
+        var path = String(pathname);
+        if (isSpecialProtocol(protocol)) path = path.replace(/\\/g, "/");
+        path = path.replace(/%2e/gi, ".");
+        return removeDotSegments(encodePath(path));
+    }
+
+    function parseAbs(input, base) {
+        input = cleanUrl(input);
+        if (base != null && String(base) !== "" && !leadingScheme(input)) {
+            input = resolveRelative(input, cleanUrl(base));
+        }
+        var protocol = leadingScheme(input);
+        if (!protocol) throw new TypeError("Invalid URL");
+        var hierarchicalAt = input.indexOf("://");
+        var special = isSpecialProtocol(protocol);
+        if (special && hierarchicalAt !== protocol.length - 1) {
+            throw new TypeError("Invalid URL");
+        }
+        if (special) input = input.replace(/\\/g, "/");
+        if (!special && hierarchicalAt !== protocol.length - 1) {
+            var opaqueRest = input.slice(protocol.length);
+            var opaqueHash = opaqueRest.indexOf("#");
+            var hash = "";
+            if (opaqueHash >= 0) {
+                hash = opaqueRest.slice(opaqueHash);
+                opaqueRest = opaqueRest.slice(0, opaqueHash);
+            }
+            var opaqueQuery = opaqueRest.indexOf("?");
+            var search = "";
+            var pathname = opaqueRest;
+            if (opaqueQuery >= 0) {
+                search = opaqueRest.slice(opaqueQuery).replace(/ /g, "%20");
+                pathname = opaqueRest.slice(0, opaqueQuery);
+            }
+            if (hash) hash = hash.replace(/ /g, "%20");
+            return {
+                protocol: protocol,
+                hostname: "",
+                port: "",
+                pathname: pathname,
+                search: search,
+                hash: hash,
+                username: "",
+                password: "",
+                opaque: true,
+            };
+        }
+
+        var afterHost = protocol.length + 2;
         var pathStart = input.indexOf("/", afterHost);
         var qIdx = input.indexOf("?", afterHost);
         var hashIdx = input.indexOf("#", afterHost);
-        var endPath =
-            qIdx >= 0 && (hashIdx < 0 || qIdx < hashIdx)
-                ? qIdx
-                : hashIdx >= 0
-                  ? hashIdx
-                  : input.length;
+        var endPath = earlierIndex(qIdx, hashIdx);
+        if (endPath < 0) endPath = input.length;
         var pathname =
-            pathStart >= 0 && pathStart <= endPath
-                ? input.slice(pathStart, endPath)
-                : "/";
-        var search =
-            qIdx >= 0
-                ? input.slice(qIdx, hashIdx >= 0 ? hashIdx : input.length)
-                : "";
+            pathStart >= 0 && pathStart <= endPath ? input.slice(pathStart, endPath) : "/";
+        var search = qIdx >= 0 ? input.slice(qIdx, hashIdx >= 0 ? hashIdx : input.length) : "";
         var hash = hashIdx >= 0 ? input.slice(hashIdx) : "";
-        var protocol = input.slice(0, scheme + 1);
-        var hostEnd = pathStart >= 0 ? pathStart : endPath;
+        search = search.replace(/ /g, "%20");
+        hash = hash.replace(/ /g, "%20");
+        var hostEnd = pathStart >= 0 && pathStart <= endPath ? pathStart : endPath;
         var hostport = input.slice(afterHost, hostEnd);
+        var username = "";
+        var password = "";
+        var at = hostport.lastIndexOf("@");
+        if (at >= 0) {
+            var info = hostport.slice(0, at);
+            hostport = hostport.slice(at + 1);
+            var infoColon = info.indexOf(":");
+            if (infoColon >= 0) {
+                username = decodeUser(info.slice(0, infoColon));
+                password = decodeUser(info.slice(infoColon + 1));
+            } else {
+                username = decodeUser(info);
+            }
+        }
         var hostname;
         var port = "";
         if (hostport.charCodeAt(0) === 91) {
-            hostname = hostport;
+            var end = hostport.indexOf("]");
+            if (end < 0) throw new TypeError("Invalid URL");
+            hostname = hostport.slice(0, end + 1);
+            if (end + 1 < hostport.length) {
+                if (hostport.charCodeAt(end + 1) !== 58) throw new TypeError("Invalid URL");
+                port = hostport.slice(end + 2);
+            }
         } else {
             var colon = hostport.lastIndexOf(":");
             if (colon >= 0) {
@@ -253,77 +418,105 @@
             } else {
                 hostname = hostport;
             }
+            hostname = hostname.toLowerCase();
         }
+        if (port) {
+            if (!/^[0-9]+$/.test(port) || Number(port) > 65535) throw new TypeError("Invalid URL");
+            port = String(Number(port));
+            if (port === defaultPort(protocol)) port = "";
+        }
+        if (protocol !== "file:" && !hostname) throw new TypeError("Invalid URL");
         return {
             protocol: protocol,
             hostname: hostname,
             port: port,
-            host: hostport,
-            pathname: pathname,
+            pathname: normalizePath(pathname, protocol),
             search: search,
             hash: hash,
-            origin: protocol + "//" + hostport,
+            username: username,
+            password: password,
+            opaque: false,
         };
     }
 
     function resolveRelative(input, base) {
-        var colon = base.indexOf("://");
-        if (colon < 0) throw new TypeError("Invalid URL");
-        var pathStart = base.indexOf("/", colon + 3);
-        var qBase = base.indexOf("?");
-        var hBase = base.indexOf("#");
-        var originEnd =
-            pathStart >= 0
-                ? pathStart
-                : qBase >= 0
-                  ? qBase
-                  : hBase >= 0
-                    ? hBase
-                    : base.length;
+        input = cleanUrl(input);
+        base = cleanUrl(base);
+        if (leadingScheme(input)) return input;
+        var protocol = leadingScheme(base);
+        if (!protocol || base.indexOf("://") !== protocol.length - 1) {
+            throw new TypeError("Invalid URL");
+        }
+        var after = protocol.length + 2;
+        var pathStart = base.indexOf("/", after);
+        var qBase = base.indexOf("?", after);
+        var hBase = base.indexOf("#", after);
+        var originEnd = pathStart >= 0 ? pathStart : earlierIndex(qBase, hBase);
+        if (originEnd < 0) originEnd = base.length;
         var origin = base.slice(0, originEnd);
-        var basePath =
-            pathStart >= 0
-                ? base.slice(
-                      pathStart,
-                      qBase >= 0 ? qBase : hBase >= 0 ? hBase : base.length,
-                  )
-                : "/";
+        var basePathEnd = earlierIndex(qBase, hBase);
+        if (basePathEnd < 0) basePathEnd = base.length;
+        var basePath = pathStart >= 0 ? base.slice(pathStart, basePathEnd) : "/";
+        if (!input) {
+            var keptSearch = qBase >= 0 ? base.slice(qBase, hBase >= 0 ? hBase : base.length) : "";
+            return origin + basePath + keptSearch;
+        }
         var c0 = input.charCodeAt(0);
+        var c1 = input.length > 1 ? input.charCodeAt(1) : 0;
+        if (c0 === 47 && c1 === 47) return base.slice(0, protocol.length) + input;
         if (c0 === 47) return origin + input;
         if (c0 === 63) return origin + basePath + input;
         if (c0 === 35) {
-            return (
-                origin +
-                basePath +
-                (qBase >= 0
-                    ? base.slice(qBase, hBase >= 0 ? hBase : base.length)
-                    : "") +
-                input
-            );
+            var search = qBase >= 0 ? base.slice(qBase, hBase >= 0 ? hBase : base.length) : "";
+            return origin + basePath + search + input;
         }
         var slash = basePath.lastIndexOf("/");
         return origin + basePath.slice(0, slash + 1) + input;
     }
 
+    function hostOf(url) {
+        return url._port ? url._hostname + ":" + url._port : url._hostname;
+    }
+
     function rebuildHref(url) {
-        url._href = url.origin + url.pathname + url._search + url.hash;
+        if (url._opaque) {
+            url._href = url._protocol + url._pathname + url._search + url._hash;
+            return;
+        }
+        var user = "";
+        if (url._username || url._password) {
+            user = encodeUser(url._username);
+            if (url._password) user += ":" + encodeUser(url._password);
+            user += "@";
+        }
+        url._href =
+            url._protocol +
+            "//" +
+            user +
+            hostOf(url) +
+            url._pathname +
+            url._search +
+            url._hash;
+    }
+
+    function assignParsed(url, parsed) {
+        url._protocol = parsed.protocol;
+        url._hostname = parsed.hostname;
+        url._port = parsed.port;
+        url._pathname = parsed.pathname;
+        url._hash = parsed.hash;
+        url._username = parsed.username;
+        url._password = parsed.password;
+        url._opaque = parsed.opaque;
+        url._search = parsed.search;
+        if (url._sp) url._sp._list = parseQuery(url._search);
+        rebuildHref(url);
     }
 
     function URL(input, base) {
         if (!(this instanceof URL)) return new URL(input, base);
-        var parsed = parseAbs(input, base);
-        this.protocol = parsed.protocol;
-        this.hostname = parsed.hostname;
-        this.port = parsed.port;
-        this.host = parsed.host;
-        this.pathname = parsed.pathname;
-        this.hash = parsed.hash;
-        this.origin = parsed.origin;
-        this.username = "";
-        this.password = "";
-        this._search = parsed.search;
+        assignParsed(this, parseAbs(input, base));
         this._sp = null;
-        rebuildHref(this);
     }
 
     Object.defineProperty(URL.prototype, "href", {
@@ -331,17 +524,151 @@
             return this._href;
         },
         set(value) {
-            var parsed = parseAbs(value, null);
-            this.protocol = parsed.protocol;
-            this.hostname = parsed.hostname;
-            this.port = parsed.port;
-            this.host = parsed.host;
-            this.pathname = parsed.pathname;
-            this.hash = parsed.hash;
-            this.origin = parsed.origin;
-            this._search = parsed.search;
-            if (this._sp) this._sp._list = parseQuery(this._search);
+            assignParsed(this, parseAbs(value, null));
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "protocol", {
+        get() {
+            return this._protocol;
+        },
+        set(value) {
+            var protocol = String(value).toLowerCase();
+            if (protocol.charCodeAt(protocol.length - 1) !== 58) protocol += ":";
+            if (!/^[a-z][a-z0-9+.-]*:$/.test(protocol)) return;
+            if (isSpecialProtocol(protocol) && this._opaque) return;
+            this._protocol = protocol;
+            if (this._port === defaultPort(protocol)) this._port = "";
             rebuildHref(this);
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "username", {
+        get() {
+            return this._username;
+        },
+        set(value) {
+            if (this._opaque) return;
+            this._username = String(value);
+            rebuildHref(this);
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "password", {
+        get() {
+            return this._password;
+        },
+        set(value) {
+            if (this._opaque) return;
+            this._password = String(value);
+            rebuildHref(this);
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "hostname", {
+        get() {
+            return this._hostname;
+        },
+        set(value) {
+            if (this._opaque) return;
+            var hostname = String(value);
+            if (!hostname || /[\/?#]/.test(hostname)) return;
+            if (hostname.charCodeAt(0) !== 91) hostname = hostname.toLowerCase();
+            this._hostname = hostname;
+            rebuildHref(this);
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "port", {
+        get() {
+            return this._port;
+        },
+        set(value) {
+            if (this._opaque) return;
+            var port = String(value);
+            if (port === "") {
+                this._port = "";
+                rebuildHref(this);
+                return;
+            }
+            if (!/^[0-9]+$/.test(port) || Number(port) > 65535) return;
+            port = String(Number(port));
+            this._port = port === defaultPort(this._protocol) ? "" : port;
+            rebuildHref(this);
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "host", {
+        get() {
+            return this._opaque ? "" : hostOf(this);
+        },
+        set(value) {
+            if (this._opaque) return;
+            var host = String(value);
+            if (!host || /[\/?#@]/.test(host)) return;
+            var hostname;
+            var port = "";
+            if (host.charCodeAt(0) === 91) {
+                var end = host.indexOf("]");
+                if (end < 0) return;
+                hostname = host.slice(0, end + 1);
+                if (end + 1 < host.length) {
+                    if (host.charCodeAt(end + 1) !== 58) return;
+                    port = host.slice(end + 2);
+                }
+            } else {
+                var colon = host.lastIndexOf(":");
+                if (colon >= 0) {
+                    hostname = host.slice(0, colon).toLowerCase();
+                    port = host.slice(colon + 1);
+                } else {
+                    hostname = host.toLowerCase();
+                }
+            }
+            if (port && (!/^[0-9]+$/.test(port) || Number(port) > 65535)) return;
+            if (port) {
+                port = String(Number(port));
+                if (port === defaultPort(this._protocol)) port = "";
+            }
+            this._hostname = hostname;
+            this._port = port;
+            rebuildHref(this);
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "pathname", {
+        get() {
+            return this._pathname;
+        },
+        set(value) {
+            var path = String(value);
+            if (!this._opaque && path.charCodeAt(0) !== 47) path = "/" + path;
+            this._pathname = this._opaque ? path : normalizePath(path, this._protocol);
+            rebuildHref(this);
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "hash", {
+        get() {
+            return this._hash;
+        },
+        set(value) {
+            var hash = String(value == null ? "" : value);
+            if (!hash) this._hash = "";
+            else this._hash = hash.charCodeAt(0) === 35 ? hash : "#" + hash;
+            rebuildHref(this);
+        },
+        configurable: true,
+    });
+    Object.defineProperty(URL.prototype, "origin", {
+        get() {
+            if (this._opaque || !isSpecialProtocol(this._protocol) || this._protocol === "file:") {
+                return "null";
+            }
+            var scheme = this._protocol;
+            if (scheme === "ws:") scheme = "http:";
+            if (scheme === "wss:") scheme = "https:";
+            return scheme + "//" + hostOf(this);
         },
         configurable: true,
     });

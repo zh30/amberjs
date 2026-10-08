@@ -65,15 +65,10 @@ fn setup_internal_clone_func(
                     return null;
                 }
 
-                function isDataView(obj) {
-                    // DataView is a distinct type from TypedArray
-                    // Check using instanceof and byteLength/getInt8 methods
-                    return obj instanceof DataView ||
-                           (typeof obj === 'object' &&
-                            typeof obj.byteLength === 'number' &&
-                            typeof obj.getInt8 === 'function' &&
-                            typeof obj.getUint8 === 'function' &&
-                            !obj.includes); // TypedArrays have includes, DataView doesn't
+                function dataCloneError(message) {
+                    const err = new Error(message);
+                    err.name = "DataCloneError";
+                    throw err;
                 }
 
                 function getErrorConstructor(obj) {
@@ -116,83 +111,53 @@ fn setup_internal_clone_func(
                         throw err;
                     }
 
+                    if (typeof SharedArrayBuffer !== "undefined" && obj instanceof SharedArrayBuffer) {
+                        dataCloneError("SharedArrayBuffer cannot be cloned");
+                    }
+
                     if (TypedArrayConstructor) {
-                        if (obj.buffer instanceof ArrayBuffer && transfers.has(obj.buffer)) {
+                        if (obj.buffer instanceof ArrayBuffer && transfers.has(obj.buffer) &&
+                            typeof obj.buffer.transfer === "function") {
+                            const byteOffset = obj.byteOffset;
+                            const length = obj.length;
+                            const moved = obj.buffer.transfer();
                             transfers.delete(obj.buffer);
-                            return obj;
+                            return new TypedArrayConstructor(moved, byteOffset, length);
                         }
                         return new TypedArrayConstructor(obj);
-                    } else if (isDataView(obj)) {
-                        // Clone DataView by copying its underlying ArrayBuffer
+                    } else if (obj instanceof DataView) {
+                        if (obj.buffer instanceof ArrayBuffer && transfers.has(obj.buffer) &&
+                            typeof obj.buffer.transfer === "function") {
+                            const byteOffset = obj.byteOffset;
+                            const byteLength = obj.byteLength;
+                            const moved = obj.buffer.transfer();
+                            transfers.delete(obj.buffer);
+                            return new DataView(moved, byteOffset, byteLength);
+                        }
                         const byteLength = obj.byteLength;
-                        const byteOffset = obj.byteOffset;
                         const cloned = new DataView(new ArrayBuffer(byteLength));
-                        // Copy all bytes using getInt8/setInt8 loop
                         for (let i = 0; i < byteLength; i++) {
-                            cloned.setInt8(i, obj.getInt8(i));
+                            cloned.setUint8(i, obj.getUint8(i));
                         }
                         return cloned;
-                    } else if (obj instanceof Date ||
-                        (typeof obj.getTime === 'function' && obj.timestamp !== undefined)) {
-                        // Get timestamp from either getTime() or timestamp property
-                        const timestamp = (typeof obj.getTime === 'function')
-                            ? obj.getTime()
-                            : obj.timestamp;
-                        try {
-                            // Try to create native Date
-                            return new Date(timestamp);
-                        } catch (e) {
-                            // Fallback to object with Date-like properties
-                            const cloned = { timestamp: timestamp };
-                            cloned.getTime = function() { return this.timestamp; };
-                            cloned.getMonth = function() {
-                                const d = new Date(this.timestamp);
-                                return d.getMonth();
-                            };
-                            cloned.getDate = function() {
-                                const d = new Date(this.timestamp);
-                                return d.getDate();
-                            };
-                            cloned.getFullYear = function() {
-                                const d = new Date(this.timestamp);
-                                return d.getFullYear();
-                            };
-                            return cloned;
-                        }
-                    } else if (obj instanceof RegExp ||
-                        (typeof obj.source === 'string' && typeof obj.flags === 'string')) {
-                        // Try to create a native RegExp clone
-                        const source = obj.source || obj.patternSource;
-                        const flags = obj.flags || obj.patternFlags || '';
-                        try {
-                            return new RegExp(source, flags);
-                        } catch (e) {
-                            // Fallback to object with RegExp-like properties
-                            const cloned = { source, flags };
-                            cloned.test = function(str) { return new RegExp(this.source, this.flags).test(str); };
-                            cloned.exec = function(str) { return new RegExp(this.source, this.flags).exec(str); };
-                            cloned.toString = function() { return '/' + this.source + '/' + this.flags; };
-                            return cloned;
-                        }
+                    } else if (obj instanceof Date) {
+                        return new Date(obj.getTime());
+                    } else if (obj instanceof RegExp) {
+                        return new RegExp(obj.source, obj.flags);
                     } else if (obj instanceof ArrayBuffer) {
-                        // Check if it's a SharedArrayBuffer - cannot be cloned
-                        if (typeof SharedArrayBuffer !== 'undefined' && obj instanceof SharedArrayBuffer) {
-                            const err = new Error("SharedArrayBuffer cannot be cloned");
-                            err.name = "DataCloneError";
-                            throw err;
+                        if (transfers.has(obj) && typeof obj.transfer === "function") {
+                            transfers.delete(obj);
+                            return obj.transfer();
                         }
                         const bytes = new Uint8Array(obj);
                         const cloned = new ArrayBuffer(obj.byteLength);
                         new Uint8Array(cloned).set(bytes);
                         return cloned;
-                    } else if (obj instanceof Map ||
-                        (typeof obj.forEach === 'function' && typeof obj.get === 'function')) {
+                    } else if (obj instanceof Map) {
                         return new Map();
-                    } else if (obj instanceof Set ||
-                        (typeof obj.forEach === 'function' && typeof obj.has === 'function')) {
+                    } else if (obj instanceof Set) {
                         return new Set();
-                    } else if (obj instanceof Error ||
-                        (typeof obj.name === 'string' && typeof obj.message === 'string')) {
+                    } else if (obj instanceof Error) {
                         const ErrorConstructor = getErrorConstructor(obj);
                         const cloned = new ErrorConstructor(obj.message);
                         if (typeof obj.name === 'string') cloned.name = obj.name;
@@ -275,15 +240,10 @@ fn setup_internal_clone_func(
                         });
                     } else if (typeof source === 'object') {
                         // Check for Date objects - these have no enumerable properties
-                        if (source instanceof Date ||
-                            (typeof source.getTime === 'function' && typeof source.getMonth === 'function')) {
-                            // Date objects have no enumerable properties to copy
-                            // The timestamp was already set in createClone
+                        if (source instanceof Date) {
                             return;
                         }
-                        // Check for RegExp objects - these have no enumerable properties
-                        if (source instanceof RegExp ||
-                            (typeof source.source === 'string' && typeof source.flags === 'string')) {
+                        if (source instanceof RegExp) {
                             // RegExp objects have no enumerable properties to copy
                             // The pattern was already set in createClone
                             return;
@@ -343,10 +303,13 @@ fn setup_internal_clone_func(
 
                     // Handle transfer
                     if (transfers.has(value)) {
-                        const transferred = transfers.get(value);
                         transfers.delete(value);
-                        parent[key] = transferred;
-                        clonedObjects.set(value, transferred);
+                        let moved = value;
+                        if (value instanceof ArrayBuffer && typeof value.transfer === "function") {
+                            moved = value.transfer();
+                        }
+                        parent[key] = moved;
+                        clonedObjects.set(value, moved);
                         continue;
                     }
 
@@ -370,18 +333,15 @@ fn setup_internal_clone_func(
                 // AFTER all pending properties are processed, THEN process Map/Set entries
                 // This ensures all nested objects have been cloned and registered in clonedObjects
                 for (const [map, origKey, origVal] of mapEntries) {
-                    const clonedKey = clonedObjects.get(origKey);
-                    const clonedVal = clonedObjects.get(origVal);
-                    if (clonedKey !== undefined && clonedVal !== undefined) {
-                        map.set(clonedKey, clonedVal);
+                    if (clonedObjects.has(origKey) && clonedObjects.has(origVal)) {
+                        map.set(clonedObjects.get(origKey), clonedObjects.get(origVal));
                     }
                 }
 
                 // Process Set values using cloned values
                 for (const [set, origVal] of setValues) {
-                    const clonedVal = clonedObjects.get(origVal);
-                    if (clonedVal !== undefined) {
-                        set.add(clonedVal);
+                    if (clonedObjects.has(origVal)) {
+                        set.add(clonedObjects.get(origVal));
                     }
                 }
 
@@ -398,6 +358,168 @@ fn setup_internal_clone_func(
     let key = v8::String::new(scope, CLONE_FUNC_KEY).unwrap();
     global.set(scope, key.into(), func);
     Ok(())
+}
+
+fn is_promise_marker(scope: &mut v8::PinScope, object: v8::Local<v8::Object>) -> bool {
+    let Some(key) = v8::String::new(scope, "__promiseMarker__") else {
+        return false;
+    };
+    object
+        .get(scope, key.into())
+        .map(|value| value.is_true())
+        .unwrap_or(false)
+}
+
+fn walk_promise_markers<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    value: v8::Local<'a, v8::Value>,
+    clone_func: v8::Local<'a, v8::Function>,
+    transfer_list: v8::Local<'a, v8::Value>,
+    seen: &mut Vec<v8::Local<'a, v8::Object>>,
+) -> v8::Local<'a, v8::Value> {
+    if value.is_null() || !value.is_object() {
+        return value;
+    }
+    if value.is_array_buffer() || value.is_array_buffer_view() || value.is_typed_array() {
+        return value;
+    }
+    let Ok(object) = v8::Local::<v8::Object>::try_from(value) else {
+        return value;
+    };
+    if seen
+        .iter()
+        .any(|seen_object| seen_object.strict_equals(object.into()))
+    {
+        return value;
+    }
+    if is_promise_marker(scope, object) {
+        return realize_promise_marker(scope, object, clone_func, transfer_list, seen);
+    }
+    if value.is_promise() {
+        return value;
+    }
+    seen.push(object);
+    if value.is_array() {
+        if let Ok(array) = v8::Local::<v8::Array>::try_from(value) {
+            for index in 0..array.length() {
+                let Some(item) = array.get_index(scope, index) else {
+                    continue;
+                };
+                let replaced = walk_promise_markers(scope, item, clone_func, transfer_list, seen);
+                let _ = array.set_index(scope, index, replaced);
+            }
+        }
+    } else if let Some(names) = object.get_own_property_names(scope, Default::default()) {
+        for index in 0..names.length() {
+            let Some(key) = names.get_index(scope, index) else {
+                continue;
+            };
+            let Some(property) = object.get(scope, key) else {
+                continue;
+            };
+            let replaced = walk_promise_markers(scope, property, clone_func, transfer_list, seen);
+            let _ = object.set(scope, key, replaced);
+        }
+    }
+    seen.pop();
+    value
+}
+
+fn realize_promise_marker<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    marker: v8::Local<'a, v8::Object>,
+    clone_func: v8::Local<'a, v8::Function>,
+    transfer_list: v8::Local<'a, v8::Value>,
+    seen: &mut Vec<v8::Local<'a, v8::Object>>,
+) -> v8::Local<'a, v8::Value> {
+    let Some(promise_key) = v8::String::new(scope, "__promiseObj__") else {
+        return marker.into();
+    };
+    let Some(promise_value) = marker.get(scope, promise_key.into()) else {
+        return marker.into();
+    };
+    let Ok(promise) = v8::Local::<v8::Promise>::try_from(promise_value) else {
+        return marker.into();
+    };
+    let undefined = v8::undefined(scope);
+    let global = scope.get_current_context().global(scope);
+    match promise.state() {
+        v8::PromiseState::Fulfilled => {
+            let fulfilled = promise.result(scope);
+            let cloned = clone_func
+                .call(scope, undefined.into(), &[fulfilled, transfer_list])
+                .unwrap_or(v8::null(scope).into());
+            let cloned = walk_promise_markers(scope, cloned, clone_func, transfer_list, seen);
+            let Some(resolver) = v8::PromiseResolver::new(scope) else {
+                return marker.into();
+            };
+            resolver.resolve(scope, cloned);
+            resolver.get_promise(scope).into()
+        }
+        v8::PromiseState::Rejected => {
+            let reason = promise.result(scope);
+            let Some(error_key) = v8::String::new(scope, "Error") else {
+                return marker.into();
+            };
+            let Some(error_ctor) = global
+                .get(scope, error_key.into())
+                .and_then(|value| v8::Local::<v8::Function>::try_from(value).ok())
+            else {
+                return marker.into();
+            };
+            let reason_text = reason
+                .to_string(scope)
+                .unwrap_or_else(|| v8::String::new(scope, "Unknown error").unwrap());
+            let Some(error) = error_ctor.new_instance(scope, &[undefined.into()]) else {
+                return marker.into();
+            };
+            if let Some(message_key) = v8::String::new(scope, "message") {
+                error.set(scope, message_key.into(), reason_text.into());
+            }
+            if let Ok(reason_object) = v8::Local::<v8::Object>::try_from(reason) {
+                if let Some(names) = reason_object.get_own_property_names(scope, Default::default())
+                {
+                    for index in 0..names.length() {
+                        let Some(key) = names.get_index(scope, index) else {
+                            continue;
+                        };
+                        if let Some(property) = reason_object.get(scope, key) {
+                            error.set(scope, key, property);
+                        }
+                    }
+                }
+            }
+            let Some(resolver) = v8::PromiseResolver::new(scope) else {
+                return marker.into();
+            };
+            resolver.reject(scope, error.into());
+            resolver.get_promise(scope).into()
+        }
+        v8::PromiseState::Pending => {
+            let Some(message) = v8::String::new(scope, "Promise cannot be cloned") else {
+                return marker.into();
+            };
+            let Some(error_key) = v8::String::new(scope, "Error") else {
+                return marker.into();
+            };
+            let Some(error_ctor) = global
+                .get(scope, error_key.into())
+                .and_then(|value| v8::Local::<v8::Function>::try_from(value).ok())
+            else {
+                return marker.into();
+            };
+            let Some(error) = error_ctor.new_instance(scope, &[message.into()]) else {
+                return marker.into();
+            };
+            if let Some(name_key) = v8::String::new(scope, "name") {
+                if let Some(name) = v8::String::new(scope, "DataCloneError") {
+                    error.set(scope, name_key.into(), name.into());
+                }
+            }
+            scope.throw_exception(error.into());
+            v8::null(scope).into()
+        }
+    }
 }
 
 /// structuredClone callback function
@@ -552,6 +674,8 @@ fn structured_clone_callback(
         _ => result.unwrap_or(v8::null(scope).into()),
     };
 
+    let cloned_result =
+        walk_promise_markers(scope, cloned_result, func, transfer_list, &mut Vec::new());
     retval.set(cloned_result);
 }
 

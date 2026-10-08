@@ -31,13 +31,179 @@ pub fn setup_encoding_api(
     global.set(scope, btoa_key.into(), btoa_func.into());
     Ok(())
 }
+fn throw_type_error(scope: &mut v8::PinScope, message: &str) {
+    let Some(message) = v8::String::new(scope, message) else {
+        return;
+    };
+    scope.throw_exception(v8::Exception::type_error(scope, message));
+}
+
+fn require_construct_call(
+    scope: &mut v8::PinScope,
+    args: &v8::FunctionCallbackArguments,
+    name: &str,
+) -> bool {
+    if args.is_construct_call() {
+        return true;
+    }
+    throw_type_error(
+        scope,
+        &format!("{name} constructor must be called with new"),
+    );
+    false
+}
+
+/// `encode()` omits the argument as the empty string. An explicit `null` is the string `"null"`.
+fn usv_string_argument(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
+    if value.is_undefined() {
+        return String::new();
+    }
+    value
+        .to_string(scope)
+        .map(|text| text.to_rust_string_lossy(scope))
+        .unwrap_or_default()
+}
+
+fn decoder_private<'a>(scope: &mut v8::PinScope<'a, '_>, name: &str) -> v8::Local<'a, v8::Private> {
+    let name = v8::String::new(scope, name).unwrap();
+    v8::Private::for_api(scope, Some(name))
+}
+
+fn read_pending(scope: &mut v8::PinScope, decoder: v8::Local<v8::Object>) -> Vec<u8> {
+    let key = decoder_private(scope, "amber.textdecoder.pending");
+    let Some(value) = decoder.get_private(scope, key) else {
+        return Vec::new();
+    };
+    if !value.is_uint8_array() {
+        return Vec::new();
+    }
+    let Ok(array) = v8::Local::<v8::Uint8Array>::try_from(value) else {
+        return Vec::new();
+    };
+    let len = array.byte_length();
+    let mut buffer = vec![0u8; len];
+    if len > 0 {
+        let copied = array.copy_contents(&mut buffer);
+        buffer.truncate(copied);
+    }
+    buffer
+}
+
+fn write_pending(scope: &mut v8::PinScope, decoder: v8::Local<v8::Object>, bytes: &[u8]) {
+    let key = decoder_private(scope, "amber.textdecoder.pending");
+    if bytes.is_empty() {
+        let _ = decoder.set_private(scope, key, v8::undefined(scope).into());
+        return;
+    }
+    let array_buffer = v8::ArrayBuffer::new(scope, bytes.len());
+    let backing_store = array_buffer.get_backing_store();
+    if let Some(data) = backing_store.data() {
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), data.as_ptr() as *mut u8, bytes.len());
+        }
+    }
+    let Some(array) = v8::Uint8Array::new(scope, array_buffer, 0, bytes.len()) else {
+        return;
+    };
+    let _ = decoder.set_private(scope, key, array.into());
+}
+
+fn bom_seen(scope: &mut v8::PinScope, decoder: v8::Local<v8::Object>) -> bool {
+    let key = decoder_private(scope, "amber.textdecoder.bom");
+    decoder
+        .get_private(scope, key)
+        .map(|value| value.is_true())
+        .unwrap_or(false)
+}
+
+fn set_bom_seen(scope: &mut v8::PinScope, decoder: v8::Local<v8::Object>, seen: bool) {
+    let key = decoder_private(scope, "amber.textdecoder.bom");
+    let value = v8::Boolean::new(scope, seen);
+    let _ = decoder.set_private(scope, key, value.into());
+}
+
+/// Bytes of an incomplete UTF-8 sequence at the end of `bytes`, if any.
+fn incomplete_utf8_tail(bytes: &[u8]) -> usize {
+    if bytes.is_empty() {
+        return 0;
+    }
+    let mut index = bytes.len() - 1;
+    let mut continuations = 0usize;
+    while continuations < 3 && bytes[index] & 0b1100_0000 == 0b1000_0000 {
+        if index == 0 {
+            return 0;
+        }
+        index -= 1;
+        continuations += 1;
+    }
+    let lead = bytes[index];
+    let needed = if lead & 0b1000_0000 == 0 {
+        1
+    } else if lead & 0b1110_0000 == 0b1100_0000 {
+        2
+    } else if lead & 0b1111_0000 == 0b1110_0000 {
+        3
+    } else if lead & 0b1111_1000 == 0b1111_0000 {
+        4
+    } else {
+        return 0;
+    };
+    let have = bytes.len() - index;
+    if have < needed {
+        have
+    } else {
+        0
+    }
+}
+
+fn read_bytes(scope: &mut v8::PinScope, input: v8::Local<v8::Value>) -> Result<Vec<u8>, ()> {
+    if input.is_uint8_array() {
+        let array = v8::Local::<v8::Uint8Array>::try_from(input).map_err(|_| ())?;
+        let len = array.byte_length();
+        let byte_offset = array.byte_offset();
+        let array_buffer = array.buffer(scope).ok_or(())?;
+        let backing_store = array_buffer.get_backing_store();
+        let mut buffer = vec![0u8; len];
+        if let Some(data) = backing_store.data() {
+            unsafe {
+                let src_ptr = (data.as_ptr() as *const u8).add(byte_offset);
+                std::ptr::copy_nonoverlapping(src_ptr, buffer.as_mut_ptr(), len);
+            }
+        }
+        return Ok(buffer);
+    }
+    if input.is_array_buffer() {
+        let array_buffer = v8::Local::<v8::ArrayBuffer>::try_from(input).map_err(|_| ())?;
+        let backing_store = array_buffer.get_backing_store();
+        let len = backing_store.byte_length();
+        let mut buffer = vec![0u8; len];
+        if let Some(ptr) = backing_store.data() {
+            unsafe {
+                std::ptr::copy_nonoverlapping(ptr.as_ptr() as *const u8, buffer.as_mut_ptr(), len);
+            }
+        }
+        return Ok(buffer);
+    }
+    if input.is_array_buffer_view() {
+        let view = v8::Local::<v8::ArrayBufferView>::try_from(input).map_err(|_| ())?;
+        let len = view.byte_length();
+        let mut buffer = vec![0u8; len];
+        view.copy_contents(&mut buffer);
+        return Ok(buffer);
+    }
+    Err(())
+}
+
 /// TextEncoder constructor callback
 fn text_encoder_constructor(
     scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
+    args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let encoder_obj: _ = v8::Object::new(scope);
+    if !require_construct_call(scope, &args, "TextEncoder") {
+        return;
+    }
+    let encoder_obj = args.this();
     // Set encoding property (always "utf-8")
     let encoding_key: _ = v8::String::new(scope, "encoding").unwrap();
     let encoding_val: _ = v8::String::new(scope, "utf-8").unwrap();
@@ -60,15 +226,7 @@ fn text_encoder_encode(
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let input: _ = args.get(0);
-    let input_str: _ = if input.is_undefined() || input.is_null() {
-        String::new()
-    } else {
-        input
-            .to_string(scope)
-            .map(|s| s.to_rust_string_lossy(scope))
-            .unwrap_or_default()
-    };
+    let input_str = usv_string_argument(scope, args.get(0));
     // Convert string to UTF-8 bytes
     let bytes: _ = input_str.as_bytes();
     // Create Uint8Array
@@ -99,10 +257,7 @@ fn text_encoder_encode_into(
         scope.throw_exception(error_obj.into());
         return;
     }
-    let input_str: _ = input
-        .to_string(scope)
-        .map(|s| s.to_rust_string_lossy(scope))
-        .unwrap_or_default();
+    let input_str = usv_string_argument(scope, input);
     let dest_array: _ = v8::Local::<v8::Uint8Array>::try_from(destination).unwrap();
     let dest_len: _ = dest_array.byte_length();
     let mut encoded_bytes = Vec::new();
@@ -169,7 +324,10 @@ fn text_decoder_constructor(
         scope.throw_exception(error_obj.into());
         return;
     };
-    let decoder_obj: _ = v8::Object::new(scope);
+    if !require_construct_call(scope, &args, "TextDecoder") {
+        return;
+    }
+    let decoder_obj = args.this();
     // Set encoding property
     let encoding_key: _ = v8::String::new(scope, "encoding").unwrap();
     let encoding_val: _ = v8::String::new(scope, normalized_encoding).unwrap();
@@ -212,7 +370,7 @@ fn text_decoder_decode(
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let input: _ = args.get(0);
+    let input = args.get(0);
     let this_obj = args.this();
     let fatal_key: _ = v8::String::new(scope, "fatal").unwrap();
     let fatal = this_obj
@@ -224,79 +382,60 @@ fn text_decoder_decode(
         .get(scope, ignore_bom_key.into())
         .map(|value| value.to_boolean(scope).is_true())
         .unwrap_or(false);
-    // Handle undefined/null input
-    if input.is_undefined() || input.is_null() {
-        let empty: _ = v8::String::new(scope, "").unwrap();
-        retval.set(empty.into());
-        return;
+    let mut stream = false;
+    if args.length() >= 2 {
+        if let Ok(options) = v8::Local::<v8::Object>::try_from(args.get(1)) {
+            let stream_key = v8::String::new(scope, "stream").unwrap();
+            stream = options
+                .get(scope, stream_key.into())
+                .map(|value| value.to_boolean(scope).is_true())
+                .unwrap_or(false);
+        }
     }
-    // Get bytes from input (Uint8Array, ArrayBuffer, etc.)
-    let bytes: Vec<u8> = if input.is_uint8_array() {
-        let array: v8::Local<v8::Uint8Array> =
-            v8::Local::<v8::Uint8Array>::try_from(input).unwrap();
-        let len = array.byte_length();
-        let byte_offset = array.byte_offset();
-        let array_buffer = array.buffer(scope).unwrap();
-        let backing_store = array_buffer.get_backing_store();
-        let mut buffer = vec![0u8; len];
-        if let Some(data) = backing_store.data() {
-            unsafe {
-                let src_ptr = (data.as_ptr() as *const u8).add(byte_offset);
-                std::ptr::copy_nonoverlapping(src_ptr, buffer.as_mut_ptr(), len);
-            }
-        }
-        buffer
-    } else if input.is_array_buffer() {
-        let array_buffer: _ = v8::Local::<v8::ArrayBuffer>::try_from(input).unwrap();
-        let backing_store: _ = array_buffer.get_backing_store();
-        let len: _ = backing_store.byte_length();
-        let mut buffer = vec![0u8; len];
-        if let Some(ptr) = backing_store.data() {
-            unsafe {
-                std::ptr::copy_nonoverlapping(ptr.as_ptr() as *const u8, buffer.as_mut_ptr(), len);
-            }
-        }
-        buffer
-    } else if input.is_array_buffer_view() {
-        let view: _ = v8::Local::<v8::ArrayBufferView>::try_from(input).unwrap();
-        let len: _ = view.byte_length();
-        let mut buffer = vec![0u8; len];
-        view.copy_contents(&mut buffer);
-        buffer
+    let mut pending = read_pending(scope, this_obj);
+    let incoming = if input.is_undefined() || input.is_null() {
+        Vec::new()
     } else {
-        let error: _ =
-            v8::String::new(scope, "decode: input must be ArrayBuffer or TypedArray").unwrap();
-        let error_obj: _ = v8::Exception::type_error(scope, error);
-        scope.throw_exception(error_obj.into());
-        return;
-    };
-    // Decode UTF-8 bytes to string
-    let encoding_rs_encoding = encoding_rs::Encoding::for_label(b"utf-8").unwrap();
-    let decoded = if fatal {
-        match encoding_rs_encoding.decode_without_bom_handling_and_without_replacement(&bytes) {
-            Some(decoded) => {
-                let mut decoded = decoded.into_owned();
-                if !ignore_bom && decoded.starts_with('\u{feff}') {
-                    decoded.remove(0);
-                }
-                decoded
-            }
-            None => {
-                let error: _ =
-                    v8::String::new(scope, "The encoded data was not valid UTF-8").unwrap();
-                let error_obj: _ = v8::Exception::type_error(scope, error);
-                scope.throw_exception(error_obj.into());
+        match read_bytes(scope, input) {
+            Ok(bytes) => bytes,
+            Err(()) => {
+                throw_type_error(scope, "decode: input must be ArrayBuffer or TypedArray");
                 return;
             }
         }
-    } else if ignore_bom {
-        encoding_rs_encoding
-            .decode_without_bom_handling(&bytes)
-            .0
-            .into_owned()
-    } else {
-        encoding_rs_encoding.decode(&bytes).0.into_owned()
     };
+    pending.extend(incoming);
+    let tail = if stream {
+        incomplete_utf8_tail(&pending)
+    } else {
+        0
+    };
+    let split = pending.len() - tail;
+    let body = pending[..split].to_vec();
+    let kept = pending[split..].to_vec();
+    let already_saw_bom = bom_seen(scope, this_obj);
+    let mut decode_from = body.as_slice();
+    let mut mark_bom = already_saw_bom;
+    if !ignore_bom && !already_saw_bom && decode_from.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        decode_from = &decode_from[3..];
+        mark_bom = true;
+    } else if !already_saw_bom && (!decode_from.is_empty() || !stream) {
+        mark_bom = true;
+    }
+    let utf8 = encoding_rs::Encoding::for_label(b"utf-8").unwrap();
+    let decoded = if fatal {
+        match utf8.decode_without_bom_handling_and_without_replacement(decode_from) {
+            Some(decoded) => decoded.into_owned(),
+            None => {
+                throw_type_error(scope, "The encoded data was not valid UTF-8");
+                return;
+            }
+        }
+    } else {
+        utf8.decode_without_bom_handling(decode_from).0.into_owned()
+    };
+    write_pending(scope, this_obj, &kept);
+    set_bom_seen(scope, this_obj, mark_bom);
     let result: _ = v8::String::new(scope, &decoded).unwrap();
     retval.set(result.into());
 }
