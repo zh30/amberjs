@@ -169,12 +169,17 @@ fn deflate_sync_cb(
     mut rv: v8::ReturnValue,
 ) {
     let Some(input) = bytes_from_arg(scope, args.get(0)) else {
+        throw_type(scope, "zlib.deflateSync: invalid input");
         return;
     };
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    let _ = encoder.write_all(&input);
-    if let Ok(out) = encoder.finish() {
-        return_buffer(scope, &out, &mut rv);
+    if encoder.write_all(&input).is_err() {
+        throw_err(scope, "zlib.deflateSync failed");
+        return;
+    }
+    match encoder.finish() {
+        Ok(out) => return_buffer(scope, &out, &mut rv),
+        Err(_) => throw_err(scope, "zlib.deflateSync failed"),
     }
 }
 
@@ -184,13 +189,16 @@ fn inflate_sync_cb(
     mut rv: v8::ReturnValue,
 ) {
     let Some(input) = bytes_from_arg(scope, args.get(0)) else {
+        throw_type(scope, "zlib.inflateSync: invalid input");
         return;
     };
     let mut decoder = ZlibDecoder::new(&input[..]);
     let mut out = Vec::new();
-    if decoder.read_to_end(&mut out).is_ok() {
-        return_buffer(scope, &out, &mut rv);
+    if decoder.read_to_end(&mut out).is_err() {
+        throw_err(scope, "zlib.inflateSync failed");
+        return;
     }
+    return_buffer(scope, &out, &mut rv);
 }
 
 fn deflate_raw_sync_cb(
@@ -199,12 +207,17 @@ fn deflate_raw_sync_cb(
     mut rv: v8::ReturnValue,
 ) {
     let Some(input) = bytes_from_arg(scope, args.get(0)) else {
+        throw_type(scope, "zlib.deflateRawSync: invalid input");
         return;
     };
     let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
-    let _ = encoder.write_all(&input);
-    if let Ok(out) = encoder.finish() {
-        return_buffer(scope, &out, &mut rv);
+    if encoder.write_all(&input).is_err() {
+        throw_err(scope, "zlib.deflateRawSync failed");
+        return;
+    }
+    match encoder.finish() {
+        Ok(out) => return_buffer(scope, &out, &mut rv),
+        Err(_) => throw_err(scope, "zlib.deflateRawSync failed"),
     }
 }
 
@@ -214,11 +227,14 @@ fn inflate_raw_sync_cb(
     mut rv: v8::ReturnValue,
 ) {
     let Some(input) = bytes_from_arg(scope, args.get(0)) else {
+        throw_type(scope, "zlib.inflateRawSync: invalid input");
         return;
     };
     let mut decoder = DeflateDecoder::new(&input[..]);
     let mut out = Vec::new();
-    if decoder.read_to_end(&mut out).is_ok() {
-        return_buffer(scope, &out, &mut rv);
+    if decoder.read_to_end(&mut out).is_err() {
+        throw_err(scope, "zlib.inflateRawSync failed");
+        return;
     }
+    return_buffer(scope, &out, &mut rv);
 }

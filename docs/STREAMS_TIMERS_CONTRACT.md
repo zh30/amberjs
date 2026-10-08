@@ -92,7 +92,7 @@ Marks and measures are process-global. This is not a per-document timeline, and 
 - `response.body` as a `ReadableStream`. See [`docs/FETCH_CONTRACT.md`](FETCH_CONTRACT.md).
 - `setImmediate`, `require('timers')`, and `require('stream')`.
 - A `Performance` constructor, `PerformanceObserver`, or resource timing.
-- Node `zlib` (`require('zlib')`), which stays Preview.
+- Node `zlib` (`require('zlib')`). That module has its own Stable sync contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md). This page does not graduate it.
 
 ## Tests
 

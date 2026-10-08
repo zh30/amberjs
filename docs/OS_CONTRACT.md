@@ -6,7 +6,7 @@ This is the user-facing contract for the Stable subset of Node `os` in Amber. It
 
 This is not full Node `os`. Only the calls in the table below are Stable. Everything else on the `os` object stays outside this contract.
 
-The Node `fs` contract stays [`docs/FS_CONTRACT.md`](FS_CONTRACT.md). The rest of `src/nodejs_core/` stays Preview.
+The Node `fs` contract stays [`docs/FS_CONTRACT.md`](FS_CONTRACT.md). The Node `path` contract stays [`docs/PATH_CONTRACT.md`](PATH_CONTRACT.md). The Node `events` contract stays [`docs/NODE_EVENTS_CONTRACT.md`](NODE_EVENTS_CONTRACT.md). The Node `buffer` / `Buffer` contract stays [`docs/BUFFER_CONTRACT.md`](BUFFER_CONTRACT.md). The Node `zlib` sync contract stays [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md). The rest of `src/nodejs_core/` stays Preview.
 
 ## Stable surface
 
