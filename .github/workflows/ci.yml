@@ -123,6 +123,9 @@ jobs:
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
+      - name: web streams timers Stable contract
+        run: cargo test --test streams_timers_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 

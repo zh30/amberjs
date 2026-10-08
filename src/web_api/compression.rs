@@ -4,10 +4,36 @@
 // Optimized for AI workloads - reduces network transfer by 70-90%
 
 use anyhow::Result;
-use flate2::bufread::{GzDecoder, GzEncoder};
+use flate2::bufread::{
+    DeflateDecoder, DeflateEncoder, GzDecoder, GzEncoder, ZlibDecoder, ZlibEncoder,
+};
 use flate2::Compression;
 use rusty_v8 as v8;
-use std::io::{Cursor, Read};
+use std::io::Read;
+
+/// Compress or decompress one complete member.
+///
+/// `deflate` is the zlib wrapper (RFC 1950). `deflate-raw` is raw DEFLATE
+/// (RFC 1951). `gzip` is RFC 1952. Each call is one member, not a leftover
+/// streaming dictionary from a previous chunk.
+fn transcode_member(bytes: &[u8], format: &str, compress: bool) -> Vec<u8> {
+    let mut output = Vec::new();
+    let read_result = match (format, compress) {
+        ("gzip", true) => GzEncoder::new(bytes, Compression::default()).read_to_end(&mut output),
+        ("gzip", false) => GzDecoder::new(bytes).read_to_end(&mut output),
+        ("deflate", true) => {
+            ZlibEncoder::new(bytes, Compression::default()).read_to_end(&mut output)
+        }
+        ("deflate", false) => ZlibDecoder::new(bytes).read_to_end(&mut output),
+        ("deflate-raw", true) => {
+            DeflateEncoder::new(bytes, Compression::default()).read_to_end(&mut output)
+        }
+        ("deflate-raw", false) => DeflateDecoder::new(bytes).read_to_end(&mut output),
+        _ => return Vec::new(),
+    };
+    let _ = read_result;
+    output
+}
 
 /// Close method for compression stream - closes the writable stream
 fn compression_close_method(
@@ -168,22 +194,7 @@ pub fn setup_compression_api(
                         "gzip".to_string()
                     };
 
-                    // For deflate format, use streaming-compatible approach
-                    // For gzip, we use GzEncoder which creates a complete gzip stream
-                    let compressed = if format_str == "gzip" {
-                        // Use GzEncoder from bufread with Cursor for proper BufRead
-                        let cursor = Cursor::new(bytes);
-                        let mut encoder = GzEncoder::new(cursor, Compression::default());
-                        let mut output = Vec::new();
-                        let _ = encoder.read_to_end(&mut output);
-                        output
-                    } else {
-                        // For deflate, use the bufread encoder
-                        let mut encoder = GzEncoder::new(bytes.as_slice(), Compression::default());
-                        let mut output = Vec::new();
-                        let _ = encoder.read_to_end(&mut output);
-                        output
-                    };
+                    let compressed = transcode_member(&bytes, &format_str, true);
 
                     if let Some(result_array) = create_uint8_array(_scope, &compressed) {
                         retval.set(result_array.into());
@@ -221,20 +232,7 @@ pub fn setup_compression_api(
                         "gzip".to_string()
                     };
 
-                    // Use GzDecoder from bufread with Cursor for proper BufRead
-                    let decompressed = if format_str == "gzip" {
-                        let cursor = Cursor::new(bytes);
-                        let mut decoder = GzDecoder::new(cursor);
-                        let mut output = Vec::new();
-                        let _ = decoder.read_to_end(&mut output);
-                        output
-                    } else {
-                        // For deflate, use bufread decoder
-                        let mut decoder = GzDecoder::new(bytes.as_slice());
-                        let mut output = Vec::new();
-                        let _ = decoder.read_to_end(&mut output);
-                        output
-                    };
+                    let decompressed = transcode_member(&bytes, &format_str, false);
 
                     if let Some(result_array) = create_uint8_array(_scope, &decompressed) {
                         retval.set(result_array.into());
@@ -270,7 +268,7 @@ fn compression_stream_constructor(
 
     // Validate format
     match format_str.as_str() {
-        "gzip" | "deflate" => {}
+        "gzip" | "deflate" | "deflate-raw" => {}
         _ => {
             let error = v8::String::new(
                 scope,
@@ -409,7 +407,7 @@ fn decompression_stream_constructor(
 
     // Validate format
     match format_str.as_str() {
-        "gzip" | "deflate" => {}
+        "gzip" | "deflate" | "deflate-raw" => {}
         _ => {
             let error = v8::String::new(
                 scope,
