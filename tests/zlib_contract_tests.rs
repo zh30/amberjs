@@ -124,19 +124,21 @@ fn corrupt_payload_throws_error() {
     let output = run(
         r#"
         const zlib = require('zlib');
-        const bad = Buffer.from([0x00, 0x01, 0x02, 0x03]);
-        function check(fn, label) {
+        // Short random bytes fail gzip/zlib wrappers; all-0xff fails raw DEFLATE.
+        const badWrapped = Buffer.from([0x00, 0x01, 0x02, 0x03]);
+        const badRaw = Buffer.from([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
+        function check(fn, input, label) {
           try {
-            fn(bad);
+            fn(input);
             return label + ':ok';
           } catch (e) {
             return label + ':' + (e instanceof TypeError) + ':' + (e instanceof Error) + ':' + String(e.message).includes('failed');
           }
         }
         [
-          check(zlib.gunzipSync, 'gunzip'),
-          check(zlib.inflateSync, 'inflate'),
-          check(zlib.inflateRawSync, 'inflateRaw')
+          check(zlib.gunzipSync, badWrapped, 'gunzip'),
+          check(zlib.inflateSync, badWrapped, 'inflate'),
+          check(zlib.inflateRawSync, badRaw, 'inflateRaw')
         ].join('|');
         "#,
     );
