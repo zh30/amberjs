@@ -19,6 +19,29 @@ fn run_js(code: &str) -> Result<String, String> {
         .map_err(|error| error.to_string())
 }
 
+fn read_until_request_headers(stream: &mut std::net::TcpStream) {
+    // accept() on a nonblocking listener inherits that flag. On macOS a
+    // single read can return before the request arrives, and writing then
+    // closes the channel under the client.
+    let _ = stream.set_nonblocking(false);
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+    let mut buf = Vec::new();
+    let mut tmp = [0u8; 1024];
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_millis(500) {
+        match stream.read(&mut tmp) {
+            Ok(0) => break,
+            Ok(n) => {
+                buf.extend_from_slice(&tmp[..n]);
+                if buf.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+            Err(_) => break,
+        }
+    }
+}
+
 fn spawn_one(raw: Vec<u8>, hits: Arc<AtomicUsize>) -> String {
     let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
     let address = listener.local_addr().expect("addr");
@@ -30,8 +53,7 @@ fn spawn_one(raw: Vec<u8>, hits: Arc<AtomicUsize>) -> String {
                 Ok((mut stream, _)) => {
                     hits.fetch_add(1, Ordering::SeqCst);
                     let _ = stream.set_nodelay(true);
-                    let mut buffer = [0u8; 2048];
-                    let _ = stream.read(&mut buffer);
+                    read_until_request_headers(&mut stream);
                     let _ = stream.write_all(&raw);
                     break;
                 }
