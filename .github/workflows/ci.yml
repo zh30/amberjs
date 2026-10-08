@@ -156,6 +156,9 @@ jobs:
       - name: node dns Stable contract
         run: cargo test --test dns_contract_tests -- --test-threads=1
 
+      - name: node require Stable contract
+        run: cargo test --test require_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
