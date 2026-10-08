@@ -18,8 +18,7 @@ fn run(code: &str) -> String {
 #[test]
 #[serial]
 fn require_crypto_exports_stable_subset_and_not_web_subtle_contract() {
-    let result = run(
-        r#"
+    let result = run(r#"
         const c = require('crypto');
         const n = require('node:crypto');
         [
@@ -37,8 +36,7 @@ fn require_crypto_exports_stable_subset_and_not_web_subtle_contract() {
           // Web Crypto stays on the shared object; this contract does not pin it.
           typeof c.subtle?.digest === 'function'
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(
         result,
         "function|function|function|function|function|function|true|true|true|object|object|true"
@@ -48,8 +46,7 @@ fn require_crypto_exports_stable_subset_and_not_web_subtle_contract() {
 #[test]
 #[serial]
 fn create_hash_known_answers_encodings_copy_and_errors() {
-    let result = run(
-        r#"
+    let result = run(r#"
         const c = require('crypto');
         const sha256 = c.createHash('sha256').update('hello').digest('hex');
         const sha384 = c.createHash('sha384').update('hello').digest('hex');
@@ -95,8 +92,7 @@ fn create_hash_known_answers_encodings_copy_and_errors() {
           double,
           blake.length
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(
         result,
         "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824|59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcdb9c666fa90125a3c79f90397bdf5f6a13de828684f|9b71d224bd62f3785d96d46ad3ea3d73319bfbc2890caadae2dff72519673ca72323c3d99ba5c11d7c7acc6e14b8c5da0c4663475c2e5c3adef46f73bcdec043|5d41402abc4b2a76b9719d911017c592|a9993e364706816aba3e25717850c26c9cd0d89d|true|true|16|qZk+NkcGgWq6PiVxeFDCbJzQ2J0=|qZk-NkcGgWq6PiVxeFDCbJzQ2J0|true|true|unsupported|throw|64"
@@ -106,8 +102,7 @@ fn create_hash_known_answers_encodings_copy_and_errors() {
 #[test]
 #[serial]
 fn create_hmac_known_answers_and_digest_shapes() {
-    let result = run(
-        r#"
+    let result = run(r#"
         const c = require('crypto');
         const hex = c.createHmac('sha256', 'key')
           .update('The quick brown fox jumps over the lazy dog')
@@ -137,8 +132,7 @@ fn create_hmac_known_answers_and_digest_shapes() {
           secondEnc,
           typeof h.copy
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(
         result,
         "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8|80070713463e7749b90c2dc24911e275|true|32|2d93cbc1be167bcb|unsupported|true|0||undefined"
@@ -148,8 +142,7 @@ fn create_hmac_known_answers_and_digest_shapes() {
 #[test]
 #[serial]
 fn random_bytes_size_callback_and_range_errors() {
-    let result = run(
-        r#"
+    let result = run(r#"
         const c = require('crypto');
         const sync = c.randomBytes(16);
         const zero = c.randomBytes(0);
@@ -176,19 +169,14 @@ fn random_bytes_size_callback_and_range_errors() {
           neg,
           huge
         ].join('|');
-        "#,
-    );
-    assert_eq!(
-        result,
-        "true|16|Uint8Array|0|8|before,cb,ret|range|range"
-    );
+        "#);
+    assert_eq!(result, "true|16|Uint8Array|0|8|before,cb,ret|range|range");
 }
 
 #[test]
 #[serial]
 fn random_uuid_and_timing_safe_equal() {
-    let result = run(
-        r#"
+    let result = run(r#"
         const c = require('crypto');
         const uuid = c.randomUUID();
         const again = c.randomUUID();
@@ -209,12 +197,8 @@ fn random_uuid_and_timing_safe_equal() {
           lenErr,
           c.randomUUID === crypto.randomUUID
         ].join('|');
-        "#,
-    );
-    assert_eq!(
-        result,
-        "36|4|true|true|true|true|false|length|true"
-    );
+        "#);
+    assert_eq!(result, "36|4|true|true|true|true|false|length|true");
 }
 
 #[test]

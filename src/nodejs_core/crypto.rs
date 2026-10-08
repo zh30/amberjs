@@ -1284,8 +1284,8 @@ fn parse_random_bytes_size(
     args: &v8::FunctionCallbackArguments,
 ) -> Option<usize> {
     let Some(size_int) = args.get(0).to_integer(scope) else {
-        let error_msg = v8::String::new(scope, "The \"size\" argument must be of type number.")
-            .unwrap();
+        let error_msg =
+            v8::String::new(scope, "The \"size\" argument must be of type number.").unwrap();
         let error = v8::Exception::type_error(scope, error_msg);
         scope.throw_exception(error);
         return None;
