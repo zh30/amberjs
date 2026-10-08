@@ -2,7 +2,7 @@
 
 This is the user-facing contract for Stable Web Crypto in the default Amber runtime. It is derived from `src/web_api/crypto.rs` and `tests/web_crypto_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
-The surface is `globalThis.crypto.subtle`, `crypto.randomUUID`, `crypto.getRandomValues`, and the `CryptoKey` objects those methods return. It is reachable from `amber run` and `amber eval`. Fetch, URL / encoding / `structuredClone`, `Blob` / `File` / `FormData`, events / abort / channels, and streams / timers / performance stay on their own Stable contracts. The rest of `src/web_api/` stays Preview. Node `crypto` (`require('crypto')`, including `createHash`, `randomBytes`, and `createCipheriv`) stays Preview. This is not the Web Crypto standard.
+The surface is `globalThis.crypto.subtle`, `crypto.randomUUID`, `crypto.getRandomValues`, and the `CryptoKey` objects those methods return. It is reachable from `amber run` and `amber eval`. Fetch, URL / encoding / `structuredClone`, `Blob` / `File` / `FormData`, events / abort / channels, and streams / timers / performance stay on their own Stable contracts. The rest of `src/web_api/` stays Preview. The Node `crypto` subset in [`docs/NODE_CRYPTO_CONTRACT.md`](NODE_CRYPTO_CONTRACT.md) (`createHash`, `createHmac`, `randomBytes`, `randomUUID`, `timingSafeEqual`) is a separate Stable contract on the same global object; other Node `crypto` methods stay Preview. This is not the Web Crypto standard.
 
 ## `crypto.randomUUID` and `crypto.getRandomValues`
 
@@ -104,7 +104,7 @@ AES-CBC and AES-CTR without the required `iv` or `counter`, and AES-GCM without 
 - AES-GCM nonces other than 12 bytes, or a tag other than 16 bytes.
 - Importing RSA, ECDSA, or ECDH keys. Exporting those keys as JWK, SPKI, or PKCS#8.
 - A `CryptoKey` constructor.
-- Node `crypto` (`createHash`, `randomBytes`, `pbkdf2`, `createCipheriv`, and the rest of `src/nodejs_core/crypto.rs`).
+- Graduating Node `crypto` beyond [`docs/NODE_CRYPTO_CONTRACT.md`](NODE_CRYPTO_CONTRACT.md). `createCipheriv`, `pbkdf2`, `scrypt`, sign/verify, and KeyObjects stay Preview.
 - String inputs to `digest`, `encrypt`, `sign`, or `verify`. The data must be an `ArrayBuffer` or a TypedArray.
 - `--seed` changing `randomUUID`.
 - Turning every failure into a rejected promise. Callers must handle both thrown exceptions and rejections.
