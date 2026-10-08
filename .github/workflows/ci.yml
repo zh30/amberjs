@@ -128,6 +128,8 @@ jobs:
 
       - name: node buffer Stable contract
         run: cargo test --test buffer_contract_tests -- --test-threads=1
+      - name: node os Stable contract
+        run: cargo test --test os_contract_tests -- --test-threads=1
 
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
