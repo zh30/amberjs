@@ -2,7 +2,7 @@
 
 This is the user-facing contract for the Stable subset of Node `stream` in Amber. It is derived from `src/nodejs_core/stream.rs`, `src/runtime_minimal.rs` (`require('stream')` / `require('node:stream')` return `globalThis.stream` installed by `setup_stream_api`), and `tests/node_stream_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
-This is **not** the Stable Web streams surface in [`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md) (G13). G13 does not graduate `require('stream')`. This page is an independent Node module contract (**G24**; path G17 through crypto G23 and additive G8 `existsSync` are Stable on `main`; CommonJS `require` remains last in wave-2 after child_process→url→dns).
+This is **not** the Stable Web streams surface in [`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md) (G13). G13 does not graduate `require('stream')`. This page is an independent Node module contract (**G25**; path G17 through crypto G23 and additive G8 `existsSync` are Stable on `main`; CommonJS `require` remains last in wave-2 after child_process→url→dns).
 
 Methods, constructors, and helpers that are not listed in the Stable surface table are outside this contract. Stub or incomplete exports that remain on the module object (`Transform`, `Duplex`, `pipeline`, and friends) stay **Preview**. They are Non-goals here; they are **not** Stable “limits”.
 
