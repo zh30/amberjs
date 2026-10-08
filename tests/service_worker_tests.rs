@@ -76,7 +76,7 @@ mod service_worker_tests {
                         },
                         error => {
                             const message = String(error && error.message || error);
-                            console.log(message === 'ServiceWorker registration is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
+                            console.log(message.indexOf('could not load script') >= 0 ? 'SUCCESS' : 'ERROR: ' + message);
                         }
                     );
                 }
@@ -123,7 +123,7 @@ mod service_worker_tests {
                     console.log('ERROR: registration resolved fake scope: ' + registration.scope);
                 }).catch(e => {
                     const message = String(e && e.message || e);
-                    console.log(message === 'ServiceWorker registration is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
+                    console.log(message.indexOf('could not load script') >= 0 ? 'SUCCESS' : 'ERROR: ' + message);
                 });
             } else {
                 console.log('ERROR: navigator.serviceWorker not defined');
@@ -146,7 +146,7 @@ mod service_worker_tests {
                     console.log('ERROR: registration resolved fake installing: ' + ('installing' in registration));
                 }).catch(e => {
                     const message = String(e && e.message || e);
-                    console.log(message === 'ServiceWorker registration is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
+                    console.log(message.indexOf('could not load script') >= 0 ? 'SUCCESS' : 'ERROR: ' + message);
                 });
             } else {
                 console.log('ERROR: navigator.serviceWorker not defined');
@@ -169,7 +169,7 @@ mod service_worker_tests {
                     console.log('ERROR: registration resolved fake active: ' + ('active' in registration));
                 }).catch(e => {
                     const message = String(e && e.message || e);
-                    console.log(message === 'ServiceWorker registration is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
+                    console.log(message.indexOf('could not load script') >= 0 ? 'SUCCESS' : 'ERROR: ' + message);
                 });
             } else {
                 console.log('ERROR: navigator.serviceWorker not defined');
@@ -507,7 +507,7 @@ mod integration_tests {
                     console.log('ERROR: registration resolved fake object: ' + Object.keys(registration).join(','));
                 }).catch(e => {
                     const message = String(e && e.message || e);
-                    console.log(message === 'ServiceWorker registration is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
+                    console.log(message.indexOf('could not load script') >= 0 ? 'SUCCESS' : 'ERROR: ' + message);
                 });
             } else {
                 console.log('ERROR: ServiceWorker not supported');
@@ -553,7 +553,7 @@ mod integration_tests {
                     console.log('ERROR: registration resolved fake scoped object: ' + registration.scope);
                 }).catch(e => {
                     const message = String(e && e.message || e);
-                    console.log(message === 'ServiceWorker registration is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
+                    console.log(message.indexOf('could not load script') >= 0 ? 'SUCCESS' : 'ERROR: ' + message);
                 });
             } else {
                 console.log('ERROR: ServiceWorker not supported');

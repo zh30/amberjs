@@ -417,6 +417,14 @@ fn run_worker_thread(
                     }} catch (_) {{
                         data = raw;
                     }}
+                    // Service workers use this hook to consume install/activate
+                    // frames and unwrap page postMessage payloads. Dedicated
+                    // workers leave it unset, so their messages are unchanged.
+                    if (typeof globalThis.__amber_before_user_message === 'function') {{
+                        const rewritten = globalThis.__amber_before_user_message(data);
+                        if (rewritten && rewritten.__amberConsume) return;
+                        if (rewritten && rewritten.__amberRewrite) data = rewritten.value;
+                    }}
                     parentPort.emit('message', data);
                     if (typeof userOnmessage === 'function') {{
                         userOnmessage({{ data }});
@@ -743,6 +751,9 @@ pub fn setup_worker_host_api(
                 super();
                 if (!filename || typeof filename !== 'string') {
                     throw new TypeError("Worker requires a script URL or source");
+                }
+                if (options && options.type != null && options.type !== 'classic') {
+                    throw new TypeError('Worker type "' + options.type + '" is not supported');
                 }
 
                 let source = '';

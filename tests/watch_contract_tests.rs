@@ -77,6 +77,24 @@ fn assert_no_event(rx: &mpsc::Receiver<FileChange>, wait: Duration) {
     }
 }
 
+/// macOS FSEvents can report a create that happened before `watch` only after
+/// the watcher is running. Drop those events, and restart the wait if another
+/// arrives, so a late `keep.ts` create is not counted as a later write.
+fn drain_until_quiet(rx: &mpsc::Receiver<FileChange>, quiet: Duration) {
+    let mut quiet_since = Instant::now();
+    loop {
+        let remaining = quiet.saturating_sub(quiet_since.elapsed());
+        if remaining.is_zero() {
+            return;
+        }
+        match rx.recv_timeout(remaining) {
+            Ok(_) => quiet_since = Instant::now(),
+            Err(mpsc::RecvTimeoutError::Timeout) => return,
+            Err(mpsc::RecvTimeoutError::Disconnected) => panic!("watcher disconnected"),
+        }
+    }
+}
+
 #[test]
 #[serial]
 fn watch_emits_one_event_per_quiet_period_and_ignores_unwatched_paths() {
@@ -93,6 +111,7 @@ fn watch_emits_one_event_per_quiet_period_and_ignores_unwatched_paths() {
     let rx = reloader.watch(dir.path()).expect("watch");
     assert!(reloader.is_running());
     assert_eq!(reloader.get_stats().files_watched, 1);
+    drain_until_quiet(&rx, Duration::from_millis(500));
 
     std::fs::write(dir.path().join("target").join("built.js"), "nope").expect("target js");
     std::fs::write(nested.join("node_modules").join("dep.js"), "nope").expect("dep");

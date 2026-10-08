@@ -138,6 +138,9 @@ jobs:
       - name: web crypto Stable contract
         run: cargo test --test web_crypto_contract_tests -- --test-threads=1
 
+      - name: web workers Stable contract
+        run: cargo test --test workers_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 
