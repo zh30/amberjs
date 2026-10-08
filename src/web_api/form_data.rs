@@ -332,6 +332,20 @@ fn form_data_constructor(
     let for_each_func = for_each_template.get_function(scope).unwrap();
     form_data_obj.set(scope, for_each_key, for_each_func.into());
 
+    // The instance is a separate object with an internal field. Link
+    // FormData.prototype so `instanceof FormData` follows that constructor.
+    let context = scope.get_current_context();
+    let global = context.global(scope);
+    let ctor_key = v8::String::new(scope, "FormData").unwrap();
+    if let Some(ctor_val) = global.get(scope, ctor_key.into()) {
+        if let Ok(ctor_obj) = v8::Local::<v8::Object>::try_from(ctor_val) {
+            let prototype_key = v8::String::new(scope, "prototype").unwrap();
+            if let Some(proto) = ctor_obj.get(scope, prototype_key.into()) {
+                let _ = form_data_obj.set_prototype(scope, proto);
+            }
+        }
+    }
+
     retval.set(form_data_obj.into());
 }
 

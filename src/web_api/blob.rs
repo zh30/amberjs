@@ -30,6 +30,22 @@ fn append_blob_part(scope: &mut v8::PinScope, part: v8::Local<v8::Value>, data: 
             view.copy_contents(&mut bytes);
             data.extend_from_slice(&bytes);
         }
+    } else if part.is_object() {
+        // Blob and File parts are stored as bytes, not skipped. A plain object
+        // has neither property and contributes nothing.
+        if let Some(object) = part.to_object(scope) {
+            if let Some(bytes) = blob_object_bytes(scope, object) {
+                data.extend_from_slice(&bytes);
+            } else if let Some(data_key) = v8::String::new(scope, "blobData") {
+                if let Some(stored) = object.get(scope, data_key.into()) {
+                    if stored.is_string() {
+                        if let Some(text) = stored.to_string(scope) {
+                            data.extend_from_slice(text.to_rust_string_lossy(scope).as_bytes());
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

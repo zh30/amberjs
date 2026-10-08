@@ -126,6 +126,9 @@ jobs:
       - name: web streams timers Stable contract
         run: cargo test --test streams_timers_contract_tests -- --test-threads=1
 
+      - name: web blob formdata Stable contract
+        run: cargo test --test blob_formdata_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 
