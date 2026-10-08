@@ -6,7 +6,7 @@ This is the user-facing contract for the Stable subset of Node `fs` in Amber. It
 
 This is not full Node `fs`. Methods that are not listed here are outside the contract. `fs.watch` is not implemented (`typeof fs.watch === "undefined"`).
 
-The rest of `src/nodejs_core/` (`crypto`, `http`, `net`, streams, `dns`, `child_process`, and the other modules) stays Preview.
+The rest of `src/nodejs_core/` (`crypto`, `http`, `net`, streams, `dns`, `child_process`, and the other modules) stays Preview, except the Stable Node `zlib` sync contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md).
 
 ## Stable surface
 

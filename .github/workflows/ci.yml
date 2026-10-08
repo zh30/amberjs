@@ -120,6 +120,9 @@ jobs:
       - name: node fs Stable contract
         run: cargo test --test fs_contract_tests -- --test-threads=1
 
+      - name: node zlib Stable contract
+        run: cargo test --test zlib_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
