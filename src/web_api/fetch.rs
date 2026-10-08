@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -17,12 +18,14 @@ use super::form_data::{
     generate_boundary, get_formdata_entries, get_formdata_index, serialize_formdata_multipart,
 };
 
-/// Thread-safe response cache for json() and text() methods
-static RESPONSE_CACHE: OnceLock<Mutex<HashMap<usize, (String, Vec<u8>)>>> = OnceLock::new();
+/// Thread-safe response cache for json() and text() methods.
+/// The cached value is a pull source. `text()` / `json()` read it; `fetch`
+/// does not copy the whole body into this map up front.
+static RESPONSE_CACHE: OnceLock<Mutex<HashMap<usize, Arc<Mutex<SharedBody>>>>> = OnceLock::new();
 static RESPONSE_ID_COUNTER: OnceLock<Mutex<usize>> = OnceLock::new();
 
 /// Get the response cache mutex
-fn get_response_cache() -> &'static Mutex<HashMap<usize, (String, Vec<u8>)>> {
+fn get_response_cache() -> &'static Mutex<HashMap<usize, Arc<Mutex<SharedBody>>>> {
     RESPONSE_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -111,7 +114,7 @@ fn is_redirect_status(status: u16) -> bool {
     matches!(status, 301 | 302 | 303 | 307 | 308)
 }
 
-fn header_lookup<'a>(headers: &'a HashMap<String, String>, name: &str) -> Option<&'a str> {
+fn header_lookup<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str> {
     headers
         .iter()
         .find(|(key, _)| key.eq_ignore_ascii_case(name))
@@ -229,6 +232,379 @@ fn http_host_header(host: &str, port: u16) -> String {
     }
 }
 
+/// Pull source for `response.body`. Bytes stay on the socket (or in the
+/// reqwest body) until something reads them.
+#[derive(Debug)]
+pub struct SharedBody {
+    pulled: Vec<u8>,
+    net: Option<NetReader>,
+    finished: bool,
+}
+
+#[derive(Debug)]
+enum NetReader {
+    Tcp {
+        stream: TcpStream,
+        remaining: Option<usize>,
+    },
+    Blocking(reqwest::blocking::Response),
+    Async(tokio::sync::Mutex<Option<reqwest::Response>>),
+}
+
+fn memory_body(bytes: Vec<u8>) -> Arc<Mutex<SharedBody>> {
+    Arc::new(Mutex::new(SharedBody {
+        pulled: bytes,
+        net: None,
+        finished: true,
+    }))
+}
+
+fn open_body(pulled: Vec<u8>, net: Option<NetReader>) -> Arc<Mutex<SharedBody>> {
+    let finished = net.is_none();
+    Arc::new(Mutex::new(SharedBody {
+        pulled,
+        net,
+        finished,
+    }))
+}
+
+fn read_net(net: &mut NetReader) -> Result<Option<Vec<u8>>> {
+    match net {
+        NetReader::Tcp { stream, remaining } => {
+            if remaining.as_ref() == Some(&0) {
+                return Ok(None);
+            }
+            let mut buf = [0u8; 8192];
+            let n = stream
+                .read(&mut buf)
+                .map_err(|error| anyhow::anyhow!("failed to read response body: {error}"))?;
+            if n == 0 {
+                return Ok(None);
+            }
+            let take = if let Some(left) = remaining.as_mut() {
+                let take = n.min(*left);
+                *left -= take;
+                take
+            } else {
+                n
+            };
+            if take == 0 {
+                Ok(None)
+            } else {
+                Ok(Some(buf[..take].to_vec()))
+            }
+        }
+        NetReader::Blocking(response) => {
+            let mut buf = [0u8; 8192];
+            let n = response
+                .read(&mut buf)
+                .map_err(|error| anyhow::anyhow!("failed to read response body: {error}"))?;
+            if n == 0 {
+                Ok(None)
+            } else {
+                Ok(Some(buf[..n].to_vec()))
+            }
+        }
+        NetReader::Async(slot) => loop {
+            let chunk = get_fetch_runtime()
+                .block_on(async {
+                    let mut guard = slot.lock().await;
+                    match guard.as_mut() {
+                        Some(response) => response.chunk().await,
+                        None => Ok(None),
+                    }
+                })
+                .map_err(|error| anyhow::anyhow!("failed to read response body: {error}"))?;
+            match chunk {
+                Some(bytes) if bytes.is_empty() => continue,
+                Some(bytes) => return Ok(Some(bytes.to_vec())),
+                None => return Ok(None),
+            }
+        },
+    }
+}
+
+fn next_chunk(body: &mut SharedBody) -> Result<Option<Vec<u8>>> {
+    if body.finished {
+        return Ok(None);
+    }
+    let chunk = match body.net.as_mut() {
+        Some(net) => read_net(net)?,
+        None => None,
+    };
+    match chunk {
+        Some(bytes) => {
+            body.pulled.extend_from_slice(&bytes);
+            Ok(Some(bytes))
+        }
+        None => {
+            body.finished = true;
+            body.net = None;
+            Ok(None)
+        }
+    }
+}
+
+fn read_to_end(shared: &Arc<Mutex<SharedBody>>) -> Result<Vec<u8>> {
+    let mut body = shared.lock().unwrap();
+    loop {
+        if next_chunk(&mut body)?.is_none() {
+            break;
+        }
+    }
+    Ok(body.pulled.clone())
+}
+
+fn drain_shared_body(shared: &Arc<Mutex<SharedBody>>) -> Result<()> {
+    let _ = read_to_end(shared)?;
+    Ok(())
+}
+
+static ABORT_FLAGS: OnceLock<Mutex<HashMap<u64, Arc<AtomicBool>>>> = OnceLock::new();
+static ABORT_ID: AtomicU64 = AtomicU64::new(1);
+static ACTIVE_FETCH_ABORT: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
+
+fn abort_flag_map() -> &'static Mutex<HashMap<u64, Arc<AtomicBool>>> {
+    ABORT_FLAGS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Register a flag `AbortController.abort` can flip. The id is stored on the signal.
+pub fn register_abort_flag() -> (u64, Arc<AtomicBool>) {
+    let id = ABORT_ID.fetch_add(1, Ordering::Relaxed);
+    let flag = Arc::new(AtomicBool::new(false));
+    abort_flag_map()
+        .lock()
+        .unwrap()
+        .insert(id, Arc::clone(&flag));
+    (id, flag)
+}
+
+pub fn abort_fetch_signal(id: u64) {
+    if let Some(flag) = abort_flag_map().lock().unwrap().get(&id) {
+        flag.store(true, Ordering::Release);
+    }
+}
+
+/// Abort the fetch that is inside its redirect loop. Safe to call from another thread.
+pub fn abort_in_flight_fetch() {
+    if let Some(flag) = ACTIVE_FETCH_ABORT.lock().unwrap().clone() {
+        flag.store(true, Ordering::Release);
+    }
+}
+
+struct AbortGuard;
+
+impl Drop for AbortGuard {
+    fn drop(&mut self) {
+        *ACTIVE_FETCH_ABORT.lock().unwrap() = None;
+    }
+}
+
+fn arm_fetch_abort(flag: &Arc<AtomicBool>) -> AbortGuard {
+    *ACTIVE_FETCH_ABORT.lock().unwrap() = Some(Arc::clone(flag));
+    AbortGuard
+}
+
+fn ensure_not_aborted(flag: &AtomicBool) -> Result<()> {
+    if flag.load(Ordering::Acquire) {
+        Err(anyhow::anyhow!("The operation was aborted"))
+    } else {
+        Ok(())
+    }
+}
+
+fn abort_flag_from_signal(
+    scope: &mut v8::PinScope,
+    signal_val: v8::Local<v8::Value>,
+) -> Arc<AtomicBool> {
+    let Some(signal) = signal_val.to_object(scope) else {
+        return Arc::new(AtomicBool::new(false));
+    };
+    let id_key = v8::String::new(scope, "__amberAbortId").unwrap().into();
+    let flag = if let Some(id) = signal
+        .get(scope, id_key)
+        .and_then(|value| value.to_number(scope))
+        .map(|value| value.value() as u64)
+        .filter(|id| *id != 0)
+    {
+        abort_flag_map()
+            .lock()
+            .unwrap()
+            .get(&id)
+            .cloned()
+            .unwrap_or_else(|| {
+                let flag = Arc::new(AtomicBool::new(false));
+                abort_flag_map()
+                    .lock()
+                    .unwrap()
+                    .insert(id, Arc::clone(&flag));
+                flag
+            })
+    } else {
+        let (id, flag) = register_abort_flag();
+        let id_val = v8::Number::new(scope, id as f64).into();
+        signal.set(scope, id_key, id_val);
+        flag
+    };
+    let aborted_key = v8::String::new(scope, "aborted").unwrap().into();
+    if signal
+        .get(scope, aborted_key)
+        .map(|value| value.is_true())
+        .unwrap_or(false)
+    {
+        flag.store(true, Ordering::Release);
+    }
+    flag
+}
+
+/// Missing, null, and JavaScript `undefined` arrive as `""`, `"null"`, or
+/// `"undefined"` once V8 stringifies them. Those skip the digest, same as an
+/// empty string. Only a real integrity string is checked.
+fn integrity_is_absent(integrity: &str) -> bool {
+    matches!(integrity.trim(), "" | "undefined" | "null")
+}
+
+fn js_integrity_string(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
+    if !value.is_string() {
+        return String::new();
+    }
+    value
+        .to_string(scope)
+        .map(|text| text.to_rust_string_lossy(scope))
+        .filter(|text| !integrity_is_absent(text))
+        .unwrap_or_default()
+}
+
+fn check_body_integrity(bytes: &[u8], integrity: &str) -> Result<()> {
+    let integrity = integrity.trim();
+    if integrity_is_absent(integrity) {
+        return Ok(());
+    }
+    use base64::Engine as _;
+    use sha2::Digest as _;
+    let mut saw_supported = false;
+    for token in integrity.split_whitespace() {
+        let Some((algorithm, expected_b64)) = token.split_once('-') else {
+            continue;
+        };
+        let actual = match algorithm {
+            "sha256" => {
+                saw_supported = true;
+                sha2::Sha256::digest(bytes).to_vec()
+            }
+            "sha384" => {
+                saw_supported = true;
+                sha2::Sha384::digest(bytes).to_vec()
+            }
+            "sha512" => {
+                saw_supported = true;
+                sha2::Sha512::digest(bytes).to_vec()
+            }
+            _ => continue,
+        };
+        let expected = base64::engine::general_purpose::STANDARD
+            .decode(expected_b64)
+            .map_err(|error| anyhow::anyhow!("invalid integrity metadata: {error}"))?;
+        if actual == expected {
+            return Ok(());
+        }
+    }
+    if saw_supported {
+        Err(anyhow::anyhow!("integrity mismatch"))
+    } else {
+        Err(anyhow::anyhow!(
+            "Unsupported integrity algorithm: {integrity}"
+        ))
+    }
+}
+
+fn is_cors_safelisted_response_header(name: &str) -> bool {
+    matches!(
+        name,
+        "cache-control"
+            | "content-language"
+            | "content-length"
+            | "content-type"
+            | "expires"
+            | "last-modified"
+            | "pragma"
+    )
+}
+
+fn cors_filter_headers(headers: &[(String, String)]) -> Vec<(String, String)> {
+    let mut exposed = Vec::new();
+    for (name, value) in headers {
+        if !name.eq_ignore_ascii_case("access-control-expose-headers") {
+            continue;
+        }
+        if value.trim() == "*" {
+            exposed.push("*".to_string());
+            continue;
+        }
+        for part in value.split(',') {
+            let part = part.trim().to_ascii_lowercase();
+            if !part.is_empty() {
+                exposed.push(part);
+            }
+        }
+    }
+    headers
+        .iter()
+        .filter(|(name, _)| {
+            let name = name.to_ascii_lowercase();
+            if name == "set-cookie" || name == "set-cookie2" {
+                return false;
+            }
+            if is_cors_safelisted_response_header(&name) || name.starts_with("access-control-") {
+                return true;
+            }
+            exposed.iter().any(|item| item == "*" || item == &name)
+        })
+        .cloned()
+        .collect()
+}
+
+fn is_request_mode(mode: &str) -> bool {
+    matches!(mode, "cors" | "no-cors" | "same-origin")
+}
+
+fn apply_response_mode(response: &mut FetchResponse, mode: &str) {
+    match mode {
+        "cors" => {
+            response.headers = cors_filter_headers(&response.headers);
+            response.response_type = "cors".to_string();
+        }
+        "no-cors" => {
+            response.status = 0;
+            response.status_text.clear();
+            response.ok = false;
+            response.headers.clear();
+            response.body = memory_body(Vec::new());
+            response.url.clear();
+            response.response_type = "opaque".to_string();
+            response.redirected = false;
+        }
+        // Same-origin, including an omitted mode. `response.type` is a real
+        // property: "basic", "cors", or "opaque".
+        _ => {
+            response.response_type = "basic".to_string();
+        }
+    }
+}
+
+/// One pull for `response.body.getReader().read()`. Does not read past the
+/// bytes already taken off the wire plus a single following socket read.
+fn read_from_offset(body: &mut SharedBody, offset: usize) -> Result<(Option<Vec<u8>>, usize)> {
+    if offset < body.pulled.len() {
+        let chunk = body.pulled[offset..].to_vec();
+        return Ok((Some(chunk), body.pulled.len()));
+    }
+    match next_chunk(body)? {
+        Some(chunk) => Ok((Some(chunk), body.pulled.len())),
+        None => Ok((None, offset)),
+    }
+}
+
 fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
     let (host, port, path) = parse_http_url(url)
         .ok_or_else(|| anyhow::anyhow!("http1 fast path requires http:// URL"))?;
@@ -275,7 +651,7 @@ fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
         let mut status: u16 = 200;
         let mut status_text = String::new();
         let mut content_length: Option<usize> = None;
-        let mut headers = HashMap::new();
+        let mut headers = Vec::new();
         for (i, line) in header_text.split("\r\n").enumerate() {
             if i == 0 {
                 let mut parts = line.split_whitespace();
@@ -295,36 +671,42 @@ fn http1_keepalive_get(url: &str) -> Result<FetchResponse> {
                 if key == "content-length" {
                     content_length = val.parse().ok();
                 }
-                headers.insert(key, val);
+                headers.push((key, val));
             }
         }
-        let mut body = buf[header_end..].to_vec();
+        // Only bytes that arrived with the header block. The rest stays on
+        // the socket until `response.body` or `text()` pulls it.
+        let mut leftover = buf[header_end..].to_vec();
         if let Some(len) = content_length {
-            while body.len() < len {
-                let n = stream.read(&mut tmp)?;
-                if n == 0 {
-                    break;
-                }
-                body.extend_from_slice(&tmp[..n]);
+            if leftover.len() > len {
+                leftover.truncate(len);
             }
-            body.truncate(len);
         }
-        let reuse = headers
-            .get("connection")
-            .map(|value| !value.eq_ignore_ascii_case("close"))
-            .unwrap_or(true);
-        if reuse {
-            *slot = Some((endpoint, stream));
+        let remaining = content_length.map(|len| len.saturating_sub(leftover.len()));
+        let body_done = remaining.map(|left| left == 0).unwrap_or(true);
+        let body = if body_done {
+            let reuse = headers
+                .iter()
+                .find(|(name, _)| name == "connection")
+                .map(|(_, value)| !value.eq_ignore_ascii_case("close"))
+                .unwrap_or(true);
+            if reuse {
+                *slot = Some((endpoint, stream));
+            } else {
+                *slot = None;
+            }
+            memory_body(leftover)
         } else {
             *slot = None;
-        }
+            open_body(leftover, Some(NetReader::Tcp { stream, remaining }))
+        };
         Ok(FetchResponse {
             url: url.to_string(),
             status,
             status_text,
             ok: (200..300).contains(&status),
             headers,
-            body: Some(body),
+            body,
             body_used: false,
             redirected: false,
             response_type: "basic".to_string(),
@@ -362,23 +744,15 @@ fn fetch_once_without_redirect(url: &str) -> Result<FetchResponse> {
         .to_string();
     let ok = response.status().is_success();
     let final_url = response.url().to_string();
-    let mut headers = HashMap::new();
-    for (key, value) in response.headers().iter() {
-        if let Ok(value) = value.to_str() {
-            headers.insert(key.as_str().to_string(), value.to_string());
-        }
-    }
-    let body = response
-        .bytes()
-        .map_err(|error| anyhow::anyhow!("failed to read body: {error}"))?
-        .to_vec();
+    let headers = headers_from_reqwest(response.headers());
+    let body = open_body(Vec::new(), Some(NetReader::Blocking(response)));
     Ok(FetchResponse {
         url: final_url,
         status,
         status_text,
         ok,
         headers,
-        body: Some(body),
+        body,
         body_used: false,
         redirected: false,
         response_type: "basic".to_string(),
@@ -403,6 +777,7 @@ fn execute_simple_get(url: &str) -> Result<FetchResponse> {
             response.redirected = redirected;
             return Ok(response);
         }
+        drain_shared_body(&response.body)?;
         if followed >= MAX_REDIRECTS {
             return Err(anyhow::anyhow!("Too many redirects"));
         }
@@ -492,8 +867,11 @@ pub struct FetchResponse {
     pub status: u16,
     pub status_text: String,
     pub ok: bool,
-    pub headers: HashMap<String, String>,
-    pub body: Option<Vec<u8>>,
+    /// Repeated names stay repeated. `Set-Cookie` is not folded into one value.
+    pub headers: Vec<(String, String)>,
+    /// Unread network body. Not a fully buffered `Vec` unless the caller
+    /// already had the bytes (for example `new Response(bytes)`).
+    pub body: Arc<Mutex<SharedBody>>,
     pub body_used: bool,
     pub redirected: bool,
     pub response_type: String, // "default", "error", "opaque", "opaqueredirect"
@@ -596,14 +974,16 @@ fn set_fetch_response_retval(
     let url_val: _ = v8::String::new(scope, &response.url).unwrap().into();
     response_obj.set(scope, url_key.into(), url_val);
 
-    let body_vec = response.body.unwrap_or_default();
-    store_response_body(scope, response_obj, response.url.clone(), body_vec);
+    store_shared_body(scope, response_obj, Arc::clone(&response.body));
     attach_response_body_methods(scope, response_obj);
 
     let type_key: _ = v8::String::new(scope, "type").unwrap();
-    let type_val: v8::Local<v8::Value> = v8::String::new(scope, &response.response_type)
-        .unwrap()
-        .into();
+    let type_name = match response.response_type.as_str() {
+        "cors" => "cors",
+        "opaque" => "opaque",
+        _ => "basic",
+    };
+    let type_val: v8::Local<v8::Value> = v8::String::new(scope, type_name).unwrap().into();
     response_obj.set(scope, type_key.into(), type_val);
 
     let redirected_key: _ = v8::String::new(scope, "redirected").unwrap();
@@ -639,6 +1019,9 @@ fn fetch_callback(
     let mut request_body: Option<Vec<u8>> = None;
     let mut request_content_type = String::new();
     let mut request_redirect = String::from("follow");
+    let mut request_integrity = String::new();
+    let mut request_mode: Option<String> = None;
+    let mut request_abort = Arc::new(AtomicBool::new(false));
 
     if input.is_string() {
         // Input is a URL string
@@ -694,6 +1077,36 @@ fn fetch_callback(
                     }
                 }
             }
+
+            let explicit_key = v8::String::new(scope, "__amberModeExplicit")
+                .unwrap()
+                .into();
+            if input_obj
+                .get(scope, explicit_key)
+                .map(|value| value.is_true())
+                .unwrap_or(false)
+            {
+                let mode_key = v8::String::new(scope, "mode").unwrap().into();
+                if let Some(mode_val) = input_obj.get(scope, mode_key) {
+                    if mode_val.is_string() {
+                        if let Some(mode_str) = mode_val.to_string(scope) {
+                            request_mode = Some(mode_str.to_rust_string_lossy(scope));
+                        }
+                    }
+                }
+            }
+
+            let integrity_key = v8::String::new(scope, "integrity").unwrap().into();
+            if let Some(integrity_val) = input_obj.get(scope, integrity_key) {
+                request_integrity = js_integrity_string(scope, integrity_val);
+            }
+
+            let signal_key = v8::String::new(scope, "signal").unwrap().into();
+            if let Some(signal_val) = input_obj.get(scope, signal_key) {
+                if signal_val.is_object() {
+                    request_abort = abort_flag_from_signal(scope, signal_val);
+                }
+            }
         }
     }
     if url_str.is_empty() {
@@ -724,6 +1137,9 @@ fn fetch_callback(
     let mut body = request_body;
     let mut content_type = request_content_type;
     let mut redirect = request_redirect;
+    let mut integrity = request_integrity;
+    let mut mode = request_mode;
+    let mut abort_flag = request_abort;
 
     // Parse init object for method, headers, body, redirect (overrides Request properties)
     if init.is_object() {
@@ -785,6 +1201,27 @@ fn fetch_callback(
                     }
                 }
             }
+
+            let mode_key = v8::String::new(scope, "mode").unwrap().into();
+            if let Some(mode_val) = init_obj.get(scope, mode_key) {
+                if mode_val.is_string() {
+                    if let Some(mode_str) = mode_val.to_string(scope) {
+                        mode = Some(mode_str.to_rust_string_lossy(scope));
+                    }
+                }
+            }
+
+            let integrity_key = v8::String::new(scope, "integrity").unwrap().into();
+            if let Some(integrity_val) = init_obj.get(scope, integrity_key) {
+                integrity = js_integrity_string(scope, integrity_val);
+            }
+
+            let signal_key = v8::String::new(scope, "signal").unwrap().into();
+            if let Some(signal_val) = init_obj.get(scope, signal_key) {
+                if signal_val.is_object() {
+                    abort_flag = abort_flag_from_signal(scope, signal_val);
+                }
+            }
         }
     }
 
@@ -803,6 +1240,15 @@ fn fetch_callback(
         scope.throw_exception(error.into());
         return;
     }
+    if let Some(mode_value) = mode.as_deref() {
+        if !is_request_mode(mode_value) {
+            let message =
+                v8::String::new(scope, &format!("Invalid request mode: {mode_value}")).unwrap();
+            let error = v8::Exception::type_error(scope, message);
+            scope.throw_exception(error.into());
+            return;
+        }
+    }
 
     // Execute fetch synchronously in a blocking task
     let url: _ = url_str.clone();
@@ -810,6 +1256,9 @@ fn fetch_callback(
     let headers_clone = headers.clone();
     let body_clone = body.clone();
     let redirect_clone = redirect.clone();
+    let integrity_clone = integrity.clone();
+    let mode_clone = mode.unwrap_or_default();
+    let _abort_guard = arm_fetch_abort(&abort_flag);
 
     let result = get_fetch_runtime().block_on(execute_fetch(
         &url,
@@ -817,6 +1266,9 @@ fn fetch_callback(
         headers_clone,
         body_clone,
         &redirect_clone,
+        &integrity_clone,
+        &abort_flag,
+        &mode_clone,
     ));
     match result {
         Ok(response) => set_fetch_response_retval(scope, &mut retval, response),
@@ -839,10 +1291,12 @@ fn method_to_reqwest(method: &HttpMethod) -> reqwest::Method {
     }
 }
 
-fn headers_from_reqwest(headers: &reqwest::header::HeaderMap) -> HashMap<String, String> {
-    let mut response_headers = HashMap::new();
+fn headers_from_reqwest(headers: &reqwest::header::HeaderMap) -> Vec<(String, String)> {
+    let mut response_headers = Vec::new();
     for (key, value) in headers {
-        response_headers.insert(key.to_string(), value.to_str().unwrap_or("").to_string());
+        // `HeaderMap` yields every value. `insert` into a map would keep one
+        // `Set-Cookie` and drop the rest.
+        response_headers.push((key.to_string(), value.to_str().unwrap_or("").to_string()));
     }
     response_headers
 }
@@ -860,35 +1314,64 @@ async fn collect_fetch_response(
         .to_string();
     let ok = response.status().is_success();
     let headers = headers_from_reqwest(response.headers());
-    let body_vec = response
-        .bytes()
-        .await
-        .map_err(|error| anyhow::anyhow!("failed to read fetch body from {url}: {error}"))?;
+    // Leave the reqwest body unread. `response.body` pulls `chunk()` later.
+    let body = open_body(
+        Vec::new(),
+        Some(NetReader::Async(tokio::sync::Mutex::new(Some(response)))),
+    );
     Ok(FetchResponse {
         url,
         status,
         status_text,
         ok,
         headers,
-        body: Some(body_vec.to_vec()),
+        body,
         body_used: false,
         redirected,
-        // Followed responses stay "default". `opaqueredirect` is only the
-        // browser filtered view of redirect: "manual", which this runtime does
-        // not apply (the 3xx status and Location header stay readable).
-        response_type: "default".to_string(),
+        response_type: "basic".to_string(),
     })
+}
+
+async fn consume_hop_body(
+    response: &mut reqwest::Response,
+    integrity: &str,
+    aborted: &AtomicBool,
+) -> Result<Vec<u8>> {
+    let mut collected = Vec::new();
+    let check = !integrity_is_absent(integrity);
+    loop {
+        ensure_not_aborted(aborted)?;
+        match response.chunk().await {
+            Ok(Some(chunk)) => {
+                if check {
+                    collected.extend_from_slice(&chunk);
+                }
+            }
+            Ok(None) => {
+                if check {
+                    check_body_integrity(&collected, integrity)?;
+                }
+                return Ok(collected);
+            }
+            Err(error) => {
+                return Err(anyhow::anyhow!("failed to read fetch body: {error}"));
+            }
+        }
+    }
 }
 
 /// Execute actual HTTP fetch using reqwest. Redirect policy is Amber's:
 /// `follow` resolves Location and rewrites 301/302/303 methods, `manual`
-/// returns the 3xx, and `error` rejects.
+/// returns the 3xx, and `error` rejects. Abort and integrity run on every hop.
 async fn execute_fetch(
     url: &str,
     mut method: HttpMethod,
     mut headers: HashMap<String, String>,
     mut body: Option<Vec<u8>>,
     redirect: &str,
+    integrity: &str,
+    aborted: &AtomicBool,
+    mode: &str,
 ) -> Result<FetchResponse> {
     if !is_redirect_mode(redirect) {
         return Err(anyhow::anyhow!("invalid redirect mode: {redirect}"));
@@ -898,6 +1381,7 @@ async fn execute_fetch(
     let mut followed = 0u32;
 
     loop {
+        ensure_not_aborted(aborted)?;
         check_fetch_permission(&current_url)?;
 
         let client = get_fetch_client();
@@ -940,9 +1424,9 @@ async fn execute_fetch(
                     strip_cross_origin_request_headers(&mut headers);
                 }
                 apply_redirect_method(status, &mut method, &mut body, &mut headers);
-                response.bytes().await.map_err(|error| {
-                    anyhow::anyhow!("failed to read redirect body from {current_url}: {error}")
-                })?;
+                let mut response = response;
+                let _hop_body = consume_hop_body(&mut response, integrity, aborted).await?;
+                ensure_not_aborted(aborted)?;
                 followed += 1;
                 redirected = true;
                 current_url = next_url;
@@ -950,7 +1434,35 @@ async fn execute_fetch(
             }
         }
 
-        return collect_fetch_response(response, current_url, redirected).await;
+        let mut response = response;
+        let built = if integrity_is_absent(integrity) {
+            collect_fetch_response(response, current_url, redirected).await?
+        } else {
+            let status = response.status().as_u16();
+            let status_text = response
+                .status()
+                .canonical_reason()
+                .unwrap_or("Unknown")
+                .to_string();
+            let ok = response.status().is_success();
+            let headers = headers_from_reqwest(response.headers());
+            let bytes = consume_hop_body(&mut response, integrity, aborted).await?;
+            FetchResponse {
+                url: current_url,
+                status,
+                status_text,
+                ok,
+                headers,
+                body: memory_body(bytes),
+                body_used: false,
+                redirected,
+                response_type: "basic".to_string(),
+            }
+        };
+        ensure_not_aborted(aborted)?;
+        let mut built = built;
+        apply_response_mode(&mut built, mode);
+        return Ok(built);
     }
 }
 
@@ -1123,6 +1635,7 @@ fn request_constructor_callback(
     let mut init_cache = String::from("default");
     let mut init_credentials = String::from("same-origin");
     let mut init_mode = String::from("cors");
+    let mut mode_explicit = false;
     let mut init_redirect = String::from("follow");
     let mut init_referrer = String::new();
     let mut init_policy = String::from("no-referrer");
@@ -1166,11 +1679,14 @@ fn request_constructor_callback(
                 }
             }
 
-            // Parse mode
+            // Parse mode. A missing property is undefined, not an explicit mode.
             let mode_key = v8::String::new(scope, "mode").unwrap().into();
             if let Some(mode_val) = init.get(scope, mode_key) {
-                if let Some(mode_str) = mode_val.to_string(scope) {
-                    init_mode = mode_str.to_rust_string_lossy(scope);
+                if mode_val.is_string() {
+                    if let Some(mode_str) = mode_val.to_string(scope) {
+                        init_mode = mode_str.to_rust_string_lossy(scope);
+                        mode_explicit = true;
+                    }
                 }
             }
 
@@ -1200,12 +1716,11 @@ fn request_constructor_callback(
                 }
             }
 
-            // Parse integrity
+            // Parse integrity. A missing property is JavaScript `undefined`;
+            // toString() would store the word "undefined" and fail the check.
             let integrity_key = v8::String::new(scope, "integrity").unwrap().into();
             if let Some(integrity_val) = init.get(scope, integrity_key) {
-                if let Some(integrity_str) = integrity_val.to_string(scope) {
-                    init_integrity = integrity_str.to_rust_string_lossy(scope);
-                }
+                init_integrity = js_integrity_string(scope, integrity_val);
             }
 
             // Parse keepalive
@@ -1284,6 +1799,12 @@ fn request_constructor_callback(
     let mode_key = v8::String::new(scope, "mode").unwrap().into();
     let mode_val = v8::String::new(scope, &init_mode).unwrap().into();
     request_obj.set(scope, mode_key, mode_val);
+    if mode_explicit {
+        let explicit_key = v8::String::new(scope, "__amberModeExplicit")
+            .unwrap()
+            .into();
+        request_obj.set(scope, explicit_key, v8::Boolean::new(scope, true).into());
+    }
 
     let redirect_key = v8::String::new(scope, "redirect").unwrap().into();
     let redirect_val = v8::String::new(scope, &init_redirect).unwrap().into();
@@ -2091,16 +2612,17 @@ fn create_headers_object_with_entries<'a>(
         }
     }
 
-    let set_key = v8::String::new(scope, "set").unwrap().into();
-    let set_func = headers_obj
-        .get(scope, set_key)
+    // `set` replaces an existing name. `append` keeps a second `Set-Cookie`.
+    let append_key = v8::String::new(scope, "append").unwrap().into();
+    let append_func = headers_obj
+        .get(scope, append_key)
         .and_then(|value| v8::Local::<v8::Function>::try_from(value).ok());
 
-    if let Some(set_func) = set_func {
+    if let Some(append_func) = append_func {
         for (name, value) in entries {
             let name_value: v8::Local<v8::Value> = v8::String::new(scope, &name).unwrap().into();
             let header_value: v8::Local<v8::Value> = v8::String::new(scope, &value).unwrap().into();
-            let _ = set_func.call(scope, headers_obj.into(), &[name_value, header_value]);
+            let _ = append_func.call(scope, headers_obj.into(), &[name_value, header_value]);
         }
     } else {
         for (name, value) in entries {
@@ -2113,25 +2635,164 @@ fn create_headers_object_with_entries<'a>(
     headers_obj
 }
 
-fn store_response_body(
+fn bytes_to_uint8_array<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    bytes: &[u8],
+) -> v8::Local<'a, v8::Uint8Array> {
+    let buffer = v8::ArrayBuffer::new(scope, bytes.len());
+    let store = buffer.get_backing_store();
+    let ptr = store.as_ref().as_ptr() as *mut u8;
+    if !bytes.is_empty() && !ptr.is_null() {
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len());
+        }
+    }
+    v8::Uint8Array::new(scope, buffer, 0, bytes.len()).unwrap()
+}
+
+fn body_reader_read_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let reader = args.this();
+    let id_key = v8::String::new(scope, "__amberjsResponseId")
+        .unwrap()
+        .into();
+    let offset_key = v8::String::new(scope, "__amberBodyOffset").unwrap().into();
+    let response_id = reader
+        .get(scope, id_key)
+        .and_then(|value| value.to_integer(scope))
+        .map(|value| value.value() as usize)
+        .unwrap_or(usize::MAX);
+    let offset = reader
+        .get(scope, offset_key)
+        .and_then(|value| value.to_number(scope))
+        .map(|value| value.value() as usize)
+        .unwrap_or(0);
+    let shared = {
+        let cache = get_response_cache().lock().unwrap();
+        cache.get(&response_id).cloned()
+    };
+    let Some(shared) = shared else {
+        let message = v8::String::new(scope, "Response body not available").unwrap();
+        scope.throw_exception(v8::Exception::error(scope, message).into());
+        return;
+    };
+    let pulled = {
+        let mut body = shared.lock().unwrap();
+        read_from_offset(&mut body, offset)
+    };
+    let (chunk, new_offset) = match pulled {
+        Ok(pair) => pair,
+        Err(error) => {
+            let message = v8::String::new(scope, &format!("Fetch error: {error}")).unwrap();
+            scope.throw_exception(v8::Exception::error(scope, message).into());
+            return;
+        }
+    };
+    let offset_val = v8::Number::new(scope, new_offset as f64).into();
+    reader.set(scope, offset_key, offset_val);
+
+    let result = v8::Object::new(scope);
+    let done_key = v8::String::new(scope, "done").unwrap().into();
+    let value_key = v8::String::new(scope, "value").unwrap().into();
+    match chunk {
+        Some(bytes) => {
+            let value = bytes_to_uint8_array(scope, &bytes).into();
+            result.set(scope, done_key, v8::Boolean::new(scope, false).into());
+            result.set(scope, value_key, value);
+        }
+        None => {
+            result.set(scope, done_key, v8::Boolean::new(scope, true).into());
+            result.set(scope, value_key, v8::undefined(scope).into());
+        }
+    }
+    retval.set(result.into());
+}
+
+fn body_get_reader_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let stream = args.this();
+    let locked_key = v8::String::new(scope, "locked").unwrap().into();
+    if stream
+        .get(scope, locked_key)
+        .map(|value| value.is_true())
+        .unwrap_or(false)
+    {
+        let message = v8::String::new(scope, "body stream is locked").unwrap();
+        scope.throw_exception(v8::Exception::type_error(scope, message).into());
+        return;
+    }
+    let owner_key = v8::String::new(scope, "__amberOwner").unwrap().into();
+    if let Some(owner) = stream
+        .get(scope, owner_key)
+        .and_then(|value| v8::Local::<v8::Object>::try_from(value).ok())
+    {
+        if response_body_is_used(scope, owner) {
+            throw_response_body_already_consumed(scope);
+            return;
+        }
+        let body_used_key = v8::String::new(scope, "bodyUsed").unwrap().into();
+        owner.set(scope, body_used_key, v8::Boolean::new(scope, true).into());
+    }
+    stream.set(scope, locked_key, v8::Boolean::new(scope, true).into());
+
+    let reader = v8::Object::new(scope);
+    let id_key = v8::String::new(scope, "__amberjsResponseId")
+        .unwrap()
+        .into();
+    if let Some(id_val) = stream.get(scope, id_key) {
+        reader.set(scope, id_key, id_val);
+    }
+    reader.set(scope, owner_key, stream.into());
+    let offset_key = v8::String::new(scope, "__amberBodyOffset").unwrap().into();
+    reader.set(scope, offset_key, v8::Number::new(scope, 0.0).into());
+    let read_key = v8::String::new(scope, "read").unwrap().into();
+    let read_fn = v8::Function::new(scope, body_reader_read_callback).unwrap();
+    reader.set(scope, read_key, read_fn.into());
+    retval.set(reader.into());
+}
+
+fn store_shared_body(
     scope: &mut v8::PinScope,
     response_obj: v8::Local<v8::Object>,
-    url: String,
-    body_vec: Vec<u8>,
+    body: Arc<Mutex<SharedBody>>,
 ) {
     let response_id = next_response_id();
-    let body_str = String::from_utf8_lossy(&body_vec).to_string();
-    let mut cache = get_response_cache().lock().unwrap();
-    cache.insert(response_id, (url, body_vec));
-    drop(cache);
+    get_response_cache()
+        .lock()
+        .unwrap()
+        .insert(response_id, body);
 
     let response_id_key: _ = v8::String::new(scope, "__amberjsResponseId").unwrap();
     let response_id_val: _ = v8::Integer::new_from_unsigned(scope, response_id as u32).into();
     response_obj.set(scope, response_id_key.into(), response_id_val);
 
+    let stream: v8::Local<v8::Object> = v8::Object::new(scope);
+    let locked_key = v8::String::new(scope, "locked").unwrap().into();
+    stream.set(scope, locked_key, v8::Boolean::new(scope, false).into());
+    stream.set(scope, response_id_key.into(), response_id_val);
+    let owner_key = v8::String::new(scope, "__amberOwner").unwrap().into();
+    stream.set(scope, owner_key, response_obj.into());
+    let get_reader_key = v8::String::new(scope, "getReader").unwrap().into();
+    let get_reader = v8::Function::new(scope, body_get_reader_callback).unwrap();
+    stream.set(scope, get_reader_key, get_reader.into());
+
     let body_key: _ = v8::String::new(scope, "body").unwrap();
-    let body_val: _ = v8::String::new(scope, &body_str).unwrap().into();
-    response_obj.set(scope, body_key.into(), body_val);
+    response_obj.set(scope, body_key.into(), stream.into());
+}
+
+fn store_response_body(
+    scope: &mut v8::PinScope,
+    response_obj: v8::Local<v8::Object>,
+    _url: String,
+    body_vec: Vec<u8>,
+) {
+    store_shared_body(scope, response_obj, memory_body(body_vec));
 }
 
 fn attach_response_body_methods(scope: &mut v8::PinScope, response_obj: v8::Local<v8::Object>) {
@@ -2377,7 +3038,10 @@ fn consume_response_body_for_object(
         return Err(());
     }
 
-    let body = response_body_for_object(scope, response_obj);
+    let body = match response_body_for_object(scope, response_obj) {
+        Ok(body) => body,
+        Err(()) => return Err(()),
+    };
     if body.is_some() {
         let body_used_key = v8::String::new(scope, "bodyUsed").unwrap().into();
         let body_used_val = v8::Boolean::new(scope, true).into();
@@ -2404,31 +3068,44 @@ fn throw_response_body_already_consumed(scope: &mut v8::PinScope) {
 fn response_body_for_object(
     scope: &mut v8::PinScope,
     response_obj: v8::Local<v8::Object>,
-) -> Option<Vec<u8>> {
+) -> std::result::Result<Option<Vec<u8>>, ()> {
     let response_id_key = v8::String::new(scope, "__amberjsResponseId")
         .unwrap()
         .into();
     if let Some(response_id_val) = response_obj.get(scope, response_id_key) {
         if let Some(response_id_int) = response_id_val.to_integer(scope) {
             let response_id = response_id_int.value() as usize;
-            let cache = get_response_cache().lock().unwrap();
-            if let Some((_url, body)) = cache.get(&response_id) {
-                return Some(body.clone());
+            let shared = {
+                let cache = get_response_cache().lock().unwrap();
+                cache.get(&response_id).cloned()
+            };
+            if let Some(shared) = shared {
+                return match read_to_end(&shared) {
+                    Ok(bytes) => Ok(Some(bytes)),
+                    Err(error) => {
+                        let message =
+                            v8::String::new(scope, &format!("Fetch error: {error}")).unwrap();
+                        scope.throw_exception(v8::Exception::error(scope, message).into());
+                        Err(())
+                    }
+                };
             }
         }
     }
 
     let body_key = v8::String::new(scope, "body").unwrap().into();
-    response_obj
+    Ok(response_obj
         .get(scope, body_key)
+        .filter(|body| body.is_string())
         .and_then(|body| body.to_string(scope))
-        .map(|body| body.to_rust_string_lossy(scope).into_bytes())
+        .map(|body| body.to_rust_string_lossy(scope).into_bytes()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        apply_redirect_method, resolve_redirect_location, FetchConfig, HttpMethod, MAX_REDIRECTS,
+        apply_redirect_method, check_body_integrity, cors_filter_headers, headers_from_reqwest,
+        resolve_redirect_location, FetchConfig, HttpMethod, MAX_REDIRECTS,
     };
     use std::collections::HashMap;
 
@@ -2563,5 +3240,58 @@ mod tests {
         } else {
             panic!("Expected to find inserted data");
         }
+    }
+
+    #[test]
+    fn test_cors_filter_drops_set_cookie_and_unexposed_names() {
+        let headers = vec![
+            ("content-type".to_string(), "text/plain".to_string()),
+            ("x-secret".to_string(), "no".to_string()),
+            ("x-exposed".to_string(), "yes".to_string()),
+            ("set-cookie".to_string(), "a=1".to_string()),
+            ("set-cookie".to_string(), "b=2".to_string()),
+            (
+                "access-control-expose-headers".to_string(),
+                "x-exposed".to_string(),
+            ),
+        ];
+        let filtered = cors_filter_headers(&headers);
+        assert!(filtered
+            .iter()
+            .any(|(name, value)| { name == "content-type" && value == "text/plain" }));
+        assert!(filtered
+            .iter()
+            .any(|(name, value)| name == "x-exposed" && value == "yes"));
+        assert!(!filtered.iter().any(|(name, _)| name == "x-secret"));
+        assert!(!filtered.iter().any(|(name, _)| name == "set-cookie"));
+    }
+
+    #[test]
+    fn test_integrity_matches_sha256_and_rejects_a_mismatch() {
+        use base64::Engine as _;
+        use sha2::Digest as _;
+        let bytes = b"yes";
+        let digest = sha2::Sha256::digest(bytes);
+        let metadata = format!(
+            "sha256-{}",
+            base64::engine::general_purpose::STANDARD.encode(digest)
+        );
+        assert!(check_body_integrity(bytes, &metadata).is_ok());
+        let error = check_body_integrity(b"no", &metadata).unwrap_err();
+        assert!(error.to_string().contains("integrity mismatch"));
+    }
+
+    #[test]
+    fn test_headers_from_reqwest_keeps_duplicate_set_cookie() {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.append(reqwest::header::SET_COOKIE, "a=1".parse().unwrap());
+        headers.append(reqwest::header::SET_COOKIE, "b=2".parse().unwrap());
+        let entries = headers_from_reqwest(&headers);
+        let cookies: Vec<_> = entries
+            .iter()
+            .filter(|(name, _)| name == "set-cookie")
+            .map(|(_, value)| value.as_str())
+            .collect();
+        assert_eq!(cookies, ["a=1", "b=2"]);
     }
 }

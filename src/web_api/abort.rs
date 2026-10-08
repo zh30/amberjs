@@ -28,6 +28,10 @@ pub fn setup_abort_api(
             let false_bool: v8::Local<v8::Value> = v8::Boolean::new(scope, false).into();
             signal_obj.set(scope, aborted_key.into(), false_bool);
             signal_obj.set(scope, listeners_key.into(), listeners_array.into());
+            let (abort_id, _) = super::fetch::register_abort_flag();
+            let abort_id_key = v8::String::new(scope, "__amberAbortId").unwrap();
+            let abort_id_val = v8::Number::new(scope, abort_id as f64).into();
+            signal_obj.set(scope, abort_id_key.into(), abort_id_val);
 
             // Create addEventListener for signal
             let add_listener_fn = v8::FunctionTemplate::new(
@@ -81,6 +85,15 @@ pub fn setup_abort_api(
                             let true_bool: v8::Local<v8::Value> =
                                 v8::Boolean::new(_scope, true).into();
                             signal_obj.set(_scope, aborted_key.into(), true_bool);
+                            let abort_id_key = v8::String::new(_scope, "__amberAbortId").unwrap();
+                            if let Some(id_val) = signal_obj.get(_scope, abort_id_key.into()) {
+                                if let Some(id_num) = id_val.to_number(_scope) {
+                                    let id = id_num.value() as u64;
+                                    if id != 0 {
+                                        super::fetch::abort_fetch_signal(id);
+                                    }
+                                }
+                            }
 
                             // Set reason property (v1.5.0)
                             let reason = if args.length() > 0 && !args.get(0).is_undefined() {
