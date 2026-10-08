@@ -123,6 +123,9 @@ jobs:
       - name: node path Stable contract
         run: cargo test --test path_contract_tests -- --test-threads=1
 
+      - name: node events Stable contract
+        run: cargo test --test node_events_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
