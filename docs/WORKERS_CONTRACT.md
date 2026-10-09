@@ -48,7 +48,7 @@ A readable script runs on a worker isolate:
 - `SharedWorker`.
 - Module workers (`{ type: 'module' }`).
 - Structured clone, transfer lists, and `SharedArrayBuffer` messaging.
-- Fetch interception. `clients.claim()` does not wrap `fetch`, and `fetch` keeps its identity. `FetchEvent.respondWith` does not route network requests.
+- Fetch interception is **not this Stable contract**. A G16 registration that has no `fetch` listener does not wrap `fetch`; `fetch` keeps its identity (`tests/workers_contract_tests.rs`). Preview CLI intercept (activated worker + `fetch` listener + `respondWith`) lives outside this page.
 - Cache API and Push API. Cache / CacheStorage is Preview in-process storage and is not this contract. Push subscription still rejects.
 - Browser-complete `ExtendableEvent` prototype chain / `instanceof` parity. Install/activate events are plain objects with `type` and `waitUntil`.
 - `importScripts`, nested `Worker` inside a worker, and the page's DOM inside the worker isolate.
