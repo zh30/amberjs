@@ -34,8 +34,7 @@ fn btoa_atob_basic_empty_and_round_trip() {
         "#,
     );
     assert_eq!(
-        output,
-        "function|function|SGVsbG8=|Hello|true|true|true",
+        output, "function|function|SGVsbG8=|Hello|true|true|true",
         "got {output}"
     );
 }
