@@ -4,6 +4,7 @@ pub mod array_buffer_transfer; // v0.3.311: ArrayBuffer transfer (zero-copy deta
 pub mod background_sync; // v0.3.327: Background Sync API (SyncManager, SyncEvent)
 pub mod blob; // Stage 74: Blob/File API
 pub mod broadcast_channel; // v0.3.312: BroadcastChannel API (cross-tab communication)
+pub mod cache_storage; // Preview: in-process Cache / CacheStorage (`caches`)
 pub mod clipboard; // v0.3.342: Clipboard API (copy/paste for AI workloads)
 pub mod compression; // v0.3.295: CompressionStream API (gzip/deflate)
 pub mod crypto;

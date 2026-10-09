@@ -2082,7 +2082,7 @@ fn body_value_to_bytes(scope: &mut v8::PinScope, body: v8::Local<v8::Value>) -> 
     }
 }
 
-fn header_entries_from_value(
+pub(crate) fn header_entries_from_value(
     scope: &mut v8::PinScope,
     headers_val: v8::Local<v8::Value>,
 ) -> Vec<(String, String)> {
@@ -3029,7 +3029,7 @@ fn blob_callback(
     retval.set(blob_obj.into());
 }
 
-fn consume_response_body_for_object(
+pub(crate) fn consume_response_body_for_object(
     scope: &mut v8::PinScope,
     response_obj: v8::Local<v8::Object>,
 ) -> std::result::Result<Option<Vec<u8>>, ()> {

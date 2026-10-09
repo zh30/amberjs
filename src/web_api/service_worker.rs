@@ -5,7 +5,8 @@
 // scope string, and `clients.claim()` publishes `navigator.serviceWorker.controller`.
 // Page and worker exchange JSON `postMessage`. `event.waitUntil(promise)` on
 // install/activate extends that phase until the promise settles (reject fails
-// registration). Cache, Push, and fetch interception are not implemented:
+// registration). CacheStorage is Preview in-process storage (see
+// `cache_storage.rs`). Push and fetch interception are not implemented:
 // `fetch` is left unchanged.
 
 use anyhow::Result;
@@ -72,8 +73,8 @@ pub fn setup_service_worker_api(
     // Setup navigator.serviceWorker
     setup_navigator_service_worker(scope, context, global)?;
 
-    // Setup Cache and CacheStorage globals
-    setup_cache_api(scope, context, global)?;
+    // Setup Cache and CacheStorage globals (Preview in-process backend)
+    crate::web_api::cache_storage::setup_cache_api(scope, context, global)?;
 
     // Setup Push API (v0.3.326)
     setup_push_api(scope, context, global)?;
@@ -749,135 +750,6 @@ fn service_worker_register_callback(
         v8::String::new(scope, "ServiceWorker registration is not supported yet").unwrap();
     let error = v8::Exception::type_error(scope, error_message);
     resolver.reject(scope, error);
-}
-
-/// Setup Cache API
-fn setup_cache_api(
-    scope: &mut v8::ContextScope<v8::HandleScope>,
-    _context: &v8::Local<v8::Context>,
-    global: v8::Local<v8::Object>,
-) -> Result<()> {
-    // CacheStorage at global level as singleton (not constructor like browsers)
-    let cache_storage_obj = v8::Object::new(scope);
-
-    // open method
-    let open_fn = v8::FunctionTemplate::new(scope, cache_storage_open_callback);
-    let open_key = v8::String::new(scope, "open").unwrap();
-    let open_func = open_fn.get_function(scope).unwrap();
-    cache_storage_obj.set(scope, open_key.into(), open_func.into());
-
-    // keys method
-    let keys_fn = v8::FunctionTemplate::new(scope, cache_storage_keys_callback);
-    let keys_key = v8::String::new(scope, "keys").unwrap();
-    let keys_func = keys_fn.get_function(scope).unwrap();
-    cache_storage_obj.set(scope, keys_key.into(), keys_func.into());
-
-    // has method
-    let has_fn = v8::FunctionTemplate::new(scope, cache_storage_has_callback);
-    let has_key = v8::String::new(scope, "has").unwrap();
-    let has_func = has_fn.get_function(scope).unwrap();
-    cache_storage_obj.set(scope, has_key.into(), has_func.into());
-
-    // delete method
-    let delete_fn = v8::FunctionTemplate::new(scope, cache_storage_delete_callback);
-    let delete_key = v8::String::new(scope, "delete").unwrap();
-    let delete_func = delete_fn.get_function(scope).unwrap();
-    cache_storage_obj.set(scope, delete_key.into(), delete_func.into());
-
-    // Set as global `caches` object (singleton like in browsers)
-    let cache_storage_key = v8::String::new(scope, "caches").unwrap();
-    global.set(scope, cache_storage_key.into(), cache_storage_obj.into());
-
-    Ok(())
-}
-
-/// CacheStorage.open callback.
-///
-/// Amber does not currently have a real CacheStorage backend. Reject instead of
-/// returning a Cache-shaped object whose mutating methods silently succeed.
-fn cache_storage_open_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    // Create Promise resolver
-    let resolver = match v8::PromiseResolver::new(scope) {
-        Some(r) => r,
-        None => {
-            let error = v8::String::new(scope, "Failed to create promise resolver").unwrap();
-            scope.throw_exception(error.into());
-            return;
-        }
-    };
-    let promise = resolver.get_promise(scope);
-    rv.set(promise.into());
-
-    let error_message = v8::String::new(scope, "Cache API is not supported yet").unwrap();
-    let error = v8::Exception::type_error(scope, error_message);
-    resolver.reject(scope, error);
-}
-
-/// CacheStorage.keys callback
-fn cache_storage_keys_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let resolver = match v8::PromiseResolver::new(scope) {
-        Some(r) => r,
-        None => {
-            let error = v8::String::new(scope, "Failed to create promise resolver").unwrap();
-            scope.throw_exception(error.into());
-            return;
-        }
-    };
-    let promise = resolver.get_promise(scope);
-    rv.set(promise.into());
-
-    let empty_array = v8::Array::new(scope, 0);
-    resolver.resolve(scope, empty_array.into());
-}
-
-/// CacheStorage.has callback
-fn cache_storage_has_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let resolver = match v8::PromiseResolver::new(scope) {
-        Some(r) => r,
-        None => {
-            let error = v8::String::new(scope, "Failed to create promise resolver").unwrap();
-            scope.throw_exception(error.into());
-            return;
-        }
-    };
-    let promise = resolver.get_promise(scope);
-    rv.set(promise.into());
-
-    let false_val = v8::Boolean::new(scope, false);
-    resolver.resolve(scope, false_val.into());
-}
-
-/// CacheStorage.delete callback
-fn cache_storage_delete_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    let resolver = match v8::PromiseResolver::new(scope) {
-        Some(r) => r,
-        None => {
-            let error = v8::String::new(scope, "Failed to create promise resolver").unwrap();
-            scope.throw_exception(error.into());
-            return;
-        }
-    };
-    let promise = resolver.get_promise(scope);
-    rv.set(promise.into());
-
-    let false_val = v8::Boolean::new(scope, false);
-    resolver.resolve(scope, false_val.into());
 }
 
 // =====================================================
