@@ -6,8 +6,9 @@
 // Page and worker exchange JSON `postMessage`. `event.waitUntil(promise)` on
 // install/activate extends that phase until the promise settles (reject fails
 // registration). CacheStorage is Preview in-process storage (see
-// `cache_storage.rs`). Push and fetch interception are not implemented:
-// `fetch` is left unchanged.
+// `cache_storage.rs`). Preview fetch intercept: an activated SW with a `fetch`
+// listener can `FetchEvent.respondWith` for page `fetch()`. Push is not
+// implemented. G16 Stable still does not include intercept.
 
 use anyhow::Result;
 use rusty_v8 as v8;
@@ -180,11 +181,101 @@ globalThis.__amber_before_user_message = function(data) {
     });
     return { __amberRewrite: true, value: data.data };
   }
+  if (data.__amberSw === 'fetch') {
+    const fetchId = data.id;
+    let responded = false;
+    let responsePromise = null;
+    const headerMap = {};
+    const headerPairs = Array.isArray(data.headers) ? data.headers : [];
+    for (let i = 0; i < headerPairs.length; i++) {
+      const pair = headerPairs[i];
+      if (pair && pair.length >= 2) headerMap[String(pair[0])] = String(pair[1]);
+    }
+    const request = {
+      url: String(data.url || ''),
+      method: String(data.method || 'GET'),
+      headers: headerMap
+    };
+    const event = {
+      type: 'fetch',
+      request: request,
+      requestUrl: request.url,
+      respondWith(promise) {
+        if (arguments.length === 0) {
+          throw new TypeError('respondWith requires a Response or Promise');
+        }
+        if (responded) {
+          throw new TypeError('respondWith has already been called');
+        }
+        responded = true;
+        responsePromise = promise;
+      }
+    };
+    dispatch('fetch', event);
+    if (!responded) {
+      parentPort.postMessage({ __amberSw: 'fetchPass', id: fetchId });
+      return { __amberConsume: true };
+    }
+    Promise.resolve(responsePromise).then(
+      function(response) {
+        if (!response || typeof response !== 'object') {
+          parentPort.postMessage({
+            __amberSw: 'fetchError',
+            id: fetchId,
+            message: 'respondWith must resolve to a Response'
+          });
+          return;
+        }
+        let body = '';
+        try {
+          if (typeof response.text === 'function') {
+            const text = response.text();
+            body = typeof text === 'string' ? text : String(text);
+          }
+        } catch (err) {
+          parentPort.postMessage({
+            __amberSw: 'fetchError',
+            id: fetchId,
+            message: err && err.message ? String(err.message) : String(err)
+          });
+          return;
+        }
+        const headers = [];
+        if (response.headers && typeof response.headers.forEach === 'function') {
+          response.headers.forEach(function(value, name) {
+            headers.push([String(name), String(value)]);
+          });
+        }
+        parentPort.postMessage({
+          __amberSw: 'fetchResponse',
+          id: fetchId,
+          status: typeof response.status === 'number' ? response.status : 200,
+          statusText: response.statusText != null ? String(response.statusText) : '',
+          url: response.url != null ? String(response.url) : request.url,
+          ok: response.ok !== false,
+          type: response.type != null ? String(response.type) : 'default',
+          headers: headers,
+          body: body
+        });
+      },
+      function(err) {
+        parentPort.postMessage({
+          __amberSw: 'fetchError',
+          id: fetchId,
+          message: err && err.message ? String(err.message) : String(err)
+        });
+      }
+    );
+    return { __amberConsume: true };
+  }
   return undefined;
 };
 globalThis.__amber_worker_listening = true;
 (0, eval)(workerData.source);
-parentPort.postMessage({ __amberSw: 'ready' });
+parentPort.postMessage({
+  __amberSw: 'ready',
+  hasFetch: !!(listeners.fetch && listeners.fetch.length)
+});
 "#;
     let wrapper_json = serde_json::to_string(wrapper).unwrap_or_else(|_| "\"\"".to_string());
     let installer = format!(
@@ -223,6 +314,139 @@ parentPort.postMessage({ __amberSw: 'ready' });
     enumerable: true,
     get() {{ return controller; }}
   }});
+
+  let nativeFetch = null;
+  const pendingFetches = {{}};
+  let fetchSeq = 1;
+
+  function rememberNativeFetch() {{
+    const current = globalThis.fetch;
+    if (typeof current === 'function' && !current.__amberSwIntercept) {{
+      nativeFetch = current;
+    }}
+  }}
+
+  function headerPairs(headers) {{
+    const out = [];
+    if (!headers) return out;
+    if (typeof headers.forEach === 'function') {{
+      headers.forEach(function(value, name) {{
+        out.push([String(name), String(value)]);
+      }});
+      return out;
+    }}
+    if (typeof headers === 'object') {{
+      const keys = Object.keys(headers);
+      for (let i = 0; i < keys.length; i++) {{
+        out.push([keys[i], String(headers[keys[i]])]);
+      }}
+    }}
+    return out;
+  }}
+
+  function snapshotRequest(input, init) {{
+    let url = '';
+    let method = 'GET';
+    let headers = [];
+    let body = null;
+    if (typeof input === 'string') {{
+      url = input;
+    }} else if (input && typeof input === 'object') {{
+      url = input.url != null ? String(input.url) : String(input);
+      if (input.method) method = String(input.method);
+      headers = headerPairs(input.headers);
+      if (typeof input.body === 'string') body = input.body;
+    }} else if (input != null) {{
+      url = String(input);
+    }}
+    if (init && typeof init === 'object') {{
+      if (init.method) method = String(init.method);
+      if (init.headers) headers = headerPairs(init.headers);
+      if (typeof init.body === 'string') body = init.body;
+    }}
+    return {{ url: url, method: method, headers: headers, body: body }};
+  }}
+
+  function reconstructResponse(data) {{
+    const init = {{
+      status: typeof data.status === 'number' ? data.status : 200,
+      statusText: data.statusText != null ? String(data.statusText) : '',
+      headers: data.headers || []
+    }};
+    const response = new Response(data.body != null ? data.body : '', init);
+    if (data.url) {{
+      try {{ response.url = String(data.url); }} catch (_) {{}}
+    }}
+    if (data.type) {{
+      try {{ response.type = String(data.type); }} catch (_) {{}}
+    }}
+    return response;
+  }}
+
+  function interceptingRegistration() {{
+    for (let i = 0; i < registrations.length; i++) {{
+      const rec = registrations[i];
+      if (rec.__amberHasFetch && rec.active && rec.active.state === 'activated' && rec.__amberWorkerId) {{
+        return rec;
+      }}
+    }}
+    return null;
+  }}
+
+  function interceptedFetch(input, init) {{
+    const target = interceptingRegistration();
+    const native = nativeFetch;
+    if (!target || typeof native !== 'function') {{
+      if (typeof native === 'function') return native(input, init);
+      throw new TypeError('fetch is not available');
+    }}
+    const id = fetchSeq++;
+    const req = snapshotRequest(input, init);
+    return new Promise(function(resolve, reject) {{
+      pendingFetches[id] = {{ resolve: resolve, reject: reject, input: input, init: init }};
+      __amber_worker_post(target.__amberWorkerId, JSON.stringify({{
+        __amberSw: 'fetch',
+        id: id,
+        url: req.url,
+        method: req.method,
+        headers: req.headers,
+        body: req.body
+      }}));
+    }});
+  }}
+  interceptedFetch.__amberSwIntercept = true;
+
+  function applyFetchIntercept() {{
+    rememberNativeFetch();
+    if (interceptingRegistration()) {{
+      globalThis.fetch = interceptedFetch;
+    }} else if (nativeFetch) {{
+      globalThis.fetch = nativeFetch;
+    }}
+  }}
+
+  function settlePendingFetch(data) {{
+    const pending = pendingFetches[data.id];
+    if (!pending) return;
+    delete pendingFetches[data.id];
+    if (data.__amberSw === 'fetchPass') {{
+      try {{
+        pending.resolve(nativeFetch(pending.input, pending.init));
+      }} catch (err) {{
+        pending.reject(err);
+      }}
+      return;
+    }}
+    if (data.__amberSw === 'fetchError') {{
+      pending.reject(new Error(data.message || 'ServiceWorker fetch intercept failed'));
+      return;
+    }}
+    try {{
+      pending.resolve(reconstructResponse(data));
+    }} catch (err) {{
+      pending.reject(err);
+    }}
+  }}
 
   function defaultScope(scriptUrl) {{
     if (typeof scriptUrl === 'string' && scriptUrl.indexOf('data:') === 0) return '/';
@@ -272,6 +496,8 @@ parentPort.postMessage({ __amberSw: 'ready' });
     let skipWaiting = false;
     let claimed = false;
     let id = 0;
+    registration.__amberHasFetch = false;
+    registration.__amberWorkerId = 0;
 
     function markRedundant() {{
       worker.state = 'redundant';
@@ -285,7 +511,9 @@ parentPort.postMessage({ __amberSw: 'ready' });
       if (settled) return;
       settled = true;
       markRedundant();
+      registration.__amberHasFetch = false;
       try {{ __amber_worker_terminate(id); }} catch (_) {{}}
+      applyFetchIntercept();
       const error = (err instanceof Error) ? err : new Error(String(err && err.message || err));
       rejectReg(error);
     }}
@@ -300,6 +528,7 @@ parentPort.postMessage({ __amberSw: 'ready' });
         resolveReady(registration);
       }}
       resolveReg(registration);
+      applyFetchIntercept();
     }}
 
     worker.postMessage = function(data) {{
@@ -314,6 +543,8 @@ parentPort.postMessage({ __amberSw: 'ready' });
       settled = true;
       try {{ __amber_worker_terminate(id); }} catch (_) {{}}
       markRedundant();
+      registration.__amberHasFetch = false;
+      applyFetchIntercept();
       if (pending) {{
         rejectReg(new Error('ServiceWorker was unregistered'));
       }}
@@ -321,6 +552,7 @@ parentPort.postMessage({ __amberSw: 'ready' });
     }};
 
     id = __amber_spawn_worker(SW_WRAPPER, resolved.url, JSON.stringify({{ source: resolved.source }}));
+    registration.__amberWorkerId = id;
     globalThis.__amber_workers[id] = {{
       emit(event) {{
         if (event === 'exit') fail(new Error('ServiceWorker stopped before it finished installing'));
@@ -333,7 +565,12 @@ parentPort.postMessage({ __amberSw: 'ready' });
           return;
         }}
         if (data.__amberSw === 'ready') {{
+          registration.__amberHasFetch = !!data.hasFetch;
           __amber_worker_post(id, JSON.stringify({{ __amberSw: 'install' }}));
+          return;
+        }}
+        if (data.__amberSw === 'fetchResponse' || data.__amberSw === 'fetchPass' || data.__amberSw === 'fetchError') {{
+          settlePendingFetch(data);
           return;
         }}
         if (data.__amberSw === 'skipWaiting') {{
@@ -364,6 +601,7 @@ parentPort.postMessage({ __amberSw: 'ready' });
           registration.waiting = null;
           registration.active = worker;
           finishResolve();
+          applyFetchIntercept();
           return;
         }}
         if (data.__amberSw === 'reply') {{
@@ -589,6 +827,10 @@ fn fetch_event_constructor_callback(
     let cancelable_key = v8::String::new(scope, "cancelable").unwrap();
     event_obj.set(scope, cancelable_key.into(), cancelable_true.into());
 
+    let respond_with_fn = v8::Function::new(scope, fetch_event_respond_with_callback).unwrap();
+    let respond_with_key = v8::String::new(scope, "respondWith").unwrap();
+    event_obj.set(scope, respond_with_key.into(), respond_with_fn.into());
+
     rv.set(event_obj.into());
 }
 
@@ -645,32 +887,23 @@ fn create_service_worker_event(
     rv.set(event_obj.into());
 }
 
-/// FetchEvent.respondWith() callback - v0.3.328: Full Response object integration
-#[allow(dead_code)]
+/// Page-side `FetchEvent.respondWith`. Live intercept uses the WorkerHost
+/// wrapper's respondWith; this stores the argument on constructed events.
 fn fetch_event_respond_with_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
-    // Get the Response object or Promise that resolves to Response
-    let _response_arg = if args.length() > 0 {
-        args.get(0)
-    } else {
-        rv.set(v8::undefined(scope).into());
+    if args.length() == 0 {
+        let message = v8::String::new(scope, "respondWith requires a Response or Promise").unwrap();
+        let error = v8::Exception::type_error(scope, message);
+        scope.throw_exception(error.into());
         return;
-    };
-
-    // Create a property to store the response on the event object
-    // The response can be a Response object or a Promise that resolves to Response
-    let _respond_with_key = v8::String::new(scope, "_respondWithResponse").unwrap();
-
-    // Get the event object (this is called as a method on the event)
-    // In V8, when a function template is used as a method, 'this' is available
-    // For now, we store the response value directly
+    }
+    let this = args.this();
+    let key = v8::String::new(scope, "_respondWithResponse").unwrap();
+    this.set(scope, key.into(), args.get(0));
     rv.set(v8::undefined(scope).into());
-
-    // Log for debugging (can be removed in production)
-    eprintln!("[FetchEvent.respondWith] Response captured for later resolution");
 }
 
 /// FetchEvent.clientId property getter - v0.3.328: Track client origin

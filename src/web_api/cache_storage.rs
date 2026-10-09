@@ -1,8 +1,8 @@
 // Preview Cache / CacheStorage (`caches`) for the CLI path.
 //
 // In-process map of named caches holding Request URL/method plus Response
-// status/headers/body. This is not HTTP cache (no freshness, Vary, or
-// intercept). Service-worker fetch interception is unchanged.
+// status/headers/body. This is not HTTP cache (no freshness, Vary).
+// Service-worker fetch intercept (Preview) can `respondWith(caches.match(...))`.
 
 use anyhow::Result;
 use rusty_v8 as v8;

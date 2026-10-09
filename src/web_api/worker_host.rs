@@ -286,6 +286,11 @@ fn run_worker_thread(
         let console_key = v8::String::new(scope, "console").unwrap();
         global.set(scope, console_key.into(), console.into());
 
+        // Preview SW fetch intercept: worker isolate needs Response / caches
+        // so respondWith(new Response) and caches.match can run in the SW.
+        crate::web_api::fetch::setup_fetch_api(scope, &context)?;
+        crate::web_api::cache_storage::setup_cache_api(scope, &context, global)?;
+
         // Native callback: __amber_worker_post_message(payload_str)
         let send_fn = v8::Function::new(
             scope,
