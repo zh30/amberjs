@@ -309,16 +309,17 @@ mod cache_api_tests {
     }
 
     #[test]
-    fn test_caches_open_rejects_until_cache_backend_exists() {
+    fn test_caches_open_resolves_real_cache() {
         let script = r#"
             if (typeof caches !== 'undefined') {
-                const result = caches.open('test-cache');
+                const result = caches.open('test-cache-open');
                 if (result && typeof result.then === 'function') {
                     result.then(cache => {
-                        console.log('ERROR: caches.open resolved fake Cache: ' + Object.keys(cache).join(','));
+                        const methods = ['match', 'put', 'add', 'addAll', 'delete', 'keys']
+                            .every(name => typeof cache[name] === 'function');
+                        console.log(methods ? 'SUCCESS' : 'ERROR: missing Cache methods');
                     }).catch(e => {
-                        const message = String(e && e.message || e);
-                        console.log(message === 'Cache API is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
+                        console.log('ERROR: ' + String(e && e.message || e));
                     });
                 } else {
                     console.log('ERROR: caches.open() does not return a Promise');
@@ -331,7 +332,7 @@ mod cache_api_tests {
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
             stdout.contains("SUCCESS"),
-            "caches.open should reject instead of resolving a fake Cache: {}",
+            "caches.open should resolve a Cache with real methods: {}",
             stdout
         );
     }
@@ -380,116 +381,25 @@ mod cache_object_tests {
     use super::*;
 
     #[test]
-    fn test_cache_add_all_fake_object_is_not_exposed() {
+    fn test_cache_methods_are_functions() {
         let script = r#"
-            if (typeof caches !== 'undefined') {
-                caches.open('test-cache').then(cache => {
-                    console.log('ERROR: fake Cache.addAll exposed: ' + typeof cache.addAll);
-                }).catch(e => {
-                    const message = String(e && e.message || e);
-                    console.log(message === 'Cache API is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
-                });
-            } else {
+            if (typeof caches === 'undefined') {
                 console.log('ERROR: caches not defined');
+            } else {
+                caches.open('test-cache-methods').then(cache => {
+                    const names = ['addAll', 'match', 'put', 'delete', 'keys', 'add'];
+                    const missing = names.filter(name => typeof cache[name] !== 'function');
+                    console.log(missing.length === 0 ? 'SUCCESS' : 'ERROR: missing ' + missing.join(','));
+                }).catch(e => {
+                    console.log('ERROR: ' + String(e && e.message || e));
+                });
             }
         "#;
         let output = run_script(script);
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
             stdout.contains("SUCCESS"),
-            "Cache.addAll should not be exposed through a fake Cache: {}",
-            stdout
-        );
-    }
-
-    #[test]
-    fn test_cache_match_fake_object_is_not_exposed() {
-        let script = r#"
-            if (typeof caches !== 'undefined') {
-                caches.open('test-cache').then(cache => {
-                    console.log('ERROR: fake Cache.match exposed: ' + typeof cache.match);
-                }).catch(e => {
-                    const message = String(e && e.message || e);
-                    console.log(message === 'Cache API is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
-                });
-            } else {
-                console.log('ERROR: caches not defined');
-            }
-        "#;
-        let output = run_script(script);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(
-            stdout.contains("SUCCESS"),
-            "Cache.match should not be exposed through a fake Cache: {}",
-            stdout
-        );
-    }
-
-    #[test]
-    fn test_cache_put_fake_object_is_not_exposed() {
-        let script = r#"
-            if (typeof caches !== 'undefined') {
-                caches.open('test-cache').then(cache => {
-                    console.log('ERROR: fake Cache.put exposed: ' + typeof cache.put);
-                }).catch(e => {
-                    const message = String(e && e.message || e);
-                    console.log(message === 'Cache API is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
-                });
-            } else {
-                console.log('ERROR: caches not defined');
-            }
-        "#;
-        let output = run_script(script);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(
-            stdout.contains("SUCCESS"),
-            "Cache.put should not be exposed through a fake Cache: {}",
-            stdout
-        );
-    }
-
-    #[test]
-    fn test_cache_delete_fake_object_is_not_exposed() {
-        let script = r#"
-            if (typeof caches !== 'undefined') {
-                caches.open('test-cache').then(cache => {
-                    console.log('ERROR: fake Cache.delete exposed: ' + typeof cache.delete);
-                }).catch(e => {
-                    const message = String(e && e.message || e);
-                    console.log(message === 'Cache API is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
-                });
-            } else {
-                console.log('ERROR: caches not defined');
-            }
-        "#;
-        let output = run_script(script);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(
-            stdout.contains("SUCCESS"),
-            "Cache.delete should not be exposed through a fake Cache: {}",
-            stdout
-        );
-    }
-
-    #[test]
-    fn test_cache_keys_fake_object_is_not_exposed() {
-        let script = r#"
-            if (typeof caches !== 'undefined') {
-                caches.open('test-cache').then(cache => {
-                    console.log('ERROR: fake Cache.keys exposed: ' + typeof cache.keys);
-                }).catch(e => {
-                    const message = String(e && e.message || e);
-                    console.log(message === 'Cache API is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
-                });
-            } else {
-                console.log('ERROR: caches not defined');
-            }
-        "#;
-        let output = run_script(script);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(
-            stdout.contains("SUCCESS"),
-            "Cache.keys should not be exposed through a fake Cache: {}",
+            "Cache methods should be functions on a real Cache: {}",
             stdout
         );
     }
@@ -523,24 +433,35 @@ mod integration_tests {
     }
 
     #[test]
-    fn test_cache_operations_flow_fails_closed_until_backend_exists() {
+    fn test_cache_put_match_round_trip() {
         let script = r#"
-            if (typeof caches !== 'undefined') {
-                caches.open('my-cache').then(cache => {
-                    console.log('ERROR: fake Cache operations exposed: ' + Object.keys(cache).join(','));
-                }).catch(e => {
-                    const message = String(e && e.message || e);
-                    console.log(message === 'Cache API is not supported yet' ? 'SUCCESS' : 'ERROR: ' + message);
-                });
-            } else {
+            if (typeof caches === 'undefined') {
                 console.log('ERROR: Cache API not supported');
+            } else {
+                caches.open('my-cache-roundtrip').then(cache => {
+                    return cache.put('https://example.test/cached', new Response('cached-body', {
+                        status: 200,
+                        statusText: 'OK',
+                        headers: { 'content-type': 'text/plain' }
+                    })).then(() => cache.match('https://example.test/cached'));
+                }).then(response => {
+                    if (!response) {
+                        console.log('ERROR: match missed');
+                        return;
+                    }
+                    const body = response.text();
+                    const text = typeof body === 'string' ? body : String(body);
+                    console.log(text === 'cached-body' && response.status === 200 ? 'SUCCESS' : 'ERROR: ' + text);
+                }).catch(e => {
+                    console.log('ERROR: ' + String(e && e.message || e));
+                });
             }
         "#;
         let output = run_script(script);
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
             stdout.contains("SUCCESS"),
-            "Cache flow should fail closed until a real backend exists: {}",
+            "Cache put/match should round-trip a Response body: {}",
             stdout
         );
     }
