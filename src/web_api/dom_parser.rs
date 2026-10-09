@@ -3,7 +3,7 @@
 // HTML (`text/html`) uses scraper (html5ever) and exposes document/query helpers.
 // XML MIME types use roxmltree with tag/#id query helpers.
 // This is a read-only parse tree for CLI workloads, not a live browser DOM.
-// Stay Preview until a Stable contract + CI graduation lands.
+// Stable contract: docs/DOMPARSER_CONTRACT.md (G32), pinned by tests/dom_parser_tests.rs.
 
 use anyhow::Result;
 use rusty_v8 as v8;

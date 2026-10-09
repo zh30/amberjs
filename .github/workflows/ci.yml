@@ -192,6 +192,9 @@ jobs:
       - name: web clipboard Stable contract
         run: cargo test --test clipboard_api_tests -- --test-threads=1
 
+      - name: web DOMParser Stable contract
+        run: cargo test --test dom_parser_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 
