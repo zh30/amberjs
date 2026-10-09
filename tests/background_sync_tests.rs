@@ -138,30 +138,35 @@ mod sync_manager_tests {
     }
 
     #[test]
-    fn test_sync_register_returns_promise_and_fails_closed_without_backend() {
+    fn test_sync_register_queues_tag_and_fires_sync_event() {
         let script = r#"
             globalThis.__syncResult = 'pending';
+            globalThis.onsync = function(event) {
+                globalThis.__fired = [
+                    event && event.type,
+                    event && event.tag,
+                    typeof event.waitUntil,
+                    event && event.lastChance,
+                    event && event.isTrusted
+                ].join(':');
+                event.waitUntil(Promise.resolve());
+            };
             const result = registration.sync.register('offline-job');
             const isPromise = result instanceof Promise;
-            result.then(
-                () => {
-                    globalThis.__syncResult = 'resolved';
-                },
-                () => {
-                    registration.sync.getTags().then(tags => {
-                        globalThis.__syncResult = `${isPromise}:rejected:${tags.includes('offline-job')}`;
-                    });
-                }
-            );
+            result.then(() => {
+                return registration.sync.getTags();
+            }).then(tags => {
+                globalThis.__queued = `${isPromise}:${tags.includes('offline-job')}`;
+            });
             setTimeout(() => {
-                console.log(globalThis.__syncResult);
-            }, 0);
+                console.log(`${globalThis.__queued}|${globalThis.__fired}`);
+            }, 20);
         "#;
         let output = run_script(script);
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(
-            stdout.contains("true:rejected:false"),
-            "sync.register should be a rejecting Promise and must not store fake tags: {}",
+            stdout.contains("true:true|sync:offline-job:function:false:true"),
+            "sync.register should queue the tag and fire a SyncEvent: {}",
             stdout
         );
     }
@@ -279,6 +284,28 @@ mod sync_event_registration_tests {
 #[cfg(test)]
 mod sync_event_integration_tests {
     use super::*;
+
+    #[test]
+    fn test_register_fires_wait_until_keeps_cli_alive() {
+        let script = r#"
+            globalThis.onsync = function(event) {
+                event.waitUntil(new Promise(resolve => {
+                    setTimeout(() => {
+                        console.log('SUCCESS:' + event.tag + ':' + event.type);
+                        resolve();
+                    }, 30);
+                }));
+            };
+            registration.sync.register('keep-alive');
+        "#;
+        let output = run_script(script);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("SUCCESS:keep-alive:sync"),
+            "waitUntil after a fired sync event should keep amber run alive: {}",
+            stdout
+        );
+    }
 
     #[test]
     fn test_sync_event_with_wait_until() {
