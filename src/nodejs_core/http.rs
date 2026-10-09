@@ -553,8 +553,9 @@ pub fn dispatch_http_request_in_scope_fast<'a>(
                 register_tokio_response_waiter(request.connection_id, responder);
             }
         }
+        // Fail-closed: missing request handler must not invent a fake 200 (G37 HTTP_SERVER_CONTRACT).
         HttpDispatchResult::NoHandler => {
-            let resp = create_http_response(request.connection_id, 404, "No handler", "text/plain");
+            let resp = create_http_response(request.connection_id, 503, "No handler", "text/plain");
             if let Some(responder) = request.responder.take() {
                 let _ = responder.send(resp);
             } else {
@@ -2734,6 +2735,8 @@ pub fn http_res_end_callback(
             let combined_rust = format!("{}{}", existing_rust, data_rust);
             let combined = v8::String::new(scope, &combined_rust).unwrap();
             this.set(scope, body_key.into(), combined.into());
+            // Body already includes the end chunk; clear _endData so extract does not double-append.
+            this.set(scope, end_data_key.into(), v8::undefined(scope).into());
         }
     }
 
@@ -3858,27 +3861,26 @@ pub fn extract_http_response_from_res_fast<'a>(
         .map(|i| i.value() as u16)
         .unwrap_or(200);
 
-    // Fast-path body: check _endData first (avoiding string roundtrip)
-    let body_bytes = if let Some(end_data_val) = res_obj.get(scope, atoms.end_data.into()) {
-        if !end_data_val.is_undefined() && !end_data_val.is_null() {
-            extract_http_body_bytes(scope, end_data_val)
-        } else {
-            let body_val = res_obj
-                .get(scope, atoms.res_body.into())
-                .unwrap_or_else(|| atoms.empty_str.into());
-            body_val
-                .to_string(scope)
-                .map(|s| s.to_rust_string_lossy(scope).into_bytes())
-                .unwrap_or_default()
+    // Buffered body: prior `write` chunks live in `_body`; optional `end(chunk)` in `_endData`.
+    // Concatenate when both are present (G37 HTTP_SERVER_CONTRACT). Prefer `_endData` alone
+    // only when `_body` is empty to avoid an extra string roundtrip.
+    let body_from_writes = res_obj
+        .get(scope, atoms.res_body.into())
+        .and_then(|body_val| body_val.to_string(scope))
+        .map(|s| s.to_rust_string_lossy(scope).into_bytes())
+        .unwrap_or_default();
+    let end_chunk = res_obj
+        .get(scope, atoms.end_data.into())
+        .filter(|v| !v.is_undefined() && !v.is_null())
+        .map(|v| extract_http_body_bytes(scope, v));
+    let body_bytes = match end_chunk {
+        Some(end_bytes) if body_from_writes.is_empty() => end_bytes,
+        Some(end_bytes) => {
+            let mut combined = body_from_writes;
+            combined.extend_from_slice(&end_bytes);
+            combined
         }
-    } else {
-        let body_val = res_obj
-            .get(scope, atoms.res_body.into())
-            .unwrap_or_else(|| atoms.empty_str.into());
-        body_val
-            .to_string(scope)
-            .map(|s| s.to_rust_string_lossy(scope).into_bytes())
-            .unwrap_or_default()
+        None => body_from_writes,
     };
 
     // Fast-path headers: check _headersArray [k1, v1, k2, v2, ...] first
