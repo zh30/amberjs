@@ -457,10 +457,7 @@ fn scope_is_not_matched_for_intercept() {
         });
         "#,
     );
-    assert_eq!(
-        read_result(&mut runtime),
-        "scoped-sw|/only-this-scope/"
-    );
+    assert_eq!(read_result(&mut runtime), "scoped-sw|/only-this-scope/");
 }
 
 #[test]
