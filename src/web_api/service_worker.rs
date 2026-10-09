@@ -3,8 +3,10 @@
 // `navigator.serviceWorker.register` starts the script on a WorkerHost isolate.
 // install / activate run in that script, `registration.scope` is the recorded
 // scope string, and `clients.claim()` publishes `navigator.serviceWorker.controller`.
-// Page and worker exchange JSON `postMessage`. Cache, Push, `waitUntil`, and
-// fetch interception are not implemented: `fetch` is left unchanged.
+// Page and worker exchange JSON `postMessage`. `event.waitUntil(promise)` on
+// install/activate extends that phase until the promise settles (reject fails
+// registration). Cache, Push, and fetch interception are not implemented:
+// `fetch` is left unchanged.
 
 use anyhow::Result;
 use rusty_v8 as v8;
@@ -113,6 +115,34 @@ function dispatch(type, event) {
     }
   }
 }
+function createExtendableEvent(type) {
+  const extenders = [];
+  return {
+    type: type,
+    waitUntil(promise) {
+      if (arguments.length === 0) {
+        throw new TypeError('waitUntil requires a promise');
+      }
+      extenders.push(Promise.resolve(promise));
+    },
+    __amberSettle() {
+      return Promise.all(extenders);
+    }
+  };
+}
+function finishLifecycle(signal, event) {
+  event.__amberSettle().then(
+    function() {
+      parentPort.postMessage({ __amberSw: signal });
+    },
+    function(err) {
+      parentPort.postMessage({
+        __amberSw: 'error',
+        message: err && err.message ? String(err.message) : String(err)
+      });
+    }
+  );
+}
 globalThis.skipWaiting = function() {
   parentPort.postMessage({ __amberSw: 'skipWaiting' });
 };
@@ -126,13 +156,15 @@ globalThis.__amber_before_user_message = function(data) {
     return undefined;
   }
   if (data.__amberSw === 'install') {
-    dispatch('install', { type: 'install' });
-    parentPort.postMessage({ __amberSw: 'installed' });
+    const event = createExtendableEvent('install');
+    dispatch('install', event);
+    finishLifecycle('installed', event);
     return { __amberConsume: true };
   }
   if (data.__amberSw === 'activate') {
-    dispatch('activate', { type: 'activate' });
-    parentPort.postMessage({ __amberSw: 'activated' });
+    const event = createExtendableEvent('activate');
+    dispatch('activate', event);
+    finishLifecycle('activated', event);
     return { __amberConsume: true };
   }
   if (data.__amberSw === 'message') {
@@ -559,7 +591,11 @@ fn fetch_event_constructor_callback(
     rv.set(event_obj.into());
 }
 
-/// Common helper to create service worker events
+/// Common helper to create service worker events (InstallEvent / ActivateEvent).
+/// Attaches a real `waitUntil` that tracks promises the same way as the global
+/// `ExtendableEvent` constructor. The WorkerHost SW path builds its own
+/// ExtendableEvent-shaped object in the wrapper; these ctors are for page-side
+/// `new InstallEvent` / `new ActivateEvent`.
 fn create_service_worker_event(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -594,20 +630,18 @@ fn create_service_worker_event(
     let cancelable_key = v8::String::new(scope, "cancelable").unwrap();
     event_obj.set(scope, cancelable_key.into(), cancelable_true.into());
 
-    rv.set(event_obj.into());
-}
+    let wait_until_fn = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, rv: v8::ReturnValue| {
+            // Reuse the global ExtendableEvent.waitUntil semantics (pending counter).
+            crate::web_api::events::extendable_event_wait_until_for_sw(scope, args, rv);
+        },
+    )
+    .unwrap();
+    let wait_until_key = v8::String::new(scope, "waitUntil").unwrap();
+    event_obj.set(scope, wait_until_key.into(), wait_until_fn.into());
 
-/// ExtendableEvent.waitUntil() callback (shared by install/activate)
-#[allow(dead_code)]
-fn extendable_event_wait_until_callback(
-    scope: &mut v8::PinScope,
-    _args: v8::FunctionCallbackArguments,
-    mut rv: v8::ReturnValue,
-) {
-    // waitUntil() extends the event lifetime until the promise resolves/rejects
-    // For now, we just return undefined
-    // In a full implementation, this would track pending promises
-    rv.set(v8::undefined(scope).into());
+    rv.set(event_obj.into());
 }
 
 /// FetchEvent.respondWith() callback - v0.3.328: Full Response object integration

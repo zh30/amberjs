@@ -8766,7 +8766,8 @@ impl MinimalRuntime {
                 let has_drainable_timers = crate::nodejs_core::timers::has_pending_drainable_timers(
                     remaining_timer_drain_ms(timer_drain_started_at, timer_drain_limit_ms),
                 );
-                let has_wait_until = crate::web_api::background_sync::has_pending_wait_until();
+                let has_wait_until = crate::web_api::background_sync::has_pending_wait_until()
+                    || crate::web_api::events::has_pending_wait_until();
                 let has_wait_until_timers = has_scheduled_timers && has_wait_until;
                 timer_manager.has_fired_timers()
                     || has_zero_delay_timers
@@ -8804,7 +8805,8 @@ impl MinimalRuntime {
                     remaining_timer_drain_ms(timer_drain_started_at, timer_drain_limit_ms),
                 ) || (timer_drain_limit_ms == u64::MAX
                     && crate::nodejs_core::timers::has_pending_refed_timers());
-                let has_wait_until = crate::web_api::background_sync::has_pending_wait_until();
+                let has_wait_until = crate::web_api::background_sync::has_pending_wait_until()
+                    || crate::web_api::events::has_pending_wait_until();
                 let has_wait_until_timers = has_scheduled && has_wait_until;
                 let has_next_ticks = has_pending_next_ticks();
 
@@ -8923,7 +8925,8 @@ impl MinimalRuntime {
                 let has_scheduled_timers = timer_manager.has_scheduled_timers();
                 (has_scheduled_timers
                     && (crate::nodejs_core::timers::has_pending_zero_delay_timers()
-                        || crate::web_api::background_sync::has_pending_wait_until()))
+                        || crate::web_api::background_sync::has_pending_wait_until()
+                        || crate::web_api::events::has_pending_wait_until()))
                     || crate::nodejs_core::timers::has_pending_drainable_timers(
                         remaining_timer_drain_ms(timer_drain_started_at, timer_drain_limit_ms),
                     )
