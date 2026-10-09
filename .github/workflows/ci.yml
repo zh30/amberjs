@@ -183,6 +183,9 @@ jobs:
       - name: web websocket Stable contract
         run: cargo test --test websocket_contract_tests -- --test-threads=1
 
+      - name: web atob btoa Stable contract
+        run: cargo test --test atob_btoa_contract_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 

@@ -2,7 +2,7 @@
 
 This is the user-facing contract for Stable `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, and `structuredClone` in the default Amber runtime. It is derived from `src/web_api/url_fast.js`, `src/web_api/url.rs`, `src/web_api/url_search_params.rs`, `src/web_api/encoding.rs`, `src/web_api/structured_clone.rs`, and `tests/url_encoding_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
-These globals are reachable from `amber run` / `amber eval`. `atob` and `btoa` stay Preview. `fetch`, `Blob` / `File` / `FormData`, streams, compression, timers, and `performance` stay on their own Stable contracts. Every other `src/web_api/` module stays Preview. This is not the whole URL standard, Encoding standard, or HTML structured clone algorithm.
+These globals are reachable from `amber run` / `amber eval`. `atob` and `btoa` are Stable under G29 ([`docs/ATOB_BTOA_CONTRACT.md`](ATOB_BTOA_CONTRACT.md)), not this page. `fetch`, `Blob` / `File` / `FormData`, streams, compression, timers, and `performance` stay on their own Stable contracts. Every other `src/web_api/` module stays Preview. This is not the whole URL standard, Encoding standard, or HTML structured clone algorithm.
 
 ## `URL`
 
