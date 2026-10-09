@@ -249,4 +249,124 @@ mod tests {
         );
         assert_eq!(result.unwrap().trim(), "true");
     }
+
+    /// Real HTML parse: instance method + getElementById / querySelector / textContent
+    #[test]
+    #[serial]
+    fn test_html_query_and_text_content() {
+        let code = r#"
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(
+              '<html><body><div id="main"><p class="x">Hello</p><p class="x">World</p></div></body></html>',
+              'text/html'
+            );
+            const main = doc.getElementById('main');
+            const first = doc.querySelector('p.x');
+            const all = doc.querySelectorAll('p.x');
+            const byTag = doc.getElementsByTagName('p');
+            (
+              main !== null &&
+              main.tagName === 'DIV' &&
+              first !== null &&
+              first.textContent === 'Hello' &&
+              all.length === 2 &&
+              byTag.length === 2 &&
+              doc.body.querySelector('#main p') !== null &&
+              typeof doc.body.innerHTML === 'string' &&
+              doc.body.innerHTML.includes('Hello')
+            )
+        "#;
+
+        let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+        let result = runtime.execute_code(code);
+        assert!(
+            result.is_ok(),
+            "HTML query APIs should work: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap().trim(), "true");
+    }
+
+    /// Real XML parse: documentElement + getElementsByTagName + #id selector
+    #[test]
+    #[serial]
+    fn test_xml_document_element_and_query() {
+        let code = r#"
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(
+              '<?xml version="1.0"?><root><item id="a">one</item><item id="b">two</item></root>',
+              'application/xml'
+            );
+            const root = doc.documentElement;
+            const items = doc.getElementsByTagName('item');
+            const a = doc.getElementById('a');
+            const viaSel = doc.querySelector('item#b');
+            (
+              root !== null &&
+              root.tagName === 'root' &&
+              items.length === 2 &&
+              a !== null &&
+              a.textContent === 'one' &&
+              viaSel !== null &&
+              viaSel.textContent === 'two'
+            )
+        "#;
+
+        let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+        let result = runtime.execute_code(code);
+        assert!(
+            result.is_ok(),
+            "XML query APIs should work: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap().trim(), "true");
+    }
+
+    /// Malformed XML returns a parsererror document (does not throw)
+    #[test]
+    #[serial]
+    fn test_xml_parsererror_document() {
+        let code = r#"
+            const parser = new DOMParser();
+            const doc = parser.parseFromString('<root><unclosed>', 'application/xml');
+            const el = doc.documentElement;
+            el !== null && el.tagName === 'parsererror'
+        "#;
+
+        let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+        let result = runtime.execute_code(code);
+        assert!(
+            result.is_ok(),
+            "Malformed XML should yield parsererror: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap().trim(), "true");
+    }
+
+    /// getAttribute on parsed elements
+    #[test]
+    #[serial]
+    fn test_element_get_attribute() {
+        let code = r#"
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(
+              '<html><body><a id="link" href="/x" class="c">Go</a></body></html>',
+              'text/html'
+            );
+            const a = doc.getElementById('link');
+            a !== null &&
+              a.getAttribute('href') === '/x' &&
+              a.getAttribute('class') === 'c' &&
+              a.getAttribute('missing') === null
+        "#;
+
+        let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+        let result = runtime.execute_code(code);
+        assert!(
+            result.is_ok(),
+            "getAttribute should work: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap().trim(), "true");
+    }
 }
