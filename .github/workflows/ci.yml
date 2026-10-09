@@ -195,6 +195,9 @@ jobs:
       - name: web DOMParser Stable contract
         run: cargo test --test dom_parser_tests -- --test-threads=1
 
+      - name: web background sync Stable contract
+        run: cargo test --test background_sync_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 
