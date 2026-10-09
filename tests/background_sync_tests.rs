@@ -1,6 +1,8 @@
-// Background Sync API tests for Amber runtime
-// v0.3.327: Tests for SyncManager and SyncEvent APIs
-// Background Sync allows background tasks to be registered and executed when network is available
+//! Pins docs/BACKGROUND_SYNC_CONTRACT.md (G33).
+//!
+//! Stable surface: CLI `globalThis.registration.sync` queues a tag and fires a
+//! real `SyncEvent` on the **same page isolate**. Not a service-worker isolate,
+//! not Periodic Background Sync, and not a network-offline scheduler.
 
 use std::fs;
 use std::path::PathBuf;
@@ -439,6 +441,133 @@ mod sync_event_error_handling_tests {
         assert!(
             stdout.contains("SUCCESS"),
             "Multiple waitUntil should work: {}",
+            stdout
+        );
+    }
+}
+
+#[cfg(test)]
+mod sync_contract_honesty_pins {
+    use super::*;
+
+    /// Contract: missing / empty tag rejects with TypeError
+    #[test]
+    fn test_register_rejects_empty_or_missing_tag() {
+        let script = r#"
+            globalThis.__out = 'pending';
+            Promise.all([
+                registration.sync.register().then(
+                    () => 'missing-resolved',
+                    e => `missing:${e instanceof TypeError}`
+                ),
+                registration.sync.register('').then(
+                    () => 'empty-resolved',
+                    e => `empty:${e instanceof TypeError}`
+                )
+            ]).then(parts => {
+                globalThis.__out = parts.join('|');
+            });
+            setTimeout(() => console.log(globalThis.__out), 0);
+        "#;
+        let output = run_script(script);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("missing:true|empty:true"),
+            "register should reject missing/empty tag with TypeError: {}",
+            stdout
+        );
+    }
+
+    /// Contract Limit: same-isolate CLI fire; no navigator.serviceWorker.register required
+    #[test]
+    fn test_register_fires_without_service_worker_register() {
+        let script = r#"
+            globalThis.__fired = 'pending';
+            // Do not call navigator.serviceWorker.register — CLI installs registration.sync directly.
+            globalThis.onsync = function(event) {
+                globalThis.__fired = [
+                    event.type,
+                    event.tag,
+                    typeof registration.sync.register,
+                    typeof registration.sync.getTags
+                ].join(':');
+            };
+            registration.sync.register('cli-only').then(() => {});
+            setTimeout(() => console.log(globalThis.__fired), 20);
+        "#;
+        let output = run_script(script);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("sync:cli-only:function:function"),
+            "registration.sync should fire SyncEvent on the CLI isolate without SW register: {}",
+            stdout
+        );
+    }
+
+    /// Contract: constructed SyncEvent default tag is "default-sync"; not instanceof Event
+    #[test]
+    fn test_sync_event_default_tag_and_not_instanceof_event() {
+        let script = r#"
+            const event = new SyncEvent('sync', {});
+            const ok =
+                event.tag === 'default-sync' &&
+                event.type === 'sync' &&
+                event.lastChance === false &&
+                event.isTrusted === false &&
+                typeof event.waitUntil === 'function' &&
+                !(typeof Event === 'function' && event instanceof Event);
+            console.log(ok ? 'SUCCESS' : 'FAIL');
+        "#;
+        let output = run_script(script);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("SUCCESS"),
+            "SyncEvent defaults and plain-object pin failed: {}",
+            stdout
+        );
+    }
+
+    /// Contract: duplicate tag while queued does not schedule a second fire
+    #[test]
+    fn test_duplicate_register_fires_once() {
+        let script = r#"
+            globalThis.__count = 0;
+            globalThis.onsync = function(event) {
+                if (event.tag === 'once-only') {
+                    globalThis.__count += 1;
+                }
+            };
+            Promise.all([
+                registration.sync.register('once-only'),
+                registration.sync.register('once-only')
+            ]).then(() => {});
+            setTimeout(() => console.log('count:' + globalThis.__count), 30);
+        "#;
+        let output = run_script(script);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("count:1"),
+            "duplicate register while queued should fire once: {}",
+            stdout
+        );
+    }
+
+    /// Contract Limit: no periodicSync on the sync manager
+    #[test]
+    fn test_no_periodic_sync_manager() {
+        let script = r#"
+            const ok =
+                typeof registration.sync.register === 'function' &&
+                typeof registration.sync.getTags === 'function' &&
+                typeof registration.sync.periodicSync === 'undefined' &&
+                typeof globalThis.periodicSync === 'undefined';
+            console.log(ok ? 'SUCCESS' : 'FAIL');
+        "#;
+        let output = run_script(script);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("SUCCESS"),
+            "periodicSync must stay outside Stable Background Sync: {}",
             stdout
         );
     }
