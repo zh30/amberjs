@@ -201,6 +201,9 @@ jobs:
       - name: web cache Stable contract
         run: cargo test --test cache_storage_tests -- --test-threads=1
 
+      - name: web SW fetch Stable contract
+        run: cargo test --test service_worker_fetch_intercept_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 

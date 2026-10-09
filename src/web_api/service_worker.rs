@@ -5,10 +5,11 @@
 // scope string, and `clients.claim()` publishes `navigator.serviceWorker.controller`.
 // Page and worker exchange JSON `postMessage`. `event.waitUntil(promise)` on
 // install/activate extends that phase until the promise settles (reject fails
-// registration). CacheStorage is Preview in-process storage (see
-// `cache_storage.rs`). Preview fetch intercept: an activated SW with a `fetch`
-// listener can `FetchEvent.respondWith` for page `fetch()`. Push is not
-// implemented. G16 Stable still does not include intercept.
+// registration). CacheStorage is in-process storage (see `cache_storage.rs` /
+// G34). Stable fetch intercept (G35): an activated SW with a `fetch` listener
+// can `FetchEvent.respondWith` for page `fetch()` — see
+// `docs/SW_FETCH_CONTRACT.md`. Push is not implemented. G16 Stable still does
+// not include intercept.
 
 use anyhow::Result;
 use rusty_v8 as v8;

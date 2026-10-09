@@ -1,5 +1,6 @@
-//! Preview Service Worker fetch intercept (`FetchEvent.respondWith`) on the CLI path.
-//! Not a Stable contract. G9–G16 and G29–G30 stay intact.
+//! Stable G35 Service Worker fetch intercept (`FetchEvent.respondWith`) contract pins.
+//! See `docs/SW_FETCH_CONTRACT.md`. G16 stays registration-only; G9 sync Response when
+//! there is no fetch listener.
 
 use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
@@ -357,5 +358,206 @@ fn amber_run_respond_with_intercepts_fetch() {
     assert!(
         stdout.contains("SUCCESS"),
         "amber run should intercept fetch: {stdout}"
+    );
+}
+
+#[test]
+#[serial]
+fn waiting_worker_does_not_intercept_fetch() {
+    let hits = Arc::new(AtomicUsize::new(0));
+    let url = spawn_http("waiting-network", Arc::clone(&hits));
+    let mut runtime = runtime();
+    exec(
+        &mut runtime,
+        &r#"
+        globalThis.__amberSwFetchResult = 'pending';
+        const fetchBefore = fetch;
+        // No skipWaiting → stays installed/waiting; must not arm intercept.
+        const source = [
+          "self.addEventListener('fetch', (event) => {",
+          "  event.respondWith(new Response('from-waiting'));",
+          "});"
+        ].join('\n');
+        const swUrl = 'data:text/javascript,' + encodeURIComponent(source);
+        let registration = null;
+        const timer = setTimeout(() => {
+          globalThis.__amberSwFetchResult = 'timeout';
+          if (registration) registration.unregister();
+        }, 2000);
+        navigator.serviceWorker.register(swUrl).then((reg) => {
+          registration = reg;
+          const state = reg.waiting && reg.waiting.state
+            ? reg.waiting.state
+            : (reg.active && reg.active.state) || 'none';
+          const same = fetch === fetchBefore;
+          const response = fetch('__URL__');
+          const body = typeof response.text === 'function' ? response.text() : String(response);
+          const text = typeof body === 'string' ? body : String(body);
+          clearTimeout(timer);
+          globalThis.__amberSwFetchResult = [text, String(same), state].join('|');
+          return reg.unregister();
+        }).catch((err) => {
+          clearTimeout(timer);
+          globalThis.__amberSwFetchResult = 'error:' + String(err && err.message || err);
+          if (registration) registration.unregister();
+        });
+        "#
+        .replace("__URL__", &url),
+    );
+    let result = read_result(&mut runtime);
+    assert!(
+        result.starts_with("waiting-network|true|"),
+        "waiting worker must keep G9 fetch identity and hit network: {result}"
+    );
+    assert!(
+        result.contains("|installed") || result.contains("|waiting"),
+        "expected installed/waiting state: {result}"
+    );
+    assert!(
+        hits.load(Ordering::SeqCst) >= 1,
+        "waiting worker must not intercept; network should be hit"
+    );
+}
+
+#[test]
+#[serial]
+fn scope_is_not_matched_for_intercept() {
+    let mut runtime = runtime();
+    exec(
+        &mut runtime,
+        r#"
+        globalThis.__amberSwFetchResult = 'pending';
+        const source = [
+          "self.addEventListener('install', () => { self.skipWaiting(); });",
+          "self.addEventListener('activate', () => { self.clients.claim(); });",
+          "self.addEventListener('fetch', (event) => {",
+          "  event.respondWith(new Response('scoped-sw'));",
+          "});"
+        ].join('\n');
+        const swUrl = 'data:text/javascript,' + encodeURIComponent(source);
+        let registration = null;
+        const timer = setTimeout(() => {
+          globalThis.__amberSwFetchResult = 'timeout';
+          if (registration) registration.unregister();
+        }, 2000);
+        // Scope is recorded (G16) but must not gate intercept against the request URL.
+        navigator.serviceWorker.register(swUrl, { scope: '/only-this-scope/' }).then((reg) => {
+          registration = reg;
+          return Promise.resolve(fetch('https://example.test/outside-scope')).then((response) => {
+            const body = typeof response.text === 'function' ? response.text() : String(response);
+            const text = typeof body === 'string' ? body : String(body);
+            clearTimeout(timer);
+            globalThis.__amberSwFetchResult = [text, reg.scope].join('|');
+            return reg.unregister();
+          });
+        }).catch((err) => {
+          clearTimeout(timer);
+          globalThis.__amberSwFetchResult = 'error:' + String(err && err.message || err);
+          if (registration) registration.unregister();
+        });
+        "#,
+    );
+    assert_eq!(
+        read_result(&mut runtime),
+        "scoped-sw|/only-this-scope/"
+    );
+}
+
+#[test]
+#[serial]
+fn intercepted_fetch_returns_a_promise() {
+    let mut runtime = runtime();
+    exec(
+        &mut runtime,
+        r#"
+        globalThis.__amberSwFetchResult = 'pending';
+        const source = [
+          "self.addEventListener('install', () => { self.skipWaiting(); });",
+          "self.addEventListener('activate', () => { self.clients.claim(); });",
+          "self.addEventListener('fetch', (event) => {",
+          "  event.respondWith(new Response('promise-body'));",
+          "});"
+        ].join('\n');
+        const swUrl = 'data:text/javascript,' + encodeURIComponent(source);
+        let registration = null;
+        const timer = setTimeout(() => {
+          globalThis.__amberSwFetchResult = 'timeout';
+          if (registration) registration.unregister();
+        }, 2000);
+        navigator.serviceWorker.register(swUrl).then((reg) => {
+          registration = reg;
+          const value = fetch('https://example.test/promise-pin');
+          const isPromise = !!value && typeof value.then === 'function';
+          return Promise.resolve(value).then((response) => {
+            const body = typeof response.text === 'function' ? response.text() : String(response);
+            const text = typeof body === 'string' ? body : String(body);
+            clearTimeout(timer);
+            globalThis.__amberSwFetchResult = [String(isPromise), text].join('|');
+            return reg.unregister();
+          });
+        }).catch((err) => {
+          clearTimeout(timer);
+          globalThis.__amberSwFetchResult = 'error:' + String(err && err.message || err);
+          if (registration) registration.unregister();
+        });
+        "#,
+    );
+    assert_eq!(read_result(&mut runtime), "true|promise-body");
+}
+
+#[test]
+#[serial]
+fn respond_with_transfers_json_text_body_across_isolate() {
+    let mut runtime = runtime();
+    exec(
+        &mut runtime,
+        r#"
+        globalThis.__amberSwFetchResult = 'pending';
+        const source = [
+          "self.addEventListener('install', () => { self.skipWaiting(); });",
+          "self.addEventListener('activate', () => { self.clients.claim(); });",
+          "self.addEventListener('fetch', (event) => {",
+          "  const url = event.requestUrl || (event.request && event.request.url) || '';",
+          "  event.respondWith(new Response(JSON.stringify({ echo: url, note: 'text-cross' }), {",
+          "    status: 200,",
+          "    headers: { 'content-type': 'application/json', 'x-cross': '1' }",
+          "  }));",
+          "});"
+        ].join('\n');
+        const swUrl = 'data:text/javascript,' + encodeURIComponent(source);
+        let registration = null;
+        const timer = setTimeout(() => {
+          globalThis.__amberSwFetchResult = 'timeout';
+          if (registration) registration.unregister();
+        }, 2000);
+        navigator.serviceWorker.register(swUrl).then((reg) => {
+          registration = reg;
+          return Promise.resolve(fetch('https://example.test/json-cross')).then((response) => {
+            const body = typeof response.text === 'function' ? response.text() : String(response);
+            const text = typeof body === 'string' ? body : String(body);
+            const header = response.headers && typeof response.headers.get === 'function'
+              ? response.headers.get('x-cross')
+              : '';
+            let parsed = null;
+            try { parsed = JSON.parse(text); } catch (_) {}
+            clearTimeout(timer);
+            globalThis.__amberSwFetchResult = [
+              parsed && parsed.note ? parsed.note : 'bad',
+              parsed && parsed.echo ? String(parsed.echo) : '',
+              String(header),
+              typeof text
+            ].join('|');
+            return reg.unregister();
+          });
+        }).catch((err) => {
+          clearTimeout(timer);
+          globalThis.__amberSwFetchResult = 'error:' + String(err && err.message || err);
+          if (registration) registration.unregister();
+        });
+        "#,
+    );
+    assert_eq!(
+        read_result(&mut runtime),
+        "text-cross|https://example.test/json-cross|1|string"
     );
 }
