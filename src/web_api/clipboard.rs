@@ -1,8 +1,9 @@
-// Clipboard API (Preview) — in-process text store for the CLI path.
+// Clipboard API (Stable G31) — in-process text store for the CLI path.
 //
-// `navigator.clipboard.writeText` / `readText` resolve against a process-local
-// string buffer. This is not the OS clipboard and does not implement secure
-// context, permissions, or user-activation checks.
+// Contract: docs/CLIPBOARD_CONTRACT.md. `navigator.clipboard.writeText` /
+// `readText` resolve against a process-local Mutex<String> buffer. This is not
+// the OS clipboard and does not implement secure context, permissions, or
+// user-activation checks.
 //
 // `read` / `write` (ClipboardItem) stay rejected: rich clipboard is out of scope.
 
@@ -142,7 +143,7 @@ fn read_text_callback(
     }
 }
 
-/// `navigator.clipboard.read()` — ClipboardItem not implemented (Preview Limit).
+/// `navigator.clipboard.read()` — ClipboardItem outside Stable (G31 Non-goal).
 fn read_callback(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
@@ -155,7 +156,7 @@ fn read_callback(
     );
 }
 
-/// `navigator.clipboard.write()` — ClipboardItem not implemented (Preview Limit).
+/// `navigator.clipboard.write()` — ClipboardItem outside Stable (G31 Non-goal).
 fn write_callback(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
