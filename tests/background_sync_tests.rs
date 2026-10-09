@@ -307,6 +307,7 @@ mod sync_event_integration_tests {
         );
     }
 
+    #[test]
     fn test_sync_event_with_wait_until() {
         // Test that SyncEvent.waitUntil works correctly
         let script = r#"
