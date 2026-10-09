@@ -297,7 +297,7 @@ fn reject_register(
     resolver.reject(scope, error).unwrap();
 }
 
-fn schedule_sync_fire(scope: &mut v8::PinScope, tag: &str) {
+fn schedule_sync_fire_microtask(scope: &mut v8::PinScope, tag: &str) {
     let resolver = v8::PromiseResolver::new(scope).unwrap();
     let promise = resolver.get_promise(scope);
     let fire_fn = v8::FunctionTemplate::new(scope, fire_queued_sync_callback)
@@ -315,6 +315,39 @@ fn schedule_sync_fire(scope: &mut v8::PinScope, tag: &str) {
     }
     let tag_val = v8::String::new(scope, tag).unwrap();
     resolver.resolve(scope, tag_val.into()).unwrap();
+}
+
+/// Fire after `register` settles and its `.then` handlers run, so `getTags()`
+/// can still observe the queued tag. `setTimeout(fn, 0)` is a later timer turn
+/// (after nextTick + microtasks). Fall back to a microtask if timers are absent.
+fn schedule_sync_fire(scope: &mut v8::PinScope, tag: &str) {
+    let context = scope.get_current_context();
+    let global = context.global(scope);
+    let timeout_key = v8::String::new(scope, "setTimeout").unwrap();
+    let Some(timeout_value) = global.get(scope, timeout_key.into()) else {
+        schedule_sync_fire_microtask(scope, tag);
+        return;
+    };
+    let Ok(timeout_fn) = v8::Local::<v8::Function>::try_from(timeout_value) else {
+        schedule_sync_fire_microtask(scope, tag);
+        return;
+    };
+
+    let fire_fn = v8::FunctionTemplate::new(scope, fire_queued_sync_callback)
+        .get_function(scope)
+        .unwrap();
+    let delay = v8::Number::new(scope, 0.0);
+    let tag_val = v8::String::new(scope, tag).unwrap();
+    if timeout_fn
+        .call(
+            scope,
+            global.into(),
+            &[fire_fn.into(), delay.into(), tag_val.into()],
+        )
+        .is_none()
+    {
+        schedule_sync_fire_microtask(scope, tag);
+    }
 }
 
 fn call_named_function(
