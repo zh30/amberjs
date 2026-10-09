@@ -189,6 +189,9 @@ jobs:
       - name: web error event Stable contract
         run: cargo test --test error_event_contract_tests -- --test-threads=1
 
+      - name: web clipboard Stable contract
+        run: cargo test --test clipboard_api_tests -- --test-threads=1
+
       - name: Check crate package contents
         run: cargo package --locked --list
 

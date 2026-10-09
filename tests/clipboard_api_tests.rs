@@ -1,8 +1,8 @@
-// Clipboard API tests — Preview in-process text store on the CLI path.
-//
-// writeText / readText round-trip against a process-local buffer.
-// read / write (ClipboardItem) stay rejected with an honest Limit message.
-// This is not OS clipboard / secure-context / permissions parity.
+//! Pins docs/CLIPBOARD_CONTRACT.md (G31).
+//!
+//! Stable surface: navigator.clipboard.writeText / readText against a
+//! process-local Mutex<String>. ClipboardItem read/write stay rejected.
+//! Not OS clipboard / secure-context / permissions parity.
 
 #[cfg(test)]
 mod tests {
@@ -115,6 +115,70 @@ mod tests {
         let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
         let result = runtime.execute_code(code).unwrap();
         assert_eq!(result.trim(), "Line 1\nLine 2\tTabbed");
+    }
+
+    #[test]
+    #[serial]
+    fn test_write_text_tostring_coercion() {
+        let code = r#"
+            (async () => {
+                await navigator.clipboard.writeText(null);
+                const fromNull = await navigator.clipboard.readText();
+                await navigator.clipboard.writeText(undefined);
+                const fromUndef = await navigator.clipboard.readText();
+                await navigator.clipboard.writeText();
+                const fromMissing = await navigator.clipboard.readText();
+                await navigator.clipboard.writeText(42);
+                const fromNumber = await navigator.clipboard.readText();
+                return [fromNull, fromUndef, fromMissing, fromNumber].join('|');
+            })();
+        "#;
+
+        let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+        let result = runtime.execute_code(code).unwrap();
+        assert_eq!(
+            result.trim(),
+            "|||42",
+            "writeText must coerce null/undefined/missing to empty and ToString others: {}",
+            result
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_write_text_shared_across_runtimes() {
+        {
+            let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+            let result = runtime
+                .execute_code(
+                    r#"
+                    (async () => {
+                        await navigator.clipboard.writeText('shared-across-runtimes');
+                        return 'ok';
+                    })();
+                    "#,
+                )
+                .unwrap();
+            assert_eq!(result.trim(), "ok");
+        }
+        {
+            let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+            let result = runtime
+                .execute_code(
+                    r#"
+                    (async () => {
+                        return await navigator.clipboard.readText();
+                    })();
+                    "#,
+                )
+                .unwrap();
+            assert_eq!(
+                result.trim(),
+                "shared-across-runtimes",
+                "process-local store must survive a new MinimalRuntime: {}",
+                result
+            );
+        }
     }
 
     #[test]

@@ -84,6 +84,11 @@ fn hash_source(source: &str, file_name: &str) -> u64 {
 }
 
 fn cache_dir() -> PathBuf {
+    if let Ok(dir) = std::env::var("AMBER_TS_CACHE_DIR") {
+        if !dir.is_empty() {
+            return PathBuf::from(dir);
+        }
+    }
     std::env::temp_dir().join("amberjs-ts-cache")
 }
 
@@ -175,9 +180,49 @@ mod tests {
 
     static CACHE_TEST: Mutex<()> = Mutex::new(());
 
+    /// Isolates disk cache via `AMBER_TS_CACHE_DIR` while holding `CACHE_TEST`.
+    struct IsolatedCacheDir {
+        _lock: std::sync::MutexGuard<'static, ()>,
+        _dir: tempfile::TempDir,
+        previous: Option<String>,
+    }
+
+    impl IsolatedCacheDir {
+        fn enter() -> Self {
+            let lock = CACHE_TEST
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let previous = std::env::var("AMBER_TS_CACHE_DIR").ok();
+            let dir = tempfile::tempdir().expect("isolated ts cache tempdir");
+            // SAFETY: held under CACHE_TEST; restored in Drop before unlock.
+            unsafe {
+                std::env::set_var("AMBER_TS_CACHE_DIR", dir.path());
+            }
+            Self {
+                _lock: lock,
+                _dir: dir,
+                previous,
+            }
+        }
+    }
+
+    impl Drop for IsolatedCacheDir {
+        fn drop(&mut self) {
+            clear_cache();
+            match &self.previous {
+                Some(value) => unsafe {
+                    std::env::set_var("AMBER_TS_CACHE_DIR", value);
+                },
+                None => unsafe {
+                    std::env::remove_var("AMBER_TS_CACHE_DIR");
+                },
+            }
+        }
+    }
+
     #[test]
     fn test_cache_preserves_source_map() {
-        let _guard = CACHE_TEST.lock().expect("cache test lock");
+        let _guard = IsolatedCacheDir::enter();
         clear_cache();
         let source = "const x: number = 42;";
         let file_name = "test_cache_map.ts";
@@ -214,7 +259,7 @@ mod tests {
 
     #[test]
     fn memory_cache_evicts_oldest_and_disk_still_hits() {
-        let _guard = CACHE_TEST.lock().expect("cache test lock");
+        let _guard = IsolatedCacheDir::enter();
         let _budget = set_test_budget(64);
         clear_cache();
         let older = CompilationOutput {
