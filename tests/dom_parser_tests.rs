@@ -1,7 +1,7 @@
-// DOMParser API 测试套件 - v0.3.341
-//
-// 目标：验证 Amber 对 DOMParser 接口的完整支持
-// DOMParser 用于解析 HTML/XML 文档，适用于 AI 工作负载处理网页内容
+//! Pins docs/DOMPARSER_CONTRACT.md (G32).
+//!
+//! Stable surface: read-only HTML (scraper) / XML (roxmltree) parse tree with
+//! query helpers. Not a live browser DOM. XML query is tag/#id/descendant-limited.
 
 #[cfg(test)]
 mod tests {
@@ -365,6 +365,69 @@ mod tests {
         assert!(
             result.is_ok(),
             "getAttribute should work: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap().trim(), "true");
+    }
+
+    /// Contract Limit: XML query rejects class / attribute selectors (tag/#id/descendant only)
+    #[test]
+    #[serial]
+    fn test_xml_query_rejects_unsupported_selector() {
+        let code = r#"
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(
+              '<?xml version="1.0"?><root><item class="x">one</item></root>',
+              'application/xml'
+            );
+            let classOk = false;
+            let attrOk = false;
+            try {
+              doc.querySelector('.x');
+            } catch (error) {
+              // Class tokens hit the per-part unsupported path (no tag/#id/descendant phrase).
+              classOk = error instanceof SyntaxError &&
+                String(error.message).includes('unsupported selector');
+            }
+            try {
+              doc.querySelector('[class]');
+            } catch (error) {
+              attrOk = error instanceof SyntaxError &&
+                String(error.message).includes('tag/#id/descendant');
+            }
+            classOk && attrOk
+        "#;
+
+        let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+        let result = runtime.execute_code(code);
+        assert!(
+            result.is_ok(),
+            "XML unsupported selectors should throw SyntaxError: {:?}",
+            result.err()
+        );
+        assert_eq!(result.unwrap().trim(), "true");
+    }
+
+    /// Contract Limit: parse tree is read-only (no appendChild; query still works)
+    #[test]
+    #[serial]
+    fn test_parse_tree_has_no_append_child() {
+        let code = r#"
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(
+              '<html><body><div id="main">Hi</div></body></html>',
+              'text/html'
+            );
+            typeof doc.appendChild === 'undefined' &&
+              typeof doc.body.appendChild === 'undefined' &&
+              doc.getElementById('main') !== null
+        "#;
+
+        let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+        let result = runtime.execute_code(code);
+        assert!(
+            result.is_ok(),
+            "Read-only parse tree pin failed: {:?}",
             result.err()
         );
         assert_eq!(result.unwrap().trim(), "true");
