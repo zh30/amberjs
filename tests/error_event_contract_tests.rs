@@ -16,8 +16,7 @@ fn run(code: &str) -> String {
 #[test]
 #[serial]
 fn error_event_constructor_shape_and_defaults() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const e = new ErrorEvent('error', {
             message: 'Test error message',
             filename: 'test.js',
@@ -41,11 +40,9 @@ fn error_event_constructor_shape_and_defaults() {
           e.isTrusted === false,
           d.message === '' && d.filename === '' && d.lineno === 0 && d.colno === 0 && d.error === null
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(
-        out,
-        "function|true|true|true|true|true|true|true|true|true|true|true|true",
+        out, "function|true|true|true|true|true|true|true|true|true|true|true|true",
         "got {out}"
     );
 }
@@ -53,8 +50,7 @@ fn error_event_constructor_shape_and_defaults() {
 #[test]
 #[serial]
 fn error_event_type_fixed_and_non_error_first_arg_as_message() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const a = new ErrorEvent('oops');
         const b = new ErrorEvent('error', { message: 'from-init' });
         [
@@ -63,16 +59,14 @@ fn error_event_type_fixed_and_non_error_first_arg_as_message() {
           b.type === 'error',
           b.message === 'from-init'
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "true|true|true|true", "got {out}");
 }
 
 #[test]
 #[serial]
 fn error_event_not_instanceof_event_or_errorevent() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const e = new ErrorEvent('error', { message: 'x' });
         [
           e instanceof Event,
@@ -80,23 +74,20 @@ fn error_event_not_instanceof_event_or_errorevent() {
           typeof e.preventDefault,
           typeof e.stopPropagation
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "false|false|undefined|undefined", "got {out}");
 }
 
 #[test]
 #[serial]
 fn global_onerror_default_and_window_alias() {
-    let out = run(
-        r#"
+    let out = run(r#"
         [
           typeof onerror === 'function',
           typeof window !== 'undefined' && window === globalThis,
           typeof window.onerror === 'function'
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "true|true|true", "got {out}");
 }
 
@@ -152,8 +143,11 @@ fn onerror_overwrite_and_false_does_not_swallow() {
         "onerror returning false should not swallow the throw"
     );
 
-    let check = runtime
-        .execute_code("String(calls)")
-        .expect("calls");
-    assert_eq!(check.trim(), "10", "only the last onerror should run, got {}", check.trim());
+    let check = runtime.execute_code("String(calls)").expect("calls");
+    assert_eq!(
+        check.trim(),
+        "10",
+        "only the last onerror should run, got {}",
+        check.trim()
+    );
 }
