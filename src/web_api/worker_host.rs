@@ -11,9 +11,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::Mutex;
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 static NEXT_WORKER_ID: AtomicU32 = AtomicU32::new(1);
 static HOST: Lazy<Mutex<WorkerHost>> = Lazy::new(|| Mutex::new(WorkerHost::new()));
@@ -410,6 +411,46 @@ fn run_worker_thread(
                     }}
                 }});
 
+                // Minimal timers so SW waitUntil(Promise + setTimeout) can settle.
+                const __amberTimers = [];
+                let __amberNextTimerId = 1;
+                globalThis.setTimeout = function(fn, delay) {{
+                    const id = __amberNextTimerId++;
+                    const ms = typeof delay === 'number' && delay > 0 ? delay : 0;
+                    __amberTimers.push({{ id: id, fn: fn, fireAt: Date.now() + ms }});
+                    return id;
+                }};
+                globalThis.clearTimeout = function(id) {{
+                    const idx = __amberTimers.findIndex((t) => t.id === id);
+                    if (idx >= 0) __amberTimers.splice(idx, 1);
+                }};
+                globalThis.__amber_next_timer_delay_ms = function() {{
+                    if (__amberTimers.length === 0) return -1;
+                    const now = Date.now();
+                    let min = Infinity;
+                    for (let i = 0; i < __amberTimers.length; i++) {{
+                        const left = __amberTimers[i].fireAt - now;
+                        if (left < min) min = left;
+                    }}
+                    if (min === Infinity) return -1;
+                    return min <= 0 ? 0 : min;
+                }};
+                globalThis.__amber_run_due_timers = function() {{
+                    const now = Date.now();
+                    const due = [];
+                    for (let i = __amberTimers.length - 1; i >= 0; i--) {{
+                        if (__amberTimers[i].fireAt <= now) {{
+                            due.push(__amberTimers[i]);
+                            __amberTimers.splice(i, 1);
+                        }}
+                    }}
+                    due.sort((a, b) => a.fireAt - b.fireAt);
+                    for (let i = 0; i < due.length; i++) {{
+                        try {{ due[i].fn(); }} catch (_) {{}}
+                    }}
+                    return due.length;
+                }};
+
                 globalThis.__amber_dispatch_message = function(raw) {{
                     let data;
                     try {{
@@ -481,8 +522,26 @@ fn run_worker_thread(
 
         if is_listening {
             loop {
-                match rx.recv() {
-                    Ok(WorkerMessage::PostMessage(payload)) => {
+                let next_delay_ms = worker_next_timer_delay_ms(scope, global);
+                let msg: WorkerMessage = if next_delay_ms < 0 {
+                    match rx.recv() {
+                        Ok(m) => m,
+                        Err(_) => break,
+                    }
+                } else {
+                    match rx.recv_timeout(Duration::from_millis(next_delay_ms as u64)) {
+                        Ok(m) => m,
+                        Err(RecvTimeoutError::Timeout) => {
+                            worker_run_due_timers(scope, global);
+                            scope.perform_microtask_checkpoint();
+                            continue;
+                        }
+                        Err(RecvTimeoutError::Disconnected) => break,
+                    }
+                };
+
+                match msg {
+                    WorkerMessage::PostMessage(payload) => {
                         let dispatch_key =
                             v8::String::new(scope, "__amber_dispatch_message").unwrap();
                         if let Some(handler) = global.get(scope, dispatch_key.into()) {
@@ -491,8 +550,17 @@ fn run_worker_thread(
                                 let _ = func.call(scope, global.into(), &[arg.into()]);
                             }
                         }
+                        // Drain microtasks (waitUntil Promise.all) and due timers.
+                        scope.perform_microtask_checkpoint();
+                        loop {
+                            let ran = worker_run_due_timers(scope, global);
+                            scope.perform_microtask_checkpoint();
+                            if ran == 0 {
+                                break;
+                            }
+                        }
                     }
-                    Ok(WorkerMessage::Terminate) | Err(_) => break,
+                    WorkerMessage::Terminate => break,
                 }
             }
         }
@@ -505,6 +573,34 @@ fn run_worker_thread(
 
     WORKER_THREAD_CHANNEL.with(|cell| *cell.borrow_mut() = None);
     Ok(())
+}
+
+fn worker_next_timer_delay_ms(scope: &mut v8::PinScope, global: v8::Local<v8::Object>) -> i64 {
+    let key = v8::String::new(scope, "__amber_next_timer_delay_ms").unwrap();
+    let Some(handler) = global.get(scope, key.into()) else {
+        return -1;
+    };
+    let Ok(func) = v8::Local::<v8::Function>::try_from(handler) else {
+        return -1;
+    };
+    match func.call(scope, global.into(), &[]) {
+        Some(value) if value.is_number() => value.number_value(scope).unwrap_or(-1.0) as i64,
+        _ => -1,
+    }
+}
+
+fn worker_run_due_timers(scope: &mut v8::PinScope, global: v8::Local<v8::Object>) -> i32 {
+    let key = v8::String::new(scope, "__amber_run_due_timers").unwrap();
+    let Some(handler) = global.get(scope, key.into()) else {
+        return 0;
+    };
+    let Ok(func) = v8::Local::<v8::Function>::try_from(handler) else {
+        return 0;
+    };
+    match func.call(scope, global.into(), &[]) {
+        Some(value) if value.is_number() => value.number_value(scope).unwrap_or(0.0) as i32,
+        _ => 0,
+    }
 }
 
 /// Extract the script body from a `data:[<mediatype>][;base64],<data>` URL.

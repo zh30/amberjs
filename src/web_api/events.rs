@@ -3,7 +3,33 @@
 
 use rusty_v8 as v8;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
+
+/// Pending `ExtendableEvent.waitUntil` promises on the main isolate.
+/// Keeps `runtime_minimal`'s event loop alive until they settle (same idea as
+/// Background Sync's counter). Service-worker install/activate waitUntil is
+/// honored inside the worker isolate via the SW wrapper, not this counter.
+static PENDING_EXTENDABLE_WAIT_UNTIL: AtomicUsize = AtomicUsize::new(0);
+
+pub fn has_pending_wait_until() -> bool {
+    PENDING_EXTENDABLE_WAIT_UNTIL.load(Ordering::SeqCst) > 0
+}
+
+pub fn reset_pending_wait_until() {
+    PENDING_EXTENDABLE_WAIT_UNTIL.store(0, Ordering::SeqCst);
+}
+
+fn increment_pending_wait_until() {
+    PENDING_EXTENDABLE_WAIT_UNTIL.fetch_add(1, Ordering::SeqCst);
+}
+
+fn decrement_pending_wait_until() {
+    let _ =
+        PENDING_EXTENDABLE_WAIT_UNTIL.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |count| {
+            Some(count.saturating_sub(1))
+        });
+}
 
 /// Event type enum
 #[derive(Debug, Clone)]
@@ -954,7 +980,75 @@ fn extendable_event_constructor_callback(
     let prevent_default_key = v8::String::new(scope, "preventDefault").unwrap();
     event_obj.set(scope, prevent_default_key.into(), prevent_default_fn.into());
 
+    let wait_until_fn = v8::Function::new(scope, extendable_event_wait_until_callback).unwrap();
+    let wait_until_key = v8::String::new(scope, "waitUntil").unwrap();
+    event_obj.set(scope, wait_until_key.into(), wait_until_fn.into());
+
     rv.set(event_obj.into());
+}
+
+/// Shared `waitUntil` body for `ExtendableEvent` and Install/Activate ctors.
+pub(crate) fn extendable_event_wait_until_for_sw(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    rv: v8::ReturnValue,
+) {
+    extendable_event_wait_until_callback(scope, args, rv);
+}
+
+/// `ExtendableEvent.waitUntil(promise)` — tracks pending promises on the main
+/// isolate so the CLI event loop stays alive until they settle.
+fn extendable_event_wait_until_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut rv: v8::ReturnValue,
+) {
+    if args.length() == 0 {
+        let error = v8::String::new(scope, "waitUntil requires a promise").unwrap();
+        let exception = v8::Exception::type_error(scope, error);
+        scope.throw_exception(exception);
+        return;
+    }
+
+    let promise = args.get(0);
+    if !promise.is_promise() {
+        // Non-promise values are wrapped so callers can pass thenables later;
+        // a plain value settles immediately and does not keep the loop alive.
+        rv.set(v8::undefined(scope).into());
+        return;
+    }
+
+    increment_pending_wait_until();
+
+    let done_func = v8::Function::new(scope, extendable_event_wait_until_done_callback).unwrap();
+    let then_key = v8::String::new(scope, "then").unwrap();
+    let mut attached_handler = false;
+
+    if let Ok(promise_obj) = v8::Local::<v8::Object>::try_from(promise) {
+        if let Some(then_value) = promise_obj.get(scope, then_key.into()) {
+            if let Ok(then_func) = v8::Local::<v8::Function>::try_from(then_value) {
+                let done_value: v8::Local<v8::Value> = done_func.into();
+                let then_args = [done_value, done_value];
+                if then_func.call(scope, promise, &then_args).is_some() {
+                    attached_handler = true;
+                }
+            }
+        }
+    }
+
+    if !attached_handler {
+        decrement_pending_wait_until();
+    }
+
+    rv.set(v8::undefined(scope).into());
+}
+
+fn extendable_event_wait_until_done_callback(
+    _scope: &mut v8::PinScope,
+    _args: v8::FunctionCallbackArguments,
+    _rv: v8::ReturnValue,
+) {
+    decrement_pending_wait_until();
 }
 #[cfg(test)]
 mod tests {

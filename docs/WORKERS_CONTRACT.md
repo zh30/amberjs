@@ -27,9 +27,10 @@ A readable script runs on a worker isolate:
 | Step | What runs |
 | :--- | :--- |
 | Script evaluation | The script may call `self.addEventListener`. |
-| `install` | Listeners for `'install'` run. The event object has `type`. It has no `waitUntil`. |
-| After install, without `self.skipWaiting()` | The promise resolves. `registration.waiting.state` is `"installed"`. `registration.active` is `null`. |
-| `self.skipWaiting()` during install | An `activate` event follows. `registration.active.state` is `"activated"` when the promise resolves. |
+| `install` | Listeners for `'install'` run. The event object has `type` and `waitUntil(promise)`. |
+| `waitUntil` during install | `register`'s promise stays pending until every `waitUntil` promise settles. A rejection fails registration (same error path as a script throw). |
+| After install, without `self.skipWaiting()` | The promise resolves after install `waitUntil` settles. `registration.waiting.state` is `"installed"`. `registration.active` is `null`. |
+| `self.skipWaiting()` during install | An `activate` event follows (after install `waitUntil` settles). Activate also supports `waitUntil`. `registration.active.state` is `"activated"` when the promise resolves. |
 | `self.clients.claim()` during activate | `navigator.serviceWorker.controller` is that same active worker object when the promise resolves. |
 
 `registration.scope` is `options.scope` when that option is a string. Otherwise it is `"/"` for a `data:` URL and the parent directory of a file script (trailing slash kept). A non-string or empty scope throws `TypeError` before the script loads. Scope is not matched against `fetch`.
@@ -47,9 +48,9 @@ A readable script runs on a worker isolate:
 - `SharedWorker`.
 - Module workers (`{ type: 'module' }`).
 - Structured clone, transfer lists, and `SharedArrayBuffer` messaging.
-- `waitUntil` and `extendableEvent` lifetime extension.
 - Fetch interception. `clients.claim()` does not wrap `fetch`, and `fetch` keeps its identity. `FetchEvent.respondWith` does not route network requests.
 - Cache API and Push API. `caches.open` still rejects. Push subscription still rejects.
+- Browser-complete `ExtendableEvent` prototype chain / `instanceof` parity. Install/activate events are plain objects with `type` and `waitUntil`.
 - `importScripts`, nested `Worker` inside a worker, and the page's DOM inside the worker isolate.
 
 ## Tests
