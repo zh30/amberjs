@@ -178,6 +178,10 @@ sys-info = "0.9"
 # TextEncoder/TextDecoder encoding support
 encoding_rs = "0.8"
 
+# DOMParser: HTML5 parse + CSS query (scraper/html5ever); XML via roxmltree
+scraper = "0.23"
+roxmltree = "0.20"
+
 # Stage 54.2 & Task 1.1: Native Local AI Inference (Candle / GGUF / SafeTensors)
 candle-core = { version = "0.8.2", default-features = false }
 candle-transformers = { version = "0.8.2", default-features = false }
