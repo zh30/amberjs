@@ -18,8 +18,7 @@ fn run(code: &str) -> String {
 #[test]
 #[serial]
 fn require_and_global_expose_same_string_decoder() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const a = require('string_decoder');
         const b = require('node:string_decoder');
         [
@@ -28,31 +27,27 @@ fn require_and_global_expose_same_string_decoder() {
           typeof a.StringDecoder,
           a.default === a.StringDecoder
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "true|true|function|true");
 }
 
 #[test]
 #[serial]
 fn default_encoding_is_utf8_and_utf_8_normalizes() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const { StringDecoder } = require('string_decoder');
         const d1 = new StringDecoder();
         const d2 = new StringDecoder('utf-8');
         const d3 = new StringDecoder('utf8');
         [d1._encoding, d2._encoding, d3._encoding].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "utf8|utf8|utf8");
 }
 
 #[test]
 #[serial]
 fn string_passthrough_and_buffer_write() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const { StringDecoder } = require('string_decoder');
         const d = new StringDecoder('utf8');
         const fromString = d.write('hello');
@@ -61,8 +56,7 @@ fn string_passthrough_and_buffer_write() {
         const fromArr = new StringDecoder('utf8').write([0x63, 0x64]);
         const bad = new StringDecoder('utf8').write(null);
         [fromString, fromBuf, fromU8, fromArr, bad].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "hello|world|ab|cd|");
 }
 
@@ -70,31 +64,27 @@ fn string_passthrough_and_buffer_write() {
 #[serial]
 fn incomplete_utf8_multibyte_buffers_across_writes() {
     // Split 你 (E4 BD A0) then 好 (E5 A5 BD) — same shape as conformance fixture.
-    let out = run(
-        r#"
+    let out = run(r#"
         const { StringDecoder } = require('string_decoder');
         const decoder = new StringDecoder('utf8');
         const part1 = decoder.write(Buffer.from([0xE4, 0xBD]));
         const part2 = decoder.write(Buffer.from([0xA0, 0xE5, 0xA5, 0xBD]));
         const endPart = decoder.end();
         [part1, part2, endPart, part1 + part2 + endPart].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "|你好||你好");
 }
 
 #[test]
 #[serial]
 fn end_flushes_held_incomplete_bytes() {
-    let out = run(
-        r#"
+    let out = run(r#"
         const { StringDecoder } = require('string_decoder');
         const decoder = new StringDecoder('utf8');
         const held = decoder.write(Buffer.from([0xE4, 0xBD]));
         const flushed = decoder.end(Buffer.from([0xA0]));
         [held, flushed].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(out, "|你");
 }
 
