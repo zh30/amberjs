@@ -4,7 +4,7 @@ This is the user-facing contract for Stable `amber serve --https`. It is derived
 
 `amber serve --https` terminates TLS with rustls and serves one HTTP/1.1 request per connection. It is not a general-purpose web server, and it is not the Node.js `https` module.
 
-Plain `amber serve` without `--https` is unchanged and stays Experimental.
+Plain `amber serve` without `--https` is Stable under its own contract: [`docs/SERVE_HTTP_CONTRACT.md`](SERVE_HTTP_CONTRACT.md) (G41).
 
 ## Command
 
@@ -115,7 +115,7 @@ Exit 2 and stderr contains `error: amber serve:`.
 
 ## Explicitly out of scope
 
-- Plain `amber serve` without `--https` (Experimental health/fetch over HTTP)
+- Plain `amber serve` without `--https` (Stable under G41 [`docs/SERVE_HTTP_CONTRACT.md`](SERVE_HTTP_CONTRACT.md); not this TLS contract)
 - HTTP/2, HTTP/3, keep-alive, pipelining, and chunked bodies
 - WebSocket, static files, directories, and reverse proxying
 - Client certificates, SNI certificate selection, and encrypted or password-protected keys
