@@ -172,6 +172,8 @@ jobs:
         run: cargo test --test string_decoder_contract_tests -- --test-threads=1
       - name: node assert Stable contract
         run: cargo test --test assert_contract_tests -- --test-threads=1
+      - name: node timers Stable contract
+        run: cargo test --test timers_module_contract_tests -- --test-threads=1
 
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1

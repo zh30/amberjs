@@ -90,7 +90,7 @@ Marks and measures are process-global. This is not a per-document timeline, and 
 - `writer.close()` invoking the sink `close` callback.
 - One compression context continued across `write` calls, `deflate` as raw DEFLATE, or a multi-member gzip buffer decoded in one `write`.
 - `response.body` as a `ReadableStream`. See [`docs/FETCH_CONTRACT.md`](FETCH_CONTRACT.md).
-- `setImmediate` and `require('timers')`.
+- `setImmediate` and Node `require('timers')`. Those surfaces have their own Stable module contract in [`docs/TIMERS_MODULE_CONTRACT.md`](TIMERS_MODULE_CONTRACT.md) (**G42**). This page does not graduate the module bag.
 - Node `require('stream')`. That module has its own Stable subset contract in [`docs/NODE_STREAM_CONTRACT.md`](NODE_STREAM_CONTRACT.md) (**G24**). This page does not graduate it.
 - A `Performance` constructor, `PerformanceObserver`, or resource timing.
 - Node `zlib` (`require('zlib')`). That module has its own Stable sync contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md). This page does not graduate it.

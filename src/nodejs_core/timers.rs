@@ -936,6 +936,23 @@ pub fn setup_timers_api(
     global.set(scope, ref_key.into(), ref_fn.into());
     global.set(scope, queue_microtask_key.into(), queue_microtask_fn.into());
 
+    // G42: Node `require('timers')` / `node:timers` resolve `globalThis.timers`.
+    // Re-export the same function identities as the globals (zlib pattern).
+    let timers_module = v8::Object::new(scope);
+    for (name, func) in [
+        ("setTimeout", set_timeout_fn),
+        ("setInterval", set_interval_fn),
+        ("setImmediate", set_immediate_fn),
+        ("clearTimeout", clear_timer_fn),
+        ("clearInterval", clear_timer_fn),
+        ("clearImmediate", clear_timer_fn),
+    ] {
+        let key = v8::String::new(scope, name).unwrap();
+        timers_module.set(scope, key.into(), func.into());
+    }
+    let timers_key = v8::String::new(scope, "timers").unwrap();
+    global.set(scope, timers_key.into(), timers_module.into());
+
     Ok(())
 }
 
