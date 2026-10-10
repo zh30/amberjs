@@ -69,3 +69,17 @@ fn querystring_contract_escape_unescape_round_trip() {
     );
     assert_eq!(output, "amber%20js%2Ba%2Fb:amber js+a/b");
 }
+
+#[test]
+#[serial]
+fn querystring_contract_parse_plus_space_unescape_keeps_plus() {
+    // Honesty pin: parse maps '+' → space; unescape does not.
+    let output = run_qs(
+        r#"
+        const qs = require('querystring');
+        const parsed = qs.parse('x=a+b');
+        `${parsed.x}:${qs.unescape('a+b')}`;
+        "#,
+    );
+    assert_eq!(output, "a b:a+b");
+}
