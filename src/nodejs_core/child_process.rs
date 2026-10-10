@@ -1,8 +1,149 @@
 // Node.js child_process模块实现
 /// 子进程管理
+///
+/// Stable surfaces:
+/// - G25 sync: `execSync` / `spawnSync` (see CHILD_PROCESS_CONTRACT.md)
+/// - G47 async: narrow `exec` / `execFile` with host-thread run + later-turn callback
+///   (see CHILD_PROCESS_ASYNC_CONTRACT.md). Preview `spawn` stays sync-blocking.
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use rusty_v8 as v8;
+use std::collections::{HashMap, VecDeque};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::Mutex;
+use std::thread;
+
+/// Cross-thread completed async jobs (job id + captured output).
+static ASYNC_COMPLETED: Lazy<Mutex<VecDeque<(u64, ChildProcessOutput)>>> =
+    Lazy::new(|| Mutex::new(VecDeque::new()));
+/// In-flight host threads started by `exec` / `execFile`.
+static ASYNC_IN_FLIGHT: AtomicUsize = AtomicUsize::new(0);
+static ASYNC_JOB_SEQ: AtomicU64 = AtomicU64::new(1);
+
+thread_local! {
+    /// Callbacks for async jobs; V8 Globals stay on the isolate thread.
+    static ASYNC_CALLBACKS: std::cell::RefCell<HashMap<u64, v8::Global<v8::Function>>> =
+        std::cell::RefCell::new(HashMap::new());
+}
+
+/// True while an async child is running or its result awaits delivery.
+pub fn has_pending_child_process_work() -> bool {
+    if ASYNC_IN_FLIGHT.load(Ordering::SeqCst) > 0 {
+        return true;
+    }
+    ASYNC_COMPLETED
+        .lock()
+        .map(|q| !q.is_empty())
+        .unwrap_or(false)
+}
+
+/// Drain completed async jobs into Node-shaped callbacks (V8 thread only).
+pub fn pump_pending_child_process_jobs(scope: &mut v8::PinScope) -> usize {
+    let mut batch = Vec::new();
+    if let Ok(mut q) = ASYNC_COMPLETED.lock() {
+        while let Some(item) = q.pop_front() {
+            batch.push(item);
+        }
+    }
+    let n = batch.len();
+    for (job_id, output) in batch {
+        let callback = ASYNC_CALLBACKS.with(|map| map.borrow_mut().remove(&job_id));
+        if let Some(callback_global) = callback {
+            let callback_local = v8::Local::new(scope, callback_global);
+            call_child_process_callback(scope, callback_local.into(), &output);
+        }
+    }
+    n
+}
+
+fn enqueue_async_job(
+    scope: &mut v8::PinScope,
+    callback: v8::Local<v8::Function>,
+    work: AsyncCpWork,
+) {
+    let job_id = ASYNC_JOB_SEQ.fetch_add(1, Ordering::Relaxed);
+    ASYNC_CALLBACKS.with(|map| {
+        map.borrow_mut()
+            .insert(job_id, v8::Global::new(scope, callback));
+    });
+    ASYNC_IN_FLIGHT.fetch_add(1, Ordering::SeqCst);
+    thread::spawn(move || {
+        let output = match work {
+            AsyncCpWork::Shell { command } => {
+                child_process_output_from_result(run_shell_command(&command))
+            }
+            AsyncCpWork::ExecFile { file, args } => {
+                child_process_output_from_result(Command::new(&file).args(args).output())
+            }
+        };
+        if let Ok(mut q) = ASYNC_COMPLETED.lock() {
+            q.push_back((job_id, output));
+        }
+        ASYNC_IN_FLIGHT.fetch_sub(1, Ordering::SeqCst);
+    });
+}
+
+enum AsyncCpWork {
+    Shell { command: String },
+    ExecFile { file: String, args: Vec<String> },
+}
+
+fn pending_child_process_object<'s>(scope: &mut v8::PinScope<'s, '_>) -> v8::Local<'s, v8::Object> {
+    let child_obj = v8::Object::new(scope);
+
+    let stdout_key = v8::String::new(scope, "stdout").unwrap();
+    let stdout_val = v8::undefined(scope);
+    child_obj.set(scope, stdout_key.into(), stdout_val.into());
+
+    let stderr_key = v8::String::new(scope, "stderr").unwrap();
+    let stderr_val = v8::undefined(scope);
+    child_obj.set(scope, stderr_key.into(), stderr_val.into());
+
+    let pid_key = v8::String::new(scope, "pid").unwrap();
+    let pid_val = v8::Integer::new(scope, 0);
+    child_obj.set(scope, pid_key.into(), pid_val.into());
+
+    let killed_key = v8::String::new(scope, "killed").unwrap();
+    let killed_val = v8::Boolean::new(scope, false);
+    child_obj.set(scope, killed_key.into(), killed_val.into());
+
+    // Not exited yet — Stable async contract does not pin exit events.
+    let exit_code_key = v8::String::new(scope, "exitCode").unwrap();
+    let exit_code_val = v8::null(scope);
+    child_obj.set(scope, exit_code_key.into(), exit_code_val.into());
+
+    let signal_key = v8::String::new(scope, "signal").unwrap();
+    let signal_val = v8::null(scope);
+    child_obj.set(scope, signal_key.into(), signal_val.into());
+
+    let on_template = v8::FunctionTemplate::new(scope, child_process_on_pending_callback);
+    let on_func = on_template.get_function(scope).unwrap();
+    let on_key = v8::String::new(scope, "on").unwrap();
+    child_obj.set(scope, on_key.into(), on_func.into());
+
+    child_obj
+}
+
+/// Preview/Stable return value: `on` is chainable and does not fire sync.
+pub fn child_process_on_pending_callback(
+    _scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    retval.set(args.this().into());
+}
+
+fn async_noop_callback(
+    _scope: &mut v8::PinScope,
+    _args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+}
+
+fn make_async_noop_function<'s>(scope: &mut v8::PinScope<'s, '_>) -> v8::Local<'s, v8::Function> {
+    v8::Function::new(scope, async_noop_callback).unwrap()
+}
 
 pub fn string_from_v8_value(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> String {
     value
@@ -234,15 +375,15 @@ pub fn cp_exec_callback(
         scope.throw_exception(error_obj.into());
         return;
     }
-    let callback = if args.get(1).is_function() {
+    let callback_val = if args.get(1).is_function() {
         args.get(1)
     } else {
         args.get(2)
     };
-    let output = child_process_output_from_result(run_shell_command(&command));
-    call_child_process_callback(scope, callback, &output);
-    let child_obj = child_process_output_object(scope, &output);
-    retval.set(child_obj.into());
+    let callback = v8::Local::<v8::Function>::try_from(callback_val)
+        .unwrap_or_else(|_| make_async_noop_function(scope));
+    enqueue_async_job(scope, callback, AsyncCpWork::Shell { command });
+    retval.set(pending_child_process_object(scope).into());
 }
 
 pub fn cp_spawn_callback(
@@ -293,19 +434,29 @@ pub fn cp_exec_file_callback(
         return;
     }
     let args_or_callback = args.get(1);
-    let callback = if args_or_callback.is_function() {
+    let callback_val = if args_or_callback.is_function() {
         args_or_callback
     } else if args.get(2).is_function() {
         args.get(2)
     } else {
         args.get(3)
     };
-    let exec_args = string_vec_from_v8_array_value(scope, args_or_callback);
-    let output = Command::new(&file).args(exec_args).output();
-    let output = child_process_output_from_result(output);
-    call_child_process_callback(scope, callback, &output);
-    let child_obj = child_process_output_object(scope, &output);
-    retval.set(child_obj.into());
+    let exec_args = if args_or_callback.is_array() {
+        string_vec_from_v8_array_value(scope, args_or_callback)
+    } else {
+        Vec::new()
+    };
+    let callback = v8::Local::<v8::Function>::try_from(callback_val)
+        .unwrap_or_else(|_| make_async_noop_function(scope));
+    enqueue_async_job(
+        scope,
+        callback,
+        AsyncCpWork::ExecFile {
+            file,
+            args: exec_args,
+        },
+    );
+    retval.set(pending_child_process_object(scope).into());
 }
 
 pub fn cp_exec_sync_callback(

@@ -156,6 +156,9 @@ jobs:
       - name: node child_process Stable contract
         run: cargo test --test child_process_contract_tests -- --test-threads=1
 
+      - name: node child_process async Stable contract
+        run: cargo test --test child_process_async_contract_tests -- --test-threads=1
+
       - name: node url Stable contract
         run: cargo test --test node_url_contract_tests -- --test-threads=1
 

@@ -105,19 +105,31 @@ fn test_process_next_tick_error_handling() {
 #[test]
 #[serial]
 fn test_child_process_exec_returns_real_stdout() {
+    // G47: sync return is a pending stub; real stdout arrives on a later-turn callback.
     let runtime = Runtime::new(67108864, 1073741824, false, false);
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        const child = childProcess.exec("printf amberjs-child-process");
+        globalThis.__cpExecOut = "pending";
+        const child = childProcess.exec("printf amberjs-child-process", (error, stdout, stderr) => {
+            globalThis.__cpExecOut = `${error === null}:${stdout}:${stderr}:${child.exitCode}`;
+        });
         `${child.stdout}|${child.stderr}|${child.exitCode}`;
     "#,
     );
     assert!(result.is_ok(), "child_process.exec failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        "amberjs-child-process||0",
-        "exec should expose real stdout/stderr/exitCode"
+        "undefined|undefined|null",
+        "exec should return a pending stub before exit (G47)"
+    );
+    let after = runtime
+        .execute_code("globalThis.__cpExecOut")
+        .expect("read exec callback result");
+    assert_eq!(
+        after.trim(),
+        "true:amberjs-child-process::null",
+        "exec callback should receive null error plus real stdout on a later turn"
     );
 }
 
@@ -128,18 +140,26 @@ fn test_child_process_exec_invokes_callback_with_output() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        let observed = "pending";
+        globalThis.__cpExecCb = "pending";
         childProcess.exec("printf amberjs-callback", (error, stdout, stderr) => {
-            observed = `${error === null}:${stdout}:${stderr}`;
+            globalThis.__cpExecCb = `${error === null}:${stdout}:${stderr}`;
         });
-        observed;
+        globalThis.__cpExecCb;
     "#,
     );
     assert!(result.is_ok(), "child_process.exec failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
+        "pending",
+        "exec callback must not fire on the same turn (G47)"
+    );
+    let after = runtime
+        .execute_code("globalThis.__cpExecCb")
+        .expect("read exec callback result");
+    assert_eq!(
+        after.trim(),
         "true:amberjs-callback:",
-        "exec callback should receive null error plus real stdout/stderr"
+        "exec callback should receive null error plus real stdout/stderr after drain"
     );
 }
 
@@ -150,7 +170,10 @@ fn test_child_process_exec_file_returns_real_stdout() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        const child = childProcess.execFile("/bin/echo", ["amberjs-exec-file"]);
+        globalThis.__cpExecFileOut = "pending";
+        const child = childProcess.execFile("/bin/echo", ["amberjs-exec-file"], (error, stdout, stderr) => {
+            globalThis.__cpExecFileOut = `${error === null}:${stdout}:${stderr}:${child.exitCode}`;
+        });
         `${child.stdout}|${child.stderr}|${child.exitCode}`;
     "#,
     );
@@ -161,8 +184,16 @@ fn test_child_process_exec_file_returns_real_stdout() {
     );
     assert_eq!(
         result.unwrap().trim(),
-        "amberjs-exec-file\n||0",
-        "execFile should expose real stdout/stderr/exitCode"
+        "undefined|undefined|null",
+        "execFile should return a pending stub before exit (G47)"
+    );
+    let after = runtime
+        .execute_code("globalThis.__cpExecFileOut")
+        .expect("read execFile callback result");
+    assert_eq!(
+        after.trim(),
+        "true:amberjs-exec-file\n::null",
+        "execFile callback should receive null error plus real stdout on a later turn"
     );
 }
 
@@ -173,11 +204,11 @@ fn test_child_process_exec_file_invokes_callback_with_output() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        let observed = "pending";
+        globalThis.__cpExecFileCb = "pending";
         childProcess.execFile("/bin/echo", ["amberjs-file-callback"], (error, stdout, stderr) => {
-            observed = `${error === null}:${stdout}:${stderr}`;
+            globalThis.__cpExecFileCb = `${error === null}:${stdout}:${stderr}`;
         });
-        observed;
+        globalThis.__cpExecFileCb;
     "#,
     );
     assert!(
@@ -187,8 +218,16 @@ fn test_child_process_exec_file_invokes_callback_with_output() {
     );
     assert_eq!(
         result.unwrap().trim(),
+        "pending",
+        "execFile callback must not fire on the same turn (G47)"
+    );
+    let after = runtime
+        .execute_code("globalThis.__cpExecFileCb")
+        .expect("read execFile callback result");
+    assert_eq!(
+        after.trim(),
         "true:amberjs-file-callback\n:",
-        "execFile callback should receive null error plus real stdout/stderr"
+        "execFile callback should receive null error plus real stdout/stderr after drain"
     );
 }
 
@@ -199,18 +238,26 @@ fn test_child_process_exec_callback_receives_error_on_nonzero_exit() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        let observed = "pending";
+        globalThis.__cpExecErr = "pending";
         childProcess.exec("echo amberjs-error >&2; exit 7", (error, stdout, stderr) => {
-            observed = `${!!error}:${error && error.code}:${stdout}:${stderr}:done`;
+            globalThis.__cpExecErr = `${!!error}:${error && error.code}:${stdout}:${stderr}:done`;
         });
-        observed;
+        globalThis.__cpExecErr;
     "#,
     );
     assert!(result.is_ok(), "child_process.exec failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
+        "pending",
+        "exec error callback must not fire on the same turn (G47)"
+    );
+    let after = runtime
+        .execute_code("globalThis.__cpExecErr")
+        .expect("read exec error callback result");
+    assert_eq!(
+        after.trim(),
         "true:7::amberjs-error\n:done",
-        "exec callback should receive an Error with code and real stderr on non-zero exit"
+        "exec callback should receive an Error with code and real stderr on non-zero exit after drain"
     );
 }
 
