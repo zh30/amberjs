@@ -4,7 +4,7 @@ This is the user-facing contract for the Stable sync subset of Node `zlib` in Am
 
 `require('zlib')` and `require('node:zlib')` return the same object installed on `globalThis.zlib` by `setup_zlib_api`. This is not full Node `zlib`. It is also not the Stable Web `CompressionStream` / `DecompressionStream` surface in [`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md) (G13). G13 does not graduate `require('zlib')`.
 
-Methods that are not listed here are outside the contract. There is no async API, no streaming zlib (`createGzip` and friends), no brotli, and no `zlib.constants` object in this contract.
+Methods that are not listed here are outside this sync contract. Async `gzip` / `gunzip` callbacks are a separate Stable surface under [`docs/ZLIB_ASYNC_CONTRACT.md`](ZLIB_ASYNC_CONTRACT.md) (tentative G48). Streaming zlib (`createGzip` and friends), brotli, and `zlib.constants` stay Non-goals of both contracts (not Stable Limits fiction).
 
 ## Stable surface
 
@@ -33,7 +33,7 @@ Round-trips that this contract pins:
 
 ## Non-goals
 
-- `gzip` / `gunzip` / `deflate` / `inflate` / `deflateRaw` / `inflateRaw` callback or Promise APIs
+- `deflate` / `inflate` / `deflateRaw` / `inflateRaw` callback or Promise APIs (async `gzip` / `gunzip` are G48, not this page)
 - `createGzip`, `createGunzip`, `createDeflate`, `createInflate`, `createDeflateRaw`, `createInflateRaw`, `createBrotliCompress`, `createBrotliDecompress`
 - `brotliCompressSync`, `brotliDecompressSync`, and any brotli surface
 - `zlib.constants`, `Z_*` export constants, and `zlib.codes`
