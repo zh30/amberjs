@@ -1,12 +1,79 @@
 // v0.3.277: Readline API implementation
-// Implements readline.createInterface() and Interface class for interactive input
-// Compatible with Node.js readline API
+// Implements readline.createInterface() and Interface class for interactive input.
+// G46: Interface.question reads one line from host stdin (no empty-callback stub).
 
 use once_cell::sync::Lazy;
 use rusty_v8 as v8;
 use std::collections::HashMap;
+use std::io::{self, BufRead, Write};
 use std::sync::atomic::AtomicU64;
 use std::sync::Mutex;
+
+/// Write the question query to host stdout (Node writes the query as-is).
+fn write_question_query(query: &str) {
+    let mut out = io::stdout().lock();
+    let _ = out.write_all(query.as_bytes());
+    let _ = out.flush();
+}
+
+/// Read one UTF-8 line from host stdin. `None` means EOF before a line.
+fn read_question_answer() -> Option<String> {
+    let mut line = String::new();
+    match io::stdin().lock().read_line(&mut line) {
+        Ok(0) => None,
+        Ok(_) => {
+            while line.ends_with('\n') || line.ends_with('\r') {
+                line.pop();
+            }
+            Some(line)
+        }
+        Err(_) => None,
+    }
+}
+
+/// Shared `Interface.question(query, callback)` — blocks the isolate for one stdin line.
+fn interface_question_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _retval: v8::ReturnValue,
+) {
+    if args.length() < 2 {
+        if let Some(error_msg) =
+            v8::String::new(scope, "question requires 2 arguments: query and callback")
+        {
+            let error = v8::Exception::type_error(scope, error_msg);
+            scope.throw_exception(error.into());
+        }
+        return;
+    }
+
+    let query = args
+        .get(0)
+        .to_string(scope)
+        .map(|s| s.to_rust_string_lossy(scope))
+        .unwrap_or_default();
+    write_question_query(&query);
+
+    let callback = args.get(1);
+    if !callback.is_function() {
+        return;
+    }
+    let Ok(cb_func) = v8::Local::<v8::Function>::try_from(callback) else {
+        return;
+    };
+    let undefined = v8::undefined(scope);
+    match read_question_answer() {
+        Some(answer) => {
+            if let Some(answer_str) = v8::String::new(scope, &answer) {
+                let _ = cb_func.call(scope, undefined.into(), &[answer_str.into()]);
+            }
+        }
+        None => {
+            let null = v8::null(scope);
+            let _ = cb_func.call(scope, undefined.into(), &[null.into()]);
+        }
+    }
+}
 
 /// Interface instance ID counter
 static INTERFACE_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -97,36 +164,8 @@ pub fn setup_readline_api(
             let mut registry = INTERFACE_REGISTRY.lock().unwrap();
             registry.insert(interface_id, state);
 
-            // Create question method
-            let question_fn = v8::Function::new(
-                scope,
-                |scope: &mut v8::PinScope,
-                 args: v8::FunctionCallbackArguments,
-                 _retval: v8::ReturnValue| {
-                    if args.length() < 2 {
-                        if let Some(error_msg) = v8::String::new(
-                            scope,
-                            "question requires 2 arguments: query and callback",
-                        ) {
-                            let error = v8::Exception::type_error(scope, error_msg);
-                            scope.throw_exception(error.into());
-                        }
-                        return;
-                    }
-
-                    let callback = args.get(1);
-                    if callback.is_function() {
-                        if let Ok(cb_func) = v8::Local::<v8::Function>::try_from(callback) {
-                            let undefined = v8::undefined(scope);
-                            if let Some(empty_answer) = v8::String::new(scope, "") {
-                                let _ =
-                                    cb_func.call(scope, undefined.into(), &[empty_answer.into()]);
-                            }
-                        }
-                    }
-                },
-            )
-            .unwrap();
+            // Create question method (host stdin/stdout; see READLINE_CONTRACT)
+            let question_fn = v8::Function::new(scope, interface_question_callback).unwrap();
 
             let close_fn = v8::Function::new(
                 scope,
@@ -326,36 +365,8 @@ pub fn setup_readline_api(
             // Create interface object
             let interface_obj = v8::Object::new(scope);
 
-            // Create methods for the interface - all stateless closures
-            let question_fn = v8::Function::new(
-                scope,
-                |scope: &mut v8::PinScope,
-                 args: v8::FunctionCallbackArguments,
-                 _retval: v8::ReturnValue| {
-                    if args.length() < 2 {
-                        if let Some(error_msg) = v8::String::new(
-                            scope,
-                            "question requires 2 arguments: query and callback",
-                        ) {
-                            let error = v8::Exception::type_error(scope, error_msg);
-                            scope.throw_exception(error.into());
-                        }
-                        return;
-                    }
-
-                    let callback = args.get(1);
-                    if callback.is_function() {
-                        if let Ok(cb_func) = v8::Local::<v8::Function>::try_from(callback) {
-                            let undefined = v8::undefined(scope);
-                            if let Some(empty_answer) = v8::String::new(scope, "") {
-                                let _ =
-                                    cb_func.call(scope, undefined.into(), &[empty_answer.into()]);
-                            }
-                        }
-                    }
-                },
-            )
-            .unwrap();
+            // Create methods for the interface — question uses host stdin/stdout (G46)
+            let question_fn = v8::Function::new(scope, interface_question_callback).unwrap();
 
             let close_fn = v8::Function::new(
                 scope,

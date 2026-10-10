@@ -1,12 +1,18 @@
 // 持久化运行时实例测试
 // 测试 Runtime 结构体复用 MinimalRuntime 实例以保持模块缓存
+//
+// V8 isolate create/destroy is not safe across parallel Rust test threads
+// (CI: `malloc(): unaligned tcache chunk detected` / SIGABRT). Same pattern as
+// minimal_runtime_fast_tests / integration_tests — serialize within this binary.
 
 #[cfg(test)]
 mod persistent_runtime_tests {
     use amberjs::Runtime;
+    use serial_test::serial;
 
     /// 测试 Runtime 能够复用内部 MinimalRuntime 实例
     #[test]
+    #[serial]
     fn test_runtime_persists_minimal_runtime() {
         let runtime = Runtime::new_default();
 
@@ -28,6 +34,7 @@ mod persistent_runtime_tests {
 
     /// 测试多次 execute_code 调用之间模块缓存有效
     #[test]
+    #[serial]
     fn test_module_cache_persists_across_executions() {
         let runtime = Runtime::new_default();
 
@@ -47,6 +54,7 @@ mod persistent_runtime_tests {
 
     /// 测试 Runtime 在同一实例中支持多次执行
     #[test]
+    #[serial]
     fn test_multiple_executions_same_runtime() {
         let runtime = Runtime::new_default();
 
@@ -68,20 +76,24 @@ mod persistent_runtime_tests {
     }
 
     /// 测试不同 Runtime 实例保持独立
+    ///
+    /// Two live isolates in one test has historically aborted on Drop under glibc
+    /// (see integration_tests ignore: "V8 Isolate lifecycle crash..."). Keep the
+    /// intent but dispose the first isolate before constructing the second.
     #[test]
+    #[serial]
     fn test_different_runtime_instances_are_independent() {
-        let runtime1 = Runtime::new_default();
+        {
+            let runtime1 = Runtime::new_default();
+            let result1 = runtime1.execute_code("globalThis.testVar = 100");
+            assert!(result1.is_ok());
+        }
+
         let runtime2 = Runtime::new_default();
-
-        // 在 runtime1 中定义变量
-        let result1 = runtime1.execute_code("globalThis.testVar = 100");
-        assert!(result1.is_ok());
-
-        // runtime2 应该没有这个变量（状态隔离）
+        // runtime2 should not see runtime1's globals (fresh isolate)
         let result2 = runtime2.execute_code("typeof testVar");
         assert!(result2.is_ok());
         let output2 = result2.unwrap();
-        // "undefined" 表示变量不存在
         assert!(
             output2.contains("undefined"),
             "Different runtime instances should be isolated, got: {}",
@@ -91,6 +103,7 @@ mod persistent_runtime_tests {
 
     /// 测试持久化运行时支持 TypeScript 语法
     #[test]
+    #[serial]
     fn test_persistent_runtime_typescript_support() {
         let runtime = Runtime::new_default();
 
@@ -106,6 +119,7 @@ mod persistent_runtime_tests {
 
     /// 测试持久化运行时支持 Node.js API
     #[test]
+    #[serial]
     fn test_persistent_runtime_nodejs_api() {
         let runtime = Runtime::new_default();
 
@@ -121,6 +135,7 @@ mod persistent_runtime_tests {
 
     /// 测试 execute_file 也复用运行时实例
     #[test]
+    #[serial]
     fn test_execute_file_reuses_runtime() {
         use std::fs;
         use std::path::PathBuf;
@@ -160,6 +175,7 @@ multiply(7, 8);
 
     /// 测试 execute_file 会把当前文件路径传给底层 runtime，用于相对 dynamic import
     #[test]
+    #[serial]
     fn test_execute_file_dynamic_import_resolves_relative_to_file() {
         use std::fs;
 
@@ -211,6 +227,7 @@ import('./dep.mjs').then((mod) => {
 
     /// 测试快速模式下 Runtime 持久化
     #[test]
+    #[serial]
     fn test_fast_mode_runtime_persistence() {
         let runtime = Runtime::new(1, 512 * 1024 * 1024, true, false);
 
@@ -224,6 +241,7 @@ import('./dep.mjs').then((mod) => {
 
     /// 测试持久化运行时的错误隔离
     #[test]
+    #[serial]
     fn test_error_isolation_in_persistent_runtime() {
         let runtime = Runtime::new_default();
 
@@ -239,6 +257,7 @@ import('./dep.mjs').then((mod) => {
 
     /// 测试持久化运行时的全局状态管理
     #[test]
+    #[serial]
     fn test_global_state_management() {
         let runtime = Runtime::new_default();
 
