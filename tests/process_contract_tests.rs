@@ -1,4 +1,4 @@
-//! Pins docs/PROCESS_CONTRACT.md (tiny nextTick/env/cwd/pid/platform slice).
+//! Pins docs/PROCESS_CONTRACT.md (G22 basics + G44 stdout/stderr.write carve).
 use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
@@ -113,4 +113,116 @@ fn cli_process_basics_reach_the_contract() {
         .find(|line| !line.is_empty() && *line != "[object Object]")
         .unwrap_or("");
     assert_eq!(line, "true|object|true|true|string");
+}
+
+#[test]
+#[serial]
+fn stdout_stderr_write_are_functions_returning_true() {
+    let code = r#"
+        [
+          typeof process.stdout.write,
+          typeof process.stderr.write,
+          process.stdout.write('') === true,
+          process.stderr.write('') === true,
+          process.stdout.write(42) === true,
+          process.stderr.write(null) === true,
+          process.stdout.write(undefined) === true
+        ].join('|');
+        "#;
+    assert_eq!(run(code), "function|function|true|true|true|true|true");
+}
+
+#[test]
+#[serial]
+fn cli_stdout_write_reaches_host_stdout() {
+    let binary = env!("CARGO_BIN_EXE_amber");
+    let dir = TempDir::new().expect("temp dir");
+    let script = dir.path().join("stdout_write.js");
+    fs::write(
+        &script,
+        r#"
+        const ok = process.stdout.write('AMBER_PROC_STDOUT_G44\n');
+        if (ok !== true) throw new Error('stdout.write did not return true');
+        "#,
+    )
+    .expect("script");
+    let output = Command::new(binary)
+        .arg("run")
+        .arg(&script)
+        .output()
+        .expect("amber run");
+    assert!(
+        output.status.success(),
+        "amber run failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("AMBER_PROC_STDOUT_G44"),
+        "expected host stdout marker, got: {stdout:?}"
+    );
+}
+
+#[test]
+#[serial]
+fn cli_stderr_write_reaches_host_stderr() {
+    let binary = env!("CARGO_BIN_EXE_amber");
+    let dir = TempDir::new().expect("temp dir");
+    let script = dir.path().join("stderr_write.js");
+    fs::write(
+        &script,
+        r#"
+        const ok = process.stderr.write('AMBER_PROC_STDERR_G44\n');
+        if (ok !== true) throw new Error('stderr.write did not return true');
+        "#,
+    )
+    .expect("script");
+    let output = Command::new(binary)
+        .arg("run")
+        .arg(&script)
+        .output()
+        .expect("amber run");
+    assert!(
+        output.status.success(),
+        "amber run failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("AMBER_PROC_STDERR_G44"),
+        "expected host stderr marker, got: {stderr:?}"
+    );
+}
+
+#[test]
+#[serial]
+fn cli_stdout_write_coerces_number_and_buffer() {
+    let binary = env!("CARGO_BIN_EXE_amber");
+    let dir = TempDir::new().expect("temp dir");
+    let script = dir.path().join("stdout_coerce.js");
+    fs::write(
+        &script,
+        r#"
+        process.stdout.write(7);
+        process.stdout.write('|');
+        process.stdout.write(Buffer.from('bufmark'));
+        process.stdout.write('\n');
+        "#,
+    )
+    .expect("script");
+    let output = Command::new(binary)
+        .arg("run")
+        .arg(&script)
+        .output()
+        .expect("amber run");
+    assert!(
+        output.status.success(),
+        "amber run failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("7|bufmark"),
+        "expected coerced stdout payload, got: {stdout:?}"
+    );
 }
