@@ -136,9 +136,7 @@ fn exec_returns_pending_stub_before_exit() {
     // First line is sync return shape; callback line proves drain completed.
     let lines: Vec<&str> = stdout.lines().collect();
     assert!(
-        lines
-            .iter()
-            .any(|l| *l == "ret|true|0|false|true|true|true|true"),
+        lines.contains(&"ret|true|0|false|true|true|true|true"),
         "missing pending return shape: {combined}"
     );
     assert!(
