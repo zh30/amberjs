@@ -27,8 +27,7 @@ fn reset_timers() {
 #[serial]
 fn require_timers_and_node_timers_reexport_globals() {
     reset_timers();
-    let output = run(
-        r#"
+    let output = run(r#"
         const a = require('timers');
         const b = require('node:timers');
         const names = [
@@ -47,8 +46,7 @@ fn require_timers_and_node_timers_reexport_globals() {
           a.clearTimeout === a.clearInterval,
           a.clearTimeout === a.clearImmediate
         ].join('::');
-        "#,
-    );
+        "#);
     assert_eq!(
         output,
         "true::function|function|function|function|function|function::undefined::undefined::true::true"
@@ -59,8 +57,7 @@ fn require_timers_and_node_timers_reexport_globals() {
 #[serial]
 fn module_set_timeout_zero_delay_after_microtasks_and_clear() {
     reset_timers();
-    let output = run(
-        r#"
+    let output = run(r#"
         const { setTimeout, clearTimeout } = require('timers');
         new Promise((resolve) => {
             const order = [];
@@ -76,8 +73,7 @@ fn module_set_timeout_zero_delay_after_microtasks_and_clear() {
                 resolve(order.join(','));
             }, 0, 'timeout');
         });
-        "#,
-    );
+        "#);
     assert_eq!(output, "sync,micro,timeout,cleared=0,id=number");
 }
 
@@ -111,8 +107,7 @@ fn module_set_interval_repeats_until_clear() {
 #[serial]
 fn module_set_immediate_runs_and_clear_cancels() {
     reset_timers();
-    let output = run(
-        r#"
+    let output = run(r#"
         const { setImmediate, clearImmediate } = require('timers');
         new Promise((resolve) => {
             let cleared = 0;
@@ -122,8 +117,7 @@ fn module_set_immediate_runs_and_clear_cancels() {
                 resolve([label, 'cleared=' + cleared, typeof cancelled._timerId].join('|'));
             }, 'imme');
         });
-        "#,
-    );
+        "#);
     assert_eq!(output, "imme|cleared=0|number");
 }
 
