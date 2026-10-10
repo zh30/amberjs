@@ -165,6 +165,9 @@ jobs:
       - name: node querystring Stable contract
         run: cargo test --test querystring_contract_tests -- --test-threads=1
 
+      - name: node string_decoder Stable contract
+        run: cargo test --test string_decoder_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
