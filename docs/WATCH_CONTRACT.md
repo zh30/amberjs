@@ -43,7 +43,7 @@ amber test --parallel
 - Single file: watch the file's parent directory. Any watched script change re-runs that file. Failures are printed and the process stays up.
 - Directory: watch that directory. A watched change re-runs the files discovered at start (`🔄 File changed: ... Re-running tests...`).
 - No path: watch the current directory after zero-argument discovery (the Stable discovery exclusions still apply: `manual`, `node_modules`, `__snapshots__`, plus `.git`, `target`, and `dist`). A watched change re-runs that same set (`Re-running discovered tests...`).
-- Test watch debounce is `200` ms. Banners contain `Watching for changes` and `Ctrl+C to quit`.
+- Test watch debounce is `200` ms. Banners contain `Watching for changes` and `Ctrl+C to quit`. The banner is printed only after `HotReloader::watch` has armed the OS watcher (same readiness idea as the run `--watch` WebSocket ready line).
 - `--coverage` still writes the lcov report from the initial run. In discovery mode it is written before the watch loop.
 
 ## What is watched

@@ -966,7 +966,9 @@ fn enter_test_watch(
     watch_dir: &Path,
     mut on_change: impl FnMut(&Path),
 ) -> Result<()> {
-    println!("\n{banner}");
+    // Arm the OS watcher before the banner. Printing first raced CI: the
+    // contract test saw "Watching for changes" and rewrote the file while
+    // `HotReloader::watch` was still starting, so the modify was never seen.
     let watcher_config = amberjs::watcher::WatcherConfigBuilder::new()
         .debounce_ms(200)
         .clear_console(false)
@@ -977,6 +979,7 @@ fn enter_test_watch(
         Ok(rx) => rx,
         Err(error) => watch_cli_fail(error),
     };
+    println!("\n{banner}");
     loop {
         match rx.recv() {
             Ok(change) => on_change(&change.path),

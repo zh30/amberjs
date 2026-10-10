@@ -380,6 +380,44 @@ fn assert_contains(text: &str, needle: &str) {
     assert!(text.contains(needle), "missing {needle} in:\n{text}");
 }
 
+/// Like [`AmberProc::wait_for`], but panic if the needle never appears.
+fn wait_until_contains(proc: &AmberProc, needle: &str, timeout: Duration) -> String {
+    let text = proc.wait_for(needle, timeout);
+    assert_contains(&text, needle);
+    text
+}
+
+/// Rewrite until the watch loop reports a re-run. Retries cover slow notify
+/// delivery without dropping the "must re-run on change" contract.
+fn rewrite_until_rerun(
+    proc: &AmberProc,
+    path: &Path,
+    contents: &str,
+    rerun_needle: &str,
+    output_needle: &str,
+    timeout: Duration,
+) -> String {
+    let deadline = Instant::now() + timeout;
+    let mut last = String::new();
+    while Instant::now() < deadline {
+        std::fs::write(path, contents).expect("rewrite watched file");
+        // Debounce is 200ms; give notify + debounce a quiet window per attempt.
+        let slice = Duration::from_secs(2).min(deadline.saturating_duration_since(Instant::now()));
+        if slice.is_zero() {
+            break;
+        }
+        last = proc.wait_for(rerun_needle, slice);
+        if last.contains(rerun_needle) && last.contains(output_needle) {
+            return last;
+        }
+    }
+    assert!(
+        last.contains(rerun_needle) && last.contains(output_needle),
+        "watch did not re-run within {timeout:?}; missing `{rerun_needle}` / `{output_needle}` in:\n{last}"
+    );
+    last
+}
+
 #[test]
 #[serial]
 fn run_watch_reexecutes_entry_and_publishes_reload() {
@@ -613,18 +651,21 @@ fn test_watch_reruns_file_and_directory_without_regressing_plain_test() {
         &["test", "--watch", watched.to_str().expect("utf8")],
         dir.path(),
     );
-    proc.wait_for("TEST_WATCH_ALPHA", Duration::from_secs(90));
-    // The test log can land before the banner is flushed. Wait for the line.
-    let started = proc.wait_for("Watching for changes", Duration::from_secs(20));
+    wait_until_contains(&proc, "TEST_WATCH_ALPHA", Duration::from_secs(90));
+    // Banner is emitted only after the OS watcher is armed (see enter_test_watch).
+    let started = wait_until_contains(&proc, "Watching for changes", Duration::from_secs(20));
     assert_contains(&started, "TEST_WATCH_ALPHA");
-    assert_contains(&started, "Watching for changes");
-    std::fs::write(
+    let rerun = rewrite_until_rerun(
+        &proc,
         &watched,
         "test('watch', () => { console.log('TEST_WATCH_BETA'); });\n",
-    )
-    .expect("rewrite test");
-    let rerun = proc.wait_for("TEST_WATCH_BETA", Duration::from_secs(20));
+        "Re-running test",
+        "TEST_WATCH_BETA",
+        Duration::from_secs(45),
+    );
     assert_contains(&rerun, "Re-running test");
+    assert_contains(&rerun, "TEST_WATCH_BETA");
+    drop(proc); // release the file watch before starting a second amber watch
 
     let suite = dir.path().join("suite");
     std::fs::create_dir(&suite).expect("suite");
@@ -638,18 +679,19 @@ fn test_watch_reruns_file_and_directory_without_regressing_plain_test() {
         &["test", "--watch", suite.to_str().expect("utf8")],
         dir.path(),
     );
-    dir_proc.wait_for("DIR_WATCH_ALPHA", Duration::from_secs(90));
-    // The test log can land before the banner is flushed. Wait for the line.
-    let started = dir_proc.wait_for("Watching for changes", Duration::from_secs(20));
+    wait_until_contains(&dir_proc, "DIR_WATCH_ALPHA", Duration::from_secs(90));
+    let started = wait_until_contains(&dir_proc, "Watching for changes", Duration::from_secs(20));
     assert_contains(&started, "DIR_WATCH_ALPHA");
-    assert_contains(&started, "Watching for changes");
-    std::fs::write(
+    let rerun = rewrite_until_rerun(
+        &dir_proc,
         &one,
         "test('dir', () => { console.log('DIR_WATCH_BETA'); });\n",
-    )
-    .expect("rewrite suite");
-    let rerun = dir_proc.wait_for("DIR_WATCH_BETA", Duration::from_secs(20));
+        "Re-running tests",
+        "DIR_WATCH_BETA",
+        Duration::from_secs(45),
+    );
     assert_contains(&rerun, "Re-running tests");
+    assert_contains(&rerun, "DIR_WATCH_BETA");
 }
 
 #[test]
