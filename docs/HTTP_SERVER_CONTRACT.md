@@ -46,7 +46,7 @@ Outside this contract (Preview / DEFER / unimplemented). Do **not** treat these 
 - **`http.Agent` / connection pool** — counters and mock `createConnection` (`"[Socket connected]"`); no real pooled `TcpStream`.
 - **Node `https` module** — thin wrap copying `http` client/Agent plus optional TLS PEM fields; inherits client fail-open. Not G7 CLI `amber serve --https`.
 - **`http2`** — JS stub constructors; no framing.
-- **`require('net')` server `listen`** — flag-only (no bind/accept). Separate NEEDS_IMPL; not this page.
+- **`require('net')` server `listen`** — not this page. The narrow net server listen/accept/`connection` surface is **tentative G45** ([`docs/NET_SERVER_CONTRACT.md`](NET_SERVER_CONTRACT.md)); full Socket duplex / client connect rewrite stay outside that contract.
 - Chunked / true streaming wire writes, Trailers, `CONNECT`, upgrade-as-Stable (WebSocket upgrade path on the same listener exists but is uncontracted).
 - Full Node `IncomingMessage` / `ServerResponse` stream compatibility, `http.Server` EventEmitter parity beyond listen/request/close as exercised above.
 - Promoting client, Agent, `https`, or `http2` by listing them under Limits.

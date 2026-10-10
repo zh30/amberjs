@@ -3,6 +3,7 @@
 // v0.3.72: 添加数据缓冲区和读取支持
 
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
@@ -11,6 +12,21 @@ use std::thread;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream as TokioTcpStream;
+
+/// Shared Tokio runtime for net accept + socket IO (avoids http↔tcp_async cycle).
+static NET_IO_RUNTIME: Lazy<tokio::runtime::Runtime> = Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .thread_name("amberjs-net-tokio")
+        .enable_all()
+        .build()
+        .expect("Failed to create net Tokio runtime")
+});
+
+/// Process-wide Tokio runtime for `net` server accept and socket write/read.
+pub fn get_net_tokio_runtime() -> &'static tokio::runtime::Runtime {
+    &NET_IO_RUNTIME
+}
 
 /// TCP 连接状态
 #[derive(Debug, Clone, PartialEq)]
@@ -60,6 +76,30 @@ impl TcpConnectionHandle {
             buffer: Arc::new(Mutex::new(Vec::new())),
             reading: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Adopt an already-accepted Tokio TCP stream (server accept path).
+    pub fn adopt_stream(&self, stream: TokioTcpStream) -> Result<()> {
+        let peer_addr = stream.peer_addr()?;
+        let local_addr = stream.local_addr()?;
+
+        {
+            let mut info = self.info.lock().unwrap();
+            info.remote_addr = peer_addr.ip().to_string();
+            info.remote_port = peer_addr.port();
+            info.local_addr = local_addr.ip().to_string();
+            info.local_port = local_addr.port();
+            info.family = if peer_addr.is_ipv4() {
+                "IPv4".to_string()
+            } else {
+                "IPv6".to_string()
+            };
+            info.state = TcpConnectionState::Connected;
+        }
+
+        let mut stream_guard = self.stream.lock().unwrap();
+        *stream_guard = Some(stream);
+        Ok(())
     }
 
     /// 异步连接到目标地址
@@ -215,8 +255,8 @@ impl TcpConnectionHandle {
 
     /// 获取缓存的数据并清空缓冲区
     pub fn consume_buffer(&self) -> Vec<u8> {
-        let buf_guard = self.buffer.lock().unwrap();
-        buf_guard.clone()
+        let mut buf_guard = self.buffer.lock().unwrap();
+        std::mem::take(&mut *buf_guard)
     }
 
     /// 检查是否有缓存数据
@@ -331,14 +371,12 @@ pub fn sync_connect(host: &str, port: u16, timeout_secs: u64) -> Result<TcpConne
 
 /// 同步写入数据
 pub fn sync_write(handle: &TcpConnectionHandle, data: &[u8]) -> Result<usize> {
-    let rt = tokio::runtime::Runtime::new()?;
-    rt.block_on(async { handle.write(data).await })
+    get_net_tokio_runtime().block_on(async { handle.write(data).await })
 }
 
 /// 同步读取数据
 pub fn sync_read(handle: &TcpConnectionHandle, buf: &mut [u8]) -> Result<usize> {
-    let rt = tokio::runtime::Runtime::new()?;
-    rt.block_on(async { handle.read(buf).await })
+    get_net_tokio_runtime().block_on(async { handle.read(buf).await })
 }
 
 /// 关闭连接
