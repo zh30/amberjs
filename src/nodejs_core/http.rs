@@ -194,6 +194,29 @@ fn stop_http_server_state(host: &str, port: u16) {
     states.retain(|state| state.listening.load(Ordering::SeqCst));
 }
 
+/// Resolve the OS-assigned listen port for a host, preferring live `bound_port`.
+fn lookup_live_bound_port(host: &str, stored_or_requested: u16) -> Option<u16> {
+    let states = ACTIVE_HTTP_SERVER_STATES
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    for state in states.iter() {
+        if state.host != host || !state.listening.load(Ordering::SeqCst) {
+            continue;
+        }
+        let bound = state.bound_port.load(Ordering::SeqCst) as u16;
+        if bound == 0 {
+            continue;
+        }
+        if state.port == stored_or_requested
+            || bound == stored_or_requested
+            || (stored_or_requested == 0 && state.port == 0)
+        {
+            return Some(bound);
+        }
+    }
+    None
+}
+
 static GLOBAL_REQUEST_SENDER: Lazy<
     std::sync::RwLock<Option<crossbeam::channel::Sender<HttpRequestMessage>>>,
 > = Lazy::new(|| std::sync::RwLock::new(None));
@@ -1963,13 +1986,20 @@ fn http_server_listen_callback(
     thread::spawn(move || {
         run_http_server(state_clone, "handler".to_string());
     });
-    thread::sleep(Duration::from_millis(5));
+    // Wait for the bind thread to publish the OS-assigned port. A fixed 5ms
+    // sleep is not enough under CI load when `port == 0` (ephemeral): `_serverPort`
+    // would freeze at 0 and `address().port > 0` fails even though bind later succeeds.
     let advertised_port = {
-        let bound = server_state.bound_port.load(Ordering::SeqCst) as u16;
-        if bound != 0 {
-            bound
-        } else {
-            port
+        let deadline = Instant::now() + Duration::from_millis(500);
+        loop {
+            let bound = server_state.bound_port.load(Ordering::SeqCst) as u16;
+            if bound != 0 {
+                break bound;
+            }
+            if !server_state.listening.load(Ordering::SeqCst) || Instant::now() >= deadline {
+                break port;
+            }
+            thread::sleep(Duration::from_millis(5));
         }
     };
 
@@ -2025,11 +2055,11 @@ fn http_server_address_callback(
     mut retval: v8::ReturnValue,
 ) {
     let this = args.this();
-    let port = {
+    let stored_port = {
         let port_key = v8::String::new(scope, "_serverPort").unwrap();
         this.get(scope, port_key.into())
             .and_then(|value| value.to_integer(scope))
-            .map(|value| value.value() as i32)
+            .map(|value| value.value() as u16)
             .unwrap_or(0)
     };
     let host = {
@@ -2039,6 +2069,9 @@ fn http_server_address_callback(
             .map(|value| value.to_rust_string_lossy(scope))
             .unwrap_or_else(|| "0.0.0.0".to_string())
     };
+    // Prefer the live OS-assigned port from server state so ephemeral listeners
+    // do not keep advertising 0 after a late bind.
+    let port = lookup_live_bound_port(&host, stored_port).unwrap_or(stored_port) as i32;
     let family = if host.contains(':') && !host.contains('.') {
         "IPv6"
     } else {
@@ -3287,7 +3320,15 @@ fn run_http_server(server_state: Arc<HttpServerState>, _handler_code: String) {
         return;
     }
 
-    eprintln!("[Amber] HTTP Server listening on {}", addr);
+    let bound_display = server_state.bound_port.load(Ordering::SeqCst);
+    if bound_display != 0 {
+        eprintln!(
+            "[Amber] HTTP Server listening on {}:{}",
+            server_state.host, bound_display
+        );
+    } else {
+        eprintln!("[Amber] HTTP Server listening on {}", addr);
+    }
 
     let rt = get_http_tokio_runtime();
     let state_clone = server_state.clone();
