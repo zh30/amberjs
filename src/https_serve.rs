@@ -1,9 +1,10 @@
-//! `amber serve --https` — rustls TLS and one HTTP/1.1 request per connection.
+//! Shared HTTP/1.1 framing for `amber serve` (cleartext) and `amber serve --https`.
 //!
-//! The user contract is [`docs/SERVE_HTTPS_CONTRACT.md`](../docs/SERVE_HTTPS_CONTRACT.md).
-//! Plain `amber serve` (no `--https`) does not use this module.
-//! PEM parsing lives here so the Node `http` compatibility layer is not part of
-//! this command's limits.
+//! - Cleartext contract: [`docs/SERVE_HTTP_CONTRACT.md`](../docs/SERVE_HTTP_CONTRACT.md) (G41).
+//! - TLS contract: [`docs/SERVE_HTTPS_CONTRACT.md`](../docs/SERVE_HTTPS_CONTRACT.md) (G7).
+//!
+//! PEM / rustls helpers live here so the Node `http` compatibility layer is not
+//! part of either CLI serve command's limits.
 
 use std::collections::HashMap;
 use std::fmt;
@@ -16,7 +17,7 @@ use std::time::Duration;
 
 use serde_json::Value;
 
-/// Stderr prefix for contracted `amber serve --https` failures before listen.
+/// Stderr prefix for contracted `amber serve` / `amber serve --https` failures before listen.
 pub const SERVE_ERROR_PREFIX: &str = "error: amber serve:";
 
 /// Maximum size of the request header block, including the final `\r\n\r\n`.
@@ -424,7 +425,22 @@ fn text_response(status: u16, body: &str) -> Http11Response {
     }
 }
 
-/// Accept connections until the listener is closed. Per-connection failures stay in-process.
+/// Accept cleartext connections until the listener is closed.
+///
+/// Same HTTP/1.1 framing and limits as [`serve_connections`], without TLS.
+pub fn serve_plain_connections<F>(listener: TcpListener, limits: ServeLimits, mut handler: F)
+where
+    F: FnMut(&Http11Request) -> Http11Response,
+{
+    for incoming in listener.incoming() {
+        let Ok(tcp) = incoming else {
+            continue;
+        };
+        handle_plain_connection(tcp, &limits, &mut handler);
+    }
+}
+
+/// Accept TLS connections until the listener is closed. Per-connection failures stay in-process.
 pub fn serve_connections<F>(
     listener: TcpListener,
     tls_config: Arc<rustls::ServerConfig>,
@@ -439,6 +455,41 @@ pub fn serve_connections<F>(
         };
         handle_connection(tcp, &tls_config, &limits, &mut handler);
     }
+}
+
+fn handle_plain_connection<F>(tcp: std::net::TcpStream, limits: &ServeLimits, handler: &mut F)
+where
+    F: FnMut(&Http11Request) -> Http11Response,
+{
+    let _ = tcp.set_read_timeout(Some(limits.read_timeout));
+    let _ = tcp.set_write_timeout(Some(limits.read_timeout));
+    let mut stream = tcp;
+    match read_http11(&mut stream, limits) {
+        Ok(Incoming::Closed) => {}
+        Ok(Incoming::Request(request)) => {
+            let response = handler(&request);
+            let bytes = encode_response(&request.method, &response);
+            let _ = stream.write_all(&bytes);
+            let _ = stream.flush();
+        }
+        Err(ReadHttpError::Protocol(failure)) => {
+            let bytes = encode_failure(failure);
+            let _ = stream.write_all(&bytes);
+            let _ = stream.flush();
+        }
+        Err(ReadHttpError::Io(err)) => {
+            if err.kind() == io::ErrorKind::TimedOut {
+                let bytes = encode_failure(ProtocolFailure {
+                    status: 408,
+                    body: "request timeout",
+                    head: false,
+                });
+                let _ = stream.write_all(&bytes);
+                let _ = stream.flush();
+            }
+        }
+    }
+    let _ = stream.shutdown(std::net::Shutdown::Write);
 }
 
 fn handle_connection<F>(
