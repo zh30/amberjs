@@ -93,7 +93,7 @@ Marks and measures are process-global. This is not a per-document timeline, and 
 - `setImmediate` and `require('timers')`.
 - Node `require('stream')`. That module has its own Stable subset contract in [`docs/NODE_STREAM_CONTRACT.md`](NODE_STREAM_CONTRACT.md) (**G24**). This page does not graduate it.
 - A `Performance` constructor, `PerformanceObserver`, or resource timing.
-- Node `zlib` (`require('zlib')`). That module has its own Stable sync contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md). This page does not graduate it.
+- Node `zlib` (`require('zlib')`). That module has its own Stable sync contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md) and async `gzip` / `gunzip` contract in [`docs/ZLIB_ASYNC_CONTRACT.md`](ZLIB_ASYNC_CONTRACT.md). This page does not graduate it.
 
 ## Tests
 
