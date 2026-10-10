@@ -147,6 +147,9 @@ jobs:
       - name: node crypto Stable contract
         run: cargo test --test node_crypto_contract_tests -- --test-threads=1
 
+      - name: node crypto cipheriv CBC Stable contract
+        run: cargo test --test crypto_cipheriv_contract_tests -- --test-threads=1
+
       - name: node stream Stable contract
         run: cargo test --test node_stream_contract_tests -- --test-threads=1
 

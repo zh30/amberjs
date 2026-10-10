@@ -4,7 +4,7 @@ This is the user-facing contract for the Stable **subset** of Node `crypto` in A
 
 `require('crypto')`, `require('node:crypto')`, and `import` from `'crypto'` / `'node:crypto'` reach the same object as `globalThis.crypto` for the methods named below. Named ESM exports include those methods. This is **not** the Stable Web Crypto contract in [`docs/WEB_CRYPTO_CONTRACT.md`](WEB_CRYPTO_CONTRACT.md) (G14: `crypto.subtle`, `crypto.getRandomValues`, and `CryptoKey`).
 
-This is not full Node `crypto`. Methods that are not listed here — including `createCipher` / `createDecipher` / `createCipheriv` / `createDecipheriv`, `pbkdf2`, `scrypt`, `createSign` / `createVerify`, `generateKeyPair`, KeyObjects, `hkdf`, Diffie-Hellman, and RSA encrypt helpers — are outside the contract even when present on the object. Do not treat their presence as a Stable promise.
+This is not full Node `crypto`. Methods that are not listed here — including password `createCipher` / `createDecipher`, AES-GCM / CTR / CFB / OFB / ECB cipher modes, `pbkdf2`, `scrypt`, `createSign` / `createVerify`, `generateKeyPair`, KeyObjects, `hkdf`, Diffie-Hellman, and RSA encrypt helpers — are outside **this** contract even when present on the object. Do not treat their presence as a Stable promise. The narrow AES-*-CBC `createCipheriv` / `createDecipheriv` carve is a separate Stable page (**G43**, [`docs/NODE_CRYPTO_CIPHERIV_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_CONTRACT.md)).
 
 ## Stable surface
 
@@ -40,13 +40,14 @@ When `amber run --seed <u64>` is set, `randomBytes` / `randomBytesSync` fill fro
 - Return values of `randomBytes` and bare `digest()` are `Uint8Array`, not Node `Buffer` instances (`constructor.name` is `Uint8Array`). They remain usable where TypedArrays are accepted.
 - `randomBytes(size, cb)` runs `cb` synchronously and still returns the bytes. It is not a libuv threadpool job and does not return `undefined`.
 - `timingSafeEqual` is installed on the shared crypto object from the runtime path, not from a separate method table in `nodejs_core/crypto.rs`.
-- Cipher, KDF, sign/verify, keypair, and KeyObject APIs on the same object stay Preview.
+- KDF, sign/verify, keypair, and KeyObject APIs on the same object stay Preview.
+- AES-*-CBC `createCipheriv` / `createDecipheriv` is Stable under **G43** ([`docs/NODE_CRYPTO_CIPHERIV_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_CONTRACT.md)); password `createCipher` / `createDecipher`, AES-GCM, and other cipher modes stay outside G23 and outside that carve unless pinned there.
 - Web `crypto.subtle` and `crypto.getRandomValues` stay the G14 contract only.
 
 ## Non-goals
 
 - Full Node `crypto` parity.
-- Graduating `createCipheriv` / AES / RSA / scrypt / pbkdf2 / `createSign` by listing them as “limits”.
+- Expanding this page to password `createCipher`, AES-GCM, CTR/CFB/OFB/ECB, RSA, scrypt, pbkdf2, or `createSign` by listing them as “limits”.
 - Claiming Web Crypto algorithms or `CryptoKey` through `require('crypto')`.
 - Streaming Hash / Hmac as Node `stream.Transform` subclasses.
 
