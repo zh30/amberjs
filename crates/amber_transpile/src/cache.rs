@@ -23,6 +23,29 @@ static MEMORY_CACHE: Lazy<Mutex<MemoryCache>> = Lazy::new(|| Mutex::new(MemoryCa
 /// Test-only override. `0` means [`MEMORY_CACHE_BUDGET`].
 static BUDGET_OVERRIDE: AtomicUsize = AtomicUsize::new(0);
 
+/// Serializes process-global cache ops under `cfg(test)`.
+#[cfg(test)]
+static CACHE_TEST: Mutex<()> = Mutex::new(());
+
+#[cfg(test)]
+thread_local! {
+    static IN_CACHE_CRITICAL: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+fn with_cache_test_lock<R>(f: impl FnOnce() -> R) -> R {
+    if IN_CACHE_CRITICAL.with(|c| c.get()) {
+        return f();
+    }
+    let _guard = CACHE_TEST
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    IN_CACHE_CRITICAL.with(|c| c.set(true));
+    let result = f();
+    IN_CACHE_CRITICAL.with(|c| c.set(false));
+    result
+}
+
 struct MemoryCache {
     map: HashMap<u64, CompilationOutput>,
     order: VecDeque<u64>,
@@ -88,6 +111,17 @@ fn cache_dir() -> PathBuf {
 }
 
 pub fn get_cached(source: &str, file_name: &str) -> Option<CompilationOutput> {
+    #[cfg(test)]
+    {
+        return with_cache_test_lock(|| get_cached_inner(source, file_name));
+    }
+    #[cfg(not(test))]
+    {
+        get_cached_inner(source, file_name)
+    }
+}
+
+fn get_cached_inner(source: &str, file_name: &str) -> Option<CompilationOutput> {
     let key = hash_source(source, file_name);
     if let Ok(cache) = MEMORY_CACHE.lock() {
         if let Some(hit) = cache.map.get(&key) {
@@ -112,6 +146,17 @@ pub fn get_cached(source: &str, file_name: &str) -> Option<CompilationOutput> {
 }
 
 pub fn put_cached(source: &str, file_name: &str, output: &CompilationOutput) {
+    #[cfg(test)]
+    {
+        return with_cache_test_lock(|| put_cached_inner(source, file_name, output));
+    }
+    #[cfg(not(test))]
+    {
+        put_cached_inner(source, file_name, output)
+    }
+}
+
+fn put_cached_inner(source: &str, file_name: &str, output: &CompilationOutput) {
     let key = hash_source(source, file_name);
     if let Ok(mut cache) = MEMORY_CACHE.lock() {
         cache.insert(key, output.clone());
@@ -130,6 +175,17 @@ pub fn put_cached(source: &str, file_name: &str, output: &CompilationOutput) {
 
 /// Clear both memory and disk transpile caches.
 pub fn clear_cache() {
+    #[cfg(test)]
+    {
+        return with_cache_test_lock(|| clear_cache_inner());
+    }
+    #[cfg(not(test))]
+    {
+        clear_cache_inner()
+    }
+}
+
+fn clear_cache_inner() {
     if let Ok(mut cache) = MEMORY_CACHE.lock() {
         cache.clear();
     }
@@ -137,19 +193,6 @@ pub fn clear_cache() {
     if dir.exists() {
         let _ = fs::remove_dir_all(dir);
     }
-}
-
-#[cfg(test)]
-fn memory_cache_resident_bytes() -> usize {
-    MEMORY_CACHE.lock().map(|cache| cache.bytes).unwrap_or(0)
-}
-
-#[cfg(test)]
-fn memory_cache_len() -> usize {
-    MEMORY_CACHE
-        .lock()
-        .map(|cache| cache.map.len())
-        .unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -171,13 +214,32 @@ fn set_test_budget(budget: usize) -> BudgetGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
 
-    static CACHE_TEST: Mutex<()> = Mutex::new(());
+    /// Holds [`CACHE_TEST`] for the duration of a cache unit test.
+    struct IsolatedCacheTest {
+        _lock: std::sync::MutexGuard<'static, ()>,
+    }
+
+    impl IsolatedCacheTest {
+        fn enter() -> Self {
+            let lock = CACHE_TEST
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            IN_CACHE_CRITICAL.with(|c| c.set(true));
+            Self { _lock: lock }
+        }
+    }
+
+    impl Drop for IsolatedCacheTest {
+        fn drop(&mut self) {
+            clear_cache_inner();
+            IN_CACHE_CRITICAL.with(|c| c.set(false));
+        }
+    }
 
     #[test]
     fn test_cache_preserves_source_map() {
-        let _guard = CACHE_TEST.lock().expect("cache test lock");
+        let _guard = IsolatedCacheTest::enter();
         clear_cache();
         let source = "const x: number = 42;";
         let file_name = "test_cache_map.ts";
@@ -214,7 +276,7 @@ mod tests {
 
     #[test]
     fn memory_cache_evicts_oldest_and_disk_still_hits() {
-        let _guard = CACHE_TEST.lock().expect("cache test lock");
+        let _guard = IsolatedCacheTest::enter();
         let _budget = set_test_budget(64);
         clear_cache();
         let older = CompilationOutput {
@@ -230,8 +292,15 @@ mod tests {
         put_cached("source-older", "older.ts", &older);
         put_cached("source-newer", "newer.ts", &newer);
 
-        assert_eq!(memory_cache_len(), 1, "oldest entry should be evicted");
-        assert!(memory_cache_resident_bytes() <= 64);
+        {
+            let cache = MEMORY_CACHE.lock().expect("memory cache lock");
+            assert_eq!(cache.map.len(), 1, "oldest entry should be evicted");
+            assert!(
+                cache.bytes <= 64,
+                "resident bytes {} exceeded test budget after eviction",
+                cache.bytes
+            );
+        }
         let restored = get_cached("source-older", "older.ts").expect("disk hit");
         assert_eq!(restored.js_code, older.js_code);
         assert_eq!(restored.source_map, older.source_map);
