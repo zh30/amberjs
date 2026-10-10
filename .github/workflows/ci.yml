@@ -181,6 +181,9 @@ jobs:
       - name: node net server Stable contract
         run: cargo test --test net_server_contract_tests -- --test-threads=1
 
+      - name: node readline Stable contract
+        run: cargo test --test readline_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
