@@ -8752,6 +8752,10 @@ impl MinimalRuntime {
             scope.perform_microtask_checkpoint();
             crate::nodejs_core::http::pump_pending_http_requests_in_scope(scope, &context);
             crate::nodejs_core::net::pump_pending_net_connections_in_scope(scope, &context);
+            if crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope) > 0 {
+                execute_next_tick_callbacks(scope);
+                scope.perform_microtask_checkpoint();
+            }
             crate::web_api::worker_host::WorkerHost::pump_parent_messages(scope);
             if crate::web_api::websocket::has_pending_websocket_work() {
                 crate::web_api::websocket::pump_websocket_events(scope);
@@ -8779,6 +8783,7 @@ impl MinimalRuntime {
                     || has_pending_immediates()
                     || crate::web_api::worker_host::WorkerHost::has_active_workers()
                     || crate::web_api::websocket::has_pending_websocket_work()
+                    || crate::nodejs_core::child_process::has_pending_child_process_work()
             };
 
             if !has_initial_pending_work {
@@ -8816,13 +8821,19 @@ impl MinimalRuntime {
                     || has_next_ticks
                     || has_pending_immediates()
                     || crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                    || crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope) > 0
                 {
                     break;
                 }
 
-                if crate::web_api::worker_host::WorkerHost::has_active_workers() {
+                if crate::web_api::worker_host::WorkerHost::has_active_workers()
+                    || crate::nodejs_core::child_process::has_pending_child_process_work()
+                {
                     timer_manager.wait_timeout(std::time::Duration::from_millis(10));
-                    if crate::web_api::worker_host::WorkerHost::has_parent_messages() {
+                    if crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                        || crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope)
+                            > 0
+                    {
                         break;
                     }
                     iterations_without_progress += 1;
@@ -8872,6 +8883,12 @@ impl MinimalRuntime {
             // Process microtasks (Promises, queueMicrotask callbacks)
             // nextTick callbacks were already executed, now process Promises
             scope.perform_microtask_checkpoint();
+
+            // Deliver async child_process callbacks completed on host threads.
+            if crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope) > 0 {
+                execute_next_tick_callbacks(scope);
+                scope.perform_microtask_checkpoint();
+            }
 
             // Execute all currently fired timers (setTimeout/setInterval with delay > 0)
             execute_fired_timers(scope);
@@ -8933,6 +8950,8 @@ impl MinimalRuntime {
                     )
             };
             let has_active_workers = crate::web_api::worker_host::WorkerHost::has_active_workers();
+            let has_pending_child =
+                crate::nodejs_core::child_process::has_pending_child_process_work();
             // v0.3.339: Don't include has_pending_work in break condition since it's a stored value
             // that may be stale. Instead, check the actual state of timers and nextTicks.
             if !has_pending_next_ticks_now
@@ -8941,6 +8960,7 @@ impl MinimalRuntime {
                 && !has_pending_immediates()
                 && !has_active_workers
                 && !crate::web_api::websocket::has_pending_websocket_work()
+                && !has_pending_child
             {
                 // Run any remaining microtasks before exiting
                 scope.perform_microtask_checkpoint();
