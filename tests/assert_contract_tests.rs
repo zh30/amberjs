@@ -135,10 +135,7 @@ fn throws_fail_if_error() {
           ifErr
         ].join('|');
         "#;
-    assert_eq!(
-        run(code),
-        "true|true|nope|Failed|e1"
-    );
+    assert_eq!(run(code), "true|true|nope|Failed|e1");
 }
 
 #[test]
