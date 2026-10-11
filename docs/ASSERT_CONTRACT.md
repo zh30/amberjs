@@ -4,7 +4,7 @@ This is the user-facing contract for a **narrow** Stable subset of Node `assert`
 
 This is **not** full Node `assert`. Methods that are not listed under Stable surface are outside the contract.
 
-**Numbering:** This contract is **G40** after Node `querystring` (**G38**) and Node `string_decoder` (**G39**). Do not assign G38/G39 to assert.
+**Numbering:** The base narrow surface is **G40** after Node `querystring` (**G38**) and Node `string_decoder` (**G39**). Additive `match` / `doesNotMatch` / `rejects` / `doesNotReject` graduate as **tentative G69**. Do not assign G38/G39 to assert. Do not renumber G1–G68.
 
 ## Stable surface
 
@@ -19,6 +19,10 @@ This is **not** full Node `assert`. Methods that are not listed under Stable sur
 | `assert.throws(fn)` | `fn` must be a function. Invokes `fn` with no arguments; passes if the call throws. If `fn` does not throw, throws an Error whose message contains `Missing expected exception`. A non-function throws with message containing `requires a function`. |
 | `assert.fail([message])` | Always throws. Optional `message` (stringified) is the Error message; default `"Failed"`. |
 | `assert.ifError(err)` | Passes when `err` is `null` or `undefined`. Otherwise rethrows `err` as the exception value (does not wrap it). |
+| `assert.match(string, regexp[, message])` (**G69**) | `string` must be a string; `regexp` must be a `RegExp`. Passes when `regexp.test(string)` is true. On mismatch throws an Error (optional `message`, else a message containing `did not match`). Wrong argument types throw `TypeError` mentioning `string` or `regexp`. |
+| `assert.doesNotMatch(string, regexp[, message])` (**G69**) | Same type rules as `match`. Passes when `regexp.test(string)` is false. On unwanted match throws an Error (optional `message`, else a message containing `not match`). |
+| `assert.rejects(block)` (**G69**) | Returns a Promise. `block` may be a function (invoked with no args; sync throw becomes rejection) or any value settled via `Promise.resolve`. Fulfills when the waitable **rejects**. If the waitable **fulfills**, the returned Promise rejects with an Error whose message contains `Missing expected rejection`. |
+| `assert.doesNotReject(block)` (**G69**) | Returns a Promise. Same waitable rules as `rejects`. Fulfills when the waitable **fulfills**. If the waitable **rejects**, the returned Promise rejects with an Error whose message contains `Got unwanted rejection`. |
 
 ## Limits
 
@@ -27,6 +31,7 @@ These are real behaviors of the Stable surface, not cover for missing Node APIs:
 - `assert/strict` is the **same object** as `assert` (including non-strict-named helpers that exist on the object). There is no separate strict-only export.
 - `deepStrictEqual` compares via `JSON.stringify` when values are not `===`. Property order, `undefined` object values, `Date`, `Map` / `Set`, circular structures, and other non-JSON-faithful values are not Node deep-equal parity.
 - `throws` only checks that a function threw. Error class / RegExp / validator second arguments are not pinned.
+- `rejects` / `doesNotReject` only check settlement (reject vs fulfill). Error class / RegExp / validator / message second arguments are not pinned.
 - Failure messages are Amber-shaped strings (often with `AssertionError [ERR_ASSERTION]` text). They are not a full Node `AssertionError` class with `actual` / `expected` / `operator` / `code` fields.
 - ESM `import` from `'assert'` / `'node:assert'` is not wired in `normalized_esm_builtin_name` today — only CJS `require` is on this contract.
 
@@ -34,12 +39,12 @@ These are real behaviors of the Stable surface, not cover for missing Node APIs:
 
 Outside this contract (Preview / unimplemented). Do **not** treat these as Stable Limits of dishonest behavior:
 
-- **`assert.match` / `assert.doesNotMatch`** — not installed.
-- **`assert.rejects` / `assert.doesNotReject`** — not installed; no async assertion surface.
 - **`assert.equal` coercion quirks** — present on the object but **not Stable**. Today's implementation is coercion-shaped (number epsilon / stringification), not Node `==` parity. Do not graduate it under Limits fiction.
 - **`assert.deepEqual` alias** — today aliases the same function as `deepStrictEqual`. That alias is **not Stable**; only `deepStrictEqual` is pinned.
 - `assert.doesNotThrow`, `assert.notEqual`, `assert.notStrictEqual`, `assert.notDeepEqual`, `assert.notDeepStrictEqual`, `partialDeepStrictEqual`, and the rest of Node `assert`.
+- Error-shape validators on `throws` / `rejects` / `doesNotReject` (class / RegExp / predicate / message overload).
 - Promoting `equal` / `deepEqual` by listing incomplete coercion or alias behavior as Stable Limits.
+- Full Node `assert` parity.
 
 ## Reachability
 
@@ -55,4 +60,4 @@ CI step: `node assert Stable contract`.
 
 ## Honesty rule
 
-`equal` coercion quirks and the `deepEqual` → `deepStrictEqual` alias are **Non-goals**. Limits describe JSON deep-compare and same-object `assert/strict` only. Graduating full Node `assert` as a bag is forbidden.
+`equal` coercion quirks and the `deepEqual` → `deepStrictEqual` alias are **Non-goals**. Limits describe JSON deep-compare, same-object `assert/strict`, and G69 settlement-only async asserts. Graduating full Node `assert` as a bag is forbidden.
