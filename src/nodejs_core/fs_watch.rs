@@ -42,16 +42,24 @@ struct PendingWatchFileTick {
 }
 
 struct ActiveFsWatcher {
+    /// Registry key mirror — kept for close/debug; map key is the live lookup.
+    #[allow(dead_code)]
     id: u64,
     closed: Arc<AtomicBool>,
 }
 
 struct ActiveWatchFile {
+    /// Registry bookkeeping — poll thread holds cloned Arcs; these keep them alive.
+    #[allow(dead_code)]
     id: u64,
+    #[allow(dead_code)]
     path: PathBuf,
     stopped: Arc<AtomicBool>,
+    #[allow(dead_code)]
     last_size: Arc<Mutex<u64>>,
+    #[allow(dead_code)]
     last_mtime: Arc<Mutex<Option<SystemTime>>>,
+    #[allow(dead_code)]
     last_exists: Arc<Mutex<bool>>,
 }
 
