@@ -19,8 +19,7 @@ fn run(code: &str) -> String {
 #[test]
 #[serial]
 fn require_tty_exposes_isatty_identity() {
-    let output = run(
-        r#"
+    let output = run(r#"
         const tty = require('tty');
         const node = require('node:tty');
         [
@@ -28,16 +27,14 @@ fn require_tty_exposes_isatty_identity() {
           tty.isatty === node.isatty,
           require('tty') === tty
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(output, "function|true|true");
 }
 
 #[test]
 #[serial]
 fn isatty_negative_and_non_number_are_false() {
-    let output = run(
-        r#"
+    let output = run(r#"
         const tty = require('tty');
         [
           tty.isatty(-1),
@@ -47,8 +44,7 @@ fn isatty_negative_and_non_number_are_false() {
           tty.isatty(undefined),
           tty.isatty()
         ].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(output, "false|false|false|false|false|false");
 }
 
@@ -77,11 +73,9 @@ fn isatty_regular_file_fd_is_false() {
 #[serial]
 #[cfg(windows)]
 fn isatty_always_false_on_windows() {
-    let output = run(
-        r#"
+    let output = run(r#"
         const tty = require('tty');
         [tty.isatty(0), tty.isatty(1), tty.isatty(2)].join('|');
-        "#,
-    );
+        "#);
     assert_eq!(output, "false|false|false");
 }
