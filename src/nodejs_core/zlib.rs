@@ -1,6 +1,6 @@
 //! Node.js `zlib` builtin (gzip/deflate via flate2).
 //!
-//! G21: six sync methods. G48: async `gzip` / `gunzip` callbacks (nextTick delivery).
+//! G21: six sync methods. G48: async `gzip` / `gunzip`. G58: async deflate/inflate(+Raw).
 
 use anyhow::Result;
 use flate2::read::{DeflateDecoder, GzDecoder, ZlibDecoder};
@@ -19,6 +19,10 @@ thread_local! {
 enum ZlibAsyncOp {
     Gzip,
     Gunzip,
+    Deflate,
+    Inflate,
+    DeflateRaw,
+    InflateRaw,
 }
 
 struct ZlibAsyncJob {
@@ -42,6 +46,10 @@ pub fn setup_zlib_api(
     let inflate_raw_sync = v8::Function::new(scope, inflate_raw_sync_cb).unwrap();
     let gzip = v8::Function::new(scope, gzip_async_cb).unwrap();
     let gunzip = v8::Function::new(scope, gunzip_async_cb).unwrap();
+    let deflate = v8::Function::new(scope, deflate_async_cb).unwrap();
+    let inflate = v8::Function::new(scope, inflate_async_cb).unwrap();
+    let deflate_raw = v8::Function::new(scope, deflate_raw_async_cb).unwrap();
+    let inflate_raw = v8::Function::new(scope, inflate_raw_async_cb).unwrap();
 
     for (name, func) in [
         ("gzipSync", gzip_sync),
@@ -52,6 +60,10 @@ pub fn setup_zlib_api(
         ("inflateRawSync", inflate_raw_sync),
         ("gzip", gzip),
         ("gunzip", gunzip),
+        ("deflate", deflate),
+        ("inflate", inflate),
+        ("deflateRaw", deflate_raw),
+        ("inflateRaw", inflate_raw),
     ] {
         let key = v8::String::new(scope, name).unwrap();
         zlib.set(scope, key.into(), func.into());
@@ -194,12 +206,7 @@ fn deflate_sync_cb(
         throw_type(scope, "zlib.deflateSync: invalid input");
         return;
     };
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    if encoder.write_all(&input).is_err() {
-        throw_err(scope, "zlib.deflateSync failed");
-        return;
-    }
-    match encoder.finish() {
+    match deflate_bytes(&input) {
         Ok(out) => return_buffer(scope, &out, &mut rv),
         Err(_) => throw_err(scope, "zlib.deflateSync failed"),
     }
@@ -214,13 +221,10 @@ fn inflate_sync_cb(
         throw_type(scope, "zlib.inflateSync: invalid input");
         return;
     };
-    let mut decoder = ZlibDecoder::new(&input[..]);
-    let mut out = Vec::new();
-    if decoder.read_to_end(&mut out).is_err() {
-        throw_err(scope, "zlib.inflateSync failed");
-        return;
+    match inflate_bytes(&input) {
+        Ok(out) => return_buffer(scope, &out, &mut rv),
+        Err(_) => throw_err(scope, "zlib.inflateSync failed"),
     }
-    return_buffer(scope, &out, &mut rv);
 }
 
 fn deflate_raw_sync_cb(
@@ -232,12 +236,7 @@ fn deflate_raw_sync_cb(
         throw_type(scope, "zlib.deflateRawSync: invalid input");
         return;
     };
-    let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
-    if encoder.write_all(&input).is_err() {
-        throw_err(scope, "zlib.deflateRawSync failed");
-        return;
-    }
-    match encoder.finish() {
+    match deflate_raw_bytes(&input) {
         Ok(out) => return_buffer(scope, &out, &mut rv),
         Err(_) => throw_err(scope, "zlib.deflateRawSync failed"),
     }
@@ -252,13 +251,10 @@ fn inflate_raw_sync_cb(
         throw_type(scope, "zlib.inflateRawSync: invalid input");
         return;
     };
-    let mut decoder = DeflateDecoder::new(&input[..]);
-    let mut out = Vec::new();
-    if decoder.read_to_end(&mut out).is_err() {
-        throw_err(scope, "zlib.inflateRawSync failed");
-        return;
+    match inflate_raw_bytes(&input) {
+        Ok(out) => return_buffer(scope, &out, &mut rv),
+        Err(_) => throw_err(scope, "zlib.inflateRawSync failed"),
     }
-    return_buffer(scope, &out, &mut rv);
 }
 
 fn gzip_bytes(input: &[u8]) -> Result<Vec<u8>, ()> {
@@ -269,6 +265,32 @@ fn gzip_bytes(input: &[u8]) -> Result<Vec<u8>, ()> {
 
 fn gunzip_bytes(input: &[u8]) -> Result<Vec<u8>, ()> {
     let mut decoder = GzDecoder::new(input);
+    let mut out = Vec::new();
+    decoder.read_to_end(&mut out).map_err(|_| ())?;
+    Ok(out)
+}
+
+fn deflate_bytes(input: &[u8]) -> Result<Vec<u8>, ()> {
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(input).map_err(|_| ())?;
+    encoder.finish().map_err(|_| ())
+}
+
+fn inflate_bytes(input: &[u8]) -> Result<Vec<u8>, ()> {
+    let mut decoder = ZlibDecoder::new(input);
+    let mut out = Vec::new();
+    decoder.read_to_end(&mut out).map_err(|_| ())?;
+    Ok(out)
+}
+
+fn deflate_raw_bytes(input: &[u8]) -> Result<Vec<u8>, ()> {
+    let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(input).map_err(|_| ())?;
+    encoder.finish().map_err(|_| ())
+}
+
+fn inflate_raw_bytes(input: &[u8]) -> Result<Vec<u8>, ()> {
+    let mut decoder = DeflateDecoder::new(input);
     let mut out = Vec::new();
     decoder.read_to_end(&mut out).map_err(|_| ())?;
     Ok(out)
@@ -288,6 +310,38 @@ fn gunzip_async_cb(
     rv: v8::ReturnValue,
 ) {
     enqueue_async_codec(scope, args, rv, ZlibAsyncOp::Gunzip, "zlib.gunzip");
+}
+
+fn deflate_async_cb(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    rv: v8::ReturnValue,
+) {
+    enqueue_async_codec(scope, args, rv, ZlibAsyncOp::Deflate, "zlib.deflate");
+}
+
+fn inflate_async_cb(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    rv: v8::ReturnValue,
+) {
+    enqueue_async_codec(scope, args, rv, ZlibAsyncOp::Inflate, "zlib.inflate");
+}
+
+fn deflate_raw_async_cb(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    rv: v8::ReturnValue,
+) {
+    enqueue_async_codec(scope, args, rv, ZlibAsyncOp::DeflateRaw, "zlib.deflateRaw");
+}
+
+fn inflate_raw_async_cb(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    rv: v8::ReturnValue,
+) {
+    enqueue_async_codec(scope, args, rv, ZlibAsyncOp::InflateRaw, "zlib.inflateRaw");
 }
 
 fn enqueue_async_codec(
@@ -355,6 +409,14 @@ fn zlib_job_trampoline(
     let result = match job.op {
         ZlibAsyncOp::Gzip => gzip_bytes(&job.input).map_err(|_| "zlib.gzip failed"),
         ZlibAsyncOp::Gunzip => gunzip_bytes(&job.input).map_err(|_| "zlib.gunzip failed"),
+        ZlibAsyncOp::Deflate => deflate_bytes(&job.input).map_err(|_| "zlib.deflate failed"),
+        ZlibAsyncOp::Inflate => inflate_bytes(&job.input).map_err(|_| "zlib.inflate failed"),
+        ZlibAsyncOp::DeflateRaw => {
+            deflate_raw_bytes(&job.input).map_err(|_| "zlib.deflateRaw failed")
+        }
+        ZlibAsyncOp::InflateRaw => {
+            inflate_raw_bytes(&job.input).map_err(|_| "zlib.inflateRaw failed")
+        }
     };
 
     let callback = v8::Local::new(scope, job.callback);

@@ -1,6 +1,6 @@
-# Node `zlib` async `gzip` / `gunzip` contract
+# Node `zlib` async callback contract
 
-This is the user-facing contract for the Stable async callback slice of Node `zlib` in Amber (**tentative G48**). It is derived from `src/nodejs_core/zlib.rs`, `src/runtime_minimal.rs`, and `tests/zlib_async_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable async callback slice of Node `zlib` in Amber (**tentative G48** gzip/gunzip; additive **tentative G58** deflate/inflate(+Raw)). It is derived from `src/nodejs_core/zlib.rs`, `src/runtime_minimal.rs`, and `tests/zlib_async_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 The six sync methods remain the G21 contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md). This page does not replace G21. Web `CompressionStream` / `DecompressionStream` stay G13 ([`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md)).
 
@@ -8,8 +8,12 @@ The six sync methods remain the G21 contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_C
 
 | Call | Behavior |
 | :--- | :--- |
-| `gzip(input, callback)` | Compresses `input` as one gzip member (RFC 1952). Invokes `callback(null, buffer)` on a later `process.nextTick` turn. The buffer is a Node `Buffer`; the first two bytes are `0x1f`, `0x8b`. Empty input still produces a gzip header member. |
-| `gunzip(input, callback)` | Decompresses one gzip member. Invokes `callback(null, buffer)` on a later `process.nextTick` turn. The buffer UTF-8 bytes match the original when the input was produced by `gzip` / `gzipSync`. |
+| `gzip(input, callback)` | Compresses `input` as one gzip member (RFC 1952). Invokes `callback(null, buffer)` on a later `process.nextTick` turn. The buffer is a Node `Buffer`; the first two bytes are `0x1f`, `0x8b`. Empty input still produces a gzip header member. (**G48**) |
+| `gunzip(input, callback)` | Decompresses one gzip member. Invokes `callback(null, buffer)` on a later `process.nextTick` turn. The buffer UTF-8 bytes match the original when the input was produced by `gzip` / `gzipSync`. (**G48**) |
+| `deflate(input, callback)` | Compresses `input` as one zlib member (RFC 1950), not raw DEFLATE and not gzip. Invokes `callback(null, buffer)` on a later `process.nextTick` turn. (**G58**) |
+| `inflate(input, callback)` | Decompresses one zlib member. Invokes `callback(null, buffer)` on a later `process.nextTick` turn. The buffer UTF-8 bytes match the original when the input was produced by `deflate` / `deflateSync`. (**G58**) |
+| `deflateRaw(input, callback)` | Compresses `input` as one raw DEFLATE member (RFC 1951). Invokes `callback(null, buffer)` on a later `process.nextTick` turn. (**G58**) |
+| `inflateRaw(input, callback)` | Decompresses one raw DEFLATE member. Invokes `callback(null, buffer)` on a later `process.nextTick` turn. The buffer UTF-8 bytes match the original when the input was produced by `deflateRaw` / `deflateRawSync`. (**G58**) |
 
 Accepted `input` forms match G21: string (UTF-8 bytes), `ArrayBuffer`, `TypedArray` / `Uint8Array`, and objects that expose a `buffer` `ArrayBuffer` (including `Buffer`). Any other value throws `TypeError` whose message contains `invalid input` **synchronously** (callback is not called).
 
@@ -19,23 +23,26 @@ The arity is exactly two arguments: `(input, callback)`. An options bag or extra
 
 Codec failures (corrupt or truncated compressed bytes) invoke `callback(err)` on a later `process.nextTick` turn. `err` is an `Error` (not a `TypeError`) whose message contains the method name and `failed`.
 
-Round-trip pin: after `gzip(s, cb)` succeeds, `gunzip(compressed, cb2)` yields a `Buffer` whose `toString('utf8')` equals the original non-empty UTF-8 string `s`.
+Round-trip pins:
 
-`gzip` / `gunzip` return `undefined` on the calling turn. The callback does not run inside the call.
+- after `gzip(s, cb)` succeeds, `gunzip(compressed, cb2)` yields a `Buffer` whose `toString('utf8')` equals the original non-empty UTF-8 string `s`
+- after `deflate(s, cb)` succeeds, `inflate(compressed, cb2)` yields a `Buffer` whose `toString('utf8')` equals `s`
+- after `deflateRaw(s, cb)` succeeds, `inflateRaw(compressed, cb2)` yields a `Buffer` whose `toString('utf8')` equals `s`
+
+All six async methods return `undefined` on the calling turn. The callback does not run inside the call.
 
 ## Limits
 
 - Codec work runs on the isolate thread at the next `process.nextTick` turn (same delivery model as G8 async `fs`). This is not a libuv threadpool.
-- Only `gzip` and `gunzip` callbacks are Stable. Other async zlib names stay outside this contract.
+- Only the six async callback names in the Stable surface table are Stable. Promise-returning `zlib.promises` and other async zlib names stay outside this contract.
 
 ## Non-goals
 
 These are outside Stable. Do **not** document them as Stable Limits fiction for missing APIs:
 
-- `deflate` / `inflate` / `deflateRaw` / `inflateRaw` callback or Promise APIs
 - Promise-returning `zlib.promises` / util.promisify special-casing beyond ordinary callback shape
 - Options bags (`level`, `windowBits`, `dictionary`, flush controls)
-- `createGzip`, `createGunzip`, and the rest of the streaming `create*` family
+- `createGzip`, `createGunzip`, `createDeflate`, `createInflate`, `createDeflateRaw`, `createInflateRaw`, and the rest of the streaming `create*` family
 - `brotliCompress` / `brotliDecompress` / sync brotli, and any brotli surface
 - `zlib.constants`, `Z_*` export constants, and `zlib.codes`
 - Binding Node `stream` / `pipeline` to zlib codecs
