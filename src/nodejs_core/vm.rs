@@ -99,9 +99,24 @@ fn own_property_names(scope: &mut v8::PinScope, obj: v8::Local<v8::Object>) -> H
     names
 }
 
+fn throw_caller_error(scope: &mut v8::PinScope, name: &str, message: &str) {
+    let msg = v8::String::new(scope, message).unwrap();
+    let exc = match name {
+        "SyntaxError" => v8::Exception::syntax_error(scope, msg),
+        "TypeError" => v8::Exception::type_error(scope, msg),
+        "RangeError" => v8::Exception::range_error(scope, msg),
+        "ReferenceError" => v8::Exception::reference_error(scope, msg),
+        _ => v8::Exception::error(scope, msg),
+    };
+    scope.throw_exception(exc);
+}
+
 /// Run `code` in a fresh V8 Context. Optional sandbox own-props are copied onto
 /// the new global before execution and copied back afterward (sandbox keys plus
 /// newly introduced own globals; fresh-context builtins are left alone).
+///
+/// Exceptions are caught and rethrown as caller-context `Error`/`SyntaxError`/…
+/// so `instanceof Error` works outside the sandbox (cross-context prototypes differ).
 fn run_code_in_new_context(
     scope: &mut v8::PinScope,
     code: &str,
@@ -114,6 +129,7 @@ fn run_code_in_new_context(
     let sandbox_keys: HashSet<String> = entries.iter().map(|(k, _)| k.clone()).collect();
 
     let new_context = v8::Context::new(scope, Default::default());
+    let mut caught: Option<(String, String)> = None;
     let result_global = {
         let scope = &mut v8::ContextScope::new(scope, new_context);
         let global = new_context.global(scope);
@@ -125,41 +141,70 @@ fn run_code_in_new_context(
             global.set(scope, key.into(), val);
         }
 
-        let source = v8::String::new(scope, code).unwrap();
-        let script = match v8::Script::compile(scope, source, None) {
-            Some(s) => s,
-            None => return,
-        };
-        let Some(result) = script.run(scope) else {
-            return;
-        };
+        v8::tc_scope!(let tc, scope);
+        let source = v8::String::new(tc, code).unwrap();
+        let script = v8::Script::compile(tc, source, None);
+        let result = script.and_then(|s| s.run(tc));
 
-        if let Some(sandbox_obj) = sandbox {
-            if let Some(names) = global.get_own_property_names(scope, Default::default()) {
-                for i in 0..names.length() {
-                    let Some(key) = names.get_index(scope, i) else {
-                        continue;
-                    };
-                    let key_str = key
-                        .to_string(scope)
-                        .map(|s| s.to_rust_string_lossy(scope))
-                        .unwrap_or_default();
-                    if !(sandbox_keys.contains(&key_str) || !builtins.contains(&key_str)) {
-                        continue;
-                    }
-                    if let Some(val) = global.get(scope, key.into()) {
-                        let sk = v8::String::new(scope, &key_str).unwrap();
-                        sandbox_obj.set(scope, sk.into(), val);
+        if let Some(result) = result {
+            if let Some(sandbox_obj) = sandbox {
+                if let Some(names) = global.get_own_property_names(tc, Default::default()) {
+                    for i in 0..names.length() {
+                        let Some(key) = names.get_index(tc, i) else {
+                            continue;
+                        };
+                        let key_str = key
+                            .to_string(tc)
+                            .map(|s| s.to_rust_string_lossy(tc))
+                            .unwrap_or_default();
+                        if !(sandbox_keys.contains(&key_str) || !builtins.contains(&key_str)) {
+                            continue;
+                        }
+                        if let Some(val) = global.get(tc, key.into()) {
+                            let sk = v8::String::new(tc, &key_str).unwrap();
+                            sandbox_obj.set(tc, sk.into(), val);
+                        }
                     }
                 }
             }
+            Some(v8::Global::new(tc, result))
+        } else {
+            if let Some(exc) = tc.exception() {
+                let obj = exc.to_object(tc);
+                let name = obj
+                    .and_then(|o| {
+                        let key = v8::String::new(tc, "name")?;
+                        o.get(tc, key.into())
+                    })
+                    .and_then(|v| v.to_string(tc))
+                    .map(|s| s.to_rust_string_lossy(tc))
+                    .unwrap_or_else(|| "Error".to_string());
+                let message = obj
+                    .and_then(|o| {
+                        let key = v8::String::new(tc, "message")?;
+                        o.get(tc, key.into())
+                    })
+                    .and_then(|v| v.to_string(tc))
+                    .map(|s| s.to_rust_string_lossy(tc))
+                    .or_else(|| exc.to_string(tc).map(|s| s.to_rust_string_lossy(tc)))
+                    .unwrap_or_else(|| "Error".to_string());
+                caught = Some((name, message));
+            } else {
+                caught = Some(("Error".to_string(), "vm.runInNewContext failed".to_string()));
+            }
+            None
         }
-
-        v8::Global::new(scope, result)
     };
 
-    let local = v8::Local::new(scope, &result_global);
-    rv.set(local);
+    if let Some((name, message)) = caught {
+        throw_caller_error(scope, &name, &message);
+        return;
+    }
+
+    if let Some(result_global) = result_global {
+        let local = v8::Local::new(scope, &result_global);
+        rv.set(local);
+    }
 }
 
 fn run_in_new_context(
