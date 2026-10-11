@@ -33,7 +33,7 @@ Identity pins this contract claims:
 ## Non-goals
 
 - Expanding or renumbering **G13** / claiming the module under [`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md)
-- `require('timers/promises')` / `timers.promises` as Stable under this G#
+- `require('timers/promises')` / `timers.promises` as Stable under this G# (Promise wrappers graduate under **G50** [`docs/TIMERS_PROMISES_CONTRACT.md`](TIMERS_PROMISES_CONTRACT.md))
 - Legacy `active` / `enroll` / `unenroll`
 - Exporting `Timeout` / `Immediate` constructors as Node classes
 - Claiming `queueMicrotask` as a `timers` module export
