@@ -4,7 +4,7 @@ This is the user-visible contract for a **narrow** Stable subset of Node `net` *
 
 This is **not** full Node `net`. It is **not** the G45 `net` **server** listen/accept surface (separate page). It is **not** Node `http` client / Agent / `https` / `http2` (those stay lasting DEFER / Non-goals — never graduate fail-open client fiction here).
 
-**Honesty:** G45 listed `net.connect` client rewrite as a Non-goal. This page graduates only the narrow connect + `'connect'` / `'data'` / `write` / `end` pin. Do **not** graduate TLS, unix sockets, full duplex stream parity, or http client by listing them as Limits.
+**Honesty:** G45 listed `net.connect` client rewrite as a Non-goal. This page graduates the narrow connect + `'connect'` / `'data'` / `write` / `end` pin, plus limited `pause` / `resume` / `setEncoding` (see Limits — not full duplex). Do **not** graduate TLS, unix sockets, full Node duplex stream parity, or http client by listing them as Limits.
 
 ## Stable surface
 
@@ -19,6 +19,8 @@ This is **not** full Node `net`. It is **not** the G45 `net` **server** listen/a
 | `socket.write(chunk)` | Writes `String(chunk)` bytes on the live TCP stream. Returns `true`. |
 | `socket.end([chunk])` | Optional final `write`, then half-closes the write side (`shutdown`). Returns `socket`. |
 | `socket.destroy()` | Stops reading, closes the stream, unregisters keep-alive / pump registry entry. |
+| `socket.pause()` / `socket.resume()` | Present on the connect Socket. `pause` stops background `try_read` and suppresses harvest→`'data'`; `resume` clears that and restarts reading when connected. Returns `socket`. |
+| `socket.setEncoding(encoding)` | Present on the connect Socket. Stores the encoding string on the Socket; returns `socket`. Stable `'data'` chunks remain UTF-8 lossy strings. |
 | Address fields | After successful connect: live `remoteAddress` / `remotePort` / `localAddress` / `localPort` / `remoteFamily` from the OS peer/local addrs. |
 | Permission denial | Connect checks Network/Connect for `tcp://host:port`. Denial throws before connect (message contains `permission denied` / `permission`). |
 
@@ -30,6 +32,8 @@ These are real behaviors of the Stable client surface, not cover for missing emi
 
 - TCP connect is **synchronous on the isolate thread** (`block_on` with timeout) before `connect` returns; `'connect'` is delivered on the next socket-event pump after listeners are attached (including `connectListener`).
 - `'data'` chunks are UTF-8 lossy strings (same string write path), not `Buffer` objects.
+- `pause` / `resume` only toggle the background reader + harvest suppress flag. They are **not** Node stream HWM / cork / flowing-mode backpressure; the kernel receive window is not a product pin.
+- `setEncoding` stores the string but does **not** change `'data'` delivery codec — chunks stay UTF-8 lossy strings regardless of the stored value.
 - Failed connect (timeout / refused) returns a Socket with `connecting === true` and does **not** enqueue `'connect'`; a full Node-shaped `'error'` event contract is not pinned here.
 - Open client sockets keep CLI `amber run` keep-alive until `destroy()`, write-ended + read-finished, or process exit.
 - ESM `import` from `'net'` / `'node:net'` is **not** wired — only CJS `require` is on this contract.
@@ -41,7 +45,7 @@ Outside this contract (Preview / DEFER / unimplemented). Do **not** treat these 
 
 - Node `http.request` / `http.get` client, `http.Agent` / pool mocks, Node `https`, `http2` (lasting DEFER; fail-open client must never become Stable Limits).
 - TLS / `tls.connect`, unix domain sockets (`connect(path)` / `{ path }` throws `TypeError` naming unix sockets).
-- Full Node `net.Socket` duplex stream parity (`pause` / `resume` backpressure, cork/uncork, `setNoDelay` contract, `'end'` / `'close'` / `'timeout'` event product pins, `Buffer` data chunks).
+- Full Node `net.Socket` duplex stream parity (HWM / cork/uncork / flowing-mode backpressure product pins, `setNoDelay` contract, `'end'` / `'close'` / `'timeout'` event product pins, `Buffer` data chunks). Limited `pause` / `resume` / `setEncoding` method presence is under Stable surface + Limits above — do not treat those Limits as full duplex graduation.
 - Promoting server listen (G45) or http framing by expanding this page.
 
 ## Reachability

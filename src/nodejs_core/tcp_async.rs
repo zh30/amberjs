@@ -58,6 +58,9 @@ pub struct TcpConnectionHandle {
     pub reading: Arc<AtomicBool>,
     /// Write side half-closed via `shutdown_write` / `socket.end`.
     pub write_ended: Arc<AtomicBool>,
+    /// Socket `pause()` — suppress harvest→`'data'` and stop background `try_read`.
+    /// Not Node stream HWM / cork backpressure (see NET_CONNECT_CONTRACT Limits).
+    pub paused: Arc<AtomicBool>,
 }
 
 impl TcpConnectionHandle {
@@ -77,6 +80,21 @@ impl TcpConnectionHandle {
             buffer: Arc::new(Mutex::new(Vec::new())),
             reading: Arc::new(AtomicBool::new(false)),
             write_ended: Arc::new(AtomicBool::new(false)),
+            paused: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    /// Node-shaped `socket.pause()`: stop background read and mark paused.
+    pub fn pause(&self) {
+        self.paused.store(true, Ordering::SeqCst);
+        self.stop_reading();
+    }
+
+    /// Node-shaped `socket.resume()`: clear paused and restart background read when connected.
+    pub fn resume_read(&self) {
+        self.paused.store(false, Ordering::SeqCst);
+        if self.is_connected() {
+            self.start_reading();
         }
     }
 

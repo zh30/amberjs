@@ -371,6 +371,10 @@ fn harvest_client_socket_buffers() {
             unregister_active_client(handle_id);
             continue;
         };
+        // Pause: leave bytes in the TCP handle buffer; do not enqueue `'data'`.
+        if handle.paused.load(Ordering::SeqCst) {
+            continue;
+        }
         let data = handle.consume_buffer();
         if !data.is_empty() {
             enqueue_socket_event(PendingSocketEvent::Data {
@@ -488,7 +492,8 @@ fn attach_socket_methods<'a>(
     socket_obj.set(scope, read_key.into(), read_instance.into());
 }
 
-/// Client Socket methods for G61 — write/end/destroy only; on/emit come from EventEmitter.
+/// Client Socket methods for G61 — write/end/destroy + limited pause/resume/setEncoding;
+/// on/emit come from EventEmitter. Full duplex stream parity stays a Non-goal.
 fn attach_client_socket_methods<'a>(
     scope: &mut v8::PinScope<'a, '_>,
     socket_obj: v8::Local<'a, v8::Object>,
@@ -512,6 +517,21 @@ fn attach_client_socket_methods<'a>(
     let set_timeout_instance = set_timeout_func.get_function(scope).unwrap();
     let set_timeout_key = v8::String::new(scope, "setTimeout").unwrap();
     socket_obj.set(scope, set_timeout_key.into(), set_timeout_instance.into());
+
+    let set_encoding_func = v8::FunctionTemplate::new(scope, socket_set_encoding_callback);
+    let set_encoding_instance = set_encoding_func.get_function(scope).unwrap();
+    let set_encoding_key = v8::String::new(scope, "setEncoding").unwrap();
+    socket_obj.set(scope, set_encoding_key.into(), set_encoding_instance.into());
+
+    let pause_func = v8::FunctionTemplate::new(scope, socket_pause_callback);
+    let pause_instance = pause_func.get_function(scope).unwrap();
+    let pause_key = v8::String::new(scope, "pause").unwrap();
+    socket_obj.set(scope, pause_key.into(), pause_instance.into());
+
+    let resume_func = v8::FunctionTemplate::new(scope, socket_resume_callback);
+    let resume_instance = resume_func.get_function(scope).unwrap();
+    let resume_key = v8::String::new(scope, "resume").unwrap();
+    socket_obj.set(scope, resume_key.into(), resume_instance.into());
 
     let read_func = v8::FunctionTemplate::new(scope, socket_read_callback);
     let read_instance = read_func.get_function(scope).unwrap();
@@ -1643,29 +1663,70 @@ fn socket_set_timeout_callback(
 }
 
 fn socket_set_encoding_callback(
-    _scope: &mut v8::PinScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
     let this = args.this();
+    // Stable `'data'` delivery is always UTF-8 lossy strings; store the requested
+    // encoding for Node-shaped API presence (Limit — not Buffer / multi-codec decode).
+    let encoding = if args.length() > 0 {
+        args.get(0)
+            .to_string(scope)
+            .map(|s| s.to_rust_string_lossy(scope))
+            .unwrap_or_else(|| "utf8".to_string())
+    } else {
+        "utf8".to_string()
+    };
+    let enc_key = v8::String::new(scope, "_encoding").unwrap();
+    let enc_val = v8::String::new(scope, &encoding).unwrap();
+    this.set(scope, enc_key.into(), enc_val.into());
     retval.set(this.into());
 }
 
 fn socket_pause_callback(
-    _scope: &mut v8::PinScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
     let this = args.this();
+    let handle_id_key = v8::String::new(scope, "_handleId").unwrap();
+    if let Some(handle_id_val) = this.get(scope, handle_id_key.into()) {
+        if let Some(id_num) = handle_id_val.to_int32(scope) {
+            if let Some(handle) = TCP_MANAGER.get_connection(id_num.value() as u64) {
+                handle.pause();
+            }
+        }
+    }
+    let is_paused_key = v8::String::new(scope, "isPaused").unwrap();
+    this.set(
+        scope,
+        is_paused_key.into(),
+        v8::Boolean::new(scope, true).into(),
+    );
     retval.set(this.into());
 }
 
 fn socket_resume_callback(
-    _scope: &mut v8::PinScope,
+    scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
     let this = args.this();
+    let handle_id_key = v8::String::new(scope, "_handleId").unwrap();
+    if let Some(handle_id_val) = this.get(scope, handle_id_key.into()) {
+        if let Some(id_num) = handle_id_val.to_int32(scope) {
+            if let Some(handle) = TCP_MANAGER.get_connection(id_num.value() as u64) {
+                handle.resume_read();
+            }
+        }
+    }
+    let is_paused_key = v8::String::new(scope, "isPaused").unwrap();
+    this.set(
+        scope,
+        is_paused_key.into(),
+        v8::Boolean::new(scope, false).into(),
+    );
     retval.set(this.into());
 }
 
