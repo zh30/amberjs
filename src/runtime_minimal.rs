@@ -18701,6 +18701,14 @@ require.resolve = function(specifier) {{
     /// Drain pending client Socket `'connect'` / `'data'` events (G61).
     pub fn pump_net_socket_events(&mut self) -> usize {
         use crate::nodejs_core::net::pump_pending_socket_events_in_scope;
+
+        let global_context = self.get_context();
+        v8::scope!(let scope, &mut self.isolate);
+        let context_local = v8::Local::new(scope, &global_context);
+        let scope = &mut v8::ContextScope::new(scope, context_local);
+        pump_pending_socket_events_in_scope(scope, &context_local)
+    }
+
     /// Drain pending `fs.watch` / `fs.watchFile` events into JS listeners.
     pub fn pump_fs_watch_events(&mut self) -> usize {
         use crate::nodejs_core::fs_watch::{
@@ -18715,7 +18723,6 @@ require.resolve = function(specifier) {{
         v8::scope!(let scope, &mut self.isolate);
         let context_local = v8::Local::new(scope, &global_context);
         let scope = &mut v8::ContextScope::new(scope, context_local);
-        pump_pending_socket_events_in_scope(scope, &context_local)
         pump_pending_fs_watch_events_in_scope(scope, &context_local)
     }
 
