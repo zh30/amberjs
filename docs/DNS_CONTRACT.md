@@ -23,15 +23,24 @@ This is not full Node `dns`. Stable methods use host OS lookups (`ToSocketAddrs`
 
 Each Stable call that performs network-facing lookup I/O (`lookup`, `resolve`, `resolve4`, `resolve6`, `reverse`) checks the global Network/Connect permission for the hostname (or IP string) before I/O. When denied, the call does **not** throw: it returns a permission-denial string, and `lookup` also passes that string as the callback `err` when a callback is present. `getServers` only reads local resolver configuration and does not perform a Network/Connect check.
 
+## Limits
+
+These are real behaviors of the Stable surface (G27 getaddrinfo + G65 `reverse` / `getServers`), not cover for missing APIs:
+
+- **Sync / same-turn.** Every Stable call completes on the calling turn and may block the isolate. There is no libuv-style threadpool and no later-turn deferral. `lookup`'s callback (when present) runs on that same turn.
+- **String errors, not Node `Error`.** Failures and permission denials return (or pass to `lookup`'s callback) plain strings such as `"Error: dns.reverse …"` / `"Error: dns.lookup …"`. There are no `Error` objects with `code` fields such as `ENOTFOUND` / `EAI_AGAIN`.
+- **`lookup` family is always `4`.** The third callback argument stays the number `4` even when `address` is IPv6.
+- **`resolve` `rrtype` is ignored.** Address lists come from the OS getaddrinfo-style lookup only; there is no record-type-specific path.
+- **`reverse` is one OS `getnameinfo(NI_NAMEREQD)`.** Success is a string array (typically length 1). Results are OS- and resolver-dependent. If the OS returns no name, or only the IP string itself, the call fails with `"Error: dns.reverse …"` (the old Echo-IP Preview stub is not Stable behavior). Empty / invalid IP and lookup failures return error strings (do not throw). No callback form. Sandbox Network/Connect deny returns a permission-denial string without performing I/O.
+- **`getServers` reads the host resolver list only.** Unix: `nameserver` lines from `/etc/resolv.conf`. Windows: `GetNetworkParams`. The array may be empty when the file is missing, unreadable, or the OS reports no servers. Never invents `8.8.8.8` or any other default. Sync on the calling turn; no Network/Connect check.
+
 ## Non-goals
+
+Outside this contract (Preview / unimplemented). Do **not** document these as Stable Limits fiction:
 
 - `dns.promises`, `dns.Resolver`, `setServers`, `lookupService`, `resolveMx` / `resolveTxt` / `resolveCname` / `resolveNs` / `resolveSrv` / `resolveAny` / `resolvePtr`, and TTL/`all` options.
 - Multi-RR PTR enumeration / `/etc/hosts` alias lists beyond what a single `getnameinfo(NI_NAMEREQD)` returns.
-- Node-shaped `Error` objects with `code` such as `ENOTFOUND` / `EAI_AGAIN`.
-- Async deferral to a later turn or a threadpool. Every Stable call completes on the calling turn.
-- A real `family` of `6` for IPv6 results from `lookup` (the third callback argument stays `4`).
-- Record-type fidelity for `resolve`'s `rrtype`.
-- Graduating Echo-IP `reverse` or fake `8.8.8.8` `getServers` as Stable Limits (forbidden honesty rule).
+- Graduating Echo-IP `reverse` or fake `8.8.8.8` `getServers` as Stable (forbidden honesty rule — those stubs are gone and must not reappear under Limits).
 
 ## Reachability
 
