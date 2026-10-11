@@ -521,33 +521,98 @@ fn os_tmpdir_callback(
     };
     retval.set(v8::String::new(scope, &tmpdir).unwrap().into());
 }
+/// Best-effort MAC for an interface name.
+/// Linux: `/sys/class/net/<name>/address`. Elsewhere (or on failure): all-zero MAC.
+fn mac_for_interface(name: &str) -> String {
+    #[cfg(target_os = "linux")]
+    {
+        let path = format!("/sys/class/net/{name}/address");
+        if let Ok(raw) = std::fs::read_to_string(&path) {
+            let trimmed = raw.trim();
+            if !trimmed.is_empty() {
+                return trimmed.to_string();
+            }
+        }
+    }
+    "00:00:00:00:00:00".to_string()
+}
+
 fn os_network_interfaces_callback(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    // Preview only: hardcoded loopback fiction (`lo` / `lo0`). Not Stable (G62 Non-goal).
-    // Do not graduate this as real `os.networkInterfaces` until OS enumeration lands.
-    let interfaces_obj: _ = v8::Object::new(scope);
-    // Loopback接口
-    let loopback_array: _ = v8::Array::new(scope, 1);
-    let loopback_obj: _ = v8::Object::new(scope);
-    let key_address: _ = v8::String::new(scope, "address").unwrap();
-    let val_address: _ = v8::String::new(scope, "127.0.0.1").unwrap();
-    loopback_obj.set(scope, key_address.into(), val_address.into());
-    let key_netmask: _ = v8::String::new(scope, "netmask").unwrap();
-    let val_netmask: _ = v8::String::new(scope, "255.0.0.0").unwrap();
-    loopback_obj.set(scope, key_netmask.into(), val_netmask.into());
-    let key_family: _ = v8::String::new(scope, "family").unwrap();
-    let val_family: _ = v8::String::new(scope, "IPv4").unwrap();
-    loopback_obj.set(scope, key_family.into(), val_family.into());
-    let key_internal: _ = v8::String::new(scope, "internal").unwrap();
-    let val_internal: _ = v8::Boolean::new(scope, true);
-    loopback_obj.set(scope, key_internal.into(), val_internal.into());
-    loopback_array.set_index(scope, 0, loopback_obj.into());
-    let _key_2: _ = v8::String::new(scope, "lo").unwrap();
-    interfaces_obj.set(scope, _key_2.into(), loopback_array.into());
-    let _key_3: _ = v8::String::new(scope, "lo0").unwrap();
-    interfaces_obj.set(scope, _key_3.into(), loopback_array.into());
+    // Real OS enumeration via getifaddrs / GetAdaptersAddresses (if-addrs).
+    // Replaces the pre-G63 hardcoded loopback-only fiction.
+    let interfaces_obj = v8::Object::new(scope);
+
+    let Ok(ifaces) = if_addrs::get_if_addrs() else {
+        retval.set(interfaces_obj.into());
+        return;
+    };
+
+    // Group addresses by interface name (order: first-seen name order).
+    let mut groups: Vec<(String, Vec<if_addrs::Interface>)> = Vec::new();
+    for iface in ifaces {
+        if let Some((_, entries)) = groups.iter_mut().find(|(n, _)| n == &iface.name) {
+            entries.push(iface);
+        } else {
+            groups.push((iface.name.clone(), vec![iface]));
+        }
+    }
+
+    for (name, entries) in groups {
+        let mac = mac_for_interface(&name);
+        let arr = v8::Array::new(scope, entries.len() as i32);
+        for (idx, iface) in entries.into_iter().enumerate() {
+            let (address, netmask, family, prefixlen, internal) = match iface.addr {
+                if_addrs::IfAddr::V4(v4) => (
+                    v4.ip.to_string(),
+                    v4.netmask.to_string(),
+                    "IPv4",
+                    v4.prefixlen,
+                    v4.is_loopback(),
+                ),
+                if_addrs::IfAddr::V6(v6) => (
+                    v6.ip.to_string(),
+                    v6.netmask.to_string(),
+                    "IPv6",
+                    v6.prefixlen,
+                    v6.is_loopback(),
+                ),
+            };
+            let cidr = format!("{address}/{prefixlen}");
+            let entry = v8::Object::new(scope);
+
+            let key_address = v8::String::new(scope, "address").unwrap();
+            let val_address = v8::String::new(scope, &address).unwrap();
+            entry.set(scope, key_address.into(), val_address.into());
+
+            let key_netmask = v8::String::new(scope, "netmask").unwrap();
+            let val_netmask = v8::String::new(scope, &netmask).unwrap();
+            entry.set(scope, key_netmask.into(), val_netmask.into());
+
+            let key_family = v8::String::new(scope, "family").unwrap();
+            let val_family = v8::String::new(scope, family).unwrap();
+            entry.set(scope, key_family.into(), val_family.into());
+
+            let key_mac = v8::String::new(scope, "mac").unwrap();
+            let val_mac = v8::String::new(scope, &mac).unwrap();
+            entry.set(scope, key_mac.into(), val_mac.into());
+
+            let key_internal = v8::String::new(scope, "internal").unwrap();
+            let val_internal = v8::Boolean::new(scope, internal);
+            entry.set(scope, key_internal.into(), val_internal.into());
+
+            let key_cidr = v8::String::new(scope, "cidr").unwrap();
+            let val_cidr = v8::String::new(scope, &cidr).unwrap();
+            entry.set(scope, key_cidr.into(), val_cidr.into());
+
+            arr.set_index(scope, idx as u32, entry.into());
+        }
+        let key_name = v8::String::new(scope, &name).unwrap();
+        interfaces_obj.set(scope, key_name.into(), arr.into());
+    }
+
     retval.set(interfaces_obj.into());
 }
