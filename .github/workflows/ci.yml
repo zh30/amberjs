@@ -155,6 +155,8 @@ jobs:
 
       - name: node crypto cipheriv GCM Stable contract
         run: cargo test --test crypto_cipheriv_gcm_contract_tests -- --test-threads=1
+      - name: node crypto cipheriv CTR Stable contract
+        run: cargo test --test crypto_cipheriv_ctr_contract_tests -- --test-threads=1
 
       - name: node stream Stable contract
         run: cargo test --test node_stream_contract_tests -- --test-threads=1

@@ -4,7 +4,7 @@ This is the user-facing contract for a **narrow** Stable carve of Node `crypto` 
 
 This is **additive** to the G23 hash/HMAC/`randomBytes`/`timingSafeEqual` subset in [`docs/NODE_CRYPTO_CONTRACT.md`](NODE_CRYPTO_CONTRACT.md). It is **not** Web Crypto (G14). It is **not** full Node `crypto`.
 
-**Honesty:** Password-based `createCipher` / `createDecipher` must **never** be graduated by renaming incomplete or bag-wide behavior as Stable Limits. AES-GCM is a separate Stable carve (**G51**, [`docs/NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md)). CTR / CFB / OFB / ECB on the same object stay outside this carve even when callable.
+**Honesty:** Password-based `createCipher` / `createDecipher` must **never** be graduated by renaming incomplete or bag-wide behavior as Stable Limits. AES-GCM is a separate Stable carve (**G51**, [`docs/NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md)). CTR / CFB / OFB / ECB on the same object stay outside this carve even when callable; AES-*-CTR is a separate Stable carve (**G52**, [`docs/NODE_CRYPTO_CIPHERIV_CTR_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_CTR_CONTRACT.md)).
 
 ## Stable surface
 
@@ -47,7 +47,8 @@ Outside this contract (Preview / DEFER). Do **not** treat these as Stable Limits
 
 - **Password-based `createCipher` / `createDecipher`** (EVP_BytesToKey / password→key derivation). Never graduate by listing password KDF quirks as Limits.
 - **AES-GCM** is Stable under a separate page (**G51**, [`docs/NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md)) — not this CBC carve and not Limits fiction of bag-wide cipher.
-- **AES-CTR / CFB / OFB / ECB** and other OpenSSL names accepted by `get_cipher` today — callable Preview only; not Stable.
+- **AES-*-CTR** is Stable under a separate page (**G52**, [`docs/NODE_CRYPTO_CIPHERIV_CTR_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_CTR_CONTRACT.md)) — not this CBC carve.
+- **AES-CFB / OFB / ECB** and other OpenSSL names accepted by `get_cipher` today — callable Preview only; not Stable.
 - Expanding G23 to “all crypto methods on the object”.
 - KDF (`pbkdf2`, `scrypt`, `hkdf`), `createSign` / `createVerify`, `generateKeyPair`, KeyObjects, Diffie-Hellman, RSA encrypt helpers.
 - Web Crypto `crypto.subtle` / `CryptoKey` (G14 only).
@@ -65,8 +66,8 @@ cargo test --test crypto_cipheriv_contract_tests -- --test-threads=1
 
 CI step: `node crypto cipheriv CBC Stable contract`.
 
-Broader Preview coverage (CTR/GCM/etc.) remains in `tests/crypto_cipheriv_tests.rs` and is **not** this Stable pin.
+Broader coverage for CTR (**G52**), GCM (**G51**), and other modes remains in `tests/crypto_cipheriv_tests.rs` / sibling contract suites and is **not** this Stable pin.
 
 ## Honesty rule
 
-Password `createCipher` must stay a Non-goal of this page. AES-GCM is **G51**, not this carve. Limits describe CBC key/IV/update/final quirks only. Graduating “cipher” as a bag is forbidden.
+Password `createCipher` must stay a Non-goal of this page. AES-GCM is **G51** and AES-*-CTR is **G52**, not this carve. Limits describe CBC key/IV/update/final quirks only. Graduating “cipher” as a bag is forbidden.
