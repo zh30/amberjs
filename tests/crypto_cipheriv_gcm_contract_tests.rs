@@ -100,7 +100,8 @@ fn aes_128_gcm_known_vector_aad_and_auth_tag() {
 
         const cipher = c.createCipheriv('aes-128-gcm', key, iv);
         const returned = cipher.setAAD(aad);
-        const encrypted = cipher.update(plain, undefined, 'hex') + cipher.final('hex');
+        // Match Preview pin / Node-shaped byte-view update (inputEncoding 'buffer').
+        const encrypted = cipher.update(plain, 'buffer', 'hex') + cipher.final('hex');
         const tag = cipher.getAuthTag();
 
         const decipher = c.createDecipheriv('aes-128-gcm', key, iv);
@@ -110,12 +111,18 @@ fn aes_128_gcm_known_vector_aad_and_auth_tag() {
 
         [
           returned === cipher,
+          encrypted,
+          hex(tag),
+          decrypted,
           encrypted === expectedCipher,
           hex(tag) === expectedTag,
           decrypted === '00112233445566778899aabbccddeeff'
         ].join('|');
         "#);
-    assert_eq!(result, "true|true|true|true");
+    assert_eq!(
+        result,
+        "true|c43f219c4b1ad0989f44f74e0bfa05c1|8904c9157db4cc2579d0d2226f069e32|00112233445566778899aabbccddeeff|true|true|true"
+    );
 }
 
 #[test]
