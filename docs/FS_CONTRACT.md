@@ -4,7 +4,7 @@ This is the user-facing contract for the Stable subset of Node `fs` in Amber. It
 
 `require('fs')`, `require('fs/promises')`, and `import` from `'fs'` or `'node:fs'` reach the same object installed by `setup_fs_api`. The default ESM export is that object. Named ESM exports include `appendFileSync` and the other sync methods listed below, plus `constants`.
 
-This is not full Node `fs`. Methods that are not listed here are outside the contract. `fs.watch` is not implemented (`typeof fs.watch === "undefined"`).
+This is not full Node `fs`. Methods that are not listed here are outside the contract. `fs.watch` / `fs.watchFile` are a separate Stable surface under **tentative G64** ([`docs/FS_WATCH_CONTRACT.md`](FS_WATCH_CONTRACT.md)).
 
 The rest of `src/nodejs_core/` (`http`, `net`, streams, `child_process`, and the other modules) stays Preview, except the Stable Node `path` contract in [`docs/PATH_CONTRACT.md`](PATH_CONTRACT.md), the Stable Node `events` contract in [`docs/NODE_EVENTS_CONTRACT.md`](NODE_EVENTS_CONTRACT.md), the Stable Node `buffer` / `Buffer` contract in [`docs/BUFFER_CONTRACT.md`](BUFFER_CONTRACT.md), the Stable Node `os` contract in [`docs/OS_CONTRACT.md`](OS_CONTRACT.md), the Stable Node `zlib` sync contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md), the Stable `util` / `process` basics contracts, the Stable Node `crypto` subset in [`docs/NODE_CRYPTO_CONTRACT.md`](NODE_CRYPTO_CONTRACT.md) (G23), and the Stable Node `stream` subset in [`docs/NODE_STREAM_CONTRACT.md`](NODE_STREAM_CONTRACT.md) (G24), and the Stable `child_process` sync contract in [`docs/CHILD_PROCESS_CONTRACT.md`](CHILD_PROCESS_CONTRACT.md) (G25), and the Stable Node `url` fileURL helpers in [`docs/NODE_URL_CONTRACT.md`](NODE_URL_CONTRACT.md) (G26), and the Stable `dns` getaddrinfo contract in [`docs/DNS_CONTRACT.md`](DNS_CONTRACT.md) (G27), and the Stable CommonJS `require` / resolution contract in [`docs/REQUIRE_CONTRACT.md`](REQUIRE_CONTRACT.md) (G28).
 
@@ -69,7 +69,8 @@ Failures from `mkdir`, `stat`, `lstat`, `unlink`, `rename`, and `rmdir` throw or
 
 ## Non-goals
 
-- `fs.watch`, `fs.watchFile`, `fs.glob`, `fs.cp`, `fs.opendir`, and `fs.statfs` (not implemented; `typeof fs.watch === "undefined"`).
+- `fs.glob`, `fs.cp`, `fs.opendir`, and `fs.statfs` (not implemented on this page).
+- `fs.watch` / `fs.watchFile` / `fs.unwatchFile` — Stable under **tentative G64** ([`docs/FS_WATCH_CONTRACT.md`](FS_WATCH_CONTRACT.md)), not this G8 page.
 - `fs.exists` (callback) and `fs.promises.exists` (not installed).
 - Node `FileHandle` (`fd.close()` as a method, `readableWebStream`, and the rest of that class).
 - A worker threadpool. Async `fs` does not run concurrently with JavaScript on another thread.

@@ -220,9 +220,10 @@ fn readdir_with_file_types_and_write_flags() {
         root = js_path(dir.path()),
         file = js_path(&file)
     );
+    // G64 installs fs.watch; G8 contract no longer pins absence.
     assert_eq!(
         run(&code),
-        "true|false|false|true|XYcdefZ|ERR_INVALID_ARG_VALUE|EBADF|undefined"
+        "true|false|false|true|XYcdefZ|ERR_INVALID_ARG_VALUE|EBADF|function"
     );
 }
 
@@ -319,9 +320,10 @@ fn exists_sync_boolean_follows_links_and_is_named_esm_export() {
         broken = js_path(&broken),
         dir = js_path(dir.path())
     );
+    // G64 owns fs.watch; this G8 pin only checks existsSync + absent exists APIs.
     assert_eq!(
         run(&code),
-        "true|false|true|false|true|undefined|undefined|undefined"
+        "true|false|true|false|true|undefined|undefined|function"
     );
 
     let main_path = dir.path().join("exists.mjs");

@@ -144,7 +144,7 @@ fn attach_stats_methods(scope: &mut v8::PinScope, stat_obj: v8::Local<v8::Object
 
 /// `stat` follows links, so `isSymbolicLink()` is false there.
 /// `lstat` passes symlink metadata, where `file_type().is_symlink()` is true.
-fn create_stats_object<'a>(
+pub(crate) fn create_stats_object<'a>(
     scope: &mut v8::PinScope<'a, '_>,
     metadata: &std::fs::Metadata,
 ) -> v8::Local<'a, v8::Object> {

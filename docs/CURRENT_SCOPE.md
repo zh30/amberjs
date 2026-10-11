@@ -1,3 +1,8 @@
+---
+cursor:
+  subagentId: "bc-64417f04-59b5-58aa-a05c-df6e98570403"
+---
+
 # Current Scope
 
 Last reviewed: 2026-10-08 (v1.17.0)
@@ -501,3 +506,39 @@ Move a capability upward only when all of these are true:
 - Feature-gated work has a passing feature check for the relevant feature.
 
 Checklist completion in `docs/THREE_YEAR_EXECUTION_CHECKLIST.md` is not a sixth criterion and does not by itself move a capability to Stable.
+
+G64 graduation (2026-10-11; after G63 on main):
+
+- Node `fs.watch` / `fs.watchFile` are **Stable** under the Graduation Rule (**tentative G64**) for the contract in [`docs/FS_WATCH_CONTRACT.md`](FS_WATCH_CONTRACT.md), pinned by `tests/fs_watch_contract_tests.rs` and the CI step `node fs watch Stable contract`. The surface is `require('fs').watch` → real OS watcher via `notify` (inotify / FSEvents / ReadDirectoryChangesW) returning an EventEmitter-backed `FSWatcher` that emits `'change'` `(eventType, filename)` on a later pump turn, plus `watcher.close()`; and `fs.watchFile` → real host `stat` polling that invokes `listener(curr, prev)` with `size` / `mtimeMs`, plus `fs.unwatchFile`. Missing watch paths throw `ENOENT` synchronously. **Limits (honest platform gaps OK):** isolate-thread pump delivery; backend coalescing (≥1 event pin, not exact Node counts); `recursive: true` depends on host notify backend; `watchFile` is polling (Node model), not inotify. **Honesty Non-goals (not Limits fiction):** `fs.promises.watch`, `fs.glob` / `fs.cp` / `fs.opendir` / `fs.statfs`, fabricating change events, absence-as-Limits. Do not renumber G1–G48. G8 byte I/O stays [`docs/FS_CONTRACT.md`](FS_CONTRACT.md). CLI `amber run --watch` stays G6.
+
+
+v1.16.0 notes:
+
+- Wasm Engine 2.0: zero-copy `WebAssembly.Memory` / `ArrayBuffer` via V8 backing stores, mmap module load, `require('amber:wasm')`.
+- At the v1.16.0 tag, `amber bundle` (oxc), `amber compile` (SEA trailer `AMBER_STANDALONE`), and `amber install` were **Preview**. Bundle and compile are **Stable** as of G1 and G2. Install is **Stable** as of G3 (direct `package.json` dependencies plus lockfile `dependencies` pins; not npm/yarn/pnpm).
+- URL / `fetch` / `ReadableStream` hot paths rewritten; suite 2.0 numbers are in `benchmarks/`.
+- Node.js Conformance 5.0 is **55/55 PASS**.
+
+Optimization sprint notes (2026-09-10 v1.9.1):
+
+- Windows MSVC is a fail-closed Release target (`amber-v*-x86_64-pc-windows-msvc.zip` with `amber.exe`); Unix-only libc is cfg-gated on the default Windows path.
+- `amber serve --https` uses rustls HTTP/1.1 (missing cert/key exits non-zero).
+- `amber run --inspect-brk` evaluates on the isolate (`Runtime.evaluate`) and waits until resume.
+- Minimal N-API hello loader (`process.dlopen` calls `napi_register_module_v1`). Experimental; not Prisma/sharp.
+- TypeScript thrown stacks map to `.ts` lines; `amber test --parallel` exits 2.
+- rustc pinned to 1.97.1; CI feature matrix is `benchmarks` + `observability` (empty `ai` feature is not in the matrix). `cargo-audit` is fail-closed; `cargo deny` checks advisories/licenses.
+- GHCR images are linux/amd64 only. Homebrew SHA256 is rewritten from Release archives. Winget manifest URL uses the Windows zip name.
+
+v1.9.0 notes (kept for history):
+
+- Native Agentic AI Engine 1.0 (`amber:ai` promoted to **Stable**): Zero-copy `Tensor` (TypedArray-backed, matmul, dot, norm, softmax, cosineSimilarity), local streaming `LLM` (`load`, `generate`, `generateStream`, `embed`), and `AgentPipeline` with deterministic execution.
+- Node conformance fixtures live in `tests/conformance/`. The CI job `Format, Lint, Test, Package` fails closed unless the scorecard is at least **55/55 PASS** (0 FAIL, 0 SKIP). Adding fixtures that still all pass stays green.
+- V8 Startup Snapshot 2.0 with zero-copy `mmap` backing: instant cold start with copy-on-write memory mapping across isolate processes.
+- Native Test Runner 2.0 (`amber test` **Stable**): zero-argument discovery excluding `manual`, `node_modules`, and `__snapshots__`; built-in `--watch` mode.
+- Agent Deterministic Sandbox & Virtual Time 1.0 (Deterministic Replay): `--seed <u64>` (deterministic PRNG for `Math.random()`, `crypto.getRandomValues()`, `crypto.randomBytes()`) and `--freeze-time <spec>` (virtual deterministic clock for `Date.now()`, `new Date()`, `performance.now()`).
+- Node Conformance 4.0: `child_process.execSync` & `child_process.spawnSync` under permission broker; `zlib` sync methods returning standard Buffer instances; `Buffer.from(ArrayBuffer)` alignment; `string_decoder`, `perf_hooks`, and `events` expanded methods.
+- Multi-Isolate Concurrency 2.0: OS-thread backed V8 isolates for `require('worker_threads')` and `globalThis.Worker`, with bi-directional `postMessage`, `parentPort`, `workerData`, and main event loop integration.
+- WebAssembly 2.0: Streaming compilation and instantiation (`WebAssembly.compileStreaming`, `WebAssembly.instantiateStreaming`) consuming `Response` and `Promise<Response>` without intermediate ArrayBuffer string corruption.
+- Agent tool sandbox & MCP 2.0: `amber run --sandbox` denies fs/net/env/run with fine-grained allows and structured JSONL audit trail recording (`--audit-log <path>`); `amber session` (stdin JSON-RPC) and `amber mcp` (MCP stdio server) with JSDoc schema extraction and standard error handling.
+- Builtins wired: `ai` (`amber:ai`), `assert`, `string_decoder`, `zlib`, `https`, `tls`, `vm`, `worker_threads`, `perf_hooks`, `child_process`, `util`.
+
