@@ -1,12 +1,12 @@
 # Node `dns` contract
 
-This is the user-facing contract for the Stable getaddrinfo subset of Node `dns` in Amber. It is derived from `src/nodejs_core/dns.rs`, `src/runtime_minimal.rs`, and `tests/dns_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable Node `dns` surface in Amber. It is derived from `src/nodejs_core/dns.rs`, `src/runtime_minimal.rs`, and `tests/dns_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 `require('dns')` and `require('node:dns')` reach the same object installed by `setup_dns_api` on `globalThis.dns`.
 
-This is not full Node `dns`. Only `lookup`, `resolve`, `resolve4`, and `resolve6` are Stable. They use the host `getaddrinfo` path (`ToSocketAddrs`), not a DNS wire client. Methods that are not listed here are outside the contract, including the Preview stubs `reverse` and `getServers`.
+This is not full Node `dns`. Stable methods use host OS lookups (`ToSocketAddrs` / `getnameinfo`) and the system resolver list — not a DNS wire client and not invented defaults.
 
-**Provisional numbering:** This contract is intended as **G27** after url **G26** (stream **G24**, child_process **G25**). CommonJS `require` stays last as **G28**. Do not assign G24 to require or G28 to dns.
+**Numbering:** getaddrinfo (`lookup` / `resolve` / `resolve4` / `resolve6`) is **G27**. Real `reverse` / `getServers` are additive **tentative G65**. Do not renumber G1–G64.
 
 ## Stable surface
 
@@ -16,19 +16,31 @@ This is not full Node `dns`. Only `lookup`, `resolve`, `resolve4`, and `resolve6
 | `resolve(hostname[, rrtype])` | Same OS lookup. Returns a string array of address literals (IPv4 and/or IPv6). The `rrtype` argument is accepted and ignored; there is no record-type-specific resolution. On failure returns an error string starting with `"Error: dns.resolve "` (does not throw). Empty hostname returns `"Error: hostname is required"`. No callback form. |
 | `resolve4(hostname)` | Same OS lookup filtered to IPv4 addresses only. Returns a string array (possibly empty when the host has only IPv6). Failure and empty-hostname strings match `resolve` with the `dns.resolve4` prefix. No callback form. |
 | `resolve6(hostname)` | Same OS lookup filtered to IPv6 addresses only. Returns a string array (possibly empty when the host has only IPv4). Failure and empty-hostname strings match `resolve` with the `dns.resolve6` prefix. No callback form. |
+| `reverse(ip)` (**G65**) | Real reverse DNS via OS `getnameinfo` with `NI_NAMEREQD`. On success returns a **string array** of hostnames (typically one). The hostname is never the IP string itself (the old Echo-IP Preview stub is gone). Empty input returns `"Error: IP address is required"`. Invalid IP or lookup failure returns a string starting with `"Error: dns.reverse "` (does not throw). No callback form. Sync on the calling turn. |
+| `getServers()` (**G65**) | Returns a string array of configured DNS server addresses from the host: Unix reads `nameserver` lines from `/etc/resolv.conf`; Windows uses `GetNetworkParams`. Never invents `8.8.8.8` or any other default. The array may be empty when the OS has no configured servers. Sync on the calling turn. |
 
 ## Permission broker
 
-Each Stable call checks the global Network/Connect permission for the hostname (or IP string) before lookup I/O. When denied, the call does **not** throw: it returns a permission-denial string, and `lookup` also passes that string as the callback `err` when a callback is present.
+Each Stable call that performs network-facing lookup I/O (`lookup`, `resolve`, `resolve4`, `resolve6`, `reverse`) checks the global Network/Connect permission for the hostname (or IP string) before I/O. When denied, the call does **not** throw: it returns a permission-denial string, and `lookup` also passes that string as the callback `err` when a callback is present. `getServers` only reads local resolver configuration and does not perform a Network/Connect check.
+
+## Limits
+
+These are real behaviors of the Stable surface (G27 getaddrinfo + G65 `reverse` / `getServers`), not cover for missing APIs:
+
+- **Sync / same-turn.** Every Stable call completes on the calling turn and may block the isolate. There is no libuv-style threadpool and no later-turn deferral. `lookup`'s callback (when present) runs on that same turn.
+- **String errors, not Node `Error`.** Failures and permission denials return (or pass to `lookup`'s callback) plain strings such as `"Error: dns.reverse …"` / `"Error: dns.lookup …"`. There are no `Error` objects with `code` fields such as `ENOTFOUND` / `EAI_AGAIN`.
+- **`lookup` family is always `4`.** The third callback argument stays the number `4` even when `address` is IPv6.
+- **`resolve` `rrtype` is ignored.** Address lists come from the OS getaddrinfo-style lookup only; there is no record-type-specific path.
+- **`reverse` is one OS `getnameinfo(NI_NAMEREQD)`.** Success is a string array (typically length 1). Results are OS- and resolver-dependent. If the OS returns no name, or only the IP string itself, the call fails with `"Error: dns.reverse …"` (the old Echo-IP Preview stub is not Stable behavior). Empty / invalid IP and lookup failures return error strings (do not throw). No callback form. Sandbox Network/Connect deny returns a permission-denial string without performing I/O.
+- **`getServers` reads the host resolver list only.** Unix: `nameserver` lines from `/etc/resolv.conf`. Windows: `GetNetworkParams`. The array may be empty when the file is missing, unreadable, or the OS reports no servers. Never invents `8.8.8.8` or any other default. Sync on the calling turn; no Network/Connect check.
 
 ## Non-goals
 
-- `dns.reverse` and `dns.getServers` (Preview stubs; not this contract).
+Outside this contract (Preview / unimplemented). Do **not** document these as Stable Limits fiction:
+
 - `dns.promises`, `dns.Resolver`, `setServers`, `lookupService`, `resolveMx` / `resolveTxt` / `resolveCname` / `resolveNs` / `resolveSrv` / `resolveAny` / `resolvePtr`, and TTL/`all` options.
-- Node-shaped `Error` objects with `code` such as `ENOTFOUND` / `EAI_AGAIN`.
-- Async deferral to a later turn or a threadpool. Every Stable call completes on the calling turn.
-- A real `family` of `6` for IPv6 results from `lookup` (the third callback argument stays `4`).
-- Record-type fidelity for `resolve`'s `rrtype`.
+- Multi-RR PTR enumeration / `/etc/hosts` alias lists beyond what a single `getnameinfo(NI_NAMEREQD)` returns.
+- Graduating Echo-IP `reverse` or fake `8.8.8.8` `getServers` as Stable (forbidden honesty rule — those stubs are gone and must not reappear under Limits).
 
 ## Reachability
 
