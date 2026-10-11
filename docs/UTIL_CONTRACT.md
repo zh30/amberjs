@@ -4,7 +4,7 @@ This is the user-facing contract for the Stable basics subset of Node `util` in 
 
 `require('util')` and `require('node:util')` reach the same object as `globalThis.util`.
 
-This is not full Node `util`. Methods that are not listed here are outside the contract. In particular, `util.types.isArrayBuffer` and `util.types.isRegExp` are **not** Stable: the Rust stubs always return `false` and the JS overlay does not replace them.
+This is not full Node `util`. Methods that are not listed here are outside the contract. Additive **G59** pins real V8 `util.types.isArrayBuffer` and `util.types.isRegExp` (the previous always-`false` Rust stubs are gone).
 
 The rest of `src/nodejs_core/` stays Preview except surfaces with their own Stable contracts (for example the Node `fs` contract and the tiny `process` basics contract).
 
@@ -29,6 +29,8 @@ The rest of `src/nodejs_core/` stays Preview except surfaces with their own Stab
 | `isPromise` | `instanceof Promise`, or a thenable with a `then` function. |
 | `isTypedArray` | `ArrayBuffer.isView(v) && !(v instanceof DataView)`. |
 | `isAnyArrayBuffer` | `ArrayBuffer` or `SharedArrayBuffer` when that global exists. |
+| `isArrayBuffer` | `true` when the value is a V8 `ArrayBuffer` (`Value::is_array_buffer`). `false` for `SharedArrayBuffer`, TypedArray / `DataView` views, plain objects, and primitives. Omitted argument is `false`. |
+| `isRegExp` | `true` when the value is a V8 `RegExp` (`Value::is_reg_exp`). `false` for RegExp-like plain objects, strings, and other types. Omitted argument is `false`. |
 | `isDataView` | `instanceof DataView`. |
 | `isNativeError` | `instanceof Error`. |
 | `isArgumentsObject` | `Object.prototype.toString` is `[object Arguments]`. |
@@ -36,14 +38,30 @@ The rest of `src/nodejs_core/` stays Preview except surfaces with their own Stab
 | `isBoxedPrimitive` | Boxed `Number` / `String` / `Boolean` / `Symbol` / `BigInt`. |
 | `isAsyncFunction` / `isGeneratorFunction` | Constructor name `AsyncFunction` / `GeneratorFunction`. |
 
+## Limits
+
+These are real behaviors of the Stable surface, not cover for missing APIs:
+
+- `isArrayBuffer` does **not** treat `SharedArrayBuffer` as an `ArrayBuffer` (use `isAnyArrayBuffer`).
+- `isArrayBuffer` / `isRegExp` use V8 type tags, not duck-typing (`{ buffer: … }` / `{ test() {} }` stay `false`).
+- Shallow `inspect` does not honor `depth`, colors, or custom inspect symbols.
+
 ## Non-goals
 
 - Full Node `util` (`parseArgs`, `styleText`, `transferableAbortController`, `TextEncoder` / `TextDecoder` re-exports, and the rest).
-- `util.types.isArrayBuffer` and `util.types.isRegExp` (always `false` today; not Stable).
 - Deep `inspect` with `depth`, custom inspect symbols, or colored output.
 - `deprecate` and `debuglog` (present for experiments; not pinned here).
 - Matching every Node format specifier or inspect edge case.
+- Every other `util.types.*` helper beyond the Stable members table above.
 
 ## Reachability
 
 The CLI `amber` binary installs `globalThis.util` from `src/runtime_minimal.rs` via `nodejs_core::util::setup_util_api`. Library users reach the same setup through `amberjs::nodejs_core` (`src/lib.rs` exports `nodejs_core`). The contract is not feature-gated.
+
+## Tests
+
+```bash
+cargo test --test util_contract_tests -- --test-threads=1
+```
+
+CI runs that command as `node util Stable contract`.

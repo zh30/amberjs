@@ -96,6 +96,43 @@ fn types_stable_members() {
 
 #[test]
 #[serial]
+fn types_is_array_buffer_and_is_reg_exp() {
+    // G59: real V8 is_array_buffer / is_reg_exp (not always-false stubs).
+    let code = r#"
+        const t = require('util').types;
+        const ab = new ArrayBuffer(8);
+        const u8 = new Uint8Array(ab);
+        const dv = new DataView(ab);
+        const re = /abc/i;
+        const sabOk = (typeof SharedArrayBuffer !== 'undefined')
+          ? !t.isArrayBuffer(new SharedArrayBuffer(4))
+          : true;
+        [
+          t.isArrayBuffer(ab),
+          t.isArrayBuffer(u8),
+          t.isArrayBuffer(dv),
+          t.isArrayBuffer({}),
+          t.isArrayBuffer(null),
+          t.isArrayBuffer(),
+          sabOk,
+          t.isRegExp(re),
+          t.isRegExp(new RegExp('x')),
+          t.isRegExp({}),
+          t.isRegExp('/x/'),
+          t.isRegExp(null),
+          t.isRegExp(),
+          t.isArrayBuffer === require('node:util').types.isArrayBuffer,
+          t.isRegExp === require('node:util').types.isRegExp
+        ].join('|');
+        "#;
+    assert_eq!(
+        run(code),
+        "true|false|false|false|false|false|true|true|true|false|false|false|false|true|true"
+    );
+}
+
+#[test]
+#[serial]
 fn legacy_predicates() {
     let code = r#"
         const util = require('util');
@@ -179,7 +216,9 @@ fn cli_require_util_reaches_the_contract() {
           util.format('%s:%d', 'a', 1),
           util.inspect({ k: 2 }).includes('k'),
           typeof util.promisify,
-          typeof util.inherits
+          typeof util.inherits,
+          util.types.isArrayBuffer(new ArrayBuffer(1)),
+          util.types.isRegExp(/z/)
         ].join('|'));
         "#,
     )
@@ -196,6 +235,6 @@ fn cli_require_util_reaches_the_contract() {
     );
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
-        "a:1|true|function|function"
+        "a:1|true|function|function|true|true"
     );
 }

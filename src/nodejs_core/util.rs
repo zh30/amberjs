@@ -170,9 +170,10 @@ pub fn setup_util_api(
     let is_array_buffer_value = v8::FunctionTemplate::new(
         scope,
         |_scope: &mut v8::PinScope,
-         _args: v8::FunctionCallbackArguments,
-         mut _retval: v8::ReturnValue| {
-            _retval.set(v8::Boolean::new(_scope, false).into());
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // Real V8 ArrayBuffer check (not SharedArrayBuffer / views).
+            retval.set(v8::Boolean::new(_scope, args.get(0).is_array_buffer()).into());
         },
     )
     .get_function(scope)
@@ -200,9 +201,10 @@ pub fn setup_util_api(
     let is_regexp_value = v8::FunctionTemplate::new(
         scope,
         |_scope: &mut v8::PinScope,
-         _args: v8::FunctionCallbackArguments,
-         mut _retval: v8::ReturnValue| {
-            _retval.set(v8::Boolean::new(_scope, false).into());
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            // Real V8 RegExp check (truthy Rust stub previously blocked the JS overlay).
+            retval.set(v8::Boolean::new(_scope, args.get(0).is_reg_exp()).into());
         },
     )
     .get_function(scope)
