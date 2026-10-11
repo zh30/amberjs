@@ -1,4 +1,4 @@
-//! Pins docs/PROCESS_CONTRACT.md (G22 basics + G44 stdout/stderr.write carve).
+//! Pins docs/PROCESS_CONTRACT.md (G22 basics + G44 stdout/stderr.write + G53 hrtime carve).
 use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
@@ -225,4 +225,103 @@ fn cli_stdout_write_coerces_number_and_buffer() {
         stdout.contains("7|bufmark"),
         "expected coerced stdout payload, got: {stdout:?}"
     );
+}
+
+#[test]
+#[serial]
+fn hrtime_returns_epoch_split_array() {
+    let code = r#"
+        const t = process.hrtime();
+        [
+          typeof process.hrtime,
+          Array.isArray(t),
+          t.length,
+          typeof t[0] === 'number' && t[0] >= 0,
+          typeof t[1] === 'number' && t[1] >= 0 && t[1] < 1e9,
+          // Epoch-based: whole seconds since Unix epoch are large (not process-relative).
+          t[0] > 1_000_000_000
+        ].join('|');
+        "#;
+    assert_eq!(run(code), "function|true|2|true|true|true");
+}
+
+#[test]
+#[serial]
+fn hrtime_previous_value_is_ignored() {
+    // Honest Limit: no previous-value diff overload — args are ignored.
+    let code = r#"
+        const a = process.hrtime();
+        const withPrev = process.hrtime(a);
+        const withFake = process.hrtime([0, 0]);
+        [
+          Array.isArray(withPrev) && withPrev.length === 2,
+          Array.isArray(withFake) && withFake.length === 2,
+          // Diff overload would yield ~0; epoch absolute stays large.
+          withPrev[0] > 1_000_000_000,
+          withFake[0] > 1_000_000_000,
+          // Not a tiny elapsed delta from a prior tuple.
+          !(withPrev[0] === 0 && withPrev[1] < 1e9)
+        ].join('|');
+        "#;
+    assert_eq!(run(code), "true|true|true|true|true");
+}
+
+#[test]
+#[serial]
+fn hrtime_bigint_returns_epoch_nanos() {
+    let code = r#"
+        const n = process.hrtime.bigint();
+        const t = process.hrtime();
+        const fromTuple = BigInt(t[0]) * 1000000000n + BigInt(t[1]);
+        const delta = n > fromTuple ? n - fromTuple : fromTuple - n;
+        [
+          typeof process.hrtime.bigint,
+          typeof n === 'bigint',
+          n > 0n,
+          // Same wall-clock source; allow a small scheduling skew.
+          delta < 1000000000n
+        ].join('|');
+        "#;
+    assert_eq!(run(code), "function|true|true|true");
+}
+
+#[test]
+#[serial]
+fn cli_hrtime_reaches_the_contract() {
+    let binary = env!("CARGO_BIN_EXE_amber");
+    let dir = TempDir::new().expect("temp dir");
+    let script = dir.path().join("hrtime_probe.js");
+    fs::write(
+        &script,
+        r#"
+        const t = process.hrtime();
+        const n = process.hrtime.bigint();
+        const ignored = process.hrtime([1, 2]);
+        console.log([
+          typeof process.hrtime,
+          Array.isArray(t) && t.length === 2,
+          t[0] > 1_000_000_000,
+          typeof n === 'bigint' && n > 0n,
+          ignored[0] > 1_000_000_000
+        ].join('|'));
+        "#,
+    )
+    .expect("script");
+    let output = Command::new(binary)
+        .arg("run")
+        .arg(&script)
+        .output()
+        .expect("amber run");
+    assert!(
+        output.status.success(),
+        "amber run failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let line = stdout
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty() && *line != "[object Object]")
+        .unwrap_or("");
+    assert_eq!(line, "function|true|true|true|true");
 }
