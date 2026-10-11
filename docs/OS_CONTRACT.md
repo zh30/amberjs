@@ -26,9 +26,9 @@ The Node `fs` contract stays [`docs/FS_CONTRACT.md`](FS_CONTRACT.md). The Node `
 
 ## Outside this contract
 
-`loadavg`, `networkInterfaces`, `tmpDir`, `cpus()[].speed`, `cpus()[].times`, `constants.UV_UDP_REUSEADDR`, `constants.arch`, `constants.platform`, and every other Node `os` API not named above are not part of this G20 Stable surface. They may exist on the object; this contract does not pin them.
+`loadavg`, `tmpDir`, `cpus()[].speed`, `cpus()[].times`, `constants.UV_UDP_REUSEADDR`, `constants.arch`, `constants.platform`, and every other Node `os` API not named above are not part of this G20 Stable surface. They may exist on the object; this contract does not pin them.
 
-`os.hostname` is Stable under a separate page: [`docs/OS_HOSTNAME_CONTRACT.md`](OS_HOSTNAME_CONTRACT.md) (**G62**). `os.networkInterfaces` remains Preview hardcoded fake loopback (`lo` / `lo0`) and must **not** be graduated as Stable until real OS interface enumeration lands (not a Stable Limit of this page).
+`os.hostname` is Stable under a separate page: [`docs/OS_HOSTNAME_CONTRACT.md`](OS_HOSTNAME_CONTRACT.md) (**G62**). `os.networkInterfaces` is a **separate** Stable carve under **G63** ([`docs/OS_NETWORK_INTERFACES_CONTRACT.md`](OS_NETWORK_INTERFACES_CONTRACT.md)). Do not merge either page into this G20 table.
 
 ## Reachability
 

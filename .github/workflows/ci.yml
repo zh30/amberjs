@@ -138,6 +138,9 @@ jobs:
       - name: node os hostname Stable contract
         run: cargo test --test os_hostname_contract_tests -- --test-threads=1
 
+      - name: node os networkInterfaces Stable contract
+        run: cargo test --test os_network_interfaces_contract_tests -- --test-threads=1
+
       - name: node zlib Stable contract
         run: cargo test --test zlib_contract_tests -- --test-threads=1
 

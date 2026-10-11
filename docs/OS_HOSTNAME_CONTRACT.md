@@ -25,7 +25,7 @@ These are real behaviors of the Stable surface, not cover for missing APIs:
 
 Outside this contract (Preview / unimplemented). Do **not** treat these as Stable Limits fiction:
 
-- `os.networkInterfaces` — still a hardcoded fake loopback (`lo` / `lo0` with `127.0.0.1` only). Must **not** graduate as Stable until real OS interface enumeration lands. Documenting that fake as a Stable Limit is forbidden.
+- `os.networkInterfaces` — Stable under a separate page: [`docs/OS_NETWORK_INTERFACES_CONTRACT.md`](OS_NETWORK_INTERFACES_CONTRACT.md) (**G63**). Not this page.
 - `cpus()[].speed` / `cpus()[].times` and every other Node `os` API not named in G20 or this page
 - Reading `HOSTNAME` / `COMPUTERNAME` / other env vars as a hostname source
 - DNS reverse / FQDN resolution of the host name
