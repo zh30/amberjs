@@ -4,7 +4,9 @@
 /// Stable surfaces:
 /// - G25 sync: `execSync` / `spawnSync` (see CHILD_PROCESS_CONTRACT.md)
 /// - G47 async: narrow `exec` / `execFile` with host-thread run + later-turn callback
-///   (see CHILD_PROCESS_ASYNC_CONTRACT.md). Preview `spawn` stays sync-blocking.
+///   (see CHILD_PROCESS_ASYNC_CONTRACT.md)
+/// - G60 async: narrow `spawn` with the same host-thread + later-turn callback model
+///   (see CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md). Pipes / fork stay Non-goals.
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use rusty_v8 as v8;
@@ -17,7 +19,7 @@ use std::thread;
 /// Cross-thread completed async jobs (job id + captured output).
 static ASYNC_COMPLETED: Lazy<Mutex<VecDeque<(u64, ChildProcessOutput)>>> =
     Lazy::new(|| Mutex::new(VecDeque::new()));
-/// In-flight host threads started by `exec` / `execFile`.
+/// In-flight host threads started by `exec` / `execFile` / `spawn`.
 static ASYNC_IN_FLIGHT: AtomicUsize = AtomicUsize::new(0);
 static ASYNC_JOB_SEQ: AtomicU64 = AtomicU64::new(1);
 
@@ -406,11 +408,39 @@ pub fn cp_spawn_callback(
         scope.throw_exception(error_obj.into());
         return;
     }
-    let spawn_args = string_vec_from_v8_array_value(scope, args.get(1));
-    let output = Command::new(&command).args(spawn_args).output();
-    let output = child_process_output_from_result(output);
-    let child_obj = child_process_output_object(scope, &output);
-    retval.set(child_obj.into());
+    // Call shapes (G60): spawn(cmd[, args][, options], callback?) — options ignored.
+    // Same host-thread + later-turn callback model as G47 execFile (no live pipes).
+    let arg1 = args.get(1);
+    let arg2 = args.get(2);
+    let arg3 = args.get(3);
+    let (spawn_args, callback_val) = if arg1.is_function() {
+        (Vec::new(), arg1)
+    } else if arg1.is_array() {
+        let spawn_args = string_vec_from_v8_array_value(scope, arg1);
+        if arg2.is_function() {
+            (spawn_args, arg2)
+        } else if arg3.is_function() {
+            (spawn_args, arg3)
+        } else {
+            (spawn_args, v8::undefined(scope).into())
+        }
+    } else if arg2.is_function() {
+        // spawn(cmd, options, callback) — no args array
+        (Vec::new(), arg2)
+    } else {
+        (Vec::new(), v8::undefined(scope).into())
+    };
+    let callback = v8::Local::<v8::Function>::try_from(callback_val)
+        .unwrap_or_else(|_| make_async_noop_function(scope));
+    enqueue_async_job(
+        scope,
+        callback,
+        AsyncCpWork::ExecFile {
+            file: command,
+            args: spawn_args,
+        },
+    );
+    retval.set(pending_child_process_object(scope).into());
 }
 
 pub fn cp_exec_file_callback(

@@ -35,10 +35,11 @@ Stable callers must use the callback, not `on('exit')` / streaming stdio, for co
 
 ## Non-goals
 
-- `spawn` with live `stdin` / `stdout` / `stderr` pipes, streaming `ChildProcess`, or `ChildProcess` EventEmitter exit/close parity. Preview `spawn` may still sync-block today and is **not** this contract.
+- Live `stdin` / `stdout` / `stderr` pipes, streaming `ChildProcess`, or `ChildProcess` EventEmitter exit/close parity.
+- Narrow async `spawn` (host-thread + later-turn callback, no pipes) — see **G60** [`docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md`](CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md) (not this G47 page).
 - `fork`, IPC, detached processes, real `pid`, signals, `kill`, `timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, `windowsHide`, and encoding option bags.
 - Same-turn callback delivery (the pre-G47 Preview lie). Stable async must not block the isolate on `Command::output()` inside the `exec` / `execFile` call.
-- Graduating Preview `spawn` by documenting sync-block as a Stable Limit.
+- Graduating pipes / `fork` by documenting absence as Stable Limits.
 
 ## Reachability
 

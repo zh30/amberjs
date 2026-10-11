@@ -263,20 +263,31 @@ fn test_child_process_exec_callback_receives_error_on_nonzero_exit() {
 
 #[test]
 #[serial]
-fn test_child_process_spawn_returns_real_stdout() {
+fn test_child_process_spawn_returns_pending_stub() {
     let runtime = Runtime::new(67108864, 1073741824, false, false);
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        const child = childProcess.spawn("/bin/echo", ["amberjs-spawn"]);
+        globalThis.__cpSpawnOut = "pending";
+        const child = childProcess.spawn("/bin/echo", ["amberjs-spawn"], (error, stdout, stderr) => {
+            globalThis.__cpSpawnOut = `${error === null}:${stdout}:${stderr}:${child.exitCode}`;
+        });
         `${child.stdout}|${child.stderr}|${child.exitCode}`;
     "#,
     );
     assert!(result.is_ok(), "child_process.spawn failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        "amberjs-spawn\n||0",
-        "spawn should expose real stdout/stderr/exitCode"
+        "undefined|undefined|null",
+        "spawn should return a pending stub before exit (G60)"
+    );
+    let after = runtime
+        .execute_code("globalThis.__cpSpawnOut")
+        .expect("read spawn callback result");
+    assert_eq!(
+        after.trim(),
+        "true:amberjs-spawn\n::null",
+        "spawn callback should receive null error plus real stdout on a later turn"
     );
 }
 
@@ -287,27 +298,40 @@ fn test_child_process_spawn_reports_nonzero_exit() {
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
-        const child = childProcess.spawn("sh", ["-c", "echo amberjs-spawn-error >&2; exit 9"]);
-        `${child.stdout}:${child.stderr}:done:${child.exitCode}`;
+        globalThis.__cpSpawnErr = "pending";
+        childProcess.spawn("sh", ["-c", "echo amberjs-spawn-error >&2; exit 9"], (error, stdout, stderr) => {
+            globalThis.__cpSpawnErr = `${!!error}:${error && error.code}:${stdout}:${stderr}:done`;
+        });
+        globalThis.__cpSpawnErr;
     "#,
     );
     assert!(result.is_ok(), "child_process.spawn failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        ":amberjs-spawn-error\n:done:9",
-        "spawn should expose real stderr and non-zero exitCode"
+        "pending",
+        "spawn error callback must not fire on the same turn (G60)"
+    );
+    let after = runtime
+        .execute_code("globalThis.__cpSpawnErr")
+        .expect("read spawn error callback result");
+    assert_eq!(
+        after.trim(),
+        "true:9::amberjs-spawn-error\n:done",
+        "spawn callback should receive an Error with code and real stderr after drain"
     );
 }
 
 #[test]
 #[serial]
-fn test_child_process_spawn_exit_event_receives_exit_code() {
+fn test_child_process_spawn_on_exit_does_not_fire_same_turn() {
     let runtime = Runtime::new(67108864, 1073741824, false, false);
     let result = runtime.execute_code(
         r#"
         const childProcess = require("child_process");
         let observed = "pending";
-        const child = childProcess.spawn("sh", ["-c", "exit 6"]);
+        const child = childProcess.spawn("sh", ["-c", "exit 6"], (error) => {
+            globalThis.__cpSpawnExitCb = `${!!error}:${error && error.code}`;
+        });
         child.on("exit", (code, signal) => {
             observed = `${code}:${signal === null}`;
         });
@@ -317,8 +341,16 @@ fn test_child_process_spawn_exit_event_receives_exit_code() {
     assert!(result.is_ok(), "child_process.spawn failed: {:?}", result);
     assert_eq!(
         result.unwrap().trim(),
-        "6:true",
-        "spawn exit event should receive the real exit code and null signal"
+        "pending",
+        "spawn on('exit') must not fire synchronously on the pending stub (G60)"
+    );
+    let after = runtime
+        .execute_code("globalThis.__cpSpawnExitCb")
+        .expect("read spawn exit callback result");
+    assert_eq!(
+        after.trim(),
+        "true:6",
+        "spawn completion callback should receive non-zero exit after drain"
     );
 }
 
