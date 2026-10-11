@@ -8,7 +8,6 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 };
-use std::thread;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream as TokioTcpStream;
@@ -57,6 +56,11 @@ pub struct TcpConnectionHandle {
     pub buffer: Arc<Mutex<Vec<u8>>>,
     /// 读取运行状态
     pub reading: Arc<AtomicBool>,
+    /// Write side half-closed via `shutdown_write` / `socket.end`.
+    pub write_ended: Arc<AtomicBool>,
+    /// Socket `pause()` — suppress harvest→`'data'` and stop background `try_read`.
+    /// Not Node stream HWM / cork backpressure (see NET_CONNECT_CONTRACT Limits).
+    pub paused: Arc<AtomicBool>,
 }
 
 impl TcpConnectionHandle {
@@ -75,6 +79,22 @@ impl TcpConnectionHandle {
             })),
             buffer: Arc::new(Mutex::new(Vec::new())),
             reading: Arc::new(AtomicBool::new(false)),
+            write_ended: Arc::new(AtomicBool::new(false)),
+            paused: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    /// Node-shaped `socket.pause()`: stop background read and mark paused.
+    pub fn pause(&self) {
+        self.paused.store(true, Ordering::SeqCst);
+        self.stop_reading();
+    }
+
+    /// Node-shaped `socket.resume()`: clear paused and restart background read when connected.
+    pub fn resume_read(&self) {
+        self.paused.store(false, Ordering::SeqCst);
+        if self.is_connected() {
+            self.start_reading();
         }
     }
 
@@ -195,57 +215,63 @@ impl TcpConnectionHandle {
         info.state = TcpConnectionState::Disconnected;
     }
 
-    /// 开始异步读取数据（后台任务）- 数据存入缓冲区
+    /// Start background read into `buffer` using the shared net Tokio runtime.
+    /// Uses `try_read` so the stream mutex is not held across awaits (writes can proceed).
     pub fn start_reading(&self) {
         if self.reading.swap(true, Ordering::SeqCst) {
-            return; // 已经在读取
+            return; // already reading
         }
 
         let handle = self.clone();
-        thread::spawn(move || {
-            let mut buffer = [0u8; 1024];
-            loop {
-                if !handle.reading.load(Ordering::SeqCst) {
-                    break;
-                }
-
-                let read_result = {
+        get_net_tokio_runtime().spawn(async move {
+            let mut scratch = [0u8; 4096];
+            while handle.reading.load(Ordering::SeqCst) {
+                let outcome = {
                     let mut stream_guard = handle.stream.lock().unwrap();
-                    if let Some(ref mut stream) = *stream_guard {
-                        // 使用闭包捕获结果
-                        let result = tokio::runtime::Runtime::new().ok().and_then(|rt| {
-                            let rt = rt;
-                            let fut = async { stream.read(&mut buffer).await };
-                            Some(rt.block_on(fut))
-                        });
-                        result
-                    } else {
-                        None
+                    match stream_guard.as_mut() {
+                        Some(stream) => match stream.try_read(&mut scratch) {
+                            Ok(n) => Some(Ok(n)),
+                            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => None,
+                            Err(e) => Some(Err(e)),
+                        },
+                        None => Some(Err(std::io::Error::new(
+                            std::io::ErrorKind::NotConnected,
+                            "not connected",
+                        ))),
                     }
                 };
 
-                match read_result {
+                match outcome {
                     Some(Ok(0)) => {
-                        // 连接关闭
                         handle.reading.store(false, Ordering::SeqCst);
                         break;
                     }
                     Some(Ok(n)) => {
-                        // 收到数据，存储到缓冲区
-                        let data = buffer[..n].to_vec();
                         let mut buf_guard = handle.buffer.lock().unwrap();
-                        buf_guard.extend_from_slice(&data);
+                        buf_guard.extend_from_slice(&scratch[..n]);
                     }
                     Some(Err(_)) => {
                         handle.reading.store(false, Ordering::SeqCst);
                         break;
                     }
                     None => {
-                        thread::sleep(Duration::from_millis(10));
+                        tokio::time::sleep(Duration::from_millis(5)).await;
                     }
                 }
             }
         });
+    }
+
+    /// Half-close the write side (Node `socket.end` after optional final chunk).
+    pub fn shutdown_write(&self) -> Result<()> {
+        self.write_ended.store(true, Ordering::SeqCst);
+        get_net_tokio_runtime().block_on(async {
+            let mut stream_guard = self.stream.lock().unwrap();
+            if let Some(ref mut stream) = *stream_guard {
+                stream.shutdown().await?;
+            }
+            Ok(())
+        })
     }
 
     /// 停止读取

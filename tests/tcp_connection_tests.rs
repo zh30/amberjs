@@ -120,16 +120,16 @@ fn test_net_connect_returns_socket_with_on() {
 fn test_net_connect_returns_socket_with_connect_event() {
     let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
 
-    // 测试 socket 对象有 connect 事件
+    // G61: 'connect' is an EventEmitter event, not a string status property.
     let code = r#"
         const socket = net.connect({ port: 80 });
-        typeof socket.connect;
+        typeof socket.on === 'function' && typeof socket.emit === 'function';
     "#;
     let result = runtime.execute_code(code).expect("Execution failed");
     assert_eq!(
         result.trim(),
-        "string",
-        "socket should have connect property"
+        "true",
+        "socket should expose EventEmitter on/emit for 'connect'"
     );
 }
 
