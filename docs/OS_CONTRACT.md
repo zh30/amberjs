@@ -2,9 +2,9 @@
 
 This is the user-facing contract for the Stable subset of Node `os` in Amber. It is derived from `src/nodejs_core/os.rs`, `src/runtime_minimal.rs`, and `tests/os_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
-`require('os')`, `require('node:os')`, and `import` from `'os'` or `'node:os'` reach the same object installed by `setup_os_api` on `globalThis.os`. The default ESM export is that object. Named ESM exports used by this contract are `platform`, `arch`, `cpus`, `freemem`, `totalmem`, `uptime`, `type`, `release`, `homedir`, and `tmpdir`.
+`require('os')`, `require('node:os')`, and `import` from `'os'` or `'node:os'` reach the same object installed by `setup_os_api` on `globalThis.os`. The default ESM export is that object. Named ESM exports used by this contract are `platform`, `arch`, `cpus`, `freemem`, `totalmem`, `uptime`, `type`, `release`, `homedir`, and `tmpdir`. Additive named ESM `hostname` is Stable under **G62** ([`docs/OS_HOSTNAME_CONTRACT.md`](OS_HOSTNAME_CONTRACT.md)), not this page.
 
-This is not full Node `os`. Only the calls in the table below are Stable. Everything else on the `os` object stays outside this contract.
+This is not full Node `os`. Only the calls in the table below are Stable on this page. Everything else on the `os` object stays outside this contract unless another Stable page names it.
 
 The Node `fs` contract stays [`docs/FS_CONTRACT.md`](FS_CONTRACT.md). The Node `path` contract stays [`docs/PATH_CONTRACT.md`](PATH_CONTRACT.md). The Node `events` contract stays [`docs/NODE_EVENTS_CONTRACT.md`](NODE_EVENTS_CONTRACT.md). The Node `buffer` / `Buffer` contract stays [`docs/BUFFER_CONTRACT.md`](BUFFER_CONTRACT.md). The Node `zlib` sync contract stays [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md). The rest of `src/nodejs_core/` stays Preview.
 
@@ -26,7 +26,9 @@ The Node `fs` contract stays [`docs/FS_CONTRACT.md`](FS_CONTRACT.md). The Node `
 
 ## Outside this contract
 
-`hostname`, `loadavg`, `networkInterfaces`, `tmpDir`, `cpus()[].speed`, `cpus()[].times`, `constants.UV_UDP_REUSEADDR`, `constants.arch`, `constants.platform`, and every other Node `os` API are not part of this Stable surface. They may exist on the object; this contract does not pin them.
+`loadavg`, `networkInterfaces`, `tmpDir`, `cpus()[].speed`, `cpus()[].times`, `constants.UV_UDP_REUSEADDR`, `constants.arch`, `constants.platform`, and every other Node `os` API not named above are not part of this G20 Stable surface. They may exist on the object; this contract does not pin them.
+
+`os.hostname` is Stable under a separate page: [`docs/OS_HOSTNAME_CONTRACT.md`](OS_HOSTNAME_CONTRACT.md) (**G62**). `os.networkInterfaces` remains Preview hardcoded fake loopback (`lo` / `lo0`) and must **not** be graduated as Stable until real OS interface enumeration lands (not a Stable Limit of this page).
 
 ## Reachability
 
