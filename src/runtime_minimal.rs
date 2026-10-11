@@ -5670,6 +5670,7 @@ impl MinimalRuntime {
                     v8::String::new(scope, "release").unwrap(),
                     v8::String::new(scope, "homedir").unwrap(),
                     v8::String::new(scope, "tmpdir").unwrap(),
+                    v8::String::new(scope, "hostname").unwrap(),
                 ];
                 let module_name = v8::String::new(scope, "node:os").unwrap();
                 Some(v8::Module::create_synthetic_module(
@@ -5985,7 +5986,7 @@ impl MinimalRuntime {
         let os_object = os_value.to_object(scope);
         for export_name in [
             "platform", "arch", "cpus", "freemem", "totalmem", "uptime", "type", "release",
-            "homedir", "tmpdir",
+            "homedir", "tmpdir", "hostname",
         ] {
             let export_key = v8::String::new(scope, export_name).unwrap();
             let export_value = os_object

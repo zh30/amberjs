@@ -340,18 +340,45 @@ fn os_release_callback(
     });
     retval.set(v8::String::new(scope, &release).unwrap().into());
 }
+/// Host OS hostname via real syscall (not `HOSTNAME` / `COMPUTERNAME` env fiction).
+/// Unix: `gethostname(2)`. Windows: `GetComputerNameW`. On failure returns `""`.
+fn host_hostname() -> String {
+    #[cfg(unix)]
+    {
+        // POSIX HOST_NAME_MAX is typically ≤255; Node/libuv use a 256-byte buffer.
+        let mut buf = [0 as libc::c_char; 256];
+        let rc = unsafe { libc::gethostname(buf.as_mut_ptr(), buf.len()) };
+        if rc != 0 {
+            return String::new();
+        }
+        let bytes = unsafe { std::slice::from_raw_parts(buf.as_ptr() as *const u8, buf.len()) };
+        let len = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
+        String::from_utf8_lossy(&bytes[..len]).into_owned()
+    }
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::System::SystemInformation::GetComputerNameW;
+        let mut buf = [0u16; 256];
+        let mut size = buf.len() as u32;
+        let ok = unsafe { GetComputerNameW(buf.as_mut_ptr(), &mut size) };
+        if ok == 0 {
+            return String::new();
+        }
+        String::from_utf16_lossy(&buf[..size as usize])
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        String::new()
+    }
+}
+
 fn os_hostname_callback(
     scope: &mut v8::PinScope,
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    if let Ok(hostname) = env::var("HOSTNAME") {
-        retval.set(v8::String::new(scope, &hostname).unwrap().into());
-    } else if let Ok(computer_name) = env::var("COMPUTERNAME") {
-        retval.set(v8::String::new(scope, &computer_name).unwrap().into());
-    } else {
-        retval.set(v8::String::new(scope, "localhost").unwrap().into());
-    }
+    let hostname = host_hostname();
+    retval.set(v8::String::new(scope, &hostname).unwrap().into());
 }
 fn os_loadavg_callback(
     scope: &mut v8::PinScope,
@@ -499,7 +526,8 @@ fn os_network_interfaces_callback(
     _args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    // 简化的网络接口
+    // Preview only: hardcoded loopback fiction (`lo` / `lo0`). Not Stable (G62 Non-goal).
+    // Do not graduate this as real `os.networkInterfaces` until OS enumeration lands.
     let interfaces_obj: _ = v8::Object::new(scope);
     // Loopback接口
     let loopback_array: _ = v8::Array::new(scope, 1);
