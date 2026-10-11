@@ -4,7 +4,7 @@ This is the user-facing contract for a **narrow** Stable carve of Node `crypto` 
 
 This is **additive** to the G23 hash/HMAC/`randomBytes`/`timingSafeEqual` subset in [`docs/NODE_CRYPTO_CONTRACT.md`](NODE_CRYPTO_CONTRACT.md). It is **not** Web Crypto (G14). It is **not** full Node `crypto`.
 
-**Honesty:** Password-based `createCipher` / `createDecipher`, and AES-GCM (including `setAAD` / `getAuthTag` / `setAuthTag`), must **never** be graduated by renaming incomplete or bag-wide behavior as Stable Limits. CTR / CFB / OFB / ECB on the same object stay outside this carve even when callable.
+**Honesty:** Password-based `createCipher` / `createDecipher` must **never** be graduated by renaming incomplete or bag-wide behavior as Stable Limits. AES-GCM is a separate Stable carve (**G51**, [`docs/NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md)). CTR / CFB / OFB / ECB on the same object stay outside this carve even when callable.
 
 ## Stable surface
 
@@ -39,14 +39,14 @@ These are real behaviors of the Stable CBC carve, not cover for other cipher mod
 - Return chunks without an output encoding are TypedArray / byte-view shaped (same family as G23 digests), not necessarily Node `Buffer` instances.
 - Hex-string key/IV decoding is Amber's even-length ASCII-hex heuristic; it is not a separate `encoding` argument on `createCipheriv`.
 - This page does not pin cipher objects as Node `stream.Transform` subclasses, `pipe`, or event emitters.
-- GCM auth-tag helpers may exist on non-CBC objects; they are **not** this contract.
+- GCM auth-tag helpers on AES-GCM objects are **not** this contract; see **G51** ([`docs/NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md)).
 
 ## Non-goals
 
 Outside this contract (Preview / DEFER). Do **not** treat these as Stable Limits of bag-wide or dishonest behavior:
 
 - **Password-based `createCipher` / `createDecipher`** (EVP_BytesToKey / password→key derivation). Never graduate by listing password KDF quirks as Limits.
-- **AES-GCM** (`aes-*-gcm`, `setAAD`, `getAuthTag`, `setAuthTag`) — even when Preview tests round-trip. Never claim GCM-as-Limits fiction on this page.
+- **AES-GCM** is Stable under a separate page (**G51**, [`docs/NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md`](NODE_CRYPTO_CIPHERIV_GCM_CONTRACT.md)) — not this CBC carve and not Limits fiction of bag-wide cipher.
 - **AES-CTR / CFB / OFB / ECB** and other OpenSSL names accepted by `get_cipher` today — callable Preview only; not Stable.
 - Expanding G23 to “all crypto methods on the object”.
 - KDF (`pbkdf2`, `scrypt`, `hkdf`), `createSign` / `createVerify`, `generateKeyPair`, KeyObjects, Diffie-Hellman, RSA encrypt helpers.
@@ -69,4 +69,4 @@ Broader Preview coverage (CTR/GCM/etc.) remains in `tests/crypto_cipheriv_tests.
 
 ## Honesty rule
 
-Password `createCipher` and AES-GCM must stay Non-goals. Limits describe CBC key/IV/update/final quirks only. Graduating “cipher” as a bag is forbidden.
+Password `createCipher` must stay a Non-goal of this page. AES-GCM is **G51**, not this carve. Limits describe CBC key/IV/update/final quirks only. Graduating “cipher” as a bag is forbidden.
