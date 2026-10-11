@@ -19,6 +19,9 @@ fn fork_ipc_message_round_trip() {
         r#"
         process.on('message', (msg) => {
           process.send({ echo: msg, from: 'child' });
+          // Exit after reply so the parent event loop cannot hang if IPC
+          // teardown races with disconnect().
+          process.exit(0);
         });
         "#,
     )
@@ -51,11 +54,7 @@ fn fork_ipc_message_round_trip() {
         .output()
         .expect("amber run parent");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let combined = format!(
-        "{}{}",
-        stdout,
-        String::from_utf8_lossy(&output.stderr)
-    );
+    let combined = format!("{}{}", stdout, String::from_utf8_lossy(&output.stderr));
     assert!(
         output.status.success(),
         "fork round-trip failed: {combined}"
@@ -173,12 +172,11 @@ fn fork_child_exits_and_reports_code() {
         .output()
         .expect("amber run");
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let combined = format!(
-        "{}{}",
-        stdout,
-        String::from_utf8_lossy(&output.stderr)
+    let combined = format!("{}{}", stdout, String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "exit code probe failed: {combined}"
     );
-    assert!(output.status.success(), "exit code probe failed: {combined}");
     assert!(
         stdout.lines().any(|l| l.trim() == "exit|7|7"),
         "expected exit|7|7: {combined}"

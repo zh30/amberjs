@@ -712,8 +712,10 @@ pub fn setup_child_process_api(
     cp_obj.set(scope, spawn_sync_key.into(), spawn_sync_instance.into());
 
     // fork (G67): real amber re-exec + TCP IPC
-    let fork_func =
-        v8::FunctionTemplate::new(scope, crate::nodejs_core::child_process_fork::cp_fork_callback);
+    let fork_func = v8::FunctionTemplate::new(
+        scope,
+        crate::nodejs_core::child_process_fork::cp_fork_callback,
+    );
     let fork_instance = fork_func.get_function(scope).unwrap();
     let fork_key = v8::String::new(scope, "fork").unwrap();
     cp_obj.set(scope, fork_key.into(), fork_instance.into());

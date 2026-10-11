@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 use rusty_v8 as v8;
 use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -25,12 +25,10 @@ static FORK_ALIVE: AtomicUsize = AtomicUsize::new(0);
 static FORK_CHILD_INSTALLED: AtomicBool = AtomicBool::new(false);
 static FORK_CHILD_CONNECTED: AtomicBool = AtomicBool::new(false);
 
-static FORK_EVENTS: Lazy<Mutex<VecDeque<ForkEvent>>> =
-    Lazy::new(|| Mutex::new(VecDeque::new()));
+static FORK_EVENTS: Lazy<Mutex<VecDeque<ForkEvent>>> = Lazy::new(|| Mutex::new(VecDeque::new()));
 static FORK_WRITERS: Lazy<Mutex<HashMap<u64, Arc<Mutex<TcpStream>>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
-static FORK_CONNECTED: Lazy<Mutex<HashMap<u64, bool>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+static FORK_CONNECTED: Lazy<Mutex<HashMap<u64, bool>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 static FORK_CHILD_WRITER: Lazy<Mutex<Option<Arc<Mutex<TcpStream>>>>> =
     Lazy::new(|| Mutex::new(None));
 static FORK_CHILD_INCOMING: Lazy<Mutex<VecDeque<String>>> =
@@ -141,11 +139,7 @@ pub fn has_pending_fork_work() -> bool {
     if FORK_CHILD_CONNECTED.load(Ordering::SeqCst) {
         return true;
     }
-    if FORK_EVENTS
-        .lock()
-        .map(|q| !q.is_empty())
-        .unwrap_or(false)
-    {
+    if FORK_EVENTS.lock().map(|q| !q.is_empty()).unwrap_or(false) {
         return true;
     }
     FORK_CHILD_INCOMING
@@ -289,11 +283,7 @@ fn update_child_object_exit(scope: &mut v8::PinScope, fork_id: u64, code: i32) {
                 v8::Boolean::new(scope, false).into(),
             );
             let exit_key = v8::String::new(scope, "exitCode").unwrap();
-            obj.set(
-                scope,
-                exit_key.into(),
-                v8::Integer::new(scope, code).into(),
-            );
+            obj.set(scope, exit_key.into(), v8::Integer::new(scope, code).into());
         }
     });
 }
@@ -394,66 +384,41 @@ pub fn cp_fork_callback(
         map.insert(fork_id, true);
     }
 
-    let child_obj = make_fork_child_object(scope, fork_id, pid);
-    FORK_OBJECTS.with(|cell| {
-        cell.borrow_mut()
-            .insert(fork_id, v8::Global::new(scope, child_obj));
-    });
-
-    thread::spawn(move || {
-        run_parent_ipc(fork_id, listener, child);
-    });
-
-    retval.set(child_obj.into());
-}
-
-fn run_parent_ipc(fork_id: u64, listener: TcpListener, mut child: Child) {
-    // Child connects promptly after bootstrap; bound the wait so a dead child cannot hang forever.
-    let _ = listener.set_nonblocking(true);
-    let deadline = std::time::Instant::now() + Duration::from_secs(10);
-    let stream = loop {
-        match listener.accept() {
-            Ok((s, _)) => break Some(s),
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                if std::time::Instant::now() > deadline {
-                    break None;
-                }
-                // Also poll child exit while waiting.
-                match child.try_wait() {
-                    Ok(Some(status)) => {
-                        let code = status.code().unwrap_or(1);
-                        push_exit(fork_id, code);
-                        return;
-                    }
-                    Ok(None) => thread::sleep(Duration::from_millis(5)),
-                    Err(_) => {
-                        push_exit(fork_id, 1);
-                        return;
-                    }
-                }
-            }
-            Err(_) => {
-                push_exit(fork_id, 1);
-                return;
-            }
+    // Wait for the child IPC connect before returning so immediate child.send works.
+    let stream = match accept_child_ipc(&listener, &mut child) {
+        Ok(Some(s)) => s,
+        Ok(None) => {
+            // Child exited before connecting.
+            let code = child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1);
+            push_exit(fork_id, code);
+            let child_obj = make_fork_child_object(scope, fork_id, pid);
+            let connected_key = v8::String::new(scope, "connected").unwrap();
+            child_obj.set(
+                scope,
+                connected_key.into(),
+                v8::Boolean::new(scope, false).into(),
+            );
+            let exit_key = v8::String::new(scope, "exitCode").unwrap();
+            child_obj.set(scope, exit_key.into(), v8::Integer::new(scope, code).into());
+            retval.set(child_obj.into());
+            return;
         }
-    };
-
-    let Some(stream) = stream else {
-        let code = child
-            .wait()
-            .map(|s| s.code().unwrap_or(1))
-            .unwrap_or(1);
-        push_exit(fork_id, code);
-        return;
+        Err(e) => {
+            let _ = child.kill();
+            FORK_ALIVE.fetch_sub(1, Ordering::SeqCst);
+            let msg = v8::String::new(scope, &format!("fork: IPC accept failed: {}", e)).unwrap();
+            scope.throw_exception(v8::Exception::error(scope, msg));
+            return;
+        }
     };
 
     let writer_stream = match stream.try_clone() {
         Ok(s) => s,
-        Err(_) => {
+        Err(e) => {
             let _ = child.kill();
-            let code = child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1);
-            push_exit(fork_id, code);
+            FORK_ALIVE.fetch_sub(1, Ordering::SeqCst);
+            let msg = v8::String::new(scope, &format!("fork: IPC clone failed: {}", e)).unwrap();
+            scope.throw_exception(v8::Exception::error(scope, msg));
             return;
         }
     };
@@ -462,46 +427,76 @@ fn run_parent_ipc(fork_id: u64, listener: TcpListener, mut child: Child) {
         map.insert(fork_id, writer);
     }
 
-    let mut reader = stream;
+    let child_obj = make_fork_child_object(scope, fork_id, pid);
+    FORK_OBJECTS.with(|cell| {
+        cell.borrow_mut()
+            .insert(fork_id, v8::Global::new(scope, child_obj));
+    });
+
+    thread::spawn(move || {
+        run_parent_ipc(fork_id, stream, child);
+    });
+
+    retval.set(child_obj.into());
+}
+
+fn accept_child_ipc(
+    listener: &TcpListener,
+    child: &mut Child,
+) -> std::io::Result<Option<TcpStream>> {
+    let _ = listener.set_nonblocking(true);
+    let deadline = std::time::Instant::now() + Duration::from_secs(15);
+    loop {
+        match listener.accept() {
+            Ok((s, _)) => {
+                let _ = s.set_nonblocking(false);
+                return Ok(Some(s));
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                if std::time::Instant::now() > deadline {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::TimedOut,
+                        "timed out waiting for forked child IPC connect",
+                    ));
+                }
+                match child.try_wait() {
+                    Ok(Some(_)) => return Ok(None),
+                    Ok(None) => thread::sleep(Duration::from_millis(5)),
+                    Err(e) => return Err(e),
+                }
+            }
+            Err(e) => return Err(e),
+        }
+    }
+}
+
+fn run_parent_ipc(fork_id: u64, mut reader: TcpStream, mut child: Child) {
     let read_fork_id = fork_id;
-    let reader_thread = thread::spawn(move || {
-        loop {
-            match read_frame(&mut reader) {
-                Ok(Some(buf)) => {
-                    let text = String::from_utf8_lossy(&buf).to_string();
-                    if let Some(payload) = decode_message_payload(&text) {
-                        if let Ok(mut q) = FORK_EVENTS.lock() {
-                            q.push_back(ForkEvent::Message {
-                                fork_id: read_fork_id,
-                                payload,
-                            });
-                        }
-                    }
-                }
-                Ok(None) => {
+    let reader_thread = thread::spawn(move || loop {
+        match read_frame(&mut reader) {
+            Ok(Some(buf)) => {
+                let text = String::from_utf8_lossy(&buf).to_string();
+                if let Some(payload) = decode_message_payload(&text) {
                     if let Ok(mut q) = FORK_EVENTS.lock() {
-                        q.push_back(ForkEvent::Disconnect {
+                        q.push_back(ForkEvent::Message {
                             fork_id: read_fork_id,
+                            payload,
                         });
                     }
-                    break;
                 }
-                Err(_) => {
-                    if let Ok(mut q) = FORK_EVENTS.lock() {
-                        q.push_back(ForkEvent::Disconnect {
-                            fork_id: read_fork_id,
-                        });
-                    }
-                    break;
+            }
+            Ok(None) | Err(_) => {
+                if let Ok(mut q) = FORK_EVENTS.lock() {
+                    q.push_back(ForkEvent::Disconnect {
+                        fork_id: read_fork_id,
+                    });
                 }
+                break;
             }
         }
     });
 
-    let code = child
-        .wait()
-        .map(|s| s.code().unwrap_or(1))
-        .unwrap_or(1);
+    let code = child.wait().map(|s| s.code().unwrap_or(1)).unwrap_or(1);
     let _ = reader_thread.join();
     push_exit(fork_id, code);
 }
@@ -657,7 +652,11 @@ fn fork_child_disconnect_callback(
         map.insert(fork_id, false);
     }
     if let Ok(mut writers) = FORK_WRITERS.lock() {
-        writers.remove(&fork_id);
+        if let Some(writer) = writers.remove(&fork_id) {
+            if let Ok(stream) = writer.lock() {
+                let _ = stream.shutdown(Shutdown::Both);
+            }
+        }
     }
     update_child_object_connected(scope, fork_id, false);
     if let Ok(mut q) = FORK_EVENTS.lock() {
