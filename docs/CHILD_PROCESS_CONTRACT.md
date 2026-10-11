@@ -4,7 +4,7 @@ This is the user-facing contract for the Stable sync subset of Node `child_proce
 
 `require('child_process')`, `require('node:child_process')`, and ESM `import` of those names reach the same object installed by `setup_child_process_api`. The default ESM export is that object. Named ESM exports include `execSync` and `spawnSync`.
 
-This is not full Node `child_process`. Only `execSync` and `spawnSync` are Stable on this page. Narrow async `exec` / `execFile` (host-thread + later-turn callback) is Stable under **tentative G47** ([`docs/CHILD_PROCESS_ASYNC_CONTRACT.md`](CHILD_PROCESS_ASYNC_CONTRACT.md)). Narrow async `spawn` (same scheduling model; no pipes) is Stable under **tentative G60** ([`docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md`](CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md)). `fork`, streaming stdio pipes, and detached processes stay outside these contracts (Preview / Non-goals).
+This is not full Node `child_process`. Only `execSync` and `spawnSync` are Stable on this page. Narrow async `exec` / `execFile` (host-thread + later-turn callback) is Stable under **tentative G47** ([`docs/CHILD_PROCESS_ASYNC_CONTRACT.md`](CHILD_PROCESS_ASYNC_CONTRACT.md)). Narrow async `spawn` (same scheduling model; no pipes) is Stable under **tentative G60** ([`docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md`](CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md)). Narrow `fork` + IPC is Stable under **tentative G67** ([`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md)). Streaming stdio pipes and detached processes stay outside these contracts (Preview / Non-goals).
 
 ## Stable surface
 
@@ -24,9 +24,10 @@ This is not full Node `child_process`. Only `execSync` and `spawnSync` are Stabl
 
 - Narrow async `exec` / `execFile` — see **G47** [`docs/CHILD_PROCESS_ASYNC_CONTRACT.md`](CHILD_PROCESS_ASYNC_CONTRACT.md) (not this sync page).
 - Narrow async `spawn` — see **G60** [`docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md`](CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md) (not this sync page).
-- `fork`, and any streaming `ChildProcess` with live `stdin` / `stdout` / `stderr` pipes.
-- Real `pid` values, `killed`, signals, `timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, and `windowsHide`.
-- Detached processes, IPC, or `child_process.fork` module workers.
+- Narrow `fork` + IPC — see **G67** [`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md) (not this sync page).
+- Streaming `ChildProcess` with live `stdin` / `stdout` / `stderr` pipes.
+- Real `pid` values on this sync page, `killed`, signals, `timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, and `windowsHide`.
+- Detached processes beyond the G67 fork carve.
 - Node's async callback scheduling on this page. This contract is sync-only.
 
 ## Reachability

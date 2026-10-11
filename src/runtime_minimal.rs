@@ -5805,6 +5805,7 @@ impl MinimalRuntime {
                     v8::String::new(scope, "execFile").unwrap(),
                     v8::String::new(scope, "execSync").unwrap(),
                     v8::String::new(scope, "spawnSync").unwrap(),
+                    v8::String::new(scope, "fork").unwrap(),
                 ];
                 let module_name = v8::String::new(scope, "node:child_process").unwrap();
                 Some(v8::Module::create_synthetic_module(
@@ -5833,7 +5834,7 @@ impl MinimalRuntime {
         module.set_synthetic_module_export(scope, default_key, cp_value)?;
 
         let cp_object = cp_value.to_object(scope);
-        for export_name in ["exec", "spawn", "execFile", "execSync", "spawnSync"] {
+        for export_name in ["exec", "spawn", "execFile", "execSync", "spawnSync", "fork"] {
             let export_key = v8::String::new(scope, export_name).unwrap();
             let export_value = cp_object
                 .and_then(|object| object.get(scope, export_key.into()))
