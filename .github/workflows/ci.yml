@@ -381,3 +381,5 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check licenses
+      - name: node vm runInNewContext Stable contract
+        run: cargo test --test vm_newcontext_contract_tests -- --test-threads=1
