@@ -32,11 +32,23 @@ Stable callers must use the optional callback for completion. `on('exit')` / str
 - A non-zero exit delivers a non-null `error` to the callback (does not throw on the isolate).
 - A spawn OS error on the worker thread is delivered as a non-zero exit-shaped callback (`error` non-null, stderr text from the OS error).
 
+## Limits
+
+These are true quirks of the shipped Stable `spawn` surface (not missing APIs dressed as Limits):
+
+- The immediate return stub always has `pid === 0` (not a real OS pid), `killed === false`, `exitCode` / `signal` `null`, and `stdout` / `stderr` `undefined` at return time.
+- `options` (when present) is accepted for call-shape compatibility and is otherwise ignored — no `cwd`, `env`, `timeout`, `maxBuffer`, `encoding`, `stdio`, or other option bags are honored.
+- Stdout/stderr delivered to the callback are UTF-8 lossy strings captured **after** the process exits (buffered post-exit), not live pipe streams.
+- When a `callback` is supplied, it runs on a **later** event-loop turn after the worker finishes — never same-turn inside the `spawn` call, and never via sync-block `Command::output()` on the isolate.
+- Chainable `on(...)` on the stub does **not** fire `exit` / `close` (or any other child event) as part of this Stable contract; completion is the optional callback only.
+
 ## Non-goals
 
+These are outside Stable. Do **not** document them as Stable Limits fiction for unfinished surfaces:
+
 - Live `stdin` / `stdout` / `stderr` pipes, streaming `ChildProcess`, or `ChildProcess` EventEmitter exit/close parity.
-- `fork`, IPC, detached processes, real `pid`, signals, `kill`, `timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, `windowsHide`, and encoding option bags.
-- Same-turn callback delivery or sync-block `Command::output()` inside the `spawn` call (the pre-G60 Preview lie).
+- `fork`, IPC, detached processes, real `pid`, signals, `kill`, and honored option bags (`timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, `windowsHide`, encoding).
+- Reintroducing same-turn callback delivery or sync-block `Command::output()` inside the `spawn` call (the pre-G60 Preview lie).
 - Graduating pipes / `fork` by documenting absence as Stable Limits.
 
 ## Reachability
