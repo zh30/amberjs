@@ -122,12 +122,14 @@ fn test_dns_reverse_exists() {
 #[serial]
 fn test_dns_reverse_ip() {
     let mut runtime = MinimalRuntime::new().unwrap();
-    let result = runtime.execute_code("dns.reverse('127.0.0.1')");
+    let result = runtime.execute_code(
+        r#"
+        const names = dns.reverse('127.0.0.1');
+        Array.isArray(names) && names.length >= 1 && !names.includes('127.0.0.1')
+        "#,
+    );
     assert!(result.is_ok());
-    let binding = result.unwrap();
-    let output = binding.trim();
-    // Should return the IP for compatibility (PTR lookup simplified)
-    assert!(output.contains("127.0.0.1") || output.starts_with("Error"));
+    assert_eq!(result.unwrap().trim(), "true");
 }
 
 #[test]
@@ -161,14 +163,17 @@ fn test_dns_get_servers_returns_array() {
 
 #[test]
 #[serial]
-fn test_dns_get_servers_contains_dns_server() {
+fn test_dns_get_servers_is_system_list_not_fake_google() {
     let mut runtime = MinimalRuntime::new().unwrap();
-    let result = runtime.execute_code("dns.getServers().includes('8.8.8.8')");
+    // Real getServers: array of strings from the OS. Must not invent 8.8.8.8.
+    let result = runtime.execute_code(
+        r#"
+        const s = dns.getServers();
+        Array.isArray(s) && s.every((x) => typeof x === 'string' && x.length > 0)
+        "#,
+    );
     assert!(result.is_ok());
-    let binding = result.unwrap();
-    let output = binding.trim();
-    // Should contain at least one DNS server (8.8.8.8 is the default)
-    assert_eq!(output, "true");
+    assert_eq!(result.unwrap().trim(), "true");
 }
 
 #[test]

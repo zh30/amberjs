@@ -1,7 +1,228 @@
 // Node.js dns模块实现 - v0.3.67
-/// DNS 查询 API - 支持 lookup 和 resolve
+/// DNS 查询 API - 支持 lookup / resolve / reverse / getServers
 use anyhow::Result;
 use rusty_v8 as v8;
+use std::net::IpAddr;
+
+/// Real PTR via OS `getnameinfo(NI_NAMEREQD)`. Never echoes the IP as a hostname.
+fn reverse_lookup(ip: &str) -> Result<Vec<String>, String> {
+    let addr: IpAddr = ip
+        .parse()
+        .map_err(|_| format!("Error: dns.reverse {} - invalid IP address", ip))?;
+    reverse_lookup_addr(addr, ip)
+}
+
+#[cfg(unix)]
+fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
+    use std::ffi::CStr;
+
+    let mut hostbuf = [0i8; libc::NI_MAXHOST as usize];
+    let mut servbuf = [0i8; 32];
+
+    let rc = match addr {
+        IpAddr::V4(v4) => {
+            let mut sa: libc::sockaddr_in = unsafe { std::mem::zeroed() };
+            sa.sin_family = libc::AF_INET as _;
+            sa.sin_port = 0;
+            sa.sin_addr = libc::in_addr {
+                s_addr: u32::from(v4).to_be(),
+            };
+            unsafe {
+                libc::getnameinfo(
+                    &sa as *const _ as *const libc::sockaddr,
+                    std::mem::size_of_val(&sa) as libc::socklen_t,
+                    hostbuf.as_mut_ptr(),
+                    hostbuf.len() as libc::socklen_t,
+                    servbuf.as_mut_ptr(),
+                    servbuf.len() as libc::socklen_t,
+                    libc::NI_NAMEREQD,
+                )
+            }
+        }
+        IpAddr::V6(v6) => {
+            let mut sa: libc::sockaddr_in6 = unsafe { std::mem::zeroed() };
+            sa.sin6_family = libc::AF_INET6 as _;
+            sa.sin6_port = 0;
+            sa.sin6_flowinfo = 0;
+            sa.sin6_addr = libc::in6_addr {
+                s6_addr: v6.octets(),
+            };
+            sa.sin6_scope_id = 0;
+            unsafe {
+                libc::getnameinfo(
+                    &sa as *const _ as *const libc::sockaddr,
+                    std::mem::size_of_val(&sa) as libc::socklen_t,
+                    hostbuf.as_mut_ptr(),
+                    hostbuf.len() as libc::socklen_t,
+                    servbuf.as_mut_ptr(),
+                    servbuf.len() as libc::socklen_t,
+                    libc::NI_NAMEREQD,
+                )
+            }
+        }
+    };
+
+    if rc != 0 {
+        let detail = unsafe {
+            let ptr = libc::gai_strerror(rc);
+            if ptr.is_null() {
+                format!("getnameinfo failed ({rc})")
+            } else {
+                CStr::from_ptr(ptr).to_string_lossy().into_owned()
+            }
+        };
+        return Err(format!("Error: dns.reverse {} - {}", ip, detail));
+    }
+
+    let hostname = unsafe { CStr::from_ptr(hostbuf.as_ptr()) }
+        .to_string_lossy()
+        .into_owned();
+    // Belt-and-suspenders: refuse IP-echo (the old Preview stub).
+    if hostname.is_empty() || hostname == ip {
+        return Err(format!("Error: dns.reverse {} - no PTR hostname", ip));
+    }
+    Ok(vec![hostname])
+}
+
+#[cfg(windows)]
+fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
+    use std::ffi::CStr;
+    use windows_sys::Win32::Networking::WinSock::{
+        gai_strerrorA, getnameinfo, AF_INET, AF_INET6, NI_MAXHOST, NI_NAMEREQD, SOCKADDR,
+        SOCKADDR_IN, SOCKADDR_IN6,
+    };
+
+    let mut hostbuf = [0u8; NI_MAXHOST as usize];
+    let mut servbuf = [0u8; 32];
+
+    let rc = match addr {
+        IpAddr::V4(v4) => {
+            let mut sa: SOCKADDR_IN = unsafe { std::mem::zeroed() };
+            sa.sin_family = AF_INET as _;
+            sa.sin_port = 0;
+            unsafe {
+                sa.sin_addr.S_un.S_addr = u32::from(v4).to_be();
+                getnameinfo(
+                    &sa as *const _ as *const SOCKADDR,
+                    std::mem::size_of_val(&sa) as i32,
+                    hostbuf.as_mut_ptr() as *mut i8,
+                    hostbuf.len() as u32,
+                    servbuf.as_mut_ptr() as *mut i8,
+                    servbuf.len() as u32,
+                    NI_NAMEREQD as i32,
+                )
+            }
+        }
+        IpAddr::V6(v6) => {
+            let mut sa: SOCKADDR_IN6 = unsafe { std::mem::zeroed() };
+            sa.sin6_family = AF_INET6 as _;
+            sa.sin6_port = 0;
+            sa.sin6_flowinfo = 0;
+            unsafe {
+                sa.sin6_addr.u.Byte = v6.octets();
+                getnameinfo(
+                    &sa as *const _ as *const SOCKADDR,
+                    std::mem::size_of_val(&sa) as i32,
+                    hostbuf.as_mut_ptr() as *mut i8,
+                    hostbuf.len() as u32,
+                    servbuf.as_mut_ptr() as *mut i8,
+                    servbuf.len() as u32,
+                    NI_NAMEREQD as i32,
+                )
+            }
+        }
+    };
+
+    if rc != 0 {
+        let detail = unsafe {
+            let ptr = gai_strerrorA(rc);
+            if ptr.is_null() {
+                format!("getnameinfo failed ({rc})")
+            } else {
+                CStr::from_ptr(ptr as *const i8)
+                    .to_string_lossy()
+                    .into_owned()
+            }
+        };
+        return Err(format!("Error: dns.reverse {} - {}", ip, detail));
+    }
+
+    let end = hostbuf
+        .iter()
+        .position(|&b| b == 0)
+        .unwrap_or(hostbuf.len());
+    let hostname = String::from_utf8_lossy(&hostbuf[..end]).into_owned();
+    if hostname.is_empty() || hostname == ip {
+        return Err(format!("Error: dns.reverse {} - no PTR hostname", ip));
+    }
+    Ok(vec![hostname])
+}
+
+/// System resolver list. Never invents `8.8.8.8`.
+fn read_dns_servers() -> Vec<String> {
+    #[cfg(unix)]
+    {
+        read_resolv_conf_nameservers("/etc/resolv.conf")
+    }
+    #[cfg(windows)]
+    {
+        read_windows_dns_servers()
+    }
+}
+
+fn read_resolv_conf_nameservers(path: &str) -> Vec<String> {
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    let mut servers = Vec::new();
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with(';') {
+            continue;
+        }
+        let mut parts = trimmed.split_whitespace();
+        if parts.next() != Some("nameserver") {
+            continue;
+        }
+        if let Some(server) = parts.next() {
+            if !server.is_empty() {
+                servers.push(server.to_string());
+            }
+        }
+    }
+    servers
+}
+
+#[cfg(windows)]
+fn read_windows_dns_servers() -> Vec<String> {
+    use windows_sys::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
+    use windows_sys::Win32::NetworkManagement::IpHelper::{GetNetworkParams, FIXED_INFO_W2KSP1};
+
+    let mut size: u32 = 0;
+    let first = unsafe { GetNetworkParams(std::ptr::null_mut(), &mut size) };
+    if first != ERROR_BUFFER_OVERFLOW && size == 0 {
+        return Vec::new();
+    }
+    let mut buf = vec![0u8; size as usize];
+    let rc = unsafe { GetNetworkParams(buf.as_mut_ptr() as *mut FIXED_INFO_W2KSP1, &mut size) };
+    if rc != 0 {
+        return Vec::new();
+    }
+    let info = unsafe { &*(buf.as_ptr() as *const FIXED_INFO_W2KSP1) };
+    let mut servers = Vec::new();
+    let mut node = &info.DnsServerList as *const _;
+    while !node.is_null() {
+        let entry = unsafe { &*node };
+        let bytes = entry.IpAddress.String;
+        let end = bytes.iter().position(|&b| b == 0).unwrap_or(bytes.len());
+        let s = String::from_utf8_lossy(&bytes[..end]).trim().to_string();
+        if !s.is_empty() {
+            servers.push(s);
+        }
+        node = entry.Next;
+    }
+    servers
+}
 
 pub fn setup_dns_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
@@ -310,7 +531,7 @@ pub fn setup_dns_api(
     .unwrap();
     dns_obj.set(scope, resolve6_key.into(), resolve6_instance.into());
 
-    // dns.reverse(ip) - PTR record lookup (reverse DNS)
+    // dns.reverse(ip) - real PTR via OS getnameinfo(NI_NAMEREQD)
     let reverse_key = v8::String::new(scope, "reverse").unwrap();
     let reverse_instance = v8::FunctionTemplate::new(
         scope,
@@ -340,26 +561,39 @@ pub fn setup_dns_api(
                 return;
             }
 
-            // For PTR records, we return the IP as hostname for compatibility
-            // Full PTR lookup would require a DNS resolver crate
-            retval.set(v8::String::new(_scope, &ip).unwrap().into());
+            match reverse_lookup(&ip) {
+                Ok(hostnames) => {
+                    let arr = v8::Array::new(_scope, hostnames.len() as i32);
+                    for (i, name) in hostnames.iter().enumerate() {
+                        let name_str = v8::String::new(_scope, name).unwrap();
+                        arr.set_index(_scope, i as u32, name_str.into());
+                    }
+                    retval.set(arr.into());
+                }
+                Err(error_msg) => {
+                    retval.set(v8::String::new(_scope, &error_msg).unwrap().into());
+                }
+            }
         },
     )
     .get_function(scope)
     .unwrap();
     dns_obj.set(scope, reverse_key.into(), reverse_instance.into());
 
-    // dns.getServers() - Get DNS servers (mock for compatibility)
+    // dns.getServers() - system resolver list (resolv.conf / GetNetworkParams)
     let get_servers_key = v8::String::new(scope, "getServers").unwrap();
     let get_servers_instance = v8::FunctionTemplate::new(
         scope,
         |_scope: &mut v8::PinScope,
          _args: v8::FunctionCallbackArguments,
          mut retval: v8::ReturnValue| {
-            let servers = v8::Array::new(_scope, 1);
-            let dns_server = v8::String::new(_scope, "8.8.8.8").unwrap();
-            servers.set_index(_scope, 0, dns_server.into());
-            retval.set(servers.into());
+            let servers = read_dns_servers();
+            let arr = v8::Array::new(_scope, servers.len() as i32);
+            for (i, server) in servers.iter().enumerate() {
+                let s = v8::String::new(_scope, server).unwrap();
+                arr.set_index(_scope, i as u32, s.into());
+            }
+            retval.set(arr.into());
         },
     )
     .get_function(scope)
