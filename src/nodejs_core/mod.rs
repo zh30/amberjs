@@ -13,6 +13,7 @@ pub mod fast_path;
 /// 兼容性进度以 tests/conformance/scorecard.md 的符合性分数为准，
 /// 不要在此处或注释中宣称全面兼容。
 pub mod fs;
+pub mod fs_watch; // G64: fs.watch / watchFile (notify + poll)
 pub mod http;
 pub mod http2;
 pub mod https;
@@ -50,6 +51,8 @@ pub fn setup_nodejs_core_apis(
     crypto::setup_crypto_api(scope, context)?;
     stream::setup_stream_api(scope, context)?;
     events::setup_events_api(scope, context)?;
+    // G64: after EventEmitter so FSWatcher can inherit EE.prototype.
+    fs_watch::install_fs_watch_api(scope, context)?;
     net::setup_net_api(scope, context)?;
     http::setup_http_api(scope, context)?;
     http2::setup_http2_api(scope, context)?;
