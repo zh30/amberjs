@@ -210,7 +210,7 @@ fn check_fs_read(scope: &mut v8::PinScope, path: &str) -> bool {
     match check_global_permission(
         PermissionKind::FileSystem,
         PermissionAction::Read,
-        ResourceId::Path(path.to_string()),
+        ResourceId::Path(PathBuf::from(path)),
     ) {
         Ok(()) => true,
         Err(error) => {
