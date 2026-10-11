@@ -204,6 +204,9 @@ jobs:
       - name: node vm Stable contract
         run: cargo test --test vm_contract_tests -- --test-threads=1
 
+      - name: node diagnostics_channel Stable contract
+        run: cargo test --test diagnostics_channel_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
