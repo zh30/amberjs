@@ -1,4 +1,4 @@
-//! Pins docs/ASSERT_CONTRACT.md (narrow Node assert Stable surface).
+//! Pins docs/ASSERT_CONTRACT.md (narrow Node assert Stable surface + G69 match/rejects).
 use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
@@ -36,12 +36,16 @@ fn require_assert_is_global_callable() {
           typeof a.deepStrictEqual,
           typeof a.throws,
           typeof a.fail,
-          typeof a.ifError
+          typeof a.ifError,
+          typeof a.match,
+          typeof a.doesNotMatch,
+          typeof a.rejects,
+          typeof a.doesNotReject
         ].join('|');
         "#;
     assert_eq!(
         run(code),
-        "true|true|true|true|true|function|function|function|function|function|function"
+        "true|true|true|true|true|function|function|function|function|function|function|function|function|function|function"
     );
 }
 
@@ -140,19 +144,75 @@ fn throws_fail_if_error() {
 
 #[test]
 #[serial]
-fn non_goals_match_rejects_absent_equal_not_stable() {
+fn match_and_does_not_match() {
     let code = r#"
         const assert = require('assert');
-        // Non-goals: match / rejects are not installed.
-        // equal / deepEqual may exist but are not Stable — pin absence of match/rejects only.
+        assert.match('hello-42', /hello-\d+/);
+        assert.doesNotMatch('hello', /world/);
+        let mismatch = '';
+        try { assert.match('abc', /xyz/); } catch (e) { mismatch = String(e.message); }
+        let unwanted = '';
+        try { assert.doesNotMatch('abc', /a/); } catch (e) { unwanted = String(e.message); }
+        let custom = '';
+        try { assert.match('x', /y/, 'custom-match'); } catch (e) { custom = String(e.message); }
+        let badStr = '';
+        try { assert.match(1, /x/); } catch (e) { badStr = e.name + ':' + String(e.message); }
+        let badRe = '';
+        try { assert.match('x', 'y'); } catch (e) { badRe = e.name + ':' + String(e.message); }
         [
-          typeof assert.match,
-          typeof assert.rejects,
-          typeof assert.doesNotReject,
-          typeof assert.doesNotMatch
+          mismatch.includes('did not match'),
+          unwanted.includes('not match'),
+          custom,
+          badStr.includes('TypeError') && badStr.includes('string'),
+          badRe.includes('TypeError') && badRe.includes('regexp')
         ].join('|');
         "#;
-    assert_eq!(run(code), "undefined|undefined|undefined|undefined");
+    assert_eq!(run(code), "true|true|custom-match|true|true");
+}
+
+#[test]
+#[serial]
+fn rejects_and_does_not_reject() {
+    let code = r#"
+        (async () => {
+          const assert = require('assert');
+          await assert.rejects(Promise.reject(new Error('r1')));
+          await assert.rejects(async () => { throw new Error('r2'); });
+          await assert.rejects(() => { throw new Error('r3'); });
+          await assert.doesNotReject(Promise.resolve(1));
+          await assert.doesNotReject(async () => 2);
+          await assert.doesNotReject(() => 3);
+
+          let missing = '';
+          try { await assert.rejects(Promise.resolve('ok')); }
+          catch (e) { missing = String(e.message); }
+
+          let unwanted = '';
+          try { await assert.doesNotReject(Promise.reject(new Error('x'))); }
+          catch (e) { unwanted = String(e.message); }
+
+          return [
+            missing.includes('Missing expected rejection'),
+            unwanted.includes('Got unwanted rejection')
+          ].join('|');
+        })()
+        "#;
+    assert_eq!(run(code), "true|true");
+}
+
+#[test]
+#[serial]
+fn non_goals_equal_not_stable() {
+    let code = r#"
+        const assert = require('assert');
+        // equal / deepEqual may exist but are not Stable — G69 pins match/rejects instead.
+        [
+          typeof assert.equal,
+          typeof assert.deepEqual,
+          typeof assert.doesNotThrow
+        ].join('|');
+        "#;
+    assert_eq!(run(code), "function|function|undefined");
 }
 
 #[test]
@@ -171,11 +231,19 @@ fn cli_assert_basics_reach_the_contract() {
         assert.throws(() => { throw new Error('x'); });
         try { assert.fail('x'); } catch (_) {}
         assert.ifError(null);
-        console.log([
-          typeof assert === 'function',
-          require('assert/strict') === assert,
-          typeof assert.ok
-        ].join('|'));
+        assert.match('ab12', /ab\d+/);
+        assert.doesNotMatch('ab', /xy/);
+        (async () => {
+          await assert.rejects(Promise.reject(new Error('e')));
+          await assert.doesNotReject(Promise.resolve(1));
+          console.log([
+            typeof assert === 'function',
+            require('assert/strict') === assert,
+            typeof assert.ok,
+            typeof assert.match,
+            typeof assert.rejects
+          ].join('|'));
+        })();
         "#,
     )
     .expect("script");
@@ -191,7 +259,7 @@ fn cli_assert_basics_reach_the_contract() {
         "amber run failed: stdout={stdout} stderr={stderr}"
     );
     assert!(
-        stdout.contains("true|true|function"),
+        stdout.contains("true|true|function|function|function"),
         "unexpected stdout: {stdout}"
     );
 }

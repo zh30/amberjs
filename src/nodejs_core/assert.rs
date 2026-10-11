@@ -17,6 +17,8 @@ pub fn setup_assert_api(
     let throws_fn = v8::Function::new(scope, assert_throws).unwrap();
     let fail_fn = v8::Function::new(scope, assert_fail).unwrap();
     let if_error_fn = v8::Function::new(scope, assert_if_error).unwrap();
+    let match_fn = v8::Function::new(scope, assert_match).unwrap();
+    let does_not_match_fn = v8::Function::new(scope, assert_does_not_match).unwrap();
 
     for (name, func) in [
         ("ok", ok_fn),
@@ -27,6 +29,8 @@ pub fn setup_assert_api(
         ("throws", throws_fn),
         ("fail", fail_fn),
         ("ifError", if_error_fn),
+        ("match", match_fn),
+        ("doesNotMatch", does_not_match_fn),
         ("assert", ok_fn),
     ] {
         let key = v8::String::new(scope, name).unwrap();
@@ -44,6 +48,67 @@ pub fn setup_assert_api(
     let strict_key = v8::String::new(scope, "assert_strict").unwrap();
     global.set(scope, strict_key.into(), assert_callable.into());
 
+    // Promise-based rejects / doesNotReject (real settlement via Promise.resolve).
+    install_rejects_helpers(scope)?;
+
+    Ok(())
+}
+
+/// Attach `assert.rejects` / `assert.doesNotReject` that await Promise settlement.
+///
+/// Implemented in JS so the returned Promise chains through the isolate's real
+/// microtask queue (same model as Node's assert helpers). Not a stub: rejection
+/// vs fulfillment is observed from `Promise.resolve` / thrown sync errors.
+fn install_rejects_helpers(scope: &mut v8::PinScope) -> Result<()> {
+    let source = r#"(function () {
+  const assert = globalThis.assert;
+  if (typeof assert !== 'function') {
+    throw new Error('assert is not installed');
+  }
+
+  function toWaitable(block) {
+    if (typeof block === 'function') {
+      try {
+        return Promise.resolve(block());
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+    return Promise.resolve(block);
+  }
+
+  assert.rejects = function rejects(block) {
+    return toWaitable(block).then(
+      function onFulfilled() {
+        throw new Error('Missing expected rejection');
+      },
+      function onRejected() {
+        return undefined;
+      }
+    );
+  };
+
+  assert.doesNotReject = function doesNotReject(block) {
+    return toWaitable(block).then(
+      function onFulfilled() {
+        return undefined;
+      },
+      function onRejected() {
+        throw new Error('Got unwanted rejection');
+      }
+    );
+  };
+})();"#;
+
+    let Some(code) = v8::String::new(scope, source) else {
+        anyhow::bail!("Failed to create rejects helper source");
+    };
+    let Some(script) = v8::Script::compile(scope, code, None) else {
+        anyhow::bail!("Failed to compile assert rejects helpers");
+    };
+    if script.run(scope).is_none() {
+        anyhow::bail!("Failed to install assert rejects helpers");
+    }
     Ok(())
 }
 
@@ -66,6 +131,27 @@ fn throw_assertion(scope: &mut v8::PinScope, message: &str) {
     scope.throw_exception(err);
 }
 
+fn throw_type_error(scope: &mut v8::PinScope, message: &str) {
+    let msg = v8::String::new(scope, message).unwrap();
+    let err = v8::Exception::type_error(scope, msg);
+    scope.throw_exception(err);
+}
+
+fn optional_message(
+    scope: &mut v8::PinScope,
+    args: &v8::FunctionCallbackArguments,
+    index: i32,
+) -> Option<String> {
+    if args.length() <= index {
+        return None;
+    }
+    let val = args.get(index);
+    if val.is_undefined() {
+        return None;
+    }
+    val.to_string(scope).map(|s| s.to_rust_string_lossy(scope))
+}
+
 fn value_is_truthy(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> bool {
     if value.is_null_or_undefined() || value.is_false() {
         return false;
@@ -83,6 +169,79 @@ fn value_is_truthy(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> boo
             .unwrap_or(false);
     }
     true
+}
+
+fn regexp_test(
+    scope: &mut v8::PinScope,
+    regexp: v8::Local<v8::Value>,
+    string: v8::Local<v8::Value>,
+) -> Option<bool> {
+    let Ok(re_obj) = v8::Local::<v8::Object>::try_from(regexp) else {
+        return None;
+    };
+    let test_key = v8::String::new(scope, "test").unwrap();
+    let test_val = re_obj.get(scope, test_key.into())?;
+    let Ok(test_fn) = v8::Local::<v8::Function>::try_from(test_val) else {
+        return None;
+    };
+    let result = test_fn.call(scope, regexp, &[string])?;
+    Some(result.is_true())
+}
+
+fn assert_match(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _rv: v8::ReturnValue,
+) {
+    let string = args.get(0);
+    let regexp = args.get(1);
+    if !string.is_string() {
+        throw_type_error(scope, "The \"string\" argument must be of type string");
+        return;
+    }
+    if !regexp.is_reg_exp() {
+        throw_type_error(
+            scope,
+            "The \"regexp\" argument must be an instance of RegExp",
+        );
+        return;
+    }
+    let matched = regexp_test(scope, regexp, string).unwrap_or(false);
+    if !matched {
+        let message = optional_message(scope, &args, 2).unwrap_or_else(|| {
+            "AssertionError [ERR_ASSERTION]: The input did not match the regular expression"
+                .to_string()
+        });
+        throw_assertion(scope, &message);
+    }
+}
+
+fn assert_does_not_match(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    _rv: v8::ReturnValue,
+) {
+    let string = args.get(0);
+    let regexp = args.get(1);
+    if !string.is_string() {
+        throw_type_error(scope, "The \"string\" argument must be of type string");
+        return;
+    }
+    if !regexp.is_reg_exp() {
+        throw_type_error(
+            scope,
+            "The \"regexp\" argument must be an instance of RegExp",
+        );
+        return;
+    }
+    let matched = regexp_test(scope, regexp, string).unwrap_or(false);
+    if matched {
+        let message = optional_message(scope, &args, 2).unwrap_or_else(|| {
+            "AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression"
+                .to_string()
+        });
+        throw_assertion(scope, &message);
+    }
 }
 
 fn assert_ok(scope: &mut v8::PinScope, args: v8::FunctionCallbackArguments, _rv: v8::ReturnValue) {
