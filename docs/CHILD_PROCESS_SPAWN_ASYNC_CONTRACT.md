@@ -47,9 +47,10 @@ These are true quirks of the shipped Stable `spawn` surface (not missing APIs dr
 These are outside Stable. Do **not** document them as Stable Limits fiction for unfinished surfaces:
 
 - Live `stdin` / `stdout` / `stderr` pipes, streaming `ChildProcess`, or `ChildProcess` EventEmitter exit/close parity.
-- `fork`, IPC, detached processes, real `pid`, signals, `kill`, and honored option bags (`timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, `windowsHide`, encoding).
+- Narrow `fork` + IPC — see **tentative G67** [`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md) (not this spawn page).
+- Detached processes beyond G67, real `pid` on this spawn page, signals, `kill`, and honored option bags (`timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, `windowsHide`, encoding).
 - Reintroducing same-turn callback delivery or sync-block `Command::output()` inside the `spawn` call (the pre-G60 Preview lie).
-- Graduating pipes / `fork` by documenting absence as Stable Limits.
+- Graduating pipes by documenting absence as Stable Limits.
 
 ## Reachability
 

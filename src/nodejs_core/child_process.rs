@@ -6,7 +6,8 @@
 /// - G47 async: narrow `exec` / `execFile` with host-thread run + later-turn callback
 ///   (see CHILD_PROCESS_ASYNC_CONTRACT.md)
 /// - G60 async: narrow `spawn` with the same host-thread + later-turn callback model
-///   (see CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md). Pipes / fork stay Non-goals.
+///   (see CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md). Pipes stay Non-goals.
+/// - G67 fork: real OS-process `fork` + TCP IPC (see CHILD_PROCESS_FORK_CONTRACT.md).
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use rusty_v8 as v8;
@@ -29,9 +30,12 @@ thread_local! {
         std::cell::RefCell::new(HashMap::new());
 }
 
-/// True while an async child is running or its result awaits delivery.
+/// True while an async child is running, its result awaits delivery, or fork IPC is live.
 pub fn has_pending_child_process_work() -> bool {
     if ASYNC_IN_FLIGHT.load(Ordering::SeqCst) > 0 {
+        return true;
+    }
+    if crate::nodejs_core::child_process_fork::has_pending_fork_work() {
         return true;
     }
     ASYNC_COMPLETED
@@ -40,7 +44,7 @@ pub fn has_pending_child_process_work() -> bool {
         .unwrap_or(false)
 }
 
-/// Drain completed async jobs into Node-shaped callbacks (V8 thread only).
+/// Drain completed async jobs and fork IPC events into JS (V8 thread only).
 pub fn pump_pending_child_process_jobs(scope: &mut v8::PinScope) -> usize {
     let mut batch = Vec::new();
     if let Ok(mut q) = ASYNC_COMPLETED.lock() {
@@ -48,7 +52,7 @@ pub fn pump_pending_child_process_jobs(scope: &mut v8::PinScope) -> usize {
             batch.push(item);
         }
     }
-    let n = batch.len();
+    let mut n = batch.len();
     for (job_id, output) in batch {
         let callback = ASYNC_CALLBACKS.with(|map| map.borrow_mut().remove(&job_id));
         if let Some(callback_global) = callback {
@@ -56,6 +60,7 @@ pub fn pump_pending_child_process_jobs(scope: &mut v8::PinScope) -> usize {
             call_child_process_callback(scope, callback_local.into(), &output);
         }
     }
+    n += crate::nodejs_core::child_process_fork::pump_pending_fork_jobs(scope);
     n
 }
 
@@ -706,10 +711,20 @@ pub fn setup_child_process_api(
     let spawn_sync_key = v8::String::new(scope, "spawnSync").unwrap();
     cp_obj.set(scope, spawn_sync_key.into(), spawn_sync_instance.into());
 
+    // fork (G67): real amber re-exec + TCP IPC
+    let fork_func =
+        v8::FunctionTemplate::new(scope, crate::nodejs_core::child_process_fork::cp_fork_callback);
+    let fork_instance = fork_func.get_function(scope).unwrap();
+    let fork_key = v8::String::new(scope, "fork").unwrap();
+    cp_obj.set(scope, fork_key.into(), fork_instance.into());
+
     // 设置到全局
     let global = context.global(scope);
     let cp_key = v8::String::new(scope, "child_process").unwrap();
     global.set(scope, cp_key.into(), cp_obj.into());
+
+    // Forked children install process.send / process.on('message') when env is set.
+    crate::nodejs_core::child_process_fork::install_fork_child_if_needed(scope, context)?;
 
     Ok(())
 }
