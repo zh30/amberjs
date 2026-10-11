@@ -1,10 +1,11 @@
-// Node.js net 模块 — narrow Stable server listen/accept (G45) + existing client helpers.
-// Server path: real TcpListener::bind, Tokio accept, 'connection' EventEmitter delivery.
-// Client connect / Socket helpers remain Preview outside NET_SERVER_CONTRACT.
+// Node.js net 模块 — Stable server listen/accept (G45) + narrow client connect (G61).
+// Server: TcpListener::bind, Tokio accept, 'connection' EventEmitter delivery.
+// Client: real TCP connect, 'connect'/'data' EventEmitter, write/end (NET_CONNECT_CONTRACT).
 
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use rusty_v8 as v8;
+use std::collections::HashSet;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
@@ -12,6 +13,80 @@ use std::thread;
 use std::time::Duration;
 
 use super::tcp_async::{get_net_tokio_runtime, sync_write, TCP_MANAGER};
+
+/// Pending client Socket events for the V8 pump (`'connect'` / `'data'`).
+#[derive(Debug, Clone)]
+enum PendingSocketEvent {
+    Connect { handle_id: u64 },
+    Data { handle_id: u64, bytes: Vec<u8> },
+}
+
+static GLOBAL_SOCKET_EVENT_SENDER: Lazy<
+    RwLock<Option<crossbeam::channel::Sender<PendingSocketEvent>>>,
+> = Lazy::new(|| RwLock::new(None));
+static GLOBAL_SOCKET_EVENT_RECEIVER: Lazy<
+    RwLock<Option<crossbeam::channel::Receiver<PendingSocketEvent>>>,
+> = Lazy::new(|| RwLock::new(None));
+static ACTIVE_CLIENT_HANDLE_IDS: Lazy<Mutex<HashSet<u64>>> =
+    Lazy::new(|| Mutex::new(HashSet::new()));
+
+fn ensure_socket_event_channel() {
+    let need_init = GLOBAL_SOCKET_EVENT_RECEIVER
+        .read()
+        .map(|g| g.is_none())
+        .unwrap_or(true);
+    if !need_init {
+        return;
+    }
+    let (tx, rx) = crossbeam::channel::bounded(4096);
+    if let Ok(mut guard) = GLOBAL_SOCKET_EVENT_SENDER.write() {
+        *guard = Some(tx);
+    }
+    if let Ok(mut guard) = GLOBAL_SOCKET_EVENT_RECEIVER.write() {
+        *guard = Some(rx);
+    }
+}
+
+fn enqueue_socket_event(event: PendingSocketEvent) {
+    ensure_socket_event_channel();
+    if let Ok(guard) = GLOBAL_SOCKET_EVENT_SENDER.read() {
+        if let Some(ref tx) = *guard {
+            let _ = tx.try_send(event);
+        }
+    }
+}
+
+fn register_active_client(handle_id: u64) {
+    ACTIVE_CLIENT_HANDLE_IDS
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .insert(handle_id);
+}
+
+fn unregister_active_client(handle_id: u64) {
+    ACTIVE_CLIENT_HANDLE_IDS
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .remove(&handle_id);
+}
+
+/// True when at least one client Socket from `net.connect` is still live.
+pub fn has_active_net_client_sockets() -> bool {
+    ACTIVE_CLIENT_HANDLE_IDS
+        .lock()
+        .map(|s| !s.is_empty())
+        .unwrap_or(false)
+}
+
+/// True when client Socket `'connect'` / `'data'` events are queued.
+pub fn has_pending_socket_events() -> bool {
+    if let Ok(guard) = GLOBAL_SOCKET_EVENT_RECEIVER.read() {
+        if let Some(ref rx) = *guard {
+            return !rx.is_empty();
+        }
+    }
+    false
+}
 
 /// Pending accepted connection queued for the V8 pump.
 #[derive(Debug, Clone)]
@@ -90,7 +165,7 @@ fn stop_all_net_server_states() {
     states.clear();
 }
 
-/// Reset accept registry + pending queue (contract tests).
+/// Reset accept registry + pending queue + client Socket events (contract tests).
 pub fn reset_net_server_channel() {
     stop_all_net_server_states();
     let (tx, rx) = crossbeam::channel::bounded(1024);
@@ -98,6 +173,22 @@ pub fn reset_net_server_channel() {
         *guard = Some(tx);
     }
     if let Ok(mut guard) = GLOBAL_NET_CONN_RECEIVER.write() {
+        *guard = Some(rx);
+    }
+    reset_net_client_channel();
+}
+
+/// Reset client Socket event queue + active-handle registry (contract tests).
+pub fn reset_net_client_channel() {
+    ACTIVE_CLIENT_HANDLE_IDS
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .clear();
+    let (tx, rx) = crossbeam::channel::bounded(4096);
+    if let Ok(mut guard) = GLOBAL_SOCKET_EVENT_SENDER.write() {
+        *guard = Some(tx);
+    }
+    if let Ok(mut guard) = GLOBAL_SOCKET_EVENT_RECEIVER.write() {
         *guard = Some(rx);
     }
 }
@@ -183,6 +274,118 @@ pub fn pump_pending_net_connections_in_scope(
         }
     }
     processed
+}
+
+/// Drain buffered TCP bytes into `'data'` events, then emit queued `'connect'` / `'data'`.
+pub fn pump_pending_socket_events_in_scope(
+    scope: &mut v8::PinScope,
+    context: &v8::Local<v8::Context>,
+) -> usize {
+    ensure_socket_event_channel();
+    harvest_client_socket_buffers();
+
+    let rx = if let Ok(guard) = GLOBAL_SOCKET_EVENT_RECEIVER.read() {
+        guard.clone()
+    } else {
+        None
+    };
+    let Some(rx) = rx else {
+        return 0;
+    };
+
+    let global = context.global(scope);
+    let registry_key = v8::String::new(scope, "_netClientSockets").unwrap();
+    let registry = match global.get(scope, registry_key.into()) {
+        Some(val) if val.is_object() => match v8::Local::<v8::Object>::try_from(val) {
+            Ok(obj) => obj,
+            Err(_) => return 0,
+        },
+        _ => return 0,
+    };
+
+    let mut processed = 0usize;
+    while let Ok(event) = rx.try_recv() {
+        let handle_id = match &event {
+            PendingSocketEvent::Connect { handle_id } => *handle_id,
+            PendingSocketEvent::Data { handle_id, .. } => *handle_id,
+        };
+        let id_key = v8::String::new(scope, &handle_id.to_string()).unwrap();
+        let Some(socket_val) = registry.get(scope, id_key.into()) else {
+            continue;
+        };
+        if socket_val.is_undefined() || socket_val.is_null() || !socket_val.is_object() {
+            continue;
+        }
+        let Ok(socket_obj) = v8::Local::<v8::Object>::try_from(socket_val) else {
+            continue;
+        };
+
+        let emit_key = v8::String::new(scope, "emit").unwrap();
+        let Some(emit_val) = socket_obj.get(scope, emit_key.into()) else {
+            continue;
+        };
+        let Ok(emit_func) = v8::Local::<v8::Function>::try_from(emit_val) else {
+            continue;
+        };
+
+        match event {
+            PendingSocketEvent::Connect { .. } => {
+                let connecting_key = v8::String::new(scope, "connecting").unwrap();
+                socket_obj.set(
+                    scope,
+                    connecting_key.into(),
+                    v8::Boolean::new(scope, false).into(),
+                );
+                let event_name = v8::String::new(scope, "connect").unwrap();
+                let _ = emit_func.call(scope, socket_obj.into(), &[event_name.into()]);
+            }
+            PendingSocketEvent::Data { bytes, .. } => {
+                let event_name = v8::String::new(scope, "data").unwrap();
+                // Stable pin: UTF-8 lossy string chunk (same ToString write path).
+                let chunk = String::from_utf8_lossy(&bytes);
+                let data_val = v8::String::new(scope, &chunk).unwrap();
+                let _ = emit_func.call(
+                    scope,
+                    socket_obj.into(),
+                    &[event_name.into(), data_val.into()],
+                );
+            }
+        }
+        processed += 1;
+        if processed >= 256 {
+            break;
+        }
+    }
+    processed
+}
+
+fn harvest_client_socket_buffers() {
+    let ids: Vec<u64> = ACTIVE_CLIENT_HANDLE_IDS
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .iter()
+        .copied()
+        .collect();
+    for handle_id in ids {
+        let Some(handle) = TCP_MANAGER.get_connection(handle_id) else {
+            unregister_active_client(handle_id);
+            continue;
+        };
+        let data = handle.consume_buffer();
+        if !data.is_empty() {
+            enqueue_socket_event(PendingSocketEvent::Data {
+                handle_id,
+                bytes: data,
+            });
+        }
+        // Drop keep-alive when read finished, buffers empty, and write ended or closed.
+        if !handle.reading.load(Ordering::SeqCst)
+            && !handle.has_buffered_data()
+            && (handle.write_ended.load(Ordering::SeqCst) || !handle.is_connected())
+        {
+            unregister_active_client(handle_id);
+        }
+    }
 }
 
 fn build_accepted_socket_object<'a>(
@@ -285,12 +488,44 @@ fn attach_socket_methods<'a>(
     socket_obj.set(scope, read_key.into(), read_instance.into());
 }
 
+/// Client Socket methods for G61 — write/end/destroy only; on/emit come from EventEmitter.
+fn attach_client_socket_methods<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    socket_obj: v8::Local<'a, v8::Object>,
+) {
+    let write_func = v8::FunctionTemplate::new(scope, socket_write_callback);
+    let write_instance = write_func.get_function(scope).unwrap();
+    let write_key = v8::String::new(scope, "write").unwrap();
+    socket_obj.set(scope, write_key.into(), write_instance.into());
+
+    let end_func = v8::FunctionTemplate::new(scope, socket_end_callback);
+    let end_instance = end_func.get_function(scope).unwrap();
+    let end_key = v8::String::new(scope, "end").unwrap();
+    socket_obj.set(scope, end_key.into(), end_instance.into());
+
+    let destroy_func = v8::FunctionTemplate::new(scope, socket_destroy_callback);
+    let destroy_instance = destroy_func.get_function(scope).unwrap();
+    let destroy_key = v8::String::new(scope, "destroy").unwrap();
+    socket_obj.set(scope, destroy_key.into(), destroy_instance.into());
+
+    let set_timeout_func = v8::FunctionTemplate::new(scope, socket_set_timeout_callback);
+    let set_timeout_instance = set_timeout_func.get_function(scope).unwrap();
+    let set_timeout_key = v8::String::new(scope, "setTimeout").unwrap();
+    socket_obj.set(scope, set_timeout_key.into(), set_timeout_instance.into());
+
+    let read_func = v8::FunctionTemplate::new(scope, socket_read_callback);
+    let read_instance = read_func.get_function(scope).unwrap();
+    let read_key = v8::String::new(scope, "read").unwrap();
+    socket_obj.set(scope, read_key.into(), read_instance.into());
+}
+
 /// 设置 net API
 pub fn setup_net_api(
     scope: &mut v8::ContextScope<v8::HandleScope>,
     context: &v8::Local<v8::Context>,
 ) -> Result<()> {
     ensure_net_connection_channel();
+    ensure_socket_event_channel();
 
     let net_obj = v8::Object::new(scope);
 
@@ -341,7 +576,7 @@ pub fn setup_net_api(
     let net_key = v8::String::new(scope, "net").unwrap();
     global.set(scope, net_key.into(), net_obj.into());
 
-    // EventEmitter-backed Server + createServer wrap (mirrors http G37 bootstrap).
+    // EventEmitter-backed Server + Socket; createServer / connect wraps.
     let bootstrap = r#"
         (function() {
             const net = globalThis.net;
@@ -351,6 +586,9 @@ pub fn setup_net_api(
 
             if (!globalThis._netServers) {
                 globalThis._netServers = Object.create(null);
+            }
+            if (!globalThis._netClientSockets) {
+                globalThis._netClientSockets = Object.create(null);
             }
 
             function Server(options, connectionListener) {
@@ -376,6 +614,17 @@ pub fn setup_net_api(
             };
             net.Server = Server;
 
+            function Socket() {
+                if (typeof EE === 'function') EE.call(this);
+                this._events = Object.create(null);
+                this._eventsCount = 0;
+            }
+            Socket.prototype = Object.create(proto);
+            Socket.prototype.constructor = Socket;
+            Socket.prototype.ref = function() { return this; };
+            Socket.prototype.unref = function() { return this; };
+            net.Socket = Socket;
+
             const _nativeCreateServer = net.createServer;
             net.createServer = function(options, connectionListener) {
                 const server = _nativeCreateServer.call(net, options, connectionListener);
@@ -394,6 +643,34 @@ pub fn setup_net_api(
                 }
                 return server;
             };
+
+            function wrapConnect(nativeFn) {
+                return function() {
+                    const socket = nativeFn.apply(net, arguments);
+                    Object.setPrototypeOf(socket, Socket.prototype);
+                    if (!socket._events) {
+                        socket._events = Object.create(null);
+                        socket._eventsCount = 0;
+                    }
+                    let connectListener = null;
+                    for (let i = 0; i < arguments.length; i++) {
+                        if (typeof arguments[i] === 'function') {
+                            connectListener = arguments[i];
+                        }
+                    }
+                    if (typeof connectListener === 'function') {
+                        socket.once('connect', connectListener);
+                    }
+                    const id = socket._handleId;
+                    if (id != null) {
+                        globalThis._netClientSockets[String(id)] = socket;
+                    }
+                    return socket;
+                };
+            }
+            net.connect = wrapConnect(net.connect);
+            net.createConnection = wrapConnect(net.createConnection);
+
             net.__amberNetServerBootstrapped = true;
         })();
     "#;
@@ -848,19 +1125,27 @@ fn server_address_callback(
     retval.set(obj.into());
 }
 
-/// net.connect() / createConnection() — Preview client path (unchanged shape).
+/// net.connect() / createConnection() — G61 narrow client (TCP + connect/data/write/end).
 fn net_connect_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut retval: v8::ReturnValue,
 ) {
-    let options = args.get(0);
+    ensure_socket_event_channel();
 
-    let port = extract_integer_option(scope, &options, "port", 0);
-    let host = extract_string_option(scope, &options, "host", "localhost");
-    let local_port = extract_integer_option(scope, &options, "localPort", 0);
-    let local_address = extract_string_option(scope, &options, "localAddress", "0.0.0.0");
-    let connect_timeout = extract_integer_option(scope, &options, "connectTimeout", 0);
+    let (port, host, local_port, local_address, connect_timeout) = parse_connect_args(scope, &args);
+
+    // Unix path form is a Non-goal; reject honestly rather than fake a TCP connect.
+    if port < 0 {
+        let msg = v8::String::new(
+            scope,
+            "TypeError: net.connect(path) unix sockets are not supported",
+        )
+        .unwrap();
+        let err = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(err);
+        return;
+    }
 
     if let Err(error) = crate::permissions::check_global_permission(
         crate::permissions::PermissionKind::Network,
@@ -882,7 +1167,7 @@ fn net_connect_callback(
         10
     };
     let connect_result = tcp_handle.connect(&host, port as u16);
-    let (is_connected, remote_addr, remote_family, local_addr_val) = {
+    let (is_connected, remote_addr, remote_port, remote_family, local_addr_val, local_port_val) = {
         let rt = get_net_tokio_runtime();
         let timeout_duration = std::time::Duration::from_secs(timeout_secs);
         let result =
@@ -893,64 +1178,150 @@ fn net_connect_callback(
                 (
                     true,
                     info.remote_addr.clone(),
+                    info.remote_port as i32,
                     info.family.clone(),
                     info.local_addr.clone(),
+                    info.local_port as i32,
                 )
             }
             _ => (
                 false,
                 host.clone(),
+                port,
                 if host.contains(':') {
                     "IPv6".to_string()
                 } else {
                     "IPv4".to_string()
                 },
                 local_address,
+                local_port,
             ),
         }
     };
 
     let socket_obj = v8::Object::new(scope);
 
-    let port_key = v8::String::new(scope, "remotePort").unwrap();
-    let port_val = v8::Integer::new(scope, port as i32);
-    socket_obj.set(scope, port_key.into(), port_val.into());
+    let set_str = |scope: &mut v8::PinScope, obj: v8::Local<v8::Object>, key: &str, val: &str| {
+        let k = v8::String::new(scope, key).unwrap();
+        let v = v8::String::new(scope, val).unwrap();
+        obj.set(scope, k.into(), v.into());
+    };
+    let set_i32 = |scope: &mut v8::PinScope, obj: v8::Local<v8::Object>, key: &str, val: i32| {
+        let k = v8::String::new(scope, key).unwrap();
+        let v = v8::Integer::new(scope, val);
+        obj.set(scope, k.into(), v.into());
+    };
 
-    let host_key = v8::String::new(scope, "remoteAddress").unwrap();
-    let host_val = v8::String::new(scope, &remote_addr).unwrap();
-    socket_obj.set(scope, host_key.into(), host_val.into());
-
-    let local_port_key = v8::String::new(scope, "localPort").unwrap();
-    let local_port_val = v8::Integer::new(scope, local_port as i32);
-    socket_obj.set(scope, local_port_key.into(), local_port_val.into());
-
-    let local_addr_key = v8::String::new(scope, "localAddress").unwrap();
-    let local_addr_v8_val = v8::String::new(scope, &local_addr_val).unwrap();
-    socket_obj.set(scope, local_addr_key.into(), local_addr_v8_val.into());
-
-    let family_key = v8::String::new(scope, "remoteFamily").unwrap();
-    let family_val = v8::String::new(scope, &remote_family).unwrap();
-    socket_obj.set(scope, family_key.into(), family_val.into());
+    set_str(scope, socket_obj, "remoteAddress", &remote_addr);
+    set_i32(scope, socket_obj, "remotePort", remote_port);
+    set_str(scope, socket_obj, "localAddress", &local_addr_val);
+    set_i32(
+        scope,
+        socket_obj,
+        "localPort",
+        if local_port_val != 0 {
+            local_port_val
+        } else {
+            local_port
+        },
+    );
+    set_str(scope, socket_obj, "remoteFamily", &remote_family);
 
     let connecting_key = v8::String::new(scope, "connecting").unwrap();
-    let connecting_val = v8::Boolean::new(scope, !is_connected);
-    socket_obj.set(scope, connecting_key.into(), connecting_val.into());
-
-    let connect_key = v8::String::new(scope, "connect").unwrap();
-    let connect_val =
-        v8::String::new(scope, if is_connected { "open" } else { "opening" }).unwrap();
-    socket_obj.set(scope, connect_key.into(), connect_val.into());
+    socket_obj.set(
+        scope,
+        connecting_key.into(),
+        v8::Boolean::new(scope, !is_connected).into(),
+    );
 
     let handle_id_key = v8::String::new(scope, "_handleId").unwrap();
     let handle_id_val = v8::Integer::new(scope, handle_id as i32);
     socket_obj.set(scope, handle_id_key.into(), handle_id_val.into());
 
-    attach_socket_methods(scope, socket_obj);
+    // Do not set a string `connect` property — that shadowed EventEmitter 'connect'.
+    attach_client_socket_methods(scope, socket_obj);
 
-    let options_key = v8::String::new(scope, "_connectOptions").unwrap();
-    socket_obj.set(scope, options_key.into(), options);
+    // Register early so the JS wrap and pump can find the object.
+    let context = scope.get_current_context();
+    let global = context.global(scope);
+    let registry_key = v8::String::new(scope, "_netClientSockets").unwrap();
+    let registry = if let Some(existing) = global.get(scope, registry_key.into()) {
+        if existing.is_object() {
+            v8::Local::<v8::Object>::try_from(existing).unwrap_or_else(|_| v8::Object::new(scope))
+        } else {
+            v8::Object::new(scope)
+        }
+    } else {
+        v8::Object::new(scope)
+    };
+    let id_str = v8::String::new(scope, &handle_id.to_string()).unwrap();
+    registry.set(scope, id_str.into(), socket_obj.into());
+    global.set(scope, registry_key.into(), registry.into());
+
+    if is_connected {
+        register_active_client(handle_id);
+        tcp_handle.start_reading();
+        enqueue_socket_event(PendingSocketEvent::Connect { handle_id });
+    }
 
     retval.set(socket_obj.into());
+}
+
+/// Parse `connect(options[, cb])` / `connect(port[, host][, cb])`.
+/// Returns port=-1 for unsupported unix `path` form.
+fn parse_connect_args(
+    scope: &mut v8::PinScope,
+    args: &v8::FunctionCallbackArguments,
+) -> (i32, String, i32, String, i32) {
+    let a0 = args.get(0);
+    let a1 = args.get(1);
+
+    if a0.is_undefined() || a0.is_null() {
+        return (0, "localhost".to_string(), 0, "0.0.0.0".to_string(), 0);
+    }
+
+    // Bare port number: connect(port[, host][, cb])
+    if a0.is_number() {
+        let port = a0.to_int32(scope).map(|i| i.value()).unwrap_or(0);
+        let host = if a1.is_string() {
+            a1.to_string(scope)
+                .map(|s| s.to_rust_string_lossy(scope))
+                .unwrap_or_else(|| "localhost".to_string())
+        } else {
+            "localhost".to_string()
+        };
+        return (port, host, 0, "0.0.0.0".to_string(), 0);
+    }
+
+    // String first arg without options object → unix path (Non-goal).
+    if a0.is_string() {
+        return (-1, String::new(), 0, "0.0.0.0".to_string(), 0);
+    }
+
+    // Options object.
+    let port = extract_integer_option(scope, &a0, "port", 0);
+    let host = extract_string_option(scope, &a0, "host", "localhost");
+    let local_port = extract_integer_option(scope, &a0, "localPort", 0);
+    let local_address = extract_string_option(scope, &a0, "localAddress", "0.0.0.0");
+    let connect_timeout = extract_integer_option(scope, &a0, "connectTimeout", 0);
+    // path-only options also Non-goal when port is 0 and path is set.
+    if port == 0 {
+        if let Ok(obj) = v8::Local::<v8::Object>::try_from(a0) {
+            let path_key = v8::String::new(scope, "path").unwrap();
+            if let Some(path_val) = obj.get(scope, path_key.into()) {
+                if path_val.is_string() {
+                    let path_s = path_val
+                        .to_string(scope)
+                        .map(|s| s.to_rust_string_lossy(scope))
+                        .unwrap_or_default();
+                    if !path_s.is_empty() {
+                        return (-1, String::new(), 0, "0.0.0.0".to_string(), 0);
+                    }
+                }
+            }
+        }
+    }
+    (port, host, local_port, local_address, connect_timeout)
 }
 
 fn net_is_ip_callback(
@@ -1095,23 +1466,30 @@ fn socket_end_callback(
     mut retval: v8::ReturnValue,
 ) {
     let this = args.this();
-    // Optional final chunk, then half-close write side by dropping stream write.
-    if args.length() > 0 && !args.get(0).is_undefined() {
+    let handle_id_key = v8::String::new(scope, "_handleId").unwrap();
+    let handle_id = this
+        .get(scope, handle_id_key.into())
+        .and_then(|v| v.to_int32(scope))
+        .map(|i| i.value() as u64);
+
+    // Optional final chunk, then half-close the write side (Node socket.end).
+    if args.length() > 0 && !args.get(0).is_undefined() && !args.get(0).is_null() {
         let data_val = args.get(0);
         let data_str = data_val
             .to_string(scope)
             .map(|s| s.to_rust_string_lossy(scope))
             .unwrap_or_default();
-        let handle_id_key = v8::String::new(scope, "_handleId").unwrap();
-        if let Some(handle_id_val) = this.get(scope, handle_id_key.into()) {
-            if let Some(id_num) = handle_id_val.to_int32(scope) {
-                let handle_id = id_num.value() as u64;
-                if let Some(handle) = TCP_MANAGER.get_connection(handle_id) {
-                    if handle.is_connected() {
-                        let _ = sync_write(&handle, data_str.as_bytes());
-                    }
+        if let Some(handle_id) = handle_id {
+            if let Some(handle) = TCP_MANAGER.get_connection(handle_id) {
+                if handle.is_connected() {
+                    let _ = sync_write(&handle, data_str.as_bytes());
                 }
             }
+        }
+    }
+    if let Some(handle_id) = handle_id {
+        if let Some(handle) = TCP_MANAGER.get_connection(handle_id) {
+            let _ = handle.shutdown_write();
         }
     }
     retval.set(this.into());
@@ -1224,8 +1602,20 @@ fn socket_destroy_callback(
         if let Some(id_num) = handle_id_val.to_int32(scope) {
             let handle_id = id_num.value() as u64;
             if let Some(handle) = TCP_MANAGER.get_connection(handle_id) {
+                handle.stop_reading();
                 handle.close();
                 TCP_MANAGER.remove_connection(handle_id);
+            }
+            unregister_active_client(handle_id);
+            // Drop registry entry so pumps skip this socket.
+            let context = scope.get_current_context();
+            let global = context.global(scope);
+            let registry_key = v8::String::new(scope, "_netClientSockets").unwrap();
+            if let Some(reg_val) = global.get(scope, registry_key.into()) {
+                if let Ok(registry) = v8::Local::<v8::Object>::try_from(reg_val) {
+                    let id_str = v8::String::new(scope, &handle_id.to_string()).unwrap();
+                    let _ = registry.delete(scope, id_str.into());
+                }
             }
         }
     }
@@ -1236,9 +1626,6 @@ fn socket_destroy_callback(
         connecting_key.into(),
         v8::Boolean::new(scope, false).into(),
     );
-    let connect_key = v8::String::new(scope, "connect").unwrap();
-    let connect_val = v8::String::new(scope, "closed").unwrap();
-    this.set(scope, connect_key.into(), connect_val.into());
     retval.set(v8::Boolean::new(scope, true).into());
 }
 

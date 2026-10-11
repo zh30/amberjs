@@ -8752,6 +8752,7 @@ impl MinimalRuntime {
             scope.perform_microtask_checkpoint();
             crate::nodejs_core::http::pump_pending_http_requests_in_scope(scope, &context);
             crate::nodejs_core::net::pump_pending_net_connections_in_scope(scope, &context);
+            crate::nodejs_core::net::pump_pending_socket_events_in_scope(scope, &context);
             if crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope) > 0 {
                 execute_next_tick_callbacks(scope);
                 scope.perform_microtask_checkpoint();
@@ -9030,6 +9031,9 @@ impl MinimalRuntime {
                     let net_p = crate::nodejs_core::net::pump_pending_net_connections_in_scope(
                         scope, &context,
                     );
+                    let sock_p = crate::nodejs_core::net::pump_pending_socket_events_in_scope(
+                        scope, &context,
+                    );
                     let websocket_events = crate::web_api::websocket::pump_websocket_events(scope);
                     execute_next_tick_callbacks(scope);
                     scope.perform_microtask_checkpoint();
@@ -9039,7 +9043,7 @@ impl MinimalRuntime {
                     mark_immediate_callbacks_deferred();
                     execute_next_tick_callbacks(scope);
                     scope.perform_microtask_checkpoint();
-                    (p + net_p, websocket_events)
+                    (p + net_p + sock_p, websocket_events)
                 };
 
                 let listening = crate::nodejs_core::http::has_listening_http_servers()
@@ -9047,17 +9051,28 @@ impl MinimalRuntime {
                 let pending_req = crate::nodejs_core::http::has_pending_http_requests();
                 let pending_async = crate::nodejs_core::http::has_pending_async_http_responses();
                 let pending_net = crate::nodejs_core::net::has_pending_net_connections();
+                let active_clients = crate::nodejs_core::net::has_active_net_client_sockets();
+                let pending_sock = crate::nodejs_core::net::has_pending_socket_events();
                 if !listening
                     && !pending_req
                     && !pending_async
                     && !pending_net
+                    && !active_clients
+                    && !pending_sock
                     && !has_pending_next_ticks()
                     && !has_pending_immediates()
                     && !crate::web_api::websocket::has_pending_websocket_work()
                 {
                     break;
                 }
-                if pumped > 0 || pending_req || pending_async || pending_net || websocket_events {
+                if pumped > 0
+                    || pending_req
+                    || pending_async
+                    || pending_net
+                    || active_clients
+                    || pending_sock
+                    || websocket_events
+                {
                     idle_ticks = 0;
                     // Active traffic: keep pumping without delay while there is work
                     continue;
@@ -18669,6 +18684,17 @@ require.resolve = function(specifier) {{
         let context_local = v8::Local::new(scope, &global_context);
         let scope = &mut v8::ContextScope::new(scope, context_local);
         pump_pending_net_connections_in_scope(scope, &context_local)
+    }
+
+    /// Drain pending client Socket `'connect'` / `'data'` events (G61).
+    pub fn pump_net_socket_events(&mut self) -> usize {
+        use crate::nodejs_core::net::pump_pending_socket_events_in_scope;
+
+        let global_context = self.get_context();
+        v8::scope!(let scope, &mut self.isolate);
+        let context_local = v8::Local::new(scope, &global_context);
+        let scope = &mut v8::ContextScope::new(scope, context_local);
+        pump_pending_socket_events_in_scope(scope, &context_local)
     }
 
     /// 初始化 HTTP 服务器消息通道

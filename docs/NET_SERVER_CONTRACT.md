@@ -4,7 +4,7 @@ This is the user-visible contract for a **narrow** Stable subset of Node `net` i
 
 This is **not** full Node `net`. It is **not** the G37 `http` server (which has its own accept path). It is **not** TLS / `tls` / unix domain sockets / cluster.
 
-**Honesty:** The previous flag-only `listen` (set `listening` + fabricate `address` without `TcpListener::bind`) is gone for this surface. Do **not** graduate keep-alive, full Socket EventEmitter parity, or client `net.connect` rewrite by listing missing pieces as Limits.
+**Honesty:** The previous flag-only `listen` (set `listening` + fabricate `address` without `TcpListener::bind`) is gone for this surface. Do **not** graduate keep-alive or full Socket duplex EventEmitter parity by listing missing pieces as Limits. Narrow client `net.connect` is a separate Stable page (**G61** [`docs/NET_CONNECT_CONTRACT.md`](NET_CONNECT_CONTRACT.md)).
 
 ## Stable surface
 
@@ -30,7 +30,7 @@ These are real behaviors of the Stable server surface, not cover for missing emi
 
 - Listen starts the accept thread and briefly waits (~5 ms) before advertising the bound port; callers should still use `address()` / the listening callback.
 - Bind failures clear `listening` and throw from `listen` when detected in that window; they are not a full Node-shaped `error` event contract on this page.
-- Accepted Socket `'data'` / `'end'` EventEmitter delivery, `pause` / `resume` backpressure, and `socket.end` half-close are **not** pinned here. The Stable pin is accept → `'connection'` → `socket.write` (and address fields).
+- Accepted server Socket `'data'` / `'end'` EventEmitter delivery, `pause` / `resume` backpressure, and `socket.end` half-close are **not** pinned here. The Stable pin is accept → `'connection'` → `socket.write` (and address fields). Client `'data'` / `end` live on **G61**.
 - `server.getConnections` may report `0`; it is not a live connection counter.
 - ESM `import` from `'net'` / `'node:net'` is **not** wired in `normalized_esm_builtin_name` today — only CJS `require` is on this contract.
 - `new net.Server(...)` without going through `createServer` is not pinned (use `createServer`).
@@ -39,8 +39,8 @@ These are real behaviors of the Stable server surface, not cover for missing emi
 
 Outside this contract (Preview / DEFER / unimplemented). Do **not** treat these as Stable Limits of dishonest behavior:
 
-- Full Node `net.Socket` duplex stream parity (`'data'` pump, cork/uncork, `setNoDelay` contract, etc.).
-- `net.connect` / `createConnection` client rewrite (existing Preview client path stays Preview).
+- Full Node `net.Socket` duplex stream parity on **accepted server** sockets (`'data'` pump, cork/uncork, `setNoDelay` contract, etc.).
+- Broader client surface beyond **G61** [`docs/NET_CONNECT_CONTRACT.md`](NET_CONNECT_CONTRACT.md) (TLS, unix sockets, Buffer chunks, full duplex event pins).
 - TLS / `tls.createServer`, unix domain sockets, `server.listen({ fd })`, `cluster` / share handles.
 - HTTP framing (use G37 `http`), keep-alive HTTP semantics, WebSocket upgrade.
 - Promoting client connect, TLS, or unix sockets by listing them under Limits.
