@@ -1,4 +1,4 @@
-//! Pins docs/PROCESS_CONTRACT.md (G22 basics + G44 stdout/stderr.write + G53 hrtime carve).
+//! Pins docs/PROCESS_CONTRACT.md (G22 basics + G44 stdout/stderr.write + G53 hrtime + G54 memoryUsage).
 use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 use std::fs;
@@ -324,4 +324,95 @@ fn cli_hrtime_reaches_the_contract() {
         .find(|line| !line.is_empty() && *line != "[object Object]")
         .unwrap_or("");
     assert_eq!(line, "function|true|true|true|true");
+}
+
+#[test]
+#[serial]
+fn memory_usage_shape_and_numeric_fields() {
+    let code = r#"
+        const m = process.memoryUsage();
+        [
+          typeof process.memoryUsage,
+          typeof m,
+          typeof m.rss,
+          typeof m.heapTotal,
+          typeof m.heapUsed,
+          typeof m.external,
+          typeof m.arrayBuffers,
+          typeof m.arrayBuffers.used,
+          m.rss > 0,
+          m.heapTotal >= 2 * 1024 * 1024,
+          m.heapUsed >= 512 * 1024,
+          m.heapUsed <= m.heapTotal,
+          m.external === 0,
+          m.arrayBuffers.used === 0
+        ].join('|');
+        "#;
+    assert_eq!(
+        run(code),
+        "function|object|number|number|number|number|object|number|true|true|true|true|true|true"
+    );
+}
+
+#[test]
+#[serial]
+fn memory_usage_heap_fields_follow_estimate_caps() {
+    // Honesty pin: heapTotal/heapUsed are RSS-derived estimates with fixed caps
+    // (not V8 HeapStatistics / Node heap parity). See PROCESS_CONTRACT Limits.
+    let code = r#"
+        const m = process.memoryUsage();
+        const maxHeap = 100 * 1024 * 1024;
+        const minHeap = 2 * 1024 * 1024;
+        // Match process.rs: ((rss * 0.25).min(100MiB)).max(2MiB) as u64
+        const expectedFromRss = Math.trunc(Math.max(minHeap, Math.min(maxHeap, m.rss * 0.25)));
+        // Match process.rs: ((heapTotal as f64) / 2.0).max(512KiB) as u64
+        const expectedUsed = Math.trunc(Math.max(512 * 1024, m.heapTotal / 2));
+        [
+          m.heapTotal === expectedFromRss,
+          m.heapUsed === expectedUsed,
+          m.external === 0,
+          typeof m.arrayBuffers === 'object' && m.arrayBuffers.used === 0
+        ].join('|');
+        "#;
+    assert_eq!(run(code), "true|true|true|true");
+}
+
+#[test]
+#[serial]
+fn cli_memory_usage_reaches_the_contract() {
+    let binary = env!("CARGO_BIN_EXE_amber");
+    let dir = TempDir::new().expect("temp dir");
+    let script = dir.path().join("memory_usage.js");
+    fs::write(
+        &script,
+        r#"
+        const m = process.memoryUsage();
+        console.log([
+          typeof process.memoryUsage,
+          m.rss > 0,
+          m.heapTotal >= 2 * 1024 * 1024,
+          m.heapUsed <= m.heapTotal,
+          m.external === 0,
+          typeof m.arrayBuffers === 'object' && m.arrayBuffers.used === 0
+        ].join('|'));
+        "#,
+    )
+    .expect("script");
+    let output = Command::new(binary)
+        .arg("run")
+        .arg(&script)
+        .output()
+        .expect("amber run");
+    assert!(
+        output.status.success(),
+        "amber run failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let line = stdout
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty() && *line != "[object Object]")
+        .unwrap_or("");
+    assert_eq!(line, "function|true|true|true|true|true");
 }
