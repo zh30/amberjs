@@ -11,8 +11,8 @@ use oxc::ast_visit::Visit;
 use oxc::parser::Parser;
 use oxc::span::SourceType;
 use std::collections::HashSet;
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 /// 16-byte magic identifier at the very end of a compiled SEA binary.
@@ -72,12 +72,24 @@ pub struct StandaloneTrailer {
 ///
 /// `Ok(None)` means the file is not a SEA binary. `Err` means a trailer is
 /// present and is not a payload this runtime can run.
+///
+/// Every CLI start calls this on the running executable. A normal Amber binary
+/// has no trailer, so this reads the 16-byte EOF magic (or, for a Mach-O image,
+/// the load-command header) instead of copying the whole file. Slurping the
+/// ~80MB release image dominated `amber --version` and every cold start.
 pub fn read_standalone_payload(path: &Path) -> Result<Option<String>> {
-    let bytes = match fs::read(path) {
-        Ok(bytes) => bytes,
+    let mut file = match File::open(path) {
+        Ok(file) => file,
         Err(_) => return Ok(None),
     };
-    let Some(trailer) = find_standalone_trailer(&bytes)? else {
+    let file_len = match file.metadata() {
+        Ok(meta) => match usize::try_from(meta.len()) {
+            Ok(len) => len,
+            Err(_) => return Ok(None),
+        },
+        Err(_) => return Ok(None),
+    };
+    let Some(trailer) = locate_standalone_trailer(&mut file, file_len)? else {
         return Ok(None);
     };
     if trailer.flags != 0 {
@@ -86,11 +98,102 @@ pub fn read_standalone_payload(path: &Path) -> Result<Option<String>> {
             trailer.flags
         )));
     }
-    let payload =
-        &bytes[trailer.payload_start..trailer.payload_start + trailer.payload_len as usize];
+    let payload_len = usize::try_from(trailer.payload_len)
+        .map_err(|_| standalone_error("invalid payload length"))?;
+    let mut payload = vec![0u8; payload_len];
+    file.seek(SeekFrom::Start(trailer.payload_start as u64))
+        .map_err(|_| standalone_error("invalid trailer"))?;
+    file.read_exact(&mut payload)
+        .map_err(|_| standalone_error("invalid trailer"))?;
     let script =
-        std::str::from_utf8(payload).map_err(|_| standalone_error("payload is not UTF-8"))?;
+        std::str::from_utf8(&payload).map_err(|_| standalone_error("payload is not UTF-8"))?;
     Ok(Some(script.to_string()))
+}
+
+/// Mach-O load commands larger than this are not treated as an Amber SEA header.
+/// Real host binaries are far smaller; the cap avoids allocating a fake header.
+const MACHO_HEADER_READ_LIMIT: usize = 8 * 1024 * 1024;
+
+fn locate_standalone_trailer(
+    file: &mut File,
+    file_len: usize,
+) -> Result<Option<StandaloneTrailer>> {
+    if file_len < 16 {
+        return Ok(None);
+    }
+    if let Some(segment) = read_macho_amber_segment(file, file_len)? {
+        if segment.end < TRAILER_TOTAL_SIZE as usize || segment.end > file_len {
+            return Err(standalone_error("invalid trailer"));
+        }
+        let mut magic = [0u8; 16];
+        file.seek(SeekFrom::Start((segment.end - 16) as u64))
+            .map_err(|_| standalone_error("invalid trailer"))?;
+        file.read_exact(&mut magic)
+            .map_err(|_| standalone_error("invalid trailer"))?;
+        if &magic != MAGIC_TRAILER {
+            return Err(standalone_error("invalid trailer"));
+        }
+        return read_trailer_fields(file, file_len, segment.end, Some(segment.start));
+    }
+
+    let mut magic = [0u8; 16];
+    file.seek(SeekFrom::End(-16))
+        .map_err(|_| standalone_error("invalid trailer"))?;
+    file.read_exact(&mut magic)
+        .map_err(|_| standalone_error("invalid trailer"))?;
+    if &magic != MAGIC_TRAILER {
+        return Ok(None);
+    }
+    if file_len < TRAILER_TOTAL_SIZE as usize {
+        return Err(standalone_error("invalid trailer"));
+    }
+    read_trailer_fields(file, file_len, file_len, None)
+}
+
+fn read_macho_amber_segment(file: &mut File, file_len: usize) -> Result<Option<AmberSegment>> {
+    if file_len < 32 {
+        return Ok(None);
+    }
+    let mut header = [0u8; 32];
+    if file.seek(SeekFrom::Start(0)).is_err() || file.read_exact(&mut header).is_err() {
+        return Ok(None);
+    }
+    let magic = u32::from_le_bytes(header[0..4].try_into().unwrap());
+    if magic != MH_MAGIC_64 {
+        return Ok(None);
+    }
+    let sizeofcmds = u32::from_le_bytes(header[20..24].try_into().unwrap()) as usize;
+    let header_end = match 32usize.checked_add(sizeofcmds) {
+        Some(end) => end,
+        None => return Ok(None),
+    };
+    if header_end > file_len || header_end > MACHO_HEADER_READ_LIMIT {
+        return Ok(None);
+    }
+    let mut cmds = vec![0u8; header_end];
+    if file.seek(SeekFrom::Start(0)).is_err() || file.read_exact(&mut cmds).is_err() {
+        return Err(standalone_error("invalid trailer"));
+    }
+    Ok(macho_amber_segment_in(&cmds, file_len))
+}
+
+fn read_trailer_fields(
+    file: &mut File,
+    file_len: usize,
+    trailer_end: usize,
+    segment_start: Option<usize>,
+) -> Result<Option<StandaloneTrailer>> {
+    if trailer_end < TRAILER_TOTAL_SIZE as usize || trailer_end > file_len {
+        return Err(standalone_error("invalid trailer"));
+    }
+    let mut raw = [0u8; TRAILER_TOTAL_SIZE as usize];
+    file.seek(SeekFrom::Start(
+        (trailer_end - TRAILER_TOTAL_SIZE as usize) as u64,
+    ))
+    .map_err(|_| standalone_error("invalid trailer"))?;
+    file.read_exact(&mut raw)
+        .map_err(|_| standalone_error("invalid trailer"))?;
+    parse_trailer_bytes(file_len, trailer_end, &raw, segment_start)
 }
 
 /// Finds a SEA trailer at EOF (Linux, Windows, and raw fixtures) or in a
@@ -121,9 +224,29 @@ fn parse_trailer_at(
     if trailer_end < TRAILER_TOTAL_SIZE as usize || trailer_end > bytes.len() {
         return Err(standalone_error("invalid trailer"));
     }
-    let len_at = trailer_end - 32;
-    let payload_len = u64::from_le_bytes(bytes[len_at..len_at + 8].try_into().unwrap());
-    let flags = u64::from_le_bytes(bytes[len_at + 8..len_at + 16].try_into().unwrap());
+    let len_at = trailer_end - TRAILER_TOTAL_SIZE as usize;
+    parse_trailer_bytes(
+        bytes.len(),
+        trailer_end,
+        &bytes[len_at..trailer_end],
+        segment_start,
+    )
+}
+
+fn parse_trailer_bytes(
+    file_len: usize,
+    trailer_end: usize,
+    raw: &[u8],
+    segment_start: Option<usize>,
+) -> Result<Option<StandaloneTrailer>> {
+    if raw.len() != TRAILER_TOTAL_SIZE as usize
+        || trailer_end < TRAILER_TOTAL_SIZE as usize
+        || trailer_end > file_len
+    {
+        return Err(standalone_error("invalid trailer"));
+    }
+    let payload_len = u64::from_le_bytes(raw[0..8].try_into().unwrap());
+    let flags = u64::from_le_bytes(raw[8..16].try_into().unwrap());
     if flags != 0 {
         return Ok(Some(StandaloneTrailer {
             payload_start: 0,
@@ -137,6 +260,7 @@ fn parse_trailer_at(
     }
     let payload_len_us =
         usize::try_from(payload_len).map_err(|_| standalone_error("invalid payload length"))?;
+    let len_at = trailer_end - TRAILER_TOTAL_SIZE as usize;
     if payload_len_us > len_at {
         return Err(standalone_error("invalid payload length"));
     }
@@ -801,7 +925,14 @@ fn bump_linkedit_offsets(
 }
 
 fn macho_amber_segment(bytes: &[u8]) -> Option<AmberSegment> {
-    if bytes.len() < 32 {
+    macho_amber_segment_in(bytes, bytes.len())
+}
+
+/// `bytes` must contain the Mach-O header and load commands. `file_len` is the
+/// full image size, which can extend past `bytes` when the caller only mapped
+/// the header.
+fn macho_amber_segment_in(bytes: &[u8], file_len: usize) -> Option<AmberSegment> {
+    if bytes.len() < 32 || file_len < 32 {
         return None;
     }
     let magic = u32::from_le_bytes(bytes[0..4].try_into().ok()?);
@@ -811,7 +942,7 @@ fn macho_amber_segment(bytes: &[u8]) -> Option<AmberSegment> {
     let ncmds = read_u32(bytes, 16).ok()? as usize;
     let sizeofcmds = read_u32(bytes, 20).ok()? as usize;
     let header_end = 32 + sizeofcmds;
-    if header_end > bytes.len() {
+    if header_end > bytes.len() || header_end > file_len {
         return None;
     }
     let mut offset = 32usize;
@@ -832,7 +963,7 @@ fn macho_amber_segment(bytes: &[u8]) -> Option<AmberSegment> {
                 let start = usize::try_from(fileoff).ok()?;
                 let size = usize::try_from(filesize).ok()?;
                 let end = start.checked_add(size)?;
-                if end > bytes.len() {
+                if end > file_len {
                     return None;
                 }
                 return Some(AmberSegment { start, end });
@@ -1268,5 +1399,50 @@ mod tests {
             err.contains("no room") || err.contains("not page-aligned") || err.contains("overlaps"),
             "{err}"
         );
+    }
+
+    #[test]
+    fn large_prefix_trailer_is_read_from_the_end() {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("large");
+        fs::write(&path, vec![0xABu8; 4 * 1024 * 1024]).expect("write");
+        assert!(read_standalone_payload(&path).expect("plain").is_none());
+        let script = "console.log('tail')";
+        write_trailer_bytes(&path, script.as_bytes(), 0);
+        let extracted = read_standalone_payload(&path)
+            .expect("read")
+            .expect("payload");
+        assert_eq!(extracted, script);
+    }
+
+    #[test]
+    fn macho_sea_payload_is_read_from_the_segment() {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("macho-sea");
+        let script = "console.log('sea')";
+        let blob = trailer_blob(script).expect("blob");
+        let injected = inject_amber_segment(&minimal_macho(&[0xABu8; 32]), &blob).expect("inject");
+        assert!(
+            !injected.ends_with(MAGIC_TRAILER),
+            "segment trailer must not depend on EOF magic"
+        );
+        fs::write(&path, &injected).expect("write");
+        let extracted = read_standalone_payload(&path)
+            .expect("read")
+            .expect("payload");
+        assert_eq!(extracted, script);
+        let via_bytes = find_standalone_trailer(&injected)
+            .expect("locate")
+            .expect("trailer");
+        assert_eq!(via_bytes.payload_len, script.len() as u64);
+    }
+
+    #[test]
+    fn macho_without_amber_segment_file_is_not_a_sea_binary() {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join("macho-plain");
+        let macho = minimal_macho(&[0u8; 16]);
+        fs::write(&path, &macho).expect("write");
+        assert!(read_standalone_payload(&path).expect("read").is_none());
     }
 }
