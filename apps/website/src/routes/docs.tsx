@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import {
   useState,
   useEffect,
@@ -7,92 +7,40 @@ import {
   type ReactNode,
 } from "react";
 import {
-  Activity,
-  Book,
-  Code,
-  Cpu,
-  Layers,
-  Terminal,
-  Zap,
-  Server,
   ArrowLeft,
   ArrowRight,
-  Sparkles,
-  Package,
   Copy,
   Check,
   Search,
   X,
-  Workflow,
-  CheckCircle2,
-  Box,
-  Gauge,
-  ShieldCheck,
-  Binary,
-  FileCode,
   Info,
   Lightbulb,
   AlertCircle,
   AlertTriangle,
   ListTree,
-  Database,
-  Rocket,
-  RotateCcw,
+  Terminal,
+  Pencil,
+  ChevronDown,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useLang } from "../lib/i18n";
-
-const iconMap: Record<string, ReactNode> = {
-  introduction: <Book className="w-4 h-4" />,
-  installation: <Terminal className="w-4 h-4" />,
-  "quick-start": <Zap className="w-4 h-4" />,
-  "v8-isolate-pool": <Cpu className="w-4 h-4" />,
-  "jit-optimization": <Activity className="w-4 h-4" />,
-  "ai-engine": <Sparkles className="w-4 h-4" />,
-  "ai-embeddings": <Sparkles className="w-4 h-4" />,
-  "server-mode": <Server className="w-4 h-4" />,
-  "memory-management": <Layers className="w-4 h-4" />,
-  "embedded-db": <Database className="w-4 h-4" />,
-  "standard-library": <Sparkles className="w-4 h-4" />,
-  "package-manager-dlx": <Binary className="w-4 h-4" />,
-  "deployment-docker": <Rocket className="w-4 h-4" />,
-  "ide-extension": <FileCode className="w-4 h-4" />,
-  "task-runner": <Workflow className="w-4 h-4" />,
-  "code-quality": <CheckCircle2 className="w-4 h-4" />,
-  "bundling-compilation": <Box className="w-4 h-4" />,
-  "testing-benchmarking": <Gauge className="w-4 h-4" />,
-  "debugging-lsp": <Terminal className="w-4 h-4" />,
-  "agent-sandbox": <ShieldCheck className="w-4 h-4" />,
-  "agent-replay": <RotateCcw className="w-4 h-4" />,
-  "model-weights": <Cpu className="w-4 h-4" />,
-  "capability-security": <ShieldCheck className="w-4 h-4" />,
-  "kv-store": <Database className="w-4 h-4" />,
-  "tool-synthesis": <Workflow className="w-4 h-4" />,
-  "hardened-sandbox": <ShieldCheck className="w-4 h-4" />,
-  "agent-bus": <Activity className="w-4 h-4" />,
-  "streaming-grammar": <Sparkles className="w-4 h-4" />,
-  "agent-checkpoint": <RotateCcw className="w-4 h-4" />,
-  "mcp-protocol": <Layers className="w-4 h-4" />,
-  "virtual-fs-sandbox": <ShieldCheck className="w-4 h-4" />,
-  "import-maps-native": <Binary className="w-4 h-4" />,
-  "types-lsp": <FileCode className="w-4 h-4" />,
-  "cli-usage": <Code className="w-4 h-4" />,
-  "api-reference": <Book className="w-4 h-4" />,
-  "wintertc-compliance": <ShieldCheck className="w-4 h-4" />,
-  "ffi-native": <Binary className="w-4 h-4" />,
-  "isolate-pool": <Cpu className="w-4 h-4" />,
-  "slm-inference": <Sparkles className="w-4 h-4" />,
-  "wasm-interop": <Zap className="w-4 h-4" />,
-  "framework-compat": <Layers className="w-4 h-4" />,
-  modules: <Package className="w-4 h-4" />,
-};
+import { DOC_NAV, LEGACY_DOC_REDIRECTS } from "../lib/docs-nav";
+import { REPO_URL, SCOPE_DOC_URL } from "../lib/scope";
+import { LevelBadge } from "../components/LevelBadge";
+import type { Level } from "../lib/locales/types";
 
 const docModules = import.meta.glob("../docs/*.md", {
   query: "?raw",
   eager: true,
   import: "default",
 }) as Record<string, string>;
+
+type DocData = {
+  data: Record<string, string>;
+  content: string;
+  file: string;
+};
 
 function parseFrontmatter(raw: string): {
   data: Record<string, string>;
@@ -101,11 +49,8 @@ function parseFrontmatter(raw: string): {
   const match = raw.match(/^---\s*([\s\S]*?)\s*---\s*([\s\S]*)$/);
   if (!match) return { data: {}, content: raw };
 
-  const yaml = match[1];
-  const content = match[2];
   const data: Record<string, string> = {};
-
-  yaml
+  match[1]
     .split("\n")
     .filter(Boolean)
     .forEach((line) => {
@@ -118,31 +63,24 @@ function parseFrontmatter(raw: string): {
       }
     });
 
-  return { data, content };
+  return { data, content: match[2] };
 }
 
-function getDocContent(section: string, lang: string) {
-  // 1. Try language-specific file (e.g. .zh.md, .es.md, etc.)
-  if (lang !== "en") {
-    const langKey = `../docs/${section}.${lang}.md`;
-    if (docModules[langKey]) return parseFrontmatter(docModules[langKey]);
+function getDocContent(section: string, lang: string): DocData | null {
+  const candidates =
+    lang === "en" ? [`${section}.md`] : [`${section}.${lang}.md`, `${section}.md`];
+  for (const file of candidates) {
+    const raw = docModules[`../docs/${file}`];
+    if (raw) return { ...parseFrontmatter(raw), file };
   }
-
-  // 2. If lang is 'zh' or fallback to Chinese
-  if (lang === "zh") {
-    const zhKey = `../docs/${section}.zh.md`;
-    if (docModules[zhKey]) return parseFrontmatter(docModules[zhKey]);
-  }
-
-  // 3. Try standard English file
-  const enKey = `../docs/${section}.md`;
-  if (docModules[enKey]) return parseFrontmatter(docModules[enKey]);
-
-  // 4. Fallback to zh file if en missing
-  const fallbackZh = `../docs/${section}.zh.md`;
-  if (docModules[fallbackZh]) return parseFrontmatter(docModules[fallbackZh]);
-
   return null;
+}
+
+function docLevel(data: Record<string, string>): Level | null {
+  const status = data.status;
+  return status === "stable" || status === "preview" || status === "experimental"
+    ? status
+    : null;
 }
 
 function slugify(text: string): string {
@@ -183,6 +121,10 @@ function PreBlock({ children }: { children?: ReactNode }) {
   const extractText = (node: ReactNode): string => nodeText(node);
 
   const text = extractText(children).trim();
+  const codeClass = isValidElement<{ className?: string }>(children)
+    ? children.props.className
+    : undefined;
+  const language = codeClass?.match(/language-([\w-]+)/)?.[1] ?? "code";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
@@ -195,12 +137,12 @@ function PreBlock({ children }: { children?: ReactNode }) {
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 font-mono text-[12px] text-[var(--code-fg)]">
         <span className="flex items-center gap-1.5">
           <Terminal className="h-3.5 w-3.5 opacity-70" />
-          <span>code</span>
+          <span>{language}</span>
         </span>
         <button
           onClick={handleCopy}
           aria-label="Copy code"
-          className="hover:text-white"
+          className="inline-flex items-center gap-1.5 hover:text-white"
         >
           {copied ? (
             <>
@@ -215,7 +157,7 @@ function PreBlock({ children }: { children?: ReactNode }) {
           )}
         </button>
       </div>
-      <pre className="m-0 overflow-x-auto bg-transparent p-5 font-mono text-[13px] leading-relaxed text-[var(--code-fg)]">
+      <pre className="m-0! overflow-x-auto rounded-none! bg-transparent! p-5! font-mono text-[13px] leading-relaxed text-[var(--code-fg)]">
         {children}
       </pre>
     </div>
@@ -278,7 +220,7 @@ function BlockquoteBlock({ children }: { children?: ReactNode }) {
 function TableBlock({ children }: { children?: ReactNode }) {
   return (
     <div className="my-6 overflow-x-auto border border-[var(--line)]">
-      <table className="w-full text-left border-collapse text-xs sm:text-sm m-0">
+      <table className="m-0! w-full border-collapse text-left text-xs sm:text-sm">
         {children}
       </table>
     </div>
@@ -292,24 +234,19 @@ export default function DocsComponent() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeHeading, setActiveHeading] = useState<string>("");
+  const [navSection, setNavSection] = useState<string | null>(null);
+  const navOpen = navSection === section;
 
   const docData = getDocContent(section, lang);
 
-  // Extract table of contents from markdown content
-  const toc = useMemo(() => {
-    return docData?.content ? extractToc(docData.content) : [];
-  }, [docData]);
+  const toc = docData?.content ? extractToc(docData.content) : [];
 
-  // Track active heading on scroll
   useEffect(() => {
     const handleScroll = () => {
       const headings = document.querySelectorAll("h2[id], h3[id]");
       let current = "";
       for (const el of Array.from(headings)) {
-        const top = el.getBoundingClientRect().top;
-        if (top <= 150) {
-          current = el.id;
-        }
+        if (el.getBoundingClientRect().top <= 150) current = el.id;
       }
       setActiveHeading(current);
     };
@@ -319,32 +256,29 @@ export default function DocsComponent() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [section]);
 
-  // Find active group title
-  let currentGroupTitle = manual.title;
-  for (const group of manual.groups) {
-    if (group.items.some((item) => item.id === section)) {
-      currentGroupTitle = group.title;
-      break;
-    }
-  }
+  const groups = useMemo(
+    () =>
+      DOC_NAV.map((group) => ({
+        key: group.group,
+        title: manual.groups[group.group],
+        items: group.items.map((id) => {
+          const doc = getDocContent(id, lang);
+          return {
+            id,
+            label: doc?.data.nav || doc?.data.title || id,
+            level: doc ? docLevel(doc.data) : null,
+          };
+        }),
+      })),
+    [lang, manual.groups],
+  );
 
-  // Flatten items for pagination
-  const allItems = useMemo(() => {
-    return manual.groups.flatMap((g) => g.items);
-  }, [manual.groups]);
+  const allItems = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
-  const currentIndex = allItems.findIndex((item) => item.id === section);
-  const prevItem = currentIndex > 0 ? allItems[currentIndex - 1] : null;
-  const nextItem =
-    currentIndex >= 0 && currentIndex < allItems.length - 1
-      ? allItems[currentIndex + 1]
-      : null;
-
-  // Filter groups according to search query
   const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return manual.groups;
     const q = searchQuery.toLowerCase().trim();
-    return manual.groups
+    if (!q) return groups;
+    return groups
       .map((g) => ({
         ...g,
         items: g.items.filter(
@@ -354,164 +288,200 @@ export default function DocsComponent() {
         ),
       }))
       .filter((g) => g.items.length > 0);
-  }, [manual.groups, searchQuery]);
+  }, [groups, searchQuery]);
 
-  // Fallback content if no markdown found
-  const fallbackContent =
-    manual.sections[section as keyof typeof manual.sections] ||
-    manual.sections.introduction;
+  const redirect = LEGACY_DOC_REDIRECTS[section];
+  if (redirect) return <Navigate to={`/docs/${redirect}`} replace />;
 
-  const title = docData?.data?.title || fallbackContent?.title || section;
-  const subtitle = docData?.data?.subtitle || fallbackContent?.subtitle || "";
+  const currentIndex = allItems.findIndex((item) => item.id === section);
+  const prevItem = currentIndex > 0 ? allItems[currentIndex - 1] : null;
+  const nextItem =
+    currentIndex >= 0 && currentIndex < allItems.length - 1
+      ? allItems[currentIndex + 1]
+      : null;
+  const currentGroup = groups.find((g) =>
+    g.items.some((item) => item.id === section),
+  );
+
+  const title = docData?.data.title || manual.notFoundTitle;
+  const subtitle = docData ? docData.data.subtitle || "" : manual.notFoundBody;
+  const level = docData ? docLevel(docData.data) : null;
+  const banner =
+    level === "experimental"
+      ? manual.statusBanner.experimental
+      : level === "preview"
+        ? manual.statusBanner.preview
+        : null;
+
+  const sidebar = (
+    <>
+      <div className="relative mb-6">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={manual.searchPlaceholder}
+          aria-label={manual.searchPlaceholder}
+          className="w-full border border-[var(--line)] bg-[var(--bg-page)] py-2 pl-8.5 pr-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            aria-label="Clear search"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-6 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-1">
+        {filteredGroups.map((group) => (
+          <div key={group.key}>
+            <h4 className="meta mb-2 uppercase tracking-wider">{group.title}</h4>
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <Link
+                  key={item.id}
+                  to={`/docs/${item.id}`}
+                  aria-current={section === item.id ? "page" : undefined}
+                  className={`flex items-center justify-between gap-2 border-l-2 px-2.5 py-1.5 text-[13px] ${
+                    section === item.id
+                      ? "border-[var(--honey)] bg-[var(--honey-soft)] font-semibold text-[var(--text-primary)]"
+                      : "border-transparent text-[var(--text-secondary)] hover:border-[var(--line-strong)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  <span className="truncate">{item.label}</span>
+                  {item.level && item.level !== "stable" && (
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        item.level === "preview" ? "bg-[var(--honey)]" : "bg-sky-500"
+                      }`}
+                      title={copy.levels[item.level].label}
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {filteredGroups.length === 0 && (
+          <div className="py-6 text-center text-xs text-[var(--text-muted)]">
+            {manual.noResults}
+          </div>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <div className="page">
       <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_220px] gap-8 xl:gap-10">
-          {/* Left Sidebar */}
-          <aside className="sticky top-16 h-fit border border-[var(--line)] p-5">
-            <Link
-              to="/"
-              className="mb-5 inline-flex items-center text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:underline"
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_220px] xl:gap-10">
+          <aside className="h-fit lg:sticky lg:top-20">
+            <button
+              type="button"
+              onClick={() => setNavSection(navOpen ? null : section)}
+              aria-expanded={navOpen}
+              className="flex w-full items-center justify-between border border-[var(--line)] px-4 py-3 text-sm font-medium lg:hidden"
             >
-              <ArrowLeft className="w-3.5 h-3.5 mr-2" /> {manual.backToHome}
-            </Link>
-
-            {/* Quick Search Filter */}
-            <div className="relative mb-6">
-              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={manual.searchPlaceholder || "Search docs..."}
-                className="w-full border border-[var(--line)] bg-[var(--bg-page)] py-2 pl-8.5 pr-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)]"
+              <span>
+                {manual.title}
+                {currentGroup ? ` · ${currentGroup.title}` : ""}
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 ${navOpen ? "rotate-180" : ""}`}
               />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  aria-label="Clear search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Nav Groups */}
-            <div className="space-y-6 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
-              {filteredGroups.map((group) => (
-                <div key={group.title}>
-                  <h4 className="mb-2.5 text-[11px] font-medium text-[var(--text-muted)]">
-                    {group.title}
-                  </h4>
-                  <div className="space-y-1">
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.id}
-                        to={`/docs/${item.id}`}
-                        className={`flex items-center justify-between px-2 py-1.5 text-xs ${
-                          section === item.id
-                            ? "bg-[var(--honey)] font-semibold text-[var(--honey-ink)]"
-                            : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 truncate">
-                          <span
-                            className={
-                              section === item.id
-                                ? "text-[var(--text-primary)]"
-                                : "text-zinc-500 dark:text-zinc-500"
-                            }
-                          >
-                            {iconMap[item.id] || <Book className="w-4 h-4" />}
-                          </span>
-                          <span className="truncate">{item.label}</span>
-                        </div>
-
-                        {item.badge && (
-                          <span className="ml-2 shrink-0 font-mono text-[9px] text-[var(--text-muted)]">
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {filteredGroups.length === 0 && (
-                <div className="text-xs text-zinc-500 text-center py-6">
-                  No matching documentation pages.
-                </div>
-              )}
+            </button>
+            <div
+              className={`${navOpen ? "block" : "hidden"} border border-t-0 border-[var(--line)] p-4 lg:block lg:border-0 lg:p-0`}
+            >
+              {sidebar}
             </div>
           </aside>
 
-          {/* Main Doc Content */}
-          <main
-            key={section}
-            className="min-w-0 border border-[var(--line)] p-6 sm:p-10"
-          >
-            {/* Header / Breadcrumb */}
-            <div className="space-y-4 mb-8">
+          <main key={section} className="min-w-0">
+            <div className="mb-8 space-y-4">
               <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
-                <span>{manual.title}</span>
-                <span className="text-zinc-400 dark:text-zinc-600">/</span>
-                <span>{currentGroupTitle}</span>
-                <span className="text-zinc-400 dark:text-zinc-600">/</span>
-                <span className="text-zinc-900 dark:text-zinc-200 font-semibold">
-                  {title}
-                </span>
+                <Link to="/docs" className="hover:text-[var(--text-primary)]">
+                  {manual.title}
+                </Link>
+                {currentGroup && (
+                  <>
+                    <span className="text-zinc-400 dark:text-zinc-600">/</span>
+                    <span>{currentGroup.title}</span>
+                  </>
+                )}
               </div>
 
-              <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                  {title}
+                </h1>
+                {level && <LevelBadge level={level} />}
+              </div>
 
               {subtitle && (
-                <p className="text-base leading-relaxed text-[var(--text-secondary)]">
+                <p className="max-w-3xl text-lg leading-relaxed text-[var(--text-secondary)]">
                   {subtitle}
                 </p>
               )}
 
-              <div className="mt-6 h-px w-full bg-[var(--line)]" />
+              {banner && (
+                <div
+                  className={`flex gap-3 border-l-4 p-4 text-sm ${
+                    level === "experimental"
+                      ? "border-sky-500 bg-sky-500/5"
+                      : "border-[var(--honey)] bg-[var(--honey-soft)]"
+                  }`}
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{banner}</span>
+                </div>
+              )}
+
+              <div className="h-px w-full bg-[var(--line)]" />
             </div>
 
-            {/* Markdown Body or Fallback */}
             {docData ? (
-              <div className="prose prose-amber dark:prose-invert max-w-none prose-a:underline prose-a:underline-offset-2 [&_:not(pre)>code]:rounded-sm [&_:not(pre)>code]:bg-[var(--honey-soft)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none">
+              <div className="prose prose-amber max-w-none dark:prose-invert prose-a:underline prose-a:underline-offset-2 [&_:not(pre)>code]:rounded-sm [&_:not(pre)>code]:bg-[var(--honey-soft)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     pre: PreBlock,
                     blockquote: BlockquoteBlock,
                     table: TableBlock,
+                    a: ({ href, children }) =>
+                      href?.startsWith("/") ? (
+                        <Link to={href}>{children}</Link>
+                      ) : (
+                        <a href={href} target="_blank" rel="noreferrer">
+                          {children}
+                        </a>
+                      ),
                     h2: ({ children }) => {
-                      const id = slugify(String(children));
+                      const id = slugify(nodeText(children));
                       return (
                         <h2
                           id={id}
-                          className="mt-10 mb-4 flex scroll-mt-24 items-center gap-2 border-b border-[var(--line)] pb-2 text-2xl font-bold tracking-tight"
+                          className="mb-4 mt-12 scroll-mt-24 border-b border-[var(--line)] pb-2 text-2xl font-bold tracking-tight"
                         >
-                          <a
-                            href={`#${id}`}
-                            className="hover:underline text-inherit no-underline"
-                          >
+                          <a href={`#${id}`} className="text-inherit no-underline! hover:underline!">
                             {children}
                           </a>
                         </h2>
                       );
                     },
                     h3: ({ children }) => {
-                      const id = slugify(String(children));
+                      const id = slugify(nodeText(children));
                       return (
                         <h3
                           id={id}
-                          className="mt-6 mb-3 scroll-mt-24 text-lg font-bold tracking-tight"
+                          className="mb-3 mt-8 scroll-mt-24 text-lg font-bold tracking-tight"
                         >
-                          <a
-                            href={`#${id}`}
-                            className="hover:underline text-inherit no-underline"
-                          >
+                          <a href={`#${id}`} className="text-inherit no-underline! hover:underline!">
                             {children}
                           </a>
                         </h3>
@@ -523,49 +493,31 @@ export default function DocsComponent() {
                 </ReactMarkdown>
               </div>
             ) : (
-              <div className="space-y-6">
-                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                  {Array.isArray(fallbackContent?.body)
-                    ? fallbackContent.body.join("\n\n")
-                    : fallbackContent?.body}
-                </p>
-
-                {fallbackContent?.list && (
-                  <ul className="space-y-3 my-6">
-                    {fallbackContent.list.map((item) => (
-                      <li
-                        key={item}
-                        className="flex items-start gap-3 text-sm text-zinc-800 dark:text-zinc-200"
-                      >
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 bg-[var(--text-primary)]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {fallbackContent?.code && (
-                  <div className="terminal overflow-x-auto p-5 font-mono text-xs leading-relaxed">
-                    <pre>
-                      {Array.isArray(fallbackContent.code)
-                        ? fallbackContent.code.join("\n")
-                        : fallbackContent.code}
-                    </pre>
-                  </div>
-                )}
-              </div>
+              <Link to="/docs" className="btn-ink">
+                <ArrowLeft className="h-4 w-4" /> {manual.title}
+              </Link>
             )}
 
-            {/* Pagination Cards (Previous / Next) */}
-            <div className="mt-14 grid grid-cols-1 gap-4 border-t border-[var(--line)] pt-8 sm:grid-cols-2">
+            {docData && (
+              <a
+                href={`${REPO_URL}/blob/main/apps/website/src/docs/${docData.file}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-12 inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:underline"
+              >
+                <Pencil className="h-3.5 w-3.5" /> {manual.editOnGithub}
+              </a>
+            )}
+
+            <div className="mt-8 grid grid-cols-1 gap-4 border-t border-[var(--line)] pt-8 sm:grid-cols-2">
               {prevItem ? (
                 <Link
                   to={`/docs/${prevItem.id}`}
-                  className="group flex flex-col border border-[var(--line)] p-4"
+                  className="group flex flex-col border border-[var(--line)] p-4 hover:border-[var(--line-strong)]"
                 >
                   <span className="meta mb-1 flex items-center gap-1">
-                    <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" />
-                    {manual.previousPage || "Previous"}
+                    <ArrowLeft className="h-3 w-3 transition-transform group-hover:-translate-x-1" />
+                    {manual.previousPage}
                   </span>
                   <span className="truncate text-sm font-semibold">
                     {prevItem.label}
@@ -578,11 +530,11 @@ export default function DocsComponent() {
               {nextItem ? (
                 <Link
                   to={`/docs/${nextItem.id}`}
-                  className="group flex flex-col items-end border border-[var(--line)] p-4 text-right"
+                  className="group flex flex-col items-end border border-[var(--line)] p-4 text-right hover:border-[var(--line-strong)]"
                 >
                   <span className="meta mb-1 flex items-center gap-1">
-                    {manual.nextPage || "Next"}
-                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                    {manual.nextPage}
+                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
                   </span>
                   <span className="truncate text-sm font-semibold">
                     {nextItem.label}
@@ -594,27 +546,26 @@ export default function DocsComponent() {
             </div>
           </main>
 
-          {/* Right Sidebar: On This Page (TOC) */}
           <aside className="hidden xl:block">
-            <div className="sticky top-24 space-y-4">
-              <div className="border border-[var(--line)] p-5">
+            <div className="sticky top-20 space-y-4">
+              <div>
                 <div className="meta mb-3 flex items-center gap-2 font-medium">
                   <ListTree className="h-3.5 w-3.5" />
-                  <span>{manual.onThisPage || "On this page"}</span>
+                  <span>{manual.onThisPage}</span>
                 </div>
 
                 {toc.length > 0 ? (
-                  <nav className="space-y-1 max-h-[calc(100vh-250px)] overflow-y-auto text-xs">
+                  <nav className="max-h-[calc(100vh-300px)] space-y-0.5 overflow-y-auto border-l border-[var(--line)] text-xs">
                     {toc.map((item) => (
                       <a
                         key={item.id}
                         href={`#${item.id}`}
-                        className={`block py-1 px-2 rounded-lg transition-colors truncate ${
-                          item.level === 3 ? "pl-4 text-[11px]" : "font-medium"
+                        className={`-ml-px block truncate border-l py-1 ${
+                          item.level === 3 ? "pl-6 text-[11px]" : "pl-3"
                         } ${
                           activeHeading === item.id
-                            ? "font-semibold text-[var(--text-primary)]"
-                            : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                            ? "border-[var(--honey)] font-semibold text-[var(--text-primary)]"
+                            : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                         }`}
                       >
                         {item.title}
@@ -622,29 +573,28 @@ export default function DocsComponent() {
                     ))}
                   </nav>
                 ) : (
-                  <div className="text-xs text-zinc-500 italic">
-                    No headings on this page.
+                  <div className="text-xs italic text-[var(--text-muted)]">
+                    {manual.noHeadings}
                   </div>
                 )}
               </div>
 
-              {/* Quick Links Card */}
-              <div className="space-y-2 border border-[var(--line)] p-5 text-xs text-[var(--text-muted)]">
-                <div className="font-semibold text-zinc-900 dark:text-zinc-200">
-                  Amber Ecosystem
+              <div className="space-y-2 border border-[var(--line)] p-4 text-xs text-[var(--text-muted)]">
+                <div className="font-semibold text-[var(--text-primary)]">
+                  {manual.asideTitle}
                 </div>
-                <p className="text-[11px] leading-relaxed">
-                  Fast, lightweight, native AI & Agent-grade JS/TS runtime
-                  written in Rust & V8.
-                </p>
-                <div className="pt-2 flex items-center gap-2">
+                <p className="leading-relaxed">{manual.asideBody}</p>
+                <div className="flex flex-col gap-1 pt-1">
+                  <Link to="/compatibility" className="hover:underline">
+                    {copy.nav.scope} →
+                  </Link>
                   <a
-                    href="https://github.com/zh30/amberjs"
+                    href={SCOPE_DOC_URL}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] hover:underline"
+                    className="font-mono hover:underline"
                   >
-                    GitHub Repository →
+                    CURRENT_SCOPE.md →
                   </a>
                 </div>
               </div>

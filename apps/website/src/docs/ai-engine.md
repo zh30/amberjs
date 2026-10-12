@@ -1,141 +1,73 @@
 ---
-title: "Native AI Engine (amber:ai)"
-subtitle: "Eliminating Python glue layers: direct zero-copy tensors, streaming LLM inference, and agent pipelines in V8"
-group: "Core Systems"
+title: "amber:ai"
+nav: "amber:ai"
+subtitle: "Typed-array tensors, a built-in text embedding, and an LLM interface for local model files."
+status: "stable"
 id: "ai-engine"
 ---
 
-## 1. Why Native AI in the Runtime?
+`amber:ai` is in the Stable scope and compiles in the default build. It does not need the `ai` Cargo feature, which is empty. Read the notes on `LLM` below before building on it.
 
-In the era of generative AI and autonomous agents, backend development is shifting from traditional CRUD services to **vector similarity search, high-dimensional tensor operations, streaming LLM inference, and agent tool execution**.
-
-JavaScript developers traditionally face frustrating compromises:
-- **Subprocess Python IPC**: Communicating with Python via stdio or HTTP incurs serialization overhead, doubles memory footprints, and complicates deployments.
-- **Fragile node-gyp Addons**: Native C++ plugins frequently fail to build across architectures, break in container environments, and trigger memory leaks.
-
-Amber introduces the built-in **`amber:ai`** module: written in Rust at the host layer with SIMD optimizations, interfacing directly with V8 through zero-copy `Float32Array` buffers.
-
----
-
-## 2. Core Components
-
-Import directly without third-party dependencies:
-
-```typescript
-import { Tensor, LLM, AgentPipeline } from 'amber:ai';
+```js
+const { Tensor, LLM, AgentPipeline, embed, cosineSimilarity } = require("amber:ai");
 ```
 
----
+## Tensor
 
-### 1. `Tensor` Zero-Copy Vector Operations
+`Tensor` wraps a `Float32Array` and a shape. Operations do not copy the backing buffer when they can avoid it.
 
-Backed by contiguous `Float32Array` buffers and vectorized CPU instructions:
+```js
+const a = new Tensor([1, 2, 3, 4], [2, 2]);
+const b = new Tensor([5, 6, 7, 8], [2, 2]);
 
-```typescript
-// 1. Create tensors from flat arrays and shape definitions
-const a = Tensor.from([1.0, 2.0, 3.0, 4.0], [2, 2]);
-const b = Tensor.from([5.0, 6.0, 7.0, 8.0], [2, 2]);
+a.matmul(b).toArray(); // [[19, 22], [43, 50]]
 
-// 2. Hardware-accelerated matrix multiplication (matmul)
-const c = Tensor.matmul(a, b);
-console.log('Matrix product:', c.toArray(), c.shape);
-
-// 3. Dot product and vector magnitude
-const v1 = Tensor.from([1.0, 2.0, 3.0], [3]);
-const v2 = Tensor.from([4.0, 5.0, 6.0], [3]);
-console.log('Dot product:', Tensor.dot(v1, v2)); // 32.0
-console.log('L2 Norm:', Tensor.norm(v1)); // 3.7416...
-
-// 4. Numerically stable Softmax
-const logits = Tensor.from([2.0, 1.0, 0.1], [3]);
-const probs = Tensor.softmax(logits);
-console.log('Normalized probabilities:', probs.toArray());
-
-// 5. Cosine similarity for semantic retrieval
-const queryEmbedding = Tensor.from([0.1, 0.8, 0.3], [3]);
-const docEmbedding = Tensor.from([0.12, 0.79, 0.31], [3]);
-const similarity = Tensor.cosineSimilarity(queryEmbedding, docEmbedding);
-console.log('Cosine similarity:', similarity); // 0.999...
+const v1 = new Tensor([1, 2, 3]);
+const v2 = new Tensor([4, 5, 6]);
+v1.dot(v2);              // 32
+v1.norm();               // 3.7416...
+v1.cosineSimilarity(v2); // 0.9746...
+new Tensor([2, 1, 0.1]).softmax().toArray();
 ```
 
----
+## Embeddings
 
-### 2. `LLM` Local Streaming Inference
+```js
+const vector = embed("hello world");          // Float32Array, 64 dims by default
+const other = embed("hello there", { dimensions: 128 });
+```
 
-Load quantized model weights directly for streaming token generation and embeddings:
+`embed` is a deterministic, hashed-token embedding computed in Rust. It is fast and reproducible, but it is **not** a learned semantic model. Use it for tests, deduplication, or rough lexical similarity. For semantic search, load a real embedding model and feed its output into `Tensor`.
 
-```typescript
-// Load local quantized GGUF weights
-const model = await LLM.load('./models/qwen2.5-0.5b-instruct.gguf', {
-  threads: 4,
-  contextSize: 2048,
-});
+## LLM
 
-// 1. Asynchronous token stream (ideal for Server-Sent Events / SSE)
-const prompt = "Summarize the key advantages of the Rust language in 3 sentences.";
-console.log(`Prompt: ${prompt}\nGenerating: `);
+```js
+const llm = await LLM.load("./models/model.gguf");
+const result = await llm.generate("Summarize this file.");
 
-for await (const token of model.generateStream(prompt, { maxTokens: 256, temperature: 0.7 })) {
-  process.stdout.write(token);
+for await (const chunk of llm.generateStream("Write a haiku.")) {
+  process.stdout.write(chunk);
 }
-console.log('\n--- Done ---');
-
-// 2. Generate text embeddings
-const vector = await model.embed("High performance cloud-native runtime");
-console.log(`Vector dimensions: ${vector.length}, first 3:`, vector.slice(0, 3));
 ```
 
----
+When `LLM.load` can open the model file, generation runs locally through Candle. The default build runs on the CPU. CUDA and Metal need a source build with the `cuda` or `metal` Cargo feature, and those features are not CI-gated.
 
-### 3. `AgentPipeline` Autonomous Orchestration
+**Important:** when the model cannot be loaded, `LLM.load` does not throw. It returns an `LLM` backed by a built-in template generator that produces placeholder text, and placeholder JSON when you pass a schema. That output is not model output. Check that your model path loads before you trust a result.
 
-Build deterministic AI agents with structured tool calling and state tracking:
+## AgentPipeline
 
-```typescript
-// agent_example.ts
-import { AgentPipeline } from 'amber:ai';
-
-const agent = new AgentPipeline({
-  name: 'DevOps Assistant',
-  instructions: 'You are an operations assistant capable of querying cluster health.',
+```js
+const pipeline = new AgentPipeline({
+  model: llm,
+  tools: [{ name: "echo", execute: (input) => input }],
 });
 
-// Register tools with JSON Schema parameter definitions
-agent.registerTool({
-  name: 'query_server_status',
-  description: 'Inspect CPU and memory metrics for a server node',
-  parameters: {
-    type: 'object',
-    properties: {
-      server_id: { type: 'string', description: 'Server identifier, e.g., srv-01' },
-    },
-    required: ['server_id'],
-  },
-  handler: async ({ server_id }) => {
-    return {
-      server_id,
-      cpu_usage: '24.5%',
-      memory_free: '8.2 GB',
-      healthy: true,
-    };
-  },
-});
-
-// Execute agent decision step
-const response = await agent.runStep('Check if server node srv-01 is healthy.');
-console.log('Agent Response:', response.content);
+const step = await pipeline.step("hello");
+// { status: "completed", output: "...", historyLength: 2 }
 ```
 
----
+`AgentPipeline` records history and holds registered tools. `step()` sends the input to `model.generate()` and stores the reply. It does not plan or call tools by itself; your code decides when to call `tool.execute`.
 
-## 3. Deterministic Sandboxing for Testing
+## Not in scope
 
-AI decision loops frequently display non-deterministic variance that complicates debugging. Amber provides CLI flags for reproducible agent evaluation:
-
-- **`--seed <UINT64>`**: Seeds the pseudo-random number generator (`Math.random()` and `crypto.getRandomValues()`).
-- **`--freeze-time <ISO_STRING>`**: Locks the virtual clock (`Date.now()`, `new Date()`, `performance.now()`).
-
-```bash
-# Replay agent runs with pinned random seed and virtual clock
-amber run --seed 42 --freeze-time "2026-09-07T08:00:00Z" agent_example.ts
-```
+The getters `weights`, `tools`, `kv`, `bus`, `grammar`, and `checkpoint` on `amber:ai` point to modules that are not classified in the scope page. Treat them as Experimental.

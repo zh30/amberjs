@@ -1,13 +1,14 @@
 import type { TranslationSchema } from "./types";
-import { AMBER_VERSION } from "../version";
 
 export const es: TranslationSchema = {
   nav: {
     home: "Inicio",
-    docs: "Manual",
-    blog: "Notas de Versión",
+    docs: "Docs",
+    scope: "Compatibilidad",
+    blog: "Blog",
     play: "Playground",
     github: "GitHub",
+    menu: "Menú",
   },
   playground: {
     title: "Playground",
@@ -21,574 +22,233 @@ export const es: TranslationSchema = {
   },
   toggle: {
     label: "Idioma",
-    en: "English",
-    zh: "简体中文",
-    es: "Español",
-    fr: "Français",
-    hi: "हिन्दी",
   },
   theme: {
     system: "Sistema",
     light: "Claro",
     dark: "Oscuro",
-    toggle: "Cambiar Tema (Sistema / Claro / Oscuro)",
+    toggle: "Cambiar tema (Sistema / Claro / Oscuro)",
+  },
+  levels: {
+    stable: {
+      label: "Stable",
+      desc: "Respaldado por un contrato escrito y pruebas ejecutables en CI. Los límites están documentados junto a la API.",
+    },
+    preview: {
+      label: "Preview",
+      desc: "Incluido en la compilación por defecto y útil, pero el contrato y los casos límite aún se están ajustando.",
+    },
+    experimental: {
+      label: "Experimental",
+      desc: "El código existe, pero no es una promesa de producto hasta que se vuelva a verificar y gradúe.",
+    },
+    nongoal: {
+      label: "No soportado",
+      desc: "Fuera de alcance a propósito. Amber falla de forma explícita en lugar de fingir.",
+    },
   },
   footer: {
-    statusLabel: "Estado del Sistema",
-    statusValue: "Operativo",
-    stage: AMBER_VERSION,
-    contact: "Contacto",
-    email: "support@amberjs.com",
-    rights: "Todos los derechos reservados.",
-    builtWith: "Construido con Rust y V8",
+    tagline:
+      "Un runtime de JavaScript y TypeScript construido con Rust y V8. Código abierto bajo MIT.",
+    product: "Producto",
+    resources: "Recursos",
+    community: "Comunidad",
     docs: "Documentación",
-    blog: "Notas de Versión",
-    githubRepo: "Repositorio GitHub",
-    copyright: `© ${new Date().getFullYear()} Amber. Código abierto bajo licencia MIT.`,
+    scope: "Compatibilidad",
+    blog: "Blog",
+    play: "Playground",
+    conformance: "Resultados de conformidad",
+    githubRepo: "GitHub",
+    issues: "Issues",
+    releases: "Versiones",
+    license: "Licencia MIT",
   },
   home: {
-    heroBadge: AMBER_VERSION,
-    heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream RSI",
-    heroBanner:
-      "Amber v1.16.0: Wasm 2.0, amber bundle / compile y hot paths de URL/fetch/ReadableStream.",
-    heroBannerLink: "/blog/v1.16.0",
-    heroTitlePrefix: "El Runtime de Alto Rendimiento para ",
-    heroTitleAccent: "JavaScript y TypeScript",
-    heroTitleSuffix: " en Rust y V8",
-    heroSubtitle:
-      "Diseñado desde primeros principios en Rust y Google V8. Aceleración de tensores amber:ai nativa, pipelines de agentes, snapshot mmap V8 2.0 y 100% de compatibilidad Node.js.",
-    ctaPrimary: "Explorar Documentación",
-    ctaSecondary: "Duelo de Benchmarks",
-    ctaNotes: "Notas de Versión",
+    eyebrow: "Código abierto · Rust + V8 · MIT",
+    titleLead: "Un solo binario para ",
+    titleAccent: "JavaScript y TypeScript",
+    subtitle:
+      "Amber ejecuta scripts, pruebas, servidores y herramientas para agentes desde un único ejecutable amber, con un sandbox de capacidades opcional y una compatibilidad respaldada por contratos y pruebas.",
+    ctaPrimary: "Empezar",
+    ctaSecondary: "Qué está soportado",
     copyBtn: "Copiar",
     copiedBtn: "Copiado",
-    latestArticle: {
-      badge: "Lanzamiento Oficial",
-      title: "Amber v1.16.0: Wasm 2.0, empaquetado y hot paths web",
-      desc: "WebAssembly.Memory de copia cero, amber bundle / compile (Preview), suite 2.0 y RSI de URL / fetch / ReadableStream. Conformance 5.0 sigue en 55/55.",
-      readTime: "4 min de lectura",
-      date: "2026-09-16",
-      link: "/blog/v1.16.0",
-      action: "Leer Artículo Completo",
+    installTabs: {
+      unix: "macOS / Linux",
+      windows: "Windows",
+      source: "Desde el código",
     },
-    benchmarksHeader: "Duelo Arquitectónico de Rendimiento",
-    benchmarksSub:
-      "Cifras reales reproducibles en 100,000 iteraciones. Ingeniería de sistemas en Rust sin sobrecarga superando runtimes en C++ y Zig.",
-    benchmarksNote:
-      "Probado en Apple Silicon / Linux x86_64 bajo cargas aisladas idénticas. Reproducible mediante scripts/run_benchmarks.sh.",
-    benchmarksFilterAll: "Todas las Cargas",
-    benchmarksFilterCore: "Ejecución Core",
-    benchmarksFilterIo: "Memoria e I/O",
-    benchmarksFastest: "⚡ Más Rápido",
-    benchmarksParity: "🏆 Paridad",
-    benchmarks: [
-      {
-        id: "require",
-        category: "core",
-        title: "Resolución de Módulos (require)",
-        desc: "100,000 búsquedas de módulos con caché en memoria de dos niveles",
-        amberValue: "6.52 ms",
-        amberOps: "4,601,226 ops/s",
-        bunValue: "16.02 ms",
-        bunOps: "1,872,659 ops/s",
-        nodeValue: "26.96 ms",
-        nodeOps: "1,112,759 ops/s",
-        multiplier: "4.13x vs Node · 2.45x vs Bun",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 40.7,
-        nodeBar: 24.2,
+    stats: {
+      contracts: "contratos Stable (G1–G69)",
+      conformance: "pruebas de conformidad Node",
+      binary: "binario: run, test, serve, bundle, compile",
+      version: "versión actual",
+    },
+    showcaseTitle: "Escríbelo. Ejecútalo. Publícalo.",
+    showcaseSubtitle:
+      "Cada ejemplo usa una superficie Stable. Sin archivos de configuración ni plugins.",
+    showcase: {
+      typescript: {
+        label: "TypeScript",
+        caption:
+          ".ts y .tsx se ejecutan directamente. oxc elimina los tipos; las trazas apuntan a tus líneas .ts. No verifica tipos.",
       },
-      {
-        id: "buffer",
-        category: "io",
-        title: "Alloc + Fill + Slice de Buffer",
-        desc: "100,000 operaciones de ciclo de vida de buffer alineadas por SIMD",
-        amberValue: "2.09 ms",
-        amberOps: "47,846 ops/s",
-        bunValue: "2.62 ms",
-        bunOps: "38,167 ops/s",
-        nodeValue: "2.50 ms",
-        nodeOps: "40,000 ops/s",
-        multiplier: "1.20x vs Node · 1.25x vs Bun",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 79.8,
-        nodeBar: 83.6,
+      test: {
+        label: "Pruebas",
+        caption:
+          "describe / test / expect al estilo Jest, con descubrimiento automático y --watch.",
       },
-      {
-        id: "eventemitter",
-        category: "core",
-        title: "Rendimiento de Disparo EventEmitter",
-        desc: "100,000 despachos síncronos de listeners",
-        amberValue: "0.62 ms",
-        amberOps: "161,290 ops/s",
-        bunValue: "0.88 ms",
-        bunOps: "113,636 ops/s",
-        nodeValue: "0.65 ms",
-        nodeOps: "153,846 ops/s",
-        multiplier: "Menor latencia de despacho en todos los runtimes",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 70.5,
-        nodeBar: 95.4,
+      serve: {
+        label: "Servidor",
+        caption:
+          "Exporta un manejador fetch y amber serve le habla HTTP/1.1. Añade --https para TLS con rustls.",
       },
-      {
-        id: "objectalloc",
-        category: "core",
-        title: "Asignación de Objetos y Memoria",
-        desc: "100,000 creaciones y destrucciones ligeras de objetos V8",
-        amberValue: "2.25 ms",
-        amberOps: "44,444 ops/s",
-        bunValue: "2.47 ms",
-        bunOps: "40,485 ops/s",
-        nodeValue: "2.98 ms",
-        nodeOps: "33,557 ops/s",
-        multiplier: "1.32x vs Node · 1.10x vs Bun",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 91.1,
-        nodeBar: 75.5,
+      sandbox: {
+        label: "Sandbox",
+        caption:
+          "Deniega por defecto archivos, red, entorno y procesos. Permite rutas y hosts exactos y guarda un registro de auditoría JSONL.",
       },
-      {
-        id: "coldstart",
-        category: "core",
-        title: "Arranque en Frío de CLI (eval 1+1)",
-        desc: "Inicio completo de proceso, creación de isolate y finalización",
-        amberValue: "18.00 ms",
-        amberOps: "Arranque sub-18ms",
-        bunValue: "15.20 ms",
-        bunOps: "Arranque sub-16ms",
-        nodeValue: "34.83 ms",
-        nodeOps: "Arranque sub-35ms",
-        multiplier: "1.93x más rápido en frío que Node.js",
-        isAmberWinner: false,
-        amberBar: 84.4,
-        bunBar: 100,
-        nodeBar: 43.6,
+      tools: {
+        label: "Herramientas",
+        caption:
+          "Exporta funciones, imprime sus esquemas y sírvelas por MCP stdio o JSON-RPC.",
       },
-      {
-        id: "timers",
-        category: "io",
-        title: "Latencia del Event Loop con Timers (1,000)",
-        desc: "Registro y disparo por lotes de temporizadores concurrentes",
-        amberValue: "2.51 ms",
-        amberOps: "14.2x más rápido vs v0.4.2",
-        bunValue: "2.20 ms",
-        bunOps: "Ultra baja latencia",
-        nodeValue: "2.40 ms",
-        nodeOps: "Latencia estándar libuv",
-        multiplier: "14.2x de aceleración vs Amber v0.4.2 (35.66 ms)",
-        isAmberWinner: false,
-        amberBar: 87.6,
-        bunBar: 100,
-        nodeBar: 91.7,
-      },
-    ],
-    telemetryTitle: "Métricas de Rendimiento",
-    telemetrySubtitle:
-      "Verificado en benchmarks de producción aislados y repetibles.",
-    telemetryNote:
-      "Todas las métricas medidas con cargo run --release frente a Node v24 y Bun v1.4.",
-    telemetry: [
-      {
-        label: "Resolución de Módulos",
-        value: "4.6M ops/s",
-        delta: "4.1x vs Node",
-        note: "caché de dos niveles",
-      },
-      {
-        label: "Buffer SIMD",
-        value: "2.09 ms",
-        delta: "#1 Más rápido",
-        note: "100k alloc+fill",
-      },
-      {
-        label: "Arranque en Frío",
-        value: "< 18 ms",
-        delta: "1.93x vs Node",
-        note: "arranque CLI instantáneo",
-      },
-      {
-        label: "Conformidad de Pruebas",
-        value: "100%",
-        delta: "369/369 Rust",
-        note: "45 fixtures de Node",
-      },
-    ],
-    sandboxTitle: "server.ts — Arquitectura HTTP Multi-Worker",
-    sandboxTag: "Pool de Workers sin Bloqueos",
-    sandboxComment:
-      "// Respuesta en streaming nativa de Node.js y Web Standard con Pool de Workers",
-    sandboxLog:
-      "🚀 Servidor escuchando en http://localhost:3000 (8 workers activos)",
-    sandboxBoot: "Tiempo de arranque: < 2ms · Pool de hilos listo",
-    featuresTitle: "Arquitectura desde Primeros Principios",
-    featuresSubtitle:
-      "Diseñado en Rust y V8 para maximizar el throughput, eliminar bloqueos y garantizar seguridad.",
-    features: [
-      {
-        title: "Pool de Hilos Multi-Worker",
-        desc: "Redes HTTP de alta concurrencia con despacho por canal sin bloqueos entre hilos, eliminando tormentas de hilos.",
-      },
-      {
-        title: "Caché Dual de Módulos en Memoria",
-        desc: "Caché require pre-resuelto de dos niveles que omite stat en disco, logrando 4,601,226 ops/s.",
-      },
-      {
-        title: "TypeScript 6.0 Nativo y TSX",
-        desc: "Impulsado por oxc: eliminación instantánea de tipos, decoradores Stage 3, palabra clave using y JSX sin sobrecarga de tsc.",
-      },
-      {
-        title: "Sandbox de Seguridad Fail-Closed",
-        desc: "Control granular de capacidades vía --sandbox con aislamiento de directorios, registro JSONL en runtime y listas blancas explícitas.",
-      },
-      {
-        title: "Rueda de Temporizadores de Alta Resolución",
-        desc: "Colas de sincronización optimizadas en el event loop logrando 2.51ms en 1,000 temporizadores concurrentes (aceleración 14.2x).",
-      },
-      {
-        title: "Paridad con Node.js y Web Platform",
-        desc: "Soporte completo para node:http, node:buffer, node:crypto, fetch, WebSocket, WebCrypto y JIT WebAssembly.",
-      },
-    ],
-    systemsTitle: "Subsistemas del Runtime",
-    systemsSubtitle:
-      "Arquitectura modular de alto rendimiento construida en Rust.",
-    systemsMeta: "Mapa de Arquitectura",
-    systemsLabel: "subsistema",
-    systems: [
-      {
-        title: "Core de Runtime e Isolate V8",
-        desc: "Enlaces directos de V8 en C++ que brindan velocidad nativa, mínima huella de memoria y soporte WASM JIT.",
-      },
-      {
-        title: "Motor TypeScript oxc",
-        desc: "Parser AST ultrarrápido en Rust que elimina tipos y transpila sintaxis TS moderna a ES2022 en tiempo submilimétrico.",
-      },
-      {
-        title: "Concurrencia Multi-Worker",
-        desc: "Pool de distribución de tareas sin bloqueos que gestiona miles de conexiones HTTP concurrentes sin penalización de creación de hilos.",
-      },
-      {
-        title: "Capa de Compatibilidad Node.js",
-        desc: "Implementaciones exhaustivas de fs, path, crypto, buffer, events, http, process, timers y CommonJS require.",
-      },
-      {
-        title: "Capa de Estándares Web",
-        desc: "Implementaciones conformes a W3C de fetch, URL, Streams, Blob, Web Crypto, BroadcastChannel y ServiceWorker.",
-      },
-      {
-        title: "Marco de Pruebas Zero-Config",
-        desc: "Ejecutor de pruebas compatible con Jest con aserciones integradas, descubrimiento, ejecución paralela y cobertura.",
-      },
-    ],
-    ctaTitle: "¿Listo para el Rendimiento de Próxima Generación?",
+    },
+    commandsTitle: "Todo es un subcomando",
+    commandsSubtitle:
+      "La CLI amber cubre el ciclo diario. Cada comando es Stable y tiene un contrato escrito.",
+    commands: {
+      run: "Ejecuta un archivo JS / TS, con --watch e --inspect",
+      test: "Descubre y ejecuta pruebas estilo Jest",
+      serve: "Sirve un manejador fetch por HTTP o HTTPS",
+      bundle: "Empaqueta un grafo de módulos en un archivo",
+      compile: "Crea un ejecutable de un solo archivo para este host",
+      install: "Instala dependencias de package.json desde npm",
+      mcp: "Expone herramientas como servidor MCP stdio",
+      repl: "Shell interactivo",
+    },
+    commandsMore: "Referencia completa de la CLI",
+    compatTitle: "Compatibilidad, contrato a contrato",
+    compatSubtitle:
+      "Amber no es un clon de Node.js. Cada módulo es Stable para el subconjunto que describe su contrato, y el contrato indica lo que falta.",
+    compatNode: "Módulos de Node.js",
+    compatWeb: "Plataforma web",
+    compatRuntime: "Runtime y agentes",
+    compatLink: "Ver los 69 contratos",
+    conformanceTitle: "56 / 56 pruebas de conformidad superadas",
+    conformanceBody:
+      "tests/conformance/ ejecuta pequeños scripts estilo Node (fs, streams, crypto, child_process, Express, Fastify, Hono y más) en cada cambio. La CI falla si alguna prueba falla o se omite. Es una barrera contra regresiones, no una promesa de compatibilidad total con Node.",
+    conformanceReproduce: "Reprodúcelo",
+    conformanceLink: "Ver resultados",
+    maturityTitle: "Cuatro etiquetas honestas",
+    maturitySubtitle:
+      "Cada capacidad del sitio lleva una de ellas. docs/CURRENT_SCOPE.md en el repositorio es la fuente de verdad.",
+    notTitle: "Lo que Amber no hace (todavía)",
+    notSubtitle:
+      "Decir que no con claridad también es parte del contrato. Estas superficies están fuera de alcance hoy.",
+    perfTitle: "Sobre cifras de rendimiento",
+    perfBody:
+      "Amber no publica cifras de rendimiento por ahora. Cualquier cifra futura incluirá el commit, el comando exacto, el hardware y las comprobaciones de corrección necesarias para reproducirla.",
+    ctaTitle: "Instala amber y ejecuta algo.",
     ctaSubtitle:
-      "Instala Amber v1.16.0 para macOS, Linux y Windows con un solo comando.",
-    ctaButton: "Leer Guía de Instalación",
-    ctaNotesButton: "Leer Notas de Versión",
+      "Binarios para macOS, Linux y Windows, o compila desde el código con Cargo.",
+    ctaButton: "Guía de instalación",
+    ctaNotesButton: "Leer el blog",
+  },
+  scope: {
+    title: "Compatibilidad y alcance",
+    subtitle:
+      "Qué soporta exactamente Amber v1.17.0, qué sigue en Preview y qué está fuera de alcance. Cada fila Stable enlaza a su contrato.",
+    sourceNote:
+      "Refleja docs/CURRENT_SCOPE.md en main. Si esta página y ese archivo difieren, manda el archivo.",
+    searchPlaceholder: "Filtrar por módulo, API o id de contrato…",
+    filterAll: "Todo",
+    areas: {
+      cli: "CLI y herramientas",
+      runtime: "Runtime",
+      node: "Node.js",
+      web: "Plataforma web",
+    },
+    colSurface: "Superficie",
+    colId: "Id",
+    colLimits: "Límites conocidos",
+    contract: "Contrato",
+    baseScope: "Base",
+    qualifierNote:
+      "Los ids marcados como tentative o provisional se graduaron con la misma regla y aún pueden renumerarse.",
+    noResults: "Nada coincide con ese filtro.",
+    stableTitle: "Stable",
+    stableSubtitle:
+      "Graduado según la regla: accesible desde el binario amber, descrito sin informes de etapa, cubierto por pruebas y con límites documentados.",
+    previewTitle: "Preview",
+    previewSubtitle:
+      "Presente en la compilación por defecto. Útil para experimentar; aún no es una promesa de compatibilidad.",
+    experimentalTitle: "Experimental",
+    experimentalSubtitle:
+      "Existe como código o comando. No dependas de ello sin verificarlo tú mismo.",
+    unclassifiedTitle: "En el código, sin clasificar",
+    unclassifiedSubtitle:
+      "Estos subcomandos, flags y módulos amber:* existen en el código, pero CURRENT_SCOPE no los describe. Trátalos como Experimental.",
+    nongoalTitle: "No soportado",
+    nongoalSubtitle:
+      "Fuera de alcance a propósito por ahora. Amber falla de forma explícita en lugar de ofrecer stubs.",
+    graduationTitle: "Cómo algo llega a Stable",
+    graduationRules: [
+      "Es accesible a través de src/main.rs o de una API documentada en src/lib.rs.",
+      "Su comportamiento se describe sin depender de informes de etapas anteriores.",
+      "Las pruebas actuales cubren el comportamiento documentado.",
+      "Los límites conocidos están documentados junto a la capacidad.",
+      "El trabajo con features pasa la comprobación de esa feature.",
+    ],
   },
   docs: {
-    title: "Manual del Runtime",
-    subtitle:
-      "Documentación para desarrolladores y operadores de Amber v1.16.0.",
-    backToHome: "Volver al Inicio",
-    groups: [
-      {
-        title: "Inicio",
-        items: [
-          { id: "introduction", label: "Visión General" },
-          { id: "installation", label: "Instalación" },
-          { id: "quick-start", label: "Inicio Rápido" },
-        ],
-      },
-      {
-        title: "Runtime",
-        items: [
-          { id: "v8-isolate-pool", label: "Núcleo del Runtime" },
-          {
-            id: "isolate-pool",
-            label: "IsolatePool Multi-Tenant (amber:pool)",
-            badge: "v1.4",
-          },
-          { id: "jit-optimization", label: "TypeScript" },
-          { id: "ai-engine", label: "Motor de IA (amber:ai)" },
-          {
-            id: "ai-embeddings",
-            label: "Embeddings Nativos y Vectores",
-            badge: "v1.3",
-          },
-          { id: "server-mode", label: "Servidor HTTP y Concurrencia" },
-          { id: "memory-management", label: "Buffer SIMD y Memoria" },
-        ],
-      },
-      {
-        title: "Ecosistema y Herramientas",
-        items: [
-          {
-            id: "embedded-db",
-            label: "Base de Datos y Vectores (amber:db & amber:vector)",
-            badge: "DB",
-          },
-          {
-            id: "standard-library",
-            label: "Biblioteca Estándar (amber:std)",
-            badge: "Std",
-          },
-          {
-            id: "package-manager-dlx",
-            label: "Ejecutor de Paquetes (amber x / dlx)",
-            badge: "CLI",
-          },
-          {
-            id: "deployment-docker",
-            label: "Despliegue y Contenedores (amber deploy)",
-            badge: "Deploy",
-          },
-          {
-            id: "ide-extension",
-            label: "Extensión VS Code Oficial",
-            badge: "IDE",
-          },
-        ],
-      },
-      {
-        title: "Agent y Sandbox",
-        items: [
-          {
-            id: "agent-sandbox",
-            label: "Sandbox y Cuotas de Recursos",
-            badge: "Agent",
-          },
-          {
-            id: "agent-replay",
-            label: "Motor de Reproducción Determinista (amber:replay)",
-            badge: "v1.6",
-          },
-          {
-            id: "model-weights",
-            label: "Cargador de Pesos GGUF y SafeTensors (amber:weights)",
-            badge: "v1.6",
-          },
-          {
-            id: "capability-security",
-            label: "Seguridad Basada en Capacidades (amber:security)",
-            badge: "v1.6",
-          },
-          {
-            id: "kv-store",
-            label: "KV Persistente y Estado Durable (amber:kv)",
-            badge: "v1.7",
-          },
-          {
-            id: "tool-synthesis",
-            label: "Autosíntesis de Herramientas y OpenAPI (amber:tools)",
-            badge: "v1.7",
-          },
-          {
-            id: "hardened-sandbox",
-            label: "Sandbox Reforzado y Registros de Auditoría (amber:sandbox)",
-            badge: "v1.7",
-          },
-          {
-            id: "agent-bus",
-            label: "Bus de Mensajes y PubSub de Agentes (amber:bus)",
-            badge: "v1.8",
-          },
-          {
-            id: "streaming-grammar",
-            label: "Salida Estructurada en Streaming (amber:grammar)",
-            badge: "v1.8",
-          },
-          {
-            id: "agent-checkpoint",
-            label: "Puntos de Control y Rollback (amber:checkpoint)",
-            badge: "v1.8",
-          },
-          {
-            id: "mcp-protocol",
-            label: "Model Context Protocol 2.0 (amber:mcp)",
-            badge: "v1.3",
-          },
-          {
-            id: "virtual-fs-sandbox",
-            label: "Sistema de Archivos Virtual en RAM",
-            badge: "v1.3",
-          },
-          {
-            id: "ffi-native",
-            label: "FFI Nativo C ABI (amber:ffi)",
-            badge: "v1.4",
-          },
-          {
-            id: "wasm-interop",
-            label: "Puente de Memoria Compartida Wasm 2.0 (amber:wasm)",
-            badge: "v1.5",
-          },
-          {
-            id: "slm-inference",
-            label: "Edge SLM y Decodificación JSON (amber:ai)",
-            badge: "v1.4",
-          },
-          {
-            id: "framework-compat",
-            label:
-              "Compatibilidad de Frameworks npm (Hono / Express / LangChain)",
-            badge: "v1.5",
-          },
-        ],
-      },
-      {
-        title: "Operaciones",
-        items: [
-          { id: "cli-usage", label: "Uso de CLI" },
-          { id: "wintertc-compliance", label: "Cumplimiento WinterTC" },
-          { id: "api-reference", label: "Superficie de API" },
-          { id: "modules", label: "Módulos" },
-        ],
-      },
-    ],
-    sections: {
-      introduction: {
-        title: "Visión General",
-        subtitle: "Runtime en Rust + V8 para JavaScript y TypeScript.",
-        body: [
-          "Amber v1.16.0 es un runtime JavaScript/TypeScript en Rust + V8, un binario: amber. Node Conformance 5.0 es 55/55 fixtures — no es compatibilidad drop-in con Node.",
-          "El repositorio también conserva informes de etapas anteriores y módulos con feature-flags. Esos documentos son útiles para entender la evolución del diseño, pero la promesa pública se basa en el build predeterminado de Cargo.",
-        ],
-        cards: [
-          {
-            title: "CLI Limpio",
-            desc: "La salida por defecto de run y eval evita registros internos de arranque.",
-          },
-          {
-            title: "Build por Defecto",
-            desc: "Las comprobaciones de release validan exactamente el conjunto de features instaladas.",
-          },
-        ],
-      },
-      installation: {
-        title: "Instalación",
-        subtitle:
-          "Instala un binario precompilado o compila desde el código fuente.",
-        body: [
-          "Los binarios precompilados están disponibles para macOS x86_64, macOS arm64 y Linux x86_64. Otras plataformas pueden compilar desde el código fuente con Rust.",
-        ],
-        code: [
-          "$ curl -fsSL https://get.amberjs.com/install.sh | sh",
-          "$ amber --version",
-        ],
-      },
-      "quick-start": {
-        title: "Inicio Rápido",
-        subtitle: "Ejecuta tu primer script.",
-        body: [
-          "Crea un archivo JavaScript o TypeScript y ejecútalo mediante el subcomando run.",
-        ],
-        code: [
-          'console.log("Hello from Amber");',
-          "amber run hello.js",
-          'amber eval "1 + 1"',
-        ],
-      },
-      "v8-isolate-pool": {
-        title: "Núcleo del Runtime",
-        subtitle: "El flujo activo de la CLI ejecuta V8 a través de Rust.",
-        body: [
-          "La entrada binaria predeterminada es src/main.rs. La ejecución del script se gestiona en src/runtime_minimal.rs, que administra el isolate de V8, la inicialización del contexto y el retorno de resultados.",
-        ],
-        list: [
-          "Ejecuta archivos JavaScript con amber run",
-          "Evalúa fragmentos con amber eval",
-          "Usa amber repl para una consola interactiva",
-        ],
-      },
-      "jit-optimization": {
-        title: "TypeScript",
-        subtitle:
-          "Los archivos TS y TSX son transpilados por oxc antes de ejecutarse.",
-        body: [
-          "Al pasar un archivo .ts o .tsx a amber run, la CLI lo procesa mediante oxc (sintaxis TypeScript 6.0, solo transpilación). Los tipos se eliminan. using y los decoradores Stage 3 se reducen a ES2022 para el V8 actual. TSX emite React.createElement clásico.",
-        ],
-        list: [
-          "Soporta archivos .ts, .tsx, .mts, .cts y .jsx",
-          "No es tsc --noEmit. Si el JS resultante es válido, se ejecutará",
-          "Las importaciones con efectos secundarios se conservan, solo se borra import type",
-          "amber run examples/basics/typescript_latest.ts",
-        ],
-      },
-      "memory-management": {
-        title: "Compatibilidad",
-        subtitle: "APIs seleccionadas de Node.js y Web Platform disponibles.",
-        body: [
-          "La compilación predeterminada incluye capas de compatibilidad para APIs comunes de Node.js y estándares Web. Consulta los ejemplos y tests para validar casos específicos.",
-        ],
-        list: [
-          "Módulos Node.js: fs, path, crypto, buffer, process, timers y require",
-          "Web APIs: fetch, URL, Streams, Blob, Events, Timers y Web Crypto",
-        ],
-      },
-      "server-mode": {
-        title: "Modo Servidor",
-        subtitle:
-          "Stub de verificación de estado, no un servidor de aplicaciones.",
-        body: [
-          'amber serve inicia un listener tiny_http y responde con un JSON fijo {"ok":true}. No ejecuta scripts de usuario. Para servidores HTTP de aplicación, usa http.createServer y amber run.',
-        ],
-        code: ["$ amber serve --host localhost --port 3000"],
-      },
-      "cli-usage": {
-        title: "Uso de CLI",
-        subtitle: "Comandos principales.",
-        list: [
-          "amber run <archivo> - ejecuta un archivo JavaScript o TypeScript",
-          "amber eval <código> - evalúa un fragmento de código",
-          "amber test [archivo] - ejecuta el framework de pruebas integrado",
-          "amber bundle <entrada> - genera un bundle optimizado para producción",
-          "amber serve - stub de comprobación de salud (JSON fijo)",
-          "amber install - instala dependencias desde package.json",
-        ],
-      },
-      "api-reference": {
-        title: "Superficie de API",
-        subtitle: "Consulta el comportamiento frente al runtime actual.",
-        body: [
-          "Amber expone un subconjunto práctico de APIs de Node.js y la plataforma Web. La referencia más confiable es la suite de pruebas y el directorio de ejemplos.",
-        ],
-        list: [
-          "console y timers",
-          "CommonJS require",
-          "fetch y URL",
-          "fs, path, crypto, buffer, process",
-        ],
-      },
-      modules: {
-        title: "Módulos",
-        subtitle: "Límites de módulos predeterminados.",
-        list: [
-          "src/runtime_minimal.rs - runtime V8 actual",
-          "src/nodejs_core/ - módulos de compatibilidad de Node.js",
-          "src/web_api/ - módulos de estándares Web API",
-          "src/testing/ - framework de pruebas integrado",
-          "src/package_manager.rs - soporte para gestión de paquetes",
-        ],
-      },
+    title: "Docs",
+    subtitle: "Manual de Amber v1.17.0.",
+    backToHome: "Inicio",
+    searchPlaceholder: "Buscar en la documentación…",
+    onThisPage: "En esta página",
+    previousPage: "Anterior",
+    nextPage: "Siguiente",
+    noResults: "No hay páginas que coincidan.",
+    noHeadings: "Esta página no tiene encabezados.",
+    editOnGithub: "Editar esta página en GitHub",
+    groups: {
+      start: "Primeros pasos",
+      guides: "Guías",
+      compat: "Compatibilidad",
+      agents: "Agentes y sandbox",
+      experimental: "Experimental",
     },
+    statusBanner: {
+      experimental:
+        "Experimental: esta página describe código que no forma parte del alcance Stable ni Preview. Verifícalo antes de depender de él.",
+      preview:
+        "Preview: útil y en la compilación por defecto, pero el contrato aún se está ajustando.",
+    },
+    asideTitle: "Fuente de verdad",
+    asideBody:
+      "Los niveles siguen docs/CURRENT_SCOPE.md. Cada API Stable enlaza a su contrato.",
+    notFoundTitle: "Página no encontrada",
+    notFoundBody:
+      "Esta página se eliminó o renombró en la reescritura de la documentación v1.17. Elige una página en la barra lateral.",
   },
   blog: {
-    title: "Notas de Versión",
-    subtitle:
-      "Novedades del runtime, actualizaciones de arquitectura y alcance de versión.",
+    title: "Blog",
+    subtitle: "Notas de versión y novedades de ingeniería del runtime.",
     tagLabel: "Tema",
-    back: "Volver a Notas",
+    back: "Todas las entradas",
     operator: "Autor",
     by: "Por ",
     timestamp: "Fecha",
-    readTime: "Tiempo de Lectura",
-    readMore: "Abrir Nota",
-    notFound: "Artículo No Encontrado",
+    readTime: "Lectura",
+    readMore: "Leer entrada",
+    notFound: "Entrada no encontrada",
     fallbackNote:
       "Este artículo técnico se encuentra disponible temporalmente en inglés.",
+    historicalBadge: "Entrada histórica",
+    historicalNote:
+      "Aviso histórico: las cifras de rendimiento y benchmarks de esta entrada son históricas. No se han reproducido en el main actual y no son afirmaciones vigentes del producto. Para ver lo que Amber admite hoy, consulta ",
+    historicalLink: "Compatibilidad y alcance",
+    historicalSuffix: ".",
   },
 };

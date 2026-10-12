@@ -1,124 +1,92 @@
 ---
-title: "Quick Start"
-subtitle: "Run TypeScript, tests, and a tiny HTTP handler with amber"
-group: "Getting Started"
+title: "Quick start"
+nav: "Quick start"
+subtitle: "Run a script, a TypeScript file, a test, and an HTTP handler in a few minutes."
+status: "stable"
 id: "quick-start"
 ---
 
-## 1. First script
+## 1. Evaluate a snippet
 
-Amber runs `.ts` / `.tsx` without `tsc` or `ts-node`. Types are stripped by oxc, then executed on V8.
+```bash
+amber eval "1 + 1"
+```
 
-Create `hello.ts`:
+## 2. Run a JavaScript file
+
+```js
+// hello.js
+const os = require("node:os");
+console.log(`Hello from Amber on ${os.platform()}`);
+```
+
+```bash
+amber run hello.js
+```
+
+## 3. Run TypeScript directly
+
+There is no build step. Amber erases types with oxc and runs the result.
 
 ```ts
-const runtime = "Amber";
-console.log(`hello from ${runtime}`);
+// greet.ts
+interface User {
+  name: string;
+}
+
+const greet = (user: User): string => `Hello, ${user.name}`;
+console.log(greet({ name: "Amber" }));
 ```
 
 ```bash
-amber run hello.ts
-# hello from Amber
+amber run greet.ts
 ```
 
-There is no project-wide typecheck. Use `tsc --noEmit` in CI if you want that.
+Types are **not** checked. Run `tsc --noEmit` in CI if you want type errors. See [TypeScript](/docs/typescript).
 
-One-liners and a REPL:
-
-```bash
-amber eval "console.log(crypto.randomUUID())"
-amber repl
-```
-
----
-
-## 2. Tests
-
-Jest-style `describe` / `test` / `expect`. Stable since v1.15.0.
+## 4. Write a test
 
 ```js
 // math.test.js
 describe("math", () => {
   test("adds numbers", () => {
-    expect(2 + 3).toBe(5);
+    expect(1 + 2).toBe(3);
   });
 });
 ```
 
 ```bash
-amber test
 amber test math.test.js
-amber test --watch
+amber test          # discover every test file under the current directory
+amber test --watch  # re-run when a watched file changes
 ```
 
-`amber test --parallel` is rejected (exit code 2): V8 isolates are not shared across threads.
-
----
-
-## 3. HTTP (Preview)
-
-`amber serve` loads a module that exports `fetch`:
+## 5. Serve HTTP
 
 ```js
-// app.js
+// server.js
 module.exports = {
-  fetch() {
-    return new Response("ok");
+  fetch(request) {
+    return new Response("Hello from Amber");
   },
 };
 ```
 
 ```bash
-amber serve app.js --host 127.0.0.1 --port 3000
+amber serve --port 3000 server.js
+curl http://localhost:3000/
 ```
 
-You can also write a `node:http` server and `amber run server.ts`. TLS is rustls HTTP/1.1 when `--https --cert --key` are set.
+`amber serve` handles one HTTP/1.1 request per connection. It is a small handler bridge, not a general web server. See [Server mode](/docs/server-mode).
 
----
-
-## 4. Arguments
-
-Arguments after the filename are `process.argv`:
-
-```ts
-console.log(process.argv.slice(2));
-```
+## 6. Use the REPL
 
 ```bash
-amber run cli.ts --name myapp --port 8080
-# [ '--name', 'myapp', '--port', '8080' ]
+amber repl
 ```
 
----
+## Where next
 
-## 5. Watch
-
-```bash
-amber run --watch hello.ts
-amber run --watch --debounce 200 app.ts
-```
-
----
-
-## 6. Suggested layout
-
-```text
-my-amber-app/
-├── package.json
-├── tsconfig.json          # optional, for the editor
-├── src/index.ts
-└── tests/math.test.js
-```
-
-```json
-{
-  "name": "my-amber-app",
-  "scripts": {
-    "dev": "amber run --watch src/index.ts",
-    "start": "amber run src/index.ts",
-    "test": "amber test"
-  }
-}
-```
-
-Next: [CLI reference](/docs/cli-usage) · [sandbox](/docs/agent-sandbox) · [bundle / compile](/docs/bundling-compilation)
+- [CLI reference](/docs/cli-usage) lists every command and its maturity.
+- [Node.js compatibility](/docs/node-compat) shows which modules are Stable.
+- [Agent sandbox](/docs/agent-sandbox) shows how to run untrusted tool code.

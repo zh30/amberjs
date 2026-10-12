@@ -7,57 +7,36 @@ export interface LangOption {
   flag: string;
 }
 
-export interface BenchmarkItem {
-  id: string;
-  category: "core" | "io";
-  title: string;
-  desc: string;
-  amberValue: string;
-  amberOps: string;
-  bunValue: string;
-  bunOps: string;
-  nodeValue: string;
-  nodeOps: string;
-  multiplier: string;
-  isAmberWinner: boolean;
-  amberBar: number;
-  bunBar: number;
-  nodeBar: number;
-}
+export type Level = "stable" | "preview" | "experimental" | "nongoal";
 
-export interface TelemetryItem {
-  label: string;
-  value: string;
-  delta: string;
-  note: string;
-}
+export type DocGroupKey =
+  | "start"
+  | "guides"
+  | "compat"
+  | "agents"
+  | "experimental";
 
-export interface FeatureItem {
-  title: string;
-  desc: string;
-}
+export type ShowcaseId = "typescript" | "test" | "serve" | "sandbox" | "tools";
 
-export interface SystemItem {
-  title: string;
-  desc: string;
-}
-
-export interface DocSection {
-  title: string;
-  subtitle: string;
-  body?: readonly string[];
-  cards?: readonly { title: string; desc: string }[];
-  code?: readonly string[];
-  list?: readonly string[];
-}
+export type CommandKey =
+  | "run"
+  | "test"
+  | "serve"
+  | "bundle"
+  | "compile"
+  | "install"
+  | "mcp"
+  | "repl";
 
 export interface TranslationSchema {
   nav: {
     home: string;
     docs: string;
+    scope: string;
     blog: string;
     play: string;
     github: string;
+    menu: string;
   };
   playground: {
     title: string;
@@ -71,11 +50,6 @@ export interface TranslationSchema {
   };
   toggle: {
     label: string;
-    en: string;
-    zh: string;
-    es: string;
-    fr: string;
-    hi: string;
   };
   theme: {
     system: string;
@@ -83,86 +57,117 @@ export interface TranslationSchema {
     dark: string;
     toggle: string;
   };
+  levels: Record<Level, { label: string; desc: string }>;
   footer: {
-    statusLabel: string;
-    statusValue: string;
-    stage: string;
-    contact: string;
-    email: string;
-    rights: string;
-    builtWith: string;
+    tagline: string;
+    product: string;
+    resources: string;
+    community: string;
     docs: string;
+    scope: string;
     blog: string;
+    play: string;
+    conformance: string;
     githubRepo: string;
-    copyright: string;
+    issues: string;
+    releases: string;
+    license: string;
   };
   home: {
-    heroBadge: string;
-    heroBadgeSub: string;
-    heroBanner: string;
-    heroBannerLink: string;
-    heroTitlePrefix: string;
-    heroTitleAccent: string;
-    heroTitleSuffix: string;
-    heroSubtitle: string;
+    eyebrow: string;
+    titleLead: string;
+    titleAccent: string;
+    subtitle: string;
     ctaPrimary: string;
     ctaSecondary: string;
-    ctaNotes: string;
     copyBtn: string;
     copiedBtn: string;
-    latestArticle: {
-      badge: string;
-      title: string;
-      desc: string;
-      readTime: string;
-      date: string;
-      link: string;
-      action: string;
+    installTabs: {
+      unix: string;
+      windows: string;
+      source: string;
     };
-    benchmarksHeader: string;
-    benchmarksSub: string;
-    benchmarksNote: string;
-    benchmarksFilterAll: string;
-    benchmarksFilterCore: string;
-    benchmarksFilterIo: string;
-    benchmarksFastest: string;
-    benchmarksParity: string;
-    benchmarks: BenchmarkItem[];
-    telemetryTitle: string;
-    telemetrySubtitle: string;
-    telemetryNote: string;
-    telemetry: TelemetryItem[];
-    sandboxTitle: string;
-    sandboxTag: string;
-    sandboxComment: string;
-    sandboxLog: string;
-    sandboxBoot: string;
-    featuresTitle: string;
-    featuresSubtitle: string;
-    features: FeatureItem[];
-    systemsTitle: string;
-    systemsSubtitle: string;
-    systemsMeta: string;
-    systemsLabel: string;
-    systems: SystemItem[];
+    stats: {
+      contracts: string;
+      conformance: string;
+      binary: string;
+      version: string;
+    };
+    showcaseTitle: string;
+    showcaseSubtitle: string;
+    showcase: Record<ShowcaseId, { label: string; caption: string }>;
+    commandsTitle: string;
+    commandsSubtitle: string;
+    commands: Record<CommandKey, string>;
+    commandsMore: string;
+    compatTitle: string;
+    compatSubtitle: string;
+    compatNode: string;
+    compatWeb: string;
+    compatRuntime: string;
+    compatLink: string;
+    conformanceTitle: string;
+    conformanceBody: string;
+    conformanceReproduce: string;
+    conformanceLink: string;
+    maturityTitle: string;
+    maturitySubtitle: string;
+    notTitle: string;
+    notSubtitle: string;
+    perfTitle: string;
+    perfBody: string;
     ctaTitle: string;
     ctaSubtitle: string;
     ctaButton: string;
     ctaNotesButton: string;
   };
+  scope: {
+    title: string;
+    subtitle: string;
+    sourceNote: string;
+    searchPlaceholder: string;
+    filterAll: string;
+    areas: Record<"cli" | "runtime" | "node" | "web", string>;
+    colSurface: string;
+    colId: string;
+    colLimits: string;
+    contract: string;
+    baseScope: string;
+    qualifierNote: string;
+    noResults: string;
+    stableTitle: string;
+    stableSubtitle: string;
+    previewTitle: string;
+    previewSubtitle: string;
+    experimentalTitle: string;
+    experimentalSubtitle: string;
+    unclassifiedTitle: string;
+    unclassifiedSubtitle: string;
+    nongoalTitle: string;
+    nongoalSubtitle: string;
+    graduationTitle: string;
+    graduationRules: readonly string[];
+  };
   docs: {
     title: string;
     subtitle: string;
     backToHome: string;
-    searchPlaceholder?: string;
-    onThisPage?: string;
-    previousPage?: string;
-    nextPage?: string;
-    groups: readonly {
-      title: string;
-      items: readonly { id: string; label: string; badge?: string }[];
-    }[];
-    sections: Record<string, DocSection | undefined>;
+    searchPlaceholder: string;
+    onThisPage: string;
+    previousPage: string;
+    nextPage: string;
+    noResults: string;
+    noHeadings: string;
+    editOnGithub: string;
+    groups: Record<DocGroupKey, string>;
+    statusBanner: {
+      experimental: string;
+      preview: string;
+    };
+    asideTitle: string;
+    asideBody: string;
+    notFoundTitle: string;
+    notFoundBody: string;
   };
   blog: {
     title: string;
@@ -176,5 +181,9 @@ export interface TranslationSchema {
     readMore: string;
     notFound: string;
     fallbackNote: string;
+    historicalBadge: string;
+    historicalNote: string;
+    historicalLink: string;
+    historicalSuffix: string;
   };
 }

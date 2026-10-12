@@ -1,87 +1,83 @@
 ---
-title: "Agent 确定性沙箱与资源硬配额 (Deterministic Sandbox & Quotas)"
-subtitle: "CPU Watchdog 硬中断、物理堆配额、伪随机数重放与时间戳冻结"
-group: "Agent 与高级特性"
+title: "Agent 沙箱"
+nav: "沙箱与权限"
+subtitle: "运行工具代码时默认拒绝文件、网络、环境变量和进程访问，除非你显式放行。"
+status: "stable"
 id: "agent-sandbox"
 ---
 
-在运行由自主 AI Agent 实时生成的代码，或在多租户云端沙箱中执行不可信任务时，仅仅限制网络或文件是不够的：恶意脚本或 Agent 幻觉可能会写出死循环（如 `while(true){}`）导致整个 CPU 跑满挂起，或者发生急速内存泄漏导致整机 OOM。
+权限沙箱、JSONL 审计日志，以及确定性时间与随机数都是 **Stable**。它们是运行 Agent 或模型生成代码时的安全层。
 
-Amber 构建了专为 Agent 设计的**确定性执行沙箱与硬件级资源配额系统**。
-
----
-
-## 1. 四大约束维度一览
-
-| 参数标志 | 约束维度 | 底层核心机制 |
-| :--- | :--- | :--- |
-| **`--timeout <MS>`** | **CPU 超时硬中断** | 独立后台 Watchdog 线程 + `IsolateHandle::terminate_execution()` |
-| **`--max-memory <MB>`** | **物理堆内存配额** | V8 `ResourceConstraints` 硬限制老年代堆上限 |
-| **`--seed <U64>`** | **确定性随机数回放** | Mulberry32 确定性伪随机发生器接管 `Math.random()` |
-| **`--freeze-time <TS>`** | **时间戳绝对冻结** | 接管 `Date.now()`，时间完全恒定 |
-
----
-
-## 2. 详细使用与技术原理
-
-### 2.1 CPU 超时 Watchdog 强行中断 (`--timeout`)
-在传统 JavaScript 引擎中，一旦执行进入纯 CPU 密集死循环，事件循环机制将完全失效。Amber 采用 **Isolate 级外部看门狗监控架构**：
+## 默认拒绝
 
 ```bash
-$ amber run --timeout 2000 infinite_loop.ts
+amber run --sandbox tool.js
 ```
 
-当执行超过 2000 毫秒后，独立的 Watchdog 线程将向 V8 虚拟机发送硬件中断信号，安全强制展开调用栈并退出：
-```text
-Error: Execution timed out after 2000ms
-```
+在 `--sandbox` 下，JavaScript 无法读写文件、建立网络连接或监听端口、读取环境变量，也无法启动子进程。被拒绝的调用会在操作执行前抛出包含 `permission denied` 的错误。入口文件本身仍可读取。
 
-### 2.2 物理堆内存硬配额 (`--max-memory`)
-防止 Agent 脚本无节制创建超大数组或缓冲区挤爆宿主服务器内存：
+## 只放行需要的内容
 
 ```bash
-# 严格限制 V8 堆内存不能超过 128 MB
-$ amber run --max-memory 128 mem_heavy_task.ts
+amber run --sandbox \
+  --allow-read ./data/input.txt \
+  --allow-write ./out/result.json \
+  --allow-net api.example.com \
+  --allow-env API_TOKEN \
+  --allow-run git \
+  tool.js
 ```
 
-### 2.3 确定性随机回放 (`--seed`)
-在评估 Agent 决策树、A/B 测试或进行复杂模拟时，随机性不可控会导致结果无法复现。通过 `--seed` 注入种子：
+每个 `--allow-*` 参数都可重复，分别精确匹配路径、主机或 URL、变量名或命令名。`--allow-listen` 对服务端监听起同样作用。
+
+如果不想开启完整沙箱、只拒绝某一类能力，可以用 `--deny-fs`、`--deny-net`、`--deny-env` 或 `--deny-run`。
+
+## 策略文件
+
+把同样的规则写成 JSON，并通过 `--permission-policy`（别名 `--policy`）传入：
+
+```json
+{
+  "permissions": {
+    "deny_fs": true,
+    "deny_net": true,
+    "allow_read": ["./data/input.txt"],
+    "allow_net": ["api.example.com"]
+  }
+}
+```
 
 ```bash
-$ amber run --seed 123456789 simulation.ts
+amber run --permission-policy policy.json tool.js
 ```
 
-无论在何时、何种硬件平台上重新运行该命令，`Math.random()` 产生的伪随机数序列永远 100% 绝对一致。
-
-### 2.4 时间戳冻结 (`--freeze-time`)
-在生成快照或评估与时间相关的逻辑时，可以通过该选项锁定系统时间戳：
+## 审计日志
 
 ```bash
-# 锁定到 2026-01-01 00:00:00 UTC (1767225600000 ms)
-$ amber run --freeze-time 1767225600000 test_date.ts
+amber run --sandbox --allow-read ./data --audit-log audit.jsonl tool.js
 ```
 
-脚本内调用 `Date.now()` 将恒定返回指定的毫秒数，彻底消除测试时区和当前时钟的副作用。
+每次权限判定会以一行 JSON 追加写入，包含类别、动作、资源和判定结果。程序的其他内容不会写入日志。
 
----
-
-## 3. 典型 Agent 生产沙箱启动范式
-
-在生产 Agent 调度器中，推荐使用如下全套沙箱标志启动用户任务：
+## 确定性运行
 
 ```bash
-$ amber run \
-    --sandbox \
-    --timeout 3000 \
-    --max-memory 256 \
-    --seed 42 \
-    --allow-read ./workspace \
-    --allow-write ./workspace/output \
-    agent_task.ts
+amber run --seed 42 --freeze-time 2026-01-01T00:00:00Z agent.js
 ```
 
-**达成的安全防护**：
-1. **死循环免疫**：3 秒内强制中断；
-2. **OOM 免疫**：堆使用限制在 256MB 以内；
-3. **确定性重演**：随机种子固定，每次模拟决策轨迹一致；
-4. **I/O 目录完全封锁**：仅允许读写 `./workspace`，严禁越权访问宿主敏感文件与外网连接。
+- `--seed` 让 `Math.random()`、`crypto.getRandomValues()` 和 `crypto.randomBytes()` 可复现。
+- `--freeze-time` 把 `Date.now()`、`new Date()` 和 `performance.now()` 固定在一个时间戳或 ISO 8601 字符串。
+
+## 资源限制
+
+```bash
+amber run --timeout 5000 --max-memory 256 tool.js
+```
+
+`--timeout` 在指定毫秒数后终止脚本，`--max-memory` 以 MB 为单位限制 isolate 堆大小。
+
+## 它不是什么
+
+这个沙箱是进程内的权限代理，不是操作系统级隔离、容器或 seccomp 配置。如果威胁模型需要，请同时在容器或虚拟机中运行不受信任的代码。
+
+`--virtual-fs` 参数和 `amber:security` 模块存在于二进制中，但不在 Stable 范围内。详见 [Experimental](/docs/experimental)。

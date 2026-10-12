@@ -1,155 +1,84 @@
 ---
-title: "Model Context Protocol 2.0 (amber:mcp)"
-subtitle: "业界领先的原生 MCP 标准实现：在运行时直接构建服务、连接工具、发布资源并支持可视化 CLI 检查"
-group: "Agent 与高级特性"
+title: "工具、会话与 MCP"
+nav: "工具与 MCP"
+subtitle: "从文件导出函数，再通过 JSON-RPC 会话或 MCP stdio 服务调用它们。"
+status: "stable"
 id: "mcp-protocol"
 ---
 
-## 1. 什么是 Model Context Protocol (MCP)？
+`amber run --export-tools`（G4）、`amber session` 与 `amber mcp` 均为 **Stable**。模型不在 Amber 内部：这些命令只负责加载工具文件、调用其导出函数，所用运行时和权限代理与 `amber run` 相同。
 
-**Model Context Protocol (MCP)** 是由 Anthropic 发起并迅速成为大模型 Agent 生态事实标准的开放协议（规范版本：`2024-11-05`）。它为 AI 模型提供了标准化的方式来：
-1. **调用工具 (Tools)**：执行计算、检索外部系统或操作环境；
-2. **读取资源 (Resources)**：获取动态上下文、项目元数据与结构化数据；
-3. **加载提示词模板 (Prompts)**：标准化系统提示词交互工作流。
+## 工具文件
 
-在传统架构中，运行 MCP 服务器通常需要安装专门的 Node.js 库与外部转译工具。**Amber v1.3.0 在运行时核心内置了官方标准的 `amber:mcp` 原生引擎**，不仅支持标准的跨进程 Stdio 协议与 Claude Desktop / Cursor 直连，还首创支持进程内 `connectLocal()` 零拷贝互通与 CLI 可视化检查！
+```ts
+// tools.ts
 
----
+/** Add two numbers. */
+export function add({ a, b }: { a: number; b: number }) {
+  return a + b;
+}
 
-## 2. 核心架构与 API
-
-引入官方模块：
-
-```typescript
-import { McpServer, McpClient } from 'amber:mcp';
+/** Read a UTF-8 file. */
+export function readText({ path }: { path: string }) {
+  return require("node:fs").readFileSync(path, "utf8");
+}
 ```
 
----
-
-### 一、创建 MCP 服务端 (`McpServer`)
-
-使用链式语法注册工具、资源与提示词：
-
-```typescript
-const server = new McpServer({
-  name: "amber-ops-assistant",
-  version: "1.3.0"
-});
-
-// 1. 注册 Tool (工具)
-server.tool(
-  "calculate_hash",
-  "为输入字符串计算加密安全散列哈希值",
-  {
-    type: "object",
-    properties: {
-      data: { type: "string", description: "待哈希文本" },
-      algorithm: { type: "string", enum: ["sha256", "md5"], default: "sha256" }
-    },
-    required: ["data"]
-  },
-  async ({ data, algorithm = "sha256" }) => {
-    const { crypto } = require('amber:std');
-    return { hash: crypto.hash(algorithm, data) };
-  }
-);
-
-// 2. 注册 Resource (动态资源)
-server.resource(
-  "system://metrics",
-  "System Realtime Metrics",
-  () => {
-    return {
-      cpuUsage: "12%",
-      memory: process.memoryUsage(),
-      timestamp: Date.now()
-    };
-  },
-  "application/json"
-);
-
-// 3. 注册 Prompt (工作流提示词模板)
-server.prompt(
-  "code_audit",
-  "代码安全性与性能审计模板",
-  [{ name: "code", description: "待审计的源代码", required: true }],
-  ({ code }) => {
-    return {
-      prompt: `你是一名资深系统架构师。请从内存安全、并发竞态与边界检查三个维度对以下代码进行深度审计：\n\`\`\`\n${code}\n\`\`\``
-    };
-  }
-);
-```
-
----
-
-### 二、本地内存互通 (`connectLocal`)
-
-无需创建操作系统子进程或绑定套接字，直接获取轻量级客户端实例进行本地单元测试与 Agent 编排：
-
-```typescript
-const client = server.connectLocal();
-
-// 1. 心跳检测
-const alive = await client.ping();
-console.log("MCP 服务是否可用:", alive); // true
-
-// 2. 列出所有工具
-const tools = await client.listTools();
-console.log("注册的工具列表:", tools.map(t => t.name));
-
-// 3. 调用指定工具
-const result = await client.callTool("calculate_hash", { data: "Hello Amber", algorithm: "sha256" });
-console.log("工具执行结果:", result);
-
-// 4. 读取指定资源
-const resContents = await client.readResource("system://metrics");
-const metrics = JSON.parse(resContents[0].text);
-console.log("系统实时指标:", metrics);
-
-// 5. 渲染提示词
-const promptData = await client.getPrompt("code_audit", { code: "let x = 1;" });
-console.log("渲染后的系统 Prompt:", promptData.prompt);
-```
-
----
-
-### 三、启动 Stdio 生产服务
-
-一行代码将当前脚本作为标准 MCP 服务器运行，直接接入 **Claude Desktop**、**Cursor** 或自治 Agent 编排器：
-
-```typescript
-// 启动标准输入输出 JSON-RPC 消息循环
-server.startStdio();
-```
-
----
-
-## 3. CLI 命令行检查与可视化 (`amber mcp --inspect`)
-
-Amber 提供了开箱即用的 MCP 命令行调试套件：
+## 导出 schema
 
 ```bash
-# 1. 快速检查运行时内置工具
-amber mcp --inspect
-
-# 2. 检查自定义 MCP 脚本暴露的全部工具与参数模式
-amber mcp --inspect ./my_tools.ts
+amber run --export-tools tools.ts
 ```
 
-输出示例：
-
-```text
-🔍 Inspecting MCP Built-in Tools
-
-📡 Protocol Version: 2024-11-05
-🛠  Discovered 3 tool(s):
-
-┌─────────────────┬───────────────────────────────────────────────────┬─────────────────────────────────────────────────┐
-│ Tool Name       │ Description                                       │ Input Schema                                    │
-├─────────────────┼───────────────────────────────────────────────────┼─────────────────────────────────────────────────┤
-│ execute_command │ Execute a sandboxed shell command                 │ {"type":"object","properties":{"cmd":...}}      │
-│ read_file       │ Read file contents from filesystem                │ {"type":"object","properties":{"path":...}}     │
-│ write_file      │ Write file contents to virtual or host filesystem │ {"type":"object","properties":{"path":...}}     │
-└─────────────────┴───────────────────────────────────────────────────┴─────────────────────────────────────────────────┘
+```json
+{"tools":[{"name":"add","description":"Add two numbers.","inputSchema":{"type":"object"}}, ...]}
 ```
+
+该命令输出 JSON 后退出，不会执行文件，也不会调用模型。契约见 [`EXPORT_TOOLS_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/EXPORT_TOOLS_CONTRACT.md)。
+
+限制：
+
+- 只识别以 `export function` 或 `export async function` 开头的行；`export const`、箭头函数和 `export default` 不会列出。
+- 描述取自相邻的 `//` 或 `/** */` 注释，`@` 标签会被去掉。
+- `inputSchema` 固定为 `{"type":"object"}`，TypeScript 类型和 `@param` 不会转换为 JSON Schema。
+- 同目录下若有 `tools.json`，则完全替代源码扫描。
+
+## JSON-RPC 会话
+
+```bash
+amber session --sandbox --allow-read ./data tools.ts
+```
+
+`amber session` 从 stdin 每行读取一个 JSON-RPC 请求，并向 stdout 每行写出一个响应。
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/list"}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"add","arguments":{"a":2,"b":3}}}
+```
+
+它还会响应 `initialize`、`ping`，以及返回空列表的 `prompts/list` 和 `resources/list`。工具出错返回错误码 `-32000`，未知方法返回 `-32601`。
+
+## MCP stdio 服务
+
+```bash
+amber mcp tools.ts
+amber mcp --inspect tools.ts   # 列出工具后退出
+```
+
+`amber mcp` 实现 MCP 协议版本 `2024-11-05`，支持 `initialize`、`tools/list` 与 `tools/call`。工具结果以单个 text 内容项返回，失败时设置 `isError`。
+
+双向消息都使用 `Content-Length` 头分帧，与 LSP 的方式相同。如果你的 MCP 宿主在 stdio 上只支持按行分隔的 JSON，接入前请先确认它能处理这种分帧。
+
+给 `session` 或 `mcp` 加上 `--isolate-per-call`，每次 `tools/call` 都会使用全新的 isolate。
+
+## 与沙箱组合
+
+所有权限参数在这里同样可用。这是面向 Agent 宿主的推荐用法：
+
+```bash
+amber mcp --sandbox --allow-read ./workspace --audit-log audit.jsonl tools.ts
+```
+
+## `amber:mcp` 模块
+
+运行时中还有一个 JavaScript `McpServer` API，模块名为 `amber:mcp`。它不在 Stable 范围内，请视为 Experimental。Stable 的是上面描述的 CLI。

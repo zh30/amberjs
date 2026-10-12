@@ -1,13 +1,14 @@
 import type { TranslationSchema } from "./types";
-import { AMBER_VERSION } from "../version";
 
 export const en: TranslationSchema = {
   nav: {
     home: "Home",
-    docs: "Manual",
-    blog: "Release Notes",
+    docs: "Docs",
+    scope: "Compatibility",
+    blog: "Blog",
     play: "Playground",
     github: "GitHub",
+    menu: "Menu",
   },
   playground: {
     title: "Playground",
@@ -21,666 +22,232 @@ export const en: TranslationSchema = {
   },
   toggle: {
     label: "Language",
-    en: "English",
-    zh: "简体中文",
-    es: "Español",
-    fr: "Français",
-    hi: "हिन्दी",
   },
   theme: {
     system: "System",
     light: "Light",
     dark: "Dark",
-    toggle: "Switch Theme (System / Light / Dark)",
+    toggle: "Switch theme (System / Light / Dark)",
+  },
+  levels: {
+    stable: {
+      label: "Stable",
+      desc: "Pinned by a written contract and executable tests in CI. Limits are documented next to the API.",
+    },
+    preview: {
+      label: "Preview",
+      desc: "In the default build and useful, but the contract, diagnostics, or edge cases are still being tightened.",
+    },
+    experimental: {
+      label: "Experimental",
+      desc: "Code exists, but it is not a product promise until it is re-verified and graduated.",
+    },
+    nongoal: {
+      label: "Not supported",
+      desc: "Deliberately out of scope today. Amber will fail closed instead of pretending.",
+    },
   },
   footer: {
-    statusLabel: "System Status",
-    statusValue: "Operational",
-    stage: AMBER_VERSION,
-    contact: "Contact",
-    email: "support@amberjs.com",
-    rights: "All rights reserved.",
-    builtWith: "Built with Rust & V8",
+    tagline:
+      "A JavaScript and TypeScript runtime built with Rust and V8. Open source under MIT.",
+    product: "Product",
+    resources: "Resources",
+    community: "Community",
     docs: "Documentation",
-    blog: "Release Notes",
-    githubRepo: "GitHub Repository",
-    copyright: `© ${new Date().getFullYear()} Amber. Open-source under MIT.`,
+    scope: "Compatibility",
+    blog: "Blog",
+    play: "Playground",
+    conformance: "Conformance scorecard",
+    githubRepo: "GitHub",
+    issues: "Issues",
+    releases: "Releases",
+    license: "MIT License",
   },
   home: {
-    heroBadge: AMBER_VERSION,
-    heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream RSI",
-    heroBanner:
-      "Amber v1.16.0: Wasm 2.0, amber bundle / compile, and URL/fetch/ReadableStream hot paths.",
-    heroBannerLink: "/blog/v1.16.0",
-    heroTitlePrefix: "A ",
-    heroTitleAccent: "JavaScript & TypeScript runtime",
-    heroTitleSuffix: " in Rust & V8",
-    heroSubtitle:
-      "One binary: amber. Run scripts, Jest-style tests, MCP tools, and amber:ai tensors — with an opt-in capability sandbox. Not a Node.js clone. Node Conformance 5.0 is 55/55.",
-    ctaPrimary: "Explore Docs",
-    ctaSecondary: "Benchmark Showdown",
-    ctaNotes: "Release Notes",
+    eyebrow: "Open source · Rust + V8 · MIT",
+    titleLead: "One binary for ",
+    titleAccent: "JavaScript and TypeScript",
+    subtitle:
+      "Amber runs scripts, tests, servers, and agent tools from a single amber executable — with an opt-in capability sandbox and an honest, contract-tested compatibility surface.",
+    ctaPrimary: "Get started",
+    ctaSecondary: "See what's supported",
     copyBtn: "Copy",
     copiedBtn: "Copied",
-    latestArticle: {
-      badge: "Release",
-      title: "Amber v1.16.0: Wasm 2.0, packaging, and web hot paths",
-      desc: "Zero-copy WebAssembly.Memory, amber bundle / compile (Preview), benchmark suite 2.0, and URL / fetch / ReadableStream RSI. Node Conformance 5.0 remains 55/55.",
-      readTime: "4 min read",
-      date: "2026-09-16",
-      link: "/blog/v1.16.0",
-      action: "Read Full Post",
+    installTabs: {
+      unix: "macOS / Linux",
+      windows: "Windows",
+      source: "From source",
     },
-    benchmarksHeader: "Measured on Apple M2 Max",
-    benchmarksSub:
-      "Suite 2.0, 2026-09-16. Amber vs Node.js v22.22.3 vs Bun 1.4.1. Lower time is better except Express (req/s).",
-    benchmarksNote:
-      "Reproducible from benchmarks/ in the repo. These are one machine, one commit — not SLAs. Bun still wins several microbenches and cold start.",
-    benchmarksFilterAll: "All Workloads",
-    benchmarksFilterCore: "Core Execution",
-    benchmarksFilterIo: "Memory & I/O",
-    benchmarksFastest: "⚡ Fastest",
-    benchmarksParity: "🏆 Parity",
-    benchmarks: [
-      {
-        id: "url",
-        category: "core",
-        title: "URL + URLSearchParams (20k)",
-        desc: "WHATWG URL parse and search-param mutations",
-        amberValue: "7.28 ms",
-        amberOps: "137 ops/s",
-        bunValue: "15.41 ms",
-        bunOps: "65 ops/s",
-        nodeValue: "12.54 ms",
-        nodeOps: "80 ops/s",
-        multiplier: "1.72x vs Node · 2.12x vs Bun",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 47,
-        nodeBar: 58,
+    stats: {
+      contracts: "Stable contracts (G1–G69)",
+      conformance: "Node conformance fixtures",
+      binary: "binary — run, test, serve, bundle, compile",
+      version: "current release",
+    },
+    showcaseTitle: "Write it. Run it. Ship it.",
+    showcaseSubtitle:
+      "Every snippet below uses a Stable surface. No config files, no plugins.",
+    showcase: {
+      typescript: {
+        label: "TypeScript",
+        caption:
+          ".ts and .tsx run directly. oxc strips types; stack traces point at your .ts lines. It does not type-check.",
       },
-      {
-        id: "fetch",
-        category: "io",
-        title: "fetch 100 sequential GETs",
-        desc: "HTTP/1.1 keep-alive GET against a local server",
-        amberValue: "6.51 ms",
-        amberOps: "154 ops/s",
-        bunValue: "4.25 ms",
-        bunOps: "235 ops/s",
-        nodeValue: "17.00 ms",
-        nodeOps: "59 ops/s",
-        multiplier: "2.61x vs Node · Bun still faster",
-        isAmberWinner: false,
-        amberBar: 65,
-        bunBar: 100,
-        nodeBar: 25,
+      test: {
+        label: "Test",
+        caption:
+          "Jest-style describe / test / expect with zero-argument discovery and --watch.",
       },
-      {
-        id: "eventemitter",
-        category: "core",
-        title: "EventEmitter emit (50k)",
-        desc: "Synchronous listener dispatch",
-        amberValue: "0.40 ms",
-        amberOps: "2,508 ops/s",
-        bunValue: "0.83 ms",
-        bunOps: "1,205 ops/s",
-        nodeValue: "0.48 ms",
-        nodeOps: "2,083 ops/s",
-        multiplier: "1.21x vs Node · 2.07x vs Bun",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 48,
-        nodeBar: 83,
+      serve: {
+        label: "Serve",
+        caption:
+          "Export a fetch handler and amber serve speaks HTTP/1.1 to it. Add --https for rustls TLS.",
       },
-      {
-        id: "stream",
-        category: "io",
-        title: "ReadableStream 5k chunks",
-        desc: "Produce and consume a byte stream",
-        amberValue: "0.92 ms",
-        amberOps: "1,091 ops/s",
-        bunValue: "0.32 ms",
-        bunOps: "3,125 ops/s",
-        nodeValue: "1.16 ms",
-        nodeOps: "862 ops/s",
-        multiplier: "1.26x vs Node · Bun still faster",
-        isAmberWinner: false,
-        amberBar: 35,
-        bunBar: 100,
-        nodeBar: 28,
+      sandbox: {
+        label: "Sandbox",
+        caption:
+          "Deny file, network, env, and process access by default. Allow exact paths and hosts, and keep a JSONL audit trail.",
       },
-      {
-        id: "coldstart",
-        category: "core",
-        title: "CLI cold start (eval 1+1)",
-        desc: "Process boot, isolate, evaluate, exit (mean of 20)",
-        amberValue: "18.47 ms",
-        amberOps: "mean; P95 was jittery",
-        bunValue: "8.03 ms",
-        bunOps: "fastest cold start",
-        nodeValue: "27.53 ms",
-        nodeOps: "1.49x slower than Amber",
-        multiplier: "1.49x vs Node · Bun still faster",
-        isAmberWinner: false,
-        amberBar: 43,
-        bunBar: 100,
-        nodeBar: 29,
+      tools: {
+        label: "Agent tools",
+        caption:
+          "Export functions, print their schemas, and serve them over MCP stdio or JSON-RPC.",
       },
-      {
-        id: "express",
-        category: "io",
-        title: "Express 5.x (32 conn, 5s)",
-        desc: "autocannon throughput — higher is better",
-        amberValue: "68.0k req/s",
-        amberOps: "avg 0.02 ms",
-        bunValue: "64.6k req/s",
-        bunOps: "avg 0.02 ms",
-        nodeValue: "18.9k req/s",
-        nodeOps: "avg 1.17 ms",
-        multiplier: "3.59x vs Node · 1.05x vs Bun",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 95,
-        nodeBar: 28,
-      },
-    ],
-    telemetryTitle: "v1.16.0 at a glance",
-    telemetrySubtitle:
-      "Apple M2 Max, 2026-09-16. Full tables in the repo benchmarks/ directory.",
-    telemetryNote:
-      "Amber vs Node v22.22.3 vs Bun 1.4.1. Conformance is tests/conformance/ (55 fixtures).",
-    telemetry: [
-      {
-        label: "Node Conformance 5.0",
-        value: "55/55",
-        delta: "100% fixtures",
-        note: "not “Node compatible”",
-      },
-      {
-        label: "Express 5.x",
-        value: "68k req/s",
-        delta: "3.6x vs Node",
-        note: "32 conn, 5s",
-      },
-      {
-        label: "fetch 100 GETs",
-        value: "6.51 ms",
-        delta: "2.6x vs Node",
-        note: "keep-alive HTTP/1.1",
-      },
-      {
-        label: "CLI eval 1+1",
-        value: "18.5 ms",
-        delta: "1.5x vs Node",
-        note: "Bun still ~8 ms",
-      },
-    ],
-    sandboxTitle: "server.ts — Multi-Worker HTTP Architecture",
-    sandboxTag: "Lock-Free Worker Pool",
-    sandboxComment:
-      "// Native Node.js & Web Standard Stream Response with Worker Pool",
-    sandboxLog:
-      "🚀 Server listening at http://localhost:3000 (8 workers active)",
-    sandboxBoot: "Boot time: < 2ms · Thread pool ready",
-    featuresTitle: "What you actually get",
-    featuresSubtitle:
-      "A V8 isolate in Rust, with an agent sandbox and a small set of honest maturity labels.",
-    features: [
-      {
-        title: "One binary",
-        desc: "run, eval, repl, test, session, and mcp in `amber`. TypeScript is oxc type-strip, not tsc.",
-      },
-      {
-        title: "Capability sandbox",
-        desc: "Opt-in --sandbox with --allow-*, JSON policy, audit JSONL, --seed, and --freeze-time for agent tools.",
-      },
-      {
-        title: "TypeScript without tsc",
-        desc: "oxc strips types from .ts / .tsx. Use tsc --noEmit in CI if you want a typecheck.",
-      },
-      {
-        title: "Jest-style tests",
-        desc: "amber test with describe / test / expect. --parallel is rejected: isolates are not shared across threads.",
-      },
-      {
-        title: "amber:ai in-process",
-        desc: 'Tensor, LLM, and AgentPipeline without a Python sidecar. Cargo feature = "ai" is empty and is not a product LLM.',
-      },
-      {
-        title: "Node APIs, per-API",
-        desc: "fs, http, fetch, Streams, URL, Web Crypto, and more. Coverage is scored in 55 conformance fixtures, not claimed as drop-in Node.",
-      },
-    ],
-    systemsTitle: "Runtime Subsystems",
-    systemsSubtitle: "Modular, high-performance architecture built in Rust.",
-    systemsMeta: "Architecture Map",
-    systemsLabel: "subsystem",
-    systems: [
-      {
-        title: "V8 Runtime & Isolate Core",
-        desc: "Direct V8 C++ bindings providing native execution speed, minimal heap footprint, and WASM JIT support.",
-      },
-      {
-        title: "oxc Transpilation & Code Quality",
-        desc: "Ultra-fast Rust AST engine stripping types in sub-milliseconds, powering built-in formatting (amber fmt) and linting (amber lint).",
-      },
-      {
-        title: "Modern Web Serving & Concurrency",
-        desc: "Standard Fetch API web serving (amber serve) and lockless multi-Worker thread pool concurrency model.",
-      },
-      {
-        title: "Deterministic Agent Sandbox & Quotas",
-        desc: "CPU watchdog hard interrupts, physical heap caps, Mulberry32 deterministic PRNG replay, and frozen timestamps.",
-      },
-      {
-        title: "Packaging & Standalone SEA Compiler",
-        desc: "Production Bundler 2.0 module graph packaging and zero-dependency standalone executable compiler (amber compile).",
-      },
-      {
-        title: "Developer Experience & Debugging (CDP & LSP)",
-        desc: "Featuring upgraded interactive REPL (amber repl), Chrome DevTools remote debugging, and Language Server Protocol (amber lsp).",
-      },
-    ],
+    },
+    commandsTitle: "Everything is a subcommand",
+    commandsSubtitle:
+      "The amber CLI covers the daily loop. Each command below is Stable and has a written contract.",
+    commands: {
+      run: "Run a JS / TS file, with --watch and --inspect",
+      test: "Discover and run Jest-style tests",
+      serve: "Serve a fetch handler over HTTP or HTTPS",
+      bundle: "Bundle a module graph into one file",
+      compile: "Build a single-file executable for this host",
+      install: "Install package.json dependencies from npm",
+      mcp: "Expose tools as an MCP stdio server",
+      repl: "Interactive shell",
+    },
+    commandsMore: "Full CLI reference",
+    compatTitle: "Compatibility, one contract at a time",
+    compatSubtitle:
+      "Amber is not a Node.js clone. Each module below is Stable for the subset its contract describes — and the contract lists what is missing.",
+    compatNode: "Node.js modules",
+    compatWeb: "Web platform",
+    compatRuntime: "Runtime & agents",
+    compatLink: "Browse all 69 contracts",
+    conformanceTitle: "56 / 56 conformance fixtures pass",
+    conformanceBody:
+      "tests/conformance/ runs small Node-style scripts — fs, streams, crypto, child_process, Express, Fastify, Hono and more — on every change. CI fails if any fixture fails or skips. Passing fixtures are a regression gate, not a claim of drop-in Node compatibility.",
+    conformanceReproduce: "Reproduce it",
+    conformanceLink: "Read the scorecard",
+    maturityTitle: "Four honest labels",
+    maturitySubtitle:
+      "Every capability on this site carries one of these. docs/CURRENT_SCOPE.md in the repo is the source of truth.",
+    notTitle: "What Amber does not do (yet)",
+    notSubtitle:
+      "Saying no clearly is part of the contract. These surfaces are out of scope today.",
+    perfTitle: "About performance numbers",
+    perfBody:
+      "Amber does not publish performance claims right now. Any future number will ship with the commit, exact command, hardware, and correctness checks needed to reproduce it.",
     ctaTitle: "Install amber and run something.",
     ctaSubtitle:
-      "v1.16.0 prebuilds for macOS, Linux, and Windows. One curl (or irm) away.",
-    ctaButton: "Read Installation Guide",
-    ctaNotesButton: "Read Release Notes",
+      "Prebuilt archives for macOS, Linux, and Windows, or build from source with Cargo.",
+    ctaButton: "Installation guide",
+    ctaNotesButton: "Read the blog",
+  },
+  scope: {
+    title: "Compatibility & scope",
+    subtitle:
+      "Exactly what Amber v1.17.0 supports, what is still in Preview, and what is out of scope. Every Stable row links to its contract.",
+    sourceNote:
+      "Mirrors docs/CURRENT_SCOPE.md on main. If this page and that file disagree, the file wins.",
+    searchPlaceholder: "Filter by module, API, or contract id…",
+    filterAll: "All",
+    areas: {
+      cli: "CLI & tooling",
+      runtime: "Runtime",
+      node: "Node.js",
+      web: "Web platform",
+    },
+    colSurface: "Surface",
+    colId: "Id",
+    colLimits: "Known limits",
+    contract: "Contract",
+    baseScope: "Base",
+    qualifierNote:
+      "Ids marked tentative or provisional graduated under the same rule and may still be renumbered.",
+    noResults: "Nothing matches that filter.",
+    stableTitle: "Stable",
+    stableSubtitle:
+      "Graduated under the Graduation Rule: reachable from the amber binary, described without stage reports, covered by tests, limits documented.",
+    previewTitle: "Preview",
+    previewSubtitle:
+      "Present in the default build. Useful for experiments; not yet a compatibility promise.",
+    experimentalTitle: "Experimental",
+    experimentalSubtitle:
+      "Exists as code or a command surface. Do not rely on it without verifying it yourself.",
+    unclassifiedTitle: "Present in code, not yet classified",
+    unclassifiedSubtitle:
+      "These subcommands, flags and amber:* modules exist in the source tree but are not described by CURRENT_SCOPE. Treat them as Experimental.",
+    nongoalTitle: "Not supported",
+    nongoalSubtitle:
+      "Deliberate non-goals for now. Amber fails closed on these instead of shipping stubs.",
+    graduationTitle: "How something becomes Stable",
+    graduationRules: [
+      "It is reachable through src/main.rs or a documented API in src/lib.rs.",
+      "Its behavior is described without relying on historical stage reports.",
+      "Current tests or smoke commands cover the documented behavior.",
+      "Known limitations are documented next to the capability.",
+      "Feature-gated work passes a feature check for that feature.",
+    ],
   },
   docs: {
-    title: "Runtime Manual",
-    subtitle:
-      "Manual for Amber v1.16.0 — runtime, CLI, sandbox, and agent APIs.",
-    backToHome: "Return Home",
-    searchPlaceholder: "Search docs, CLI commands & APIs...",
+    title: "Docs",
+    subtitle: "Manual for Amber v1.17.0.",
+    backToHome: "Home",
+    searchPlaceholder: "Search docs…",
     onThisPage: "On this page",
     previousPage: "Previous",
     nextPage: "Next",
-    groups: [
-      {
-        title: "Getting Started",
-        items: [
-          { id: "introduction", label: "Overview & Philosophy" },
-          { id: "installation", label: "Installation & Setup" },
-          { id: "quick-start", label: "Quick Start Guide" },
-        ],
-      },
-      {
-        title: "Core Systems",
-        items: [
-          { id: "v8-isolate-pool", label: "Runtime & V8 Core" },
-          {
-            id: "isolate-pool",
-            label: "Multi-Tenant IsolatePool (amber:pool)",
-            badge: "v1.4",
-          },
-          { id: "jit-optimization", label: "TypeScript 6.0 & TSX" },
-          { id: "ai-engine", label: "Native AI Engine (amber:ai)", badge: "AI" },
-          {
-            id: "ai-embeddings",
-            label: "Native Text Embeddings & Vectors",
-            badge: "v1.3",
-          },
-          {
-            id: "server-mode",
-            label: "Modern Web Server & Fetch",
-            badge: "v1.0",
-          },
-          { id: "memory-management", label: "SIMD & Memory Model" },
-        ],
-      },
-      {
-        title: "Developer Tooling",
-        items: [
-          {
-            id: "task-runner",
-            label: "Task Runner & Script Exec",
-            badge: "NEW",
-          },
-          {
-            id: "code-quality",
-            label: "Code Formatter & Linter",
-            badge: "NEW",
-          },
-          {
-            id: "bundling-compilation",
-            label: "Bundler 2.0 & SEA Compiler",
-            badge: "Stable",
-          },
-          {
-            id: "testing-benchmarking",
-            label: "Testing, Coverage & Benchmarks",
-            badge: "NEW",
-          },
-          {
-            id: "debugging-lsp",
-            label: "REPL, CDP Debugger & LSP",
-            badge: "NEW",
-          },
-        ],
-      },
-      {
-        title: "Ecosystem & Tooling",
-        items: [
-          {
-            id: "embedded-db",
-            label: "Embedded DB & Vector Engine (amber:db & amber:vector)",
-            badge: "DB",
-          },
-          {
-            id: "standard-library",
-            label: "Modern Standard Library (amber:std)",
-            badge: "Std",
-          },
-          {
-            id: "package-manager-dlx",
-            label: "Dynamic Package Runner (amber x / dlx)",
-            badge: "CLI",
-          },
-          {
-            id: "deployment-docker",
-            label: "Deployment & Containerization (amber deploy)",
-            badge: "Deploy",
-          },
-          {
-            id: "ide-extension",
-            label: "VS Code Official Extension",
-            badge: "IDE",
-          },
-        ],
-      },
-      {
-        title: "Agent & Advanced",
-        items: [
-          {
-            id: "agent-sandbox",
-            label: "Deterministic Sandbox & Quotas",
-            badge: "Agent",
-          },
-          {
-            id: "agent-replay",
-            label: "Deterministic Agent Replay Engine (amber:replay)",
-            badge: "v1.6",
-          },
-          {
-            id: "model-weights",
-            label: "GGUF & SafeTensors Loader (amber:weights)",
-            badge: "v1.6",
-          },
-          {
-            id: "capability-security",
-            label: "Enterprise Capability Security (amber:security)",
-            badge: "v1.6",
-          },
-          {
-            id: "kv-store",
-            label: "Persistent KV & Durable State (amber:kv)",
-            badge: "v1.7",
-          },
-          {
-            id: "tool-synthesis",
-            label: "Tool Auto-Synthesis & OpenAPI (amber:tools)",
-            badge: "v1.7",
-          },
-          {
-            id: "hardened-sandbox",
-            label: "Hardened Sandbox & Audit Logs (amber:sandbox)",
-            badge: "v1.7",
-          },
-          {
-            id: "agent-bus",
-            label: "Agent Message Bus & PubSub (amber:bus)",
-            badge: "v1.8",
-          },
-          {
-            id: "streaming-grammar",
-            label: "Streaming Partial JSON & Grammars (amber:grammar)",
-            badge: "v1.8",
-          },
-          {
-            id: "agent-checkpoint",
-            label: "Agent State Checkpointing (amber:checkpoint)",
-            badge: "v1.8",
-          },
-          {
-            id: "mcp-protocol",
-            label: "Model Context Protocol 2.0 (amber:mcp)",
-            badge: "v1.3",
-          },
-          {
-            id: "virtual-fs-sandbox",
-            label: "Virtual Filesystem In-Memory Sandbox",
-            badge: "v1.3",
-          },
-          {
-            id: "ffi-native",
-            label: "Native C ABI FFI (amber:ffi)",
-            badge: "v1.4",
-          },
-          {
-            id: "wasm-interop",
-            label: "Wasm 2.0 Zero-Copy Bridge (amber:wasm)",
-            badge: "v1.16",
-          },
-          {
-            id: "slm-inference",
-            label: "Edge SLM & JSON Decoding (amber:ai)",
-            badge: "v1.4",
-          },
-          {
-            id: "framework-compat",
-            label: "npm Frameworks (Hono / Express / LangChain)",
-            badge: "v1.5",
-          },
-          {
-            id: "import-maps-native",
-            label: "WICG Import Maps & Addons",
-            badge: "v1.0",
-          },
-          {
-            id: "types-lsp",
-            label: "TypeScript Type Declarations",
-            badge: "Types",
-          },
-        ],
-      },
-      {
-        title: "Reference & Specs",
-        items: [
-          { id: "cli-usage", label: "Complete CLI Command Reference" },
-          { id: "wintertc-compliance", label: "WinterTC Compliance" },
-          { id: "api-reference", label: "Full API Reference" },
-          { id: "modules", label: "Module Resolution & Architecture" },
-        ],
-      },
-    ],
-    sections: {
-      introduction: {
-        title: "Overview",
-        subtitle: "Rust + V8 runtime for JavaScript and TypeScript.",
-        body: [
-          "Amber v1.16.0 is a Rust + V8 JavaScript/TypeScript runtime in one binary: amber. Node Conformance 5.0 is 55/55 fixtures — that is not drop-in Node compatibility.",
-          "The repository also contains historical stage reports and feature-gated modules. Those documents are useful for design history, but the public release promise follows the default Cargo build.",
-        ],
-        cards: [
-          {
-            title: "Clean CLI",
-            desc: "Default run and eval output avoids internal setup logs.",
-          },
-          {
-            title: "Default Build",
-            desc: "Release checks target the same feature set users install.",
-          },
-        ],
-      },
-      installation: {
-        title: "Installation",
-        subtitle: "Install a prebuilt archive or build from source.",
-        body: [
-          "Prebuilt release archives currently target macOS x86_64, macOS arm64, and Linux x86_64. Other platforms can build from source with Rust.",
-        ],
-        code: [
-          "$ curl -fsSL https://get.amberjs.com/install.sh | sh",
-          "$ amber --version",
-        ],
-      },
-      "quick-start": {
-        title: "Quick Start",
-        subtitle: "Run your first script.",
-        body: [
-          "Create a JavaScript or TypeScript file and execute it with the run subcommand.",
-        ],
-        code: [
-          'console.log("Hello from Amber");',
-          "amber run hello.js",
-          'amber eval "1 + 1"',
-        ],
-      },
-      "v8-isolate-pool": {
-        title: "Runtime Core",
-        subtitle: "The active CLI path uses V8 through Rust.",
-        body: [
-          "The default binary entry is src/main.rs. Script execution is handled by src/runtime_minimal.rs, which owns the V8 isolate, context setup, and result handling.",
-        ],
-        list: [
-          "Execute JavaScript files with amber run",
-          "Evaluate snippets with amber eval",
-          "Use amber repl for an interactive shell",
-        ],
-      },
-      "jit-optimization": {
-        title: "TypeScript",
-        subtitle: "TS and TSX files are transpiled by oxc before execution.",
-        body: [
-          "When a .ts or .tsx file is passed to amber run, the CLI routes it through oxc (TypeScript 6.0 syntax, transpile-only). Types are erased. using and Stage 3 decorators downlevel to ES2022 for the current V8. TSX emits classic React.createElement. TypeScript 7.0 added no new language syntax.",
-        ],
-        list: [
-          "Use .ts, .tsx, .mts, .cts, and .jsx entry files",
-          "This is not tsc --noEmit. Invalid types can still run if the JS is valid",
-          "Unused value imports stay (side effects). Only import type is erased",
-          "amber run examples/basics/typescript_latest.ts",
-        ],
-      },
-      "memory-management": {
-        title: "Compatibility",
-        subtitle: "Selected Node.js and Web APIs are available.",
-        body: [
-          "The default build includes compatibility layers for common Node.js and Web APIs. Coverage is partial and should be checked against examples or tests before relying on a specific edge case.",
-        ],
-        list: [
-          "Node.js modules include fs, path, crypto, buffer, process, timers, and require",
-          "Web APIs include fetch, URL, streams, Blob, events, timers, and Web Crypto pieces",
-        ],
-      },
-      "server-mode": {
-        title: "Serve Mode",
-        subtitle: "Health-check stub, not an application server.",
-        body: [
-          'amber serve binds a tiny_http listener and returns a fixed {"ok":true} JSON body. It does not execute user scripts. For application HTTP, use http.createServer and amber run.',
-        ],
-        code: ["$ amber serve --host localhost --port 3000"],
-      },
-      "cli-usage": {
-        title: "CLI Usage",
-        subtitle: "Core commands.",
-        list: [
-          "amber run <file> - execute a JavaScript or TypeScript file",
-          "amber eval <code> - evaluate a JavaScript snippet",
-          "amber test [file] - run the built-in or file-based test runner",
-          "amber bundle <entry> - write a production bundle",
-          "amber serve - health stub (fixed JSON, not user scripts)",
-          "amber install - install dependencies from package.json",
-        ],
-      },
-      "api-reference": {
-        title: "Full API Reference",
-        subtitle:
-          "Comprehensive specification of native Amber subsystems (amber:*), Node.js core, and Web APIs.",
-        body: [
-          "Manual for the default amber binary: CLI, Node/Web APIs (per-API, Conformance 5.0 is 55/55 fixtures), amber:ai, sandbox, and Preview packaging.",
-        ],
-        list: [
-          "Amber Native Subsystems (amber:ai, amber:db, amber:vector, amber:bus, amber:grammar, amber:checkpoint, etc.)",
-          "Node.js Core Compatibility (fs, net, http, crypto, stream, worker_threads, etc. 51 modules)",
-          "Web Standard APIs (fetch, WebCrypto, Streams, WebSocket, Worker, structuredClone)",
-        ],
-      },
-      modules: {
-        title: "Modules",
-        subtitle: "Default module boundaries.",
-        list: [
-          "src/runtime_minimal.rs - current V8 runtime",
-          "src/nodejs_core/ - Node.js compatibility modules",
-          "src/web_api/ - Web API modules",
-          "src/testing/ - test framework",
-          "src/package_manager.rs - package manager support",
-        ],
-      },
-      "embedded-db": {
-        title: "Embedded Database & Vector Engine",
-        subtitle: "Native SQLite relational DB and vector similarity search.",
-        body: [
-          "Native SQLite 3 and Rust-based high-dimensional vector search engine with zero external dependencies.",
-        ],
-        list: [
-          "amber:db - in-process SQLite database",
-          "amber:vector - high-performance vector search engine",
-        ],
-      },
-      "standard-library": {
-        title: "Modern Standard Library",
-        subtitle: "Zero-dependency official standard library.",
-        body: [
-          "Includes dotenv, terminal styling and tables, directory walking, UUID/JWT crypto, and assertions.",
-        ],
-        list: [
-          "amber:std/dotenv",
-          "amber:std/cli",
-          "amber:std/fs",
-          "amber:std/crypto",
-          "amber:std/assert",
-        ],
-      },
-      "package-manager-dlx": {
-        title: "Dynamic Package Runner",
-        subtitle:
-          "Execute remote npm packages and CLI tools without pre-installing.",
-        body: [
-          "Fetches and executes CLI packages in isolated V8 environments with global cache and quota enforcement.",
-        ],
-        code: ['$ amber x cowsay "Hello Amber!"'],
-      },
-      "deployment-docker": {
-        title: "Deployment & Containerization",
-        subtitle:
-          "One-command generation of Docker, standalone SEA binary, and Kubernetes manifests.",
-        body: [
-          "Generates hardened multi-stage Dockerfiles, compose stacks, and cloud-native Kubernetes manifests.",
-        ],
-        code: ["$ amber deploy --target docker", "$ amber deploy --target k8s"],
-      },
-      "ide-extension": {
-        title: "VS Code Official Extension",
-        subtitle:
-          "Deep integration with LSP, CDP debugger, formatters, and deploy.",
-        body: [
-          "First-class developer experience for Visual Studio Code with native completions, debugging, and format-on-save.",
-        ],
-      },
+    noResults: "No matching pages.",
+    noHeadings: "No headings on this page.",
+    editOnGithub: "Edit this page on GitHub",
+    groups: {
+      start: "Getting started",
+      guides: "Guides",
+      compat: "Compatibility",
+      agents: "Agents & sandbox",
+      experimental: "Experimental",
     },
+    statusBanner: {
+      experimental:
+        "Experimental: this page describes code that is not part of the Stable or Preview scope. Verify behavior yourself before relying on it.",
+      preview:
+        "Preview: useful and in the default build, but the contract is still being tightened.",
+    },
+    asideTitle: "Source of truth",
+    asideBody:
+      "Capability levels follow docs/CURRENT_SCOPE.md. Each Stable API links to its contract file.",
+    notFoundTitle: "Page not found",
+    notFoundBody:
+      "This page was removed or renamed during the v1.17 docs rewrite. Pick a page from the sidebar.",
   },
   blog: {
-    title: "Release Notes",
-    subtitle: "Runtime notes, implementation updates, and release scope.",
+    title: "Blog",
+    subtitle: "Release notes and runtime engineering updates.",
     tagLabel: "Topic",
-    back: "Return to Notes",
+    back: "All posts",
     operator: "Author",
     by: "By ",
     timestamp: "Date",
-    readTime: "Read Time",
-    readMore: "Open Note",
-    notFound: "Post Not Found",
+    readTime: "Read time",
+    readMore: "Read post",
+    notFound: "Post not found",
     fallbackNote: "",
+    historicalBadge: "Historical post",
+    historicalNote:
+      "Historical notice: benchmark and performance figures in this post are historical. They have not been reproduced on current main and are not current product claims. For what Amber supports today, see ",
+    historicalLink: "Compatibility & scope",
+    historicalSuffix: ".",
   },
 };

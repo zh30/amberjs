@@ -5,6 +5,7 @@ date: "2026-07-27"
 author: "Amber 核心团队"
 readTime: "3 分钟阅读"
 tag: "版本发布"
+historical: "true"
 ---
 
 # 全站多语言上线与未来3年技术拓扑路线图发布

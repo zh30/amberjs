@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronLeft } from "lucide-react";
+import { ArrowRight, ChevronLeft, History } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,6 +14,7 @@ interface Post {
   tag: string;
   content: string;
   isFallback?: boolean;
+  historical?: boolean;
 }
 
 function parseFrontmatter(raw: string): {
@@ -81,6 +82,7 @@ function getPosts(lang: Lang): Post[] {
           tag: data.tag || (lang === "zh" ? "日志" : "Blog"),
           content,
           isFallback: false,
+          historical: data.historical === "true",
         });
       }
     });
@@ -109,6 +111,7 @@ function getPosts(lang: Lang): Post[] {
           tag: data.tag || "Blog",
           content,
           isFallback: lang !== "en",
+          historical: data.historical === "true",
         });
       }
     });
@@ -155,6 +158,7 @@ export default function BlogComponent() {
             <article key={post.slug} className="py-8">
               <p className="meta">
                 {post.tag} · {post.date} · {post.readTime}
+                {post.historical && <> · {copy.blog.historicalBadge}</>}
               </p>
               <h2 className="mt-2 text-xl font-semibold tracking-tight">
                 <Link to={`/blog/${post.slug}`} className="hover:underline">
@@ -176,6 +180,11 @@ export default function BlogComponent() {
       </div>
     </div>
   );
+}
+
+/** The header already renders the frontmatter title, so drop a leading `# H1`. */
+function withoutLeadingTitle(content: string): string {
+  return content.replace(/^\s*#\s[^\n]*\n/, "");
 }
 
 function BlogPostView({ post }: { post: Post }) {
@@ -208,9 +217,24 @@ function BlogPostView({ post }: { post: Post }) {
             {copy.blog.by}
             {post.author}
           </p>
+          {post.historical && (
+            <aside
+              role="note"
+              className="mt-6 flex gap-3 border border-[var(--honey)] bg-[var(--honey-soft)] px-4 py-3 text-sm text-[var(--text-primary)]"
+            >
+              <History className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <p className="m-0">
+                {copy.blog.historicalNote}
+                <Link to="/compatibility" className="font-medium underline">
+                  {copy.blog.historicalLink}
+                </Link>
+                {copy.blog.historicalSuffix}
+              </p>
+            </aside>
+          )}
           <div className="prose prose-amber dark:prose-invert mt-8 max-w-none prose-a:underline [&_:not(pre)>code]:bg-[var(--honey-soft)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none [&_pre]:border [&_pre]:border-[var(--line)] [&_pre]:bg-[var(--code-bg)] [&_pre]:p-5 [&_pre_code]:text-[var(--code-fg)]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {post.content}
+              {withoutLeadingTitle(post.content)}
             </ReactMarkdown>
           </div>
         </article>

@@ -1,13 +1,14 @@
 import type { TranslationSchema } from "./types";
-import { AMBER_VERSION } from "../version";
 
 export const hi: TranslationSchema = {
   nav: {
     home: "होम",
-    docs: "मैनुअल",
-    blog: "रिलीज़ नोट्स",
+    docs: "डॉक्स",
+    scope: "संगतता",
+    blog: "ब्लॉग",
     play: "प्लेग्राउंड",
-    github: "गिटहब",
+    github: "GitHub",
+    menu: "मेनू",
   },
   playground: {
     title: "प्लेग्राउंड",
@@ -21,11 +22,6 @@ export const hi: TranslationSchema = {
   },
   toggle: {
     label: "भाषा",
-    en: "English",
-    zh: "简体中文",
-    es: "Español",
-    fr: "Français",
-    hi: "हिन्दी",
   },
   theme: {
     system: "सिस्टम",
@@ -33,540 +29,225 @@ export const hi: TranslationSchema = {
     dark: "डार्क",
     toggle: "थीम बदलें (सिस्टम / लाइट / डार्क)",
   },
+  levels: {
+    stable: {
+      label: "Stable",
+      desc: "लिखित अनुबंध और CI में चलने वाले परीक्षणों से सुनिश्चित। सीमाएँ API के साथ ही लिखी हैं।",
+    },
+    preview: {
+      label: "Preview",
+      desc: "डिफ़ॉल्ट बिल्ड में उपलब्ध और उपयोगी, पर अनुबंध और किनारे के मामले अभी कसे जा रहे हैं।",
+    },
+    experimental: {
+      label: "Experimental",
+      desc: "कोड मौजूद है, पर दोबारा सत्यापित होकर आगे बढ़ने तक यह उत्पाद का वादा नहीं है।",
+    },
+    nongoal: {
+      label: "समर्थित नहीं",
+      desc: "जानबूझकर अभी दायरे से बाहर। Amber दिखावा करने के बजाय साफ़ तौर पर विफल होता है।",
+    },
+  },
   footer: {
-    statusLabel: "सिस्टम स्थिति",
-    statusValue: "सक्रिय",
-    stage: AMBER_VERSION,
-    contact: "संपर्क",
-    email: "support@amberjs.com",
-    rights: "सर्वाधिकार सुरक्षित।",
-    builtWith: "Rust और V8 के साथ निर्मित",
-    docs: "दस्तावेज़ीकरण",
-    blog: "रिलीज़ नोट्स",
-    githubRepo: "गिटहब रिपॉजिटरी",
-    copyright: `© ${new Date().getFullYear()} Amber. MIT लाइसेंस के तहत ओपन-सोर्स।`,
+    tagline:
+      "Rust और V8 से बना JavaScript और TypeScript रनटाइम। MIT के तहत ओपन सोर्स।",
+    product: "उत्पाद",
+    resources: "संसाधन",
+    community: "समुदाय",
+    docs: "दस्तावेज़",
+    scope: "संगतता",
+    blog: "ब्लॉग",
+    play: "प्लेग्राउंड",
+    conformance: "कन्फ़ॉर्मेंस स्कोरकार्ड",
+    githubRepo: "GitHub",
+    issues: "Issues",
+    releases: "रिलीज़",
+    license: "MIT लाइसेंस",
   },
   home: {
-    heroBadge: AMBER_VERSION,
-    heroBadgeSub: "Wasm 2.0 · bundle/compile · URL/fetch/stream RSI",
-    heroBanner:
-      "Amber v1.16.0: Wasm 2.0, amber bundle / compile, और URL/fetch/ReadableStream hot paths.",
-    heroBannerLink: "/blog/v1.16.0",
-    heroTitlePrefix: "उच्च-प्रदर्शन ",
-    heroTitleAccent: "JavaScript और TypeScript रनटाइम",
-    heroTitleSuffix: " Rust और V8 में",
-    heroSubtitle:
-      "Rust और Google V8 में प्रथम सिद्धांतों से निर्मित। नेटिव amber:ai टेंसर कंप्यूटिंग, एजेंट पाइपलाइन, जीरो-कॉपी mmap स्नैपशॉट और 100% Node.js अनुकूलता।",
-    ctaPrimary: "दस्तावेज़ देखें",
-    ctaSecondary: "बेंचमार्क मुकाबला",
-    ctaNotes: "रिलीज़ नोट्स",
-    copyBtn: "कॉपी करें",
-    copiedBtn: "कॉपी हो गया",
-    latestArticle: {
-      badge: "आधिकारिक रिलीज़",
-      title: "Amber v1.16.0: Wasm 2.0, पैकेजिंग और web hot paths",
-      desc: "ज़ीरो-कॉपी WebAssembly.Memory, amber bundle / compile (Preview), सूट 2.0, और URL / fetch / ReadableStream RSI. Conformance 5.0 अभी भी 55/55।",
-      readTime: "4 मिनट पठन",
-      date: "2026-09-16",
-      link: "/blog/v1.16.0",
-      action: "पूरा लेख पढ़ें",
+    eyebrow: "ओपन सोर्स · Rust + V8 · MIT",
+    titleLead: "एक बाइनरी, ",
+    titleAccent: "JavaScript और TypeScript के लिए",
+    subtitle:
+      "Amber एक ही amber executable से स्क्रिप्ट, टेस्ट, सर्वर और एजेंट टूल चलाता है — वैकल्पिक क्षमता सैंडबॉक्स और अनुबंध-परीक्षित संगतता के साथ।",
+    ctaPrimary: "शुरू करें",
+    ctaSecondary: "क्या समर्थित है",
+    copyBtn: "कॉपी",
+    copiedBtn: "कॉपी हुआ",
+    installTabs: {
+      unix: "macOS / Linux",
+      windows: "Windows",
+      source: "सोर्स से",
     },
-    benchmarksHeader: "आर्किटेक्चरल परफ़ॉर्मेंस मुकाबला",
-    benchmarksSub:
-      "100,000 पुनरावृत्तियों में सत्यापित संख्याएं। Rust सिस्टम इंजीनियरिंग ने C++ और Zig रनटाइम को पीछे छोड़ दिया।",
-    benchmarksNote:
-      "समान पृथक कार्यभार के तहत Apple Silicon / Linux x86_64 पर परीक्षित। scripts/run_benchmarks.sh के माध्यम से पुनरुत्पादन योग्य।",
-    benchmarksFilterAll: "सभी कार्यभार",
-    benchmarksFilterCore: "कोर निष्पादन",
-    benchmarksFilterIo: "मेमोरी और I/O",
-    benchmarksFastest: "⚡ सबसे तेज़",
-    benchmarksParity: "🏆 समता",
-    benchmarks: [
-      {
-        id: "require",
-        category: "core",
-        title: "मॉड्यूल रिज़ॉल्यूशन (require)",
-        desc: "दो-स्तरीय इन-मेमोरी कैश के साथ 100,000 मॉड्यूल लुकअप",
-        amberValue: "6.52 ms",
-        amberOps: "4,601,226 ops/s",
-        bunValue: "16.02 ms",
-        bunOps: "1,872,659 ops/s",
-        nodeValue: "26.96 ms",
-        nodeOps: "1,112,759 ops/s",
-        multiplier: "Node से 4.13x तेज़ · Bun से 2.45x तेज़",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 40.7,
-        nodeBar: 24.2,
+    stats: {
+      contracts: "Stable अनुबंध (G1–G69)",
+      conformance: "Node कन्फ़ॉर्मेंस टेस्ट",
+      binary: "बाइनरी — run, test, serve, bundle, compile",
+      version: "वर्तमान रिलीज़",
+    },
+    showcaseTitle: "लिखें। चलाएँ। शिप करें।",
+    showcaseSubtitle:
+      "नीचे का हर उदाहरण केवल Stable सतह का उपयोग करता है। न कॉन्फ़िग फ़ाइल, न प्लगइन।",
+    showcase: {
+      typescript: {
+        label: "TypeScript",
+        caption:
+          ".ts और .tsx सीधे चलते हैं। oxc टाइप हटाता है; स्टैक ट्रेस आपकी .ts पंक्तियों की ओर इशारा करते हैं। टाइप-चेक नहीं होता।",
       },
-      {
-        id: "buffer",
-        category: "io",
-        title: "बफ़र Alloc + Fill + Slice",
-        desc: "100,000 SIMD-संरेखित बफ़र जीवनचक्र संचालन",
-        amberValue: "2.09 ms",
-        amberOps: "47,846 ops/s",
-        bunValue: "2.62 ms",
-        bunOps: "38,167 ops/s",
-        nodeValue: "2.50 ms",
-        nodeOps: "40,000 ops/s",
-        multiplier: "Node से 1.20x तेज़ · Bun से 1.25x तेज़",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 79.8,
-        nodeBar: 83.6,
+      test: {
+        label: "टेस्ट",
+        caption:
+          "Jest जैसा describe / test / expect, अपने-आप खोज और --watch के साथ।",
       },
-      {
-        id: "eventemitter",
-        category: "core",
-        title: "EventEmitter थ्रूपुट",
-        desc: "100,000 सिंक्रोनस लिसनर डिस्पैच",
-        amberValue: "0.62 ms",
-        amberOps: "161,290 ops/s",
-        bunValue: "0.88 ms",
-        bunOps: "113,636 ops/s",
-        nodeValue: "0.65 ms",
-        nodeOps: "153,846 ops/s",
-        multiplier: "सभी रनटाइम में सबसे कम डिस्पैच लेटेंसी",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 70.5,
-        nodeBar: 95.4,
+      serve: {
+        label: "सर्वर",
+        caption:
+          "एक fetch हैंडलर export करें और amber serve उससे HTTP/1.1 में बात करता है। rustls TLS के लिए --https जोड़ें।",
       },
-      {
-        id: "objectalloc",
-        category: "core",
-        title: "ऑब्जेक्ट आवंटन और मेमोरी",
-        desc: "100,000 हल्के V8 ऑब्जेक्ट निर्माण",
-        amberValue: "2.25 ms",
-        amberOps: "44,444 ops/s",
-        bunValue: "2.47 ms",
-        bunOps: "40,485 ops/s",
-        nodeValue: "2.98 ms",
-        nodeOps: "33,557 ops/s",
-        multiplier: "Node से 1.32x तेज़ · Bun से 1.10x तेज़",
-        isAmberWinner: true,
-        amberBar: 100,
-        bunBar: 91.1,
-        nodeBar: 75.5,
+      sandbox: {
+        label: "सैंडबॉक्स",
+        caption:
+          "फ़ाइल, नेटवर्क, env और प्रोसेस एक्सेस डिफ़ॉल्ट रूप से बंद। सटीक पथ और होस्ट की अनुमति दें और JSONL ऑडिट लॉग रखें।",
       },
-      {
-        id: "coldstart",
-        category: "core",
-        title: "CLI कोल्ड स्टार्ट (eval 1+1)",
-        desc: "पूर्ण प्रक्रिया बूट, आइसोलेट निर्माण और शटडाउन",
-        amberValue: "18.00 ms",
-        amberOps: "18ms से कम स्टार्टअप",
-        bunValue: "15.20 ms",
-        bunOps: "16ms से कम स्टार्टअप",
-        nodeValue: "34.83 ms",
-        nodeOps: "लगभग 35ms स्टार्टअप",
-        multiplier: "Node.js की तुलना में 1.93x तेज़ कोल्ड स्टार्ट",
-        isAmberWinner: false,
-        amberBar: 84.4,
-        bunBar: 100,
-        nodeBar: 43.6,
+      tools: {
+        label: "एजेंट टूल",
+        caption:
+          "फ़ंक्शन export करें, उनके स्कीमा प्रिंट करें और MCP stdio या JSON-RPC पर परोसें।",
       },
-      {
-        id: "timers",
-        category: "io",
-        title: "टाइमर इवेंट लूप लेटेंसी (1,000 टाइमर)",
-        desc: "उच्च आवृत्ति बैच टाइमर पंजीकरण और समाधान",
-        amberValue: "2.51 ms",
-        amberOps: "v0.4.2 की तुलना में 14.2x तेज़",
-        bunValue: "2.20 ms",
-        bunOps: "अल्ट्रा-लो लेटेंसी",
-        nodeValue: "2.40 ms",
-        nodeOps: "मानक libuv लेटेंसी",
-        multiplier: "Amber v0.4.2 (35.66 ms) की तुलना में 14.2x सुधार",
-        isAmberWinner: false,
-        amberBar: 87.6,
-        bunBar: 100,
-        nodeBar: 91.7,
-      },
-    ],
-    telemetryTitle: "परफ़ॉर्मेंस मेट्रिक्स",
-    telemetrySubtitle: "पृथक और पुनरुत्पादन योग्य उत्पादन बेंचमार्क पर सत्यापित।",
-    telemetryNote:
-      "सभी मेट्रिक्स cargo run --release के साथ Node v24 और Bun v1.4 के विरुद्ध मापे गए।",
-    telemetry: [
-      {
-        label: "मॉड्यूल रिज़ॉल्यूशन",
-        value: "4.6M ops/s",
-        delta: "Node से 4.1x",
-        note: "दो-स्तरीय कैश",
-      },
-      {
-        label: "बफ़र SIMD",
-        value: "2.09 ms",
-        delta: "#1 सबसे तेज़",
-        note: "100k alloc+fill",
-      },
-      {
-        label: "कोल्ड स्टार्ट",
-        value: "< 18 ms",
-        delta: "Node से 1.93x",
-        note: "त्वरित CLI बूट",
-      },
-      {
-        label: "टेस्ट अनुरूपता",
-        value: "100%",
-        delta: "369/369 Rust",
-        note: "45 Node परीक्षण",
-      },
-    ],
-    sandboxTitle: "server.ts — मल्टी-वर्कर HTTP आर्किटेक्चर",
-    sandboxTag: "लॉक-मुक्त वर्कर पूल",
-    sandboxComment: "// वर्कर पूल के साथ नेटिव Node.js और वेब मानक स्ट्रीम रिस्पॉन्स",
-    sandboxLog: "🚀 सर्वर http://localhost:3000 पर सक्रिय (8 वर्कर थ्रेड तैयार)",
-    sandboxBoot: "बूट समय: < 2ms · थ्रेड पूल तैयार",
-    featuresTitle: "प्रथम सिद्धांतों पर आधारित आर्किटेक्चर",
-    featuresSubtitle:
-      "थ्रूपुट को अधिकतम करने, थ्रेड रुकावटों को खत्म करने और सुरक्षा सुनिश्चित करने के लिए Rust और V8 में निर्मित।",
-    features: [
-      {
-        title: "मल्टी-वर्कर थ्रेड पूल",
-        desc: "क्रॉस-थ्रेड लॉक-मुक्त चैनल डिस्पैच के साथ उच्च-समवर्ती HTTP नेटवर्किंग, जिससे थ्रेड निर्माण का दबाव समाप्त होता है।",
-      },
-      {
-        title: "इन-मेमोरी ड्यूल मॉड्यूल कैश",
-        desc: "दो-स्तरीय प्री-रिज़ॉल्व्ड require कैश जो डिस्क stat कॉल्स को छोड़ता है, 4,601,226 ops/s प्राप्त करता है।",
-      },
-      {
-        title: "नेटिव TypeScript 6.0 और TSX",
-        desc: "oxc द्वारा संचालित: त्वरित टाइप स्ट्रिपिंग, स्टेज 3 डेकोरेटर्स, using कीवर्ड और बिना tsc ओवरहेड के JSX।",
-      },
-      {
-        title: "फेल-क्लोज्ड सुरक्षा सैंडबॉक्स",
-        desc: "--sandbox के माध्यम से अनुमतियों का नियंत्रण, डायरेक्टरी आइसोलेशन, रनटाइम JSONL ऑडिट लॉगिंग और अनुमति सूची।",
-      },
-      {
-        title: "हाई-रिज़ॉल्यूशन टाइमर व्हील",
-        desc: "इवेंट लूप टाइमिंग कतारें 1,000 समवर्ती टाइमर पर 2.51ms प्रतिक्रिया प्राप्त करती हैं (14.2x गति)।",
-      },
-      {
-        title: "Node.js और वेब प्लेटफॉर्म समता",
-        desc: "node:http, node:buffer, node:crypto, fetch, WebSocket, WebCrypto और WebAssembly JIT का पूर्ण समर्थन।",
-      },
-    ],
-    systemsTitle: "रनटाइम सबसिस्टम",
-    systemsSubtitle: "Rust में निर्मित मॉड्यूलर, उच्च-प्रदर्शन आर्किटेक्चर।",
-    systemsMeta: "आर्किटेक्चर मानचित्र",
-    systemsLabel: "सबसिस्टम",
-    systems: [
-      {
-        title: "V8 रनटाइम और आइसोलेट कोर",
-        desc: "नेटिव निष्पादन गति, न्यूनतम हीप फ़ुटप्रिंट और WASM JIT समर्थन प्रदान करने वाले सीधे V8 C++ बाइंडिंग।",
-      },
-      {
-        title: "oxc TypeScript इंजन",
-        desc: "अति-तीव्र Rust AST पार्सर जो सब-मिलीसेकंड समय में प्रकारों को हटाता है और आधुनिक TS को ES2022 में ट्रांसपाइल करता है।",
-      },
-      {
-        title: "मल्टी-वर्कर कॉनकरेंसी",
-        desc: "बिना थ्रेड स्पॉनिंग पेनल्टी के हज़ारों समवर्ती HTTP कनेक्शन संभालने वाला लॉक-मुक्त जॉब डिस्ट्रीब्यूशन पूल।",
-      },
-      {
-        title: "Node.js कम्पैटिबिलिटी लेयर",
-        desc: "fs, path, crypto, buffer, events, http, process, timers और CommonJS require का व्यापक कार्यान्वयन।",
-      },
-      {
-        title: "वेब मानक लेयर",
-        desc: "W3C अनुरूप fetch, URL, Streams, Blob, Web Crypto, BroadcastChannel और ServiceWorker कार्यान्वयन।",
-      },
-      {
-        title: "ज़ीरो-कॉन्फ़िग टेस्ट फ्रेमवर्क",
-        desc: "बिल्ट-इन एसरशन्स, डिस्कवरी, समानांतर निष्पादन और कोड कवरेज के साथ Jest-संगत टेस्ट रनर।",
-      },
-    ],
-    ctaTitle: "अगली पीढ़ी के प्रदर्शन के लिए तैयार हैं?",
+    },
+    commandsTitle: "सब कुछ एक सबकमांड है",
+    commandsSubtitle:
+      "amber CLI रोज़मर्रा का काम संभालता है। नीचे की हर कमांड Stable है और उसका लिखित अनुबंध है।",
+    commands: {
+      run: "JS / TS फ़ाइल चलाएँ, --watch और --inspect के साथ",
+      test: "Jest जैसे टेस्ट खोजें और चलाएँ",
+      serve: "HTTP या HTTPS पर fetch हैंडलर परोसें",
+      bundle: "मॉड्यूल ग्राफ़ को एक फ़ाइल में बंडल करें",
+      compile: "इस होस्ट के लिए एक-फ़ाइल executable बनाएँ",
+      install: "npm से package.json निर्भरताएँ इंस्टॉल करें",
+      mcp: "टूल को MCP stdio सर्वर के रूप में दिखाएँ",
+      repl: "इंटरैक्टिव शेल",
+    },
+    commandsMore: "पूरा CLI संदर्भ",
+    compatTitle: "संगतता, एक-एक अनुबंध से",
+    compatSubtitle:
+      "Amber Node.js का क्लोन नहीं है। हर मॉड्यूल केवल अपने अनुबंध में बताए उपसमुच्चय के लिए Stable है — और अनुबंध बताता है कि क्या नहीं है।",
+    compatNode: "Node.js मॉड्यूल",
+    compatWeb: "वेब प्लेटफ़ॉर्म",
+    compatRuntime: "रनटाइम और एजेंट",
+    compatLink: "सभी 69 अनुबंध देखें",
+    conformanceTitle: "56 / 56 कन्फ़ॉर्मेंस टेस्ट पास",
+    conformanceBody:
+      "tests/conformance/ हर बदलाव पर Node-शैली की छोटी स्क्रिप्ट चलाता है — fs, streams, crypto, child_process, Express, Fastify, Hono आदि। कोई टेस्ट फ़ेल या स्किप हो तो CI फ़ेल होता है। यह रिग्रेशन से बचाव है, Node का पूर्ण विकल्प होने का दावा नहीं।",
+    conformanceReproduce: "ख़ुद दोहराएँ",
+    conformanceLink: "स्कोरकार्ड देखें",
+    maturityTitle: "चार ईमानदार लेबल",
+    maturitySubtitle:
+      "इस साइट की हर क्षमता पर इनमें से एक लेबल है। रिपॉज़िटरी का docs/CURRENT_SCOPE.md ही अंतिम स्रोत है।",
+    notTitle: "Amber (अभी) क्या नहीं करता",
+    notSubtitle:
+      "साफ़ ‘नहीं’ कहना भी अनुबंध का हिस्सा है। ये सतहें आज दायरे से बाहर हैं।",
+    perfTitle: "प्रदर्शन आँकड़ों के बारे में",
+    perfBody:
+      "Amber अभी प्रदर्शन के दावे प्रकाशित नहीं करता। भविष्य का हर आँकड़ा commit, सटीक कमांड, हार्डवेयर और शुद्धता जाँच के साथ आएगा ताकि उसे दोहराया जा सके।",
+    ctaTitle: "amber इंस्टॉल करें और कुछ चलाएँ।",
     ctaSubtitle:
-      "एक ही कमांड से macOS, Linux और Windows के लिए Amber v1.16.0 स्थापित करें।",
-    ctaButton: "इंस्टॉलेशन गाइड पढ़ें",
-    ctaNotesButton: "रिलीज़ नोट्स पढ़ें",
+      "macOS, Linux और Windows के लिए प्रीबिल्ट आर्काइव, या Cargo से सोर्स से बनाएँ।",
+    ctaButton: "इंस्टॉलेशन गाइड",
+    ctaNotesButton: "ब्लॉग पढ़ें",
+  },
+  scope: {
+    title: "संगतता और दायरा",
+    subtitle:
+      "Amber v1.17.0 ठीक-ठीक क्या समर्थित करता है, क्या अभी Preview में है और क्या दायरे से बाहर है। हर Stable पंक्ति अपने अनुबंध से जुड़ी है।",
+    sourceNote:
+      "main पर docs/CURRENT_SCOPE.md का प्रतिबिंब। असहमति होने पर वही फ़ाइल मान्य है।",
+    searchPlaceholder: "मॉड्यूल, API या अनुबंध id से फ़िल्टर करें…",
+    filterAll: "सभी",
+    areas: {
+      cli: "CLI और टूलिंग",
+      runtime: "रनटाइम",
+      node: "Node.js",
+      web: "वेब प्लेटफ़ॉर्म",
+    },
+    colSurface: "सतह",
+    colId: "Id",
+    colLimits: "ज्ञात सीमाएँ",
+    contract: "अनुबंध",
+    baseScope: "आधार",
+    qualifierNote:
+      "tentative या provisional चिह्नित id उसी नियम से आगे बढ़े हैं और उनकी संख्या बदल सकती है।",
+    noResults: "इस फ़िल्टर से कुछ नहीं मिला।",
+    stableTitle: "Stable",
+    stableSubtitle:
+      "नियम के तहत आगे बढ़ा: amber बाइनरी से पहुँच योग्य, पुरानी रिपोर्टों के बिना वर्णित, परीक्षणों से कवर, सीमाएँ दर्ज।",
+    previewTitle: "Preview",
+    previewSubtitle:
+      "डिफ़ॉल्ट बिल्ड में मौजूद। प्रयोग के लिए उपयोगी; अभी संगतता का वादा नहीं।",
+    experimentalTitle: "Experimental",
+    experimentalSubtitle:
+      "कोड या कमांड के रूप में मौजूद। स्वयं सत्यापित किए बिना भरोसा न करें।",
+    unclassifiedTitle: "कोड में मौजूद, अभी वर्गीकृत नहीं",
+    unclassifiedSubtitle:
+      "ये सबकमांड, फ़्लैग और amber:* मॉड्यूल सोर्स में हैं, पर CURRENT_SCOPE इनका वर्णन नहीं करता। इन्हें Experimental मानें।",
+    nongoalTitle: "समर्थित नहीं",
+    nongoalSubtitle:
+      "अभी जानबूझकर दायरे से बाहर। Amber स्टब देने के बजाय साफ़ तौर पर विफल होता है।",
+    graduationTitle: "कोई क्षमता Stable कैसे बनती है",
+    graduationRules: [
+      "वह src/main.rs या src/lib.rs की दस्तावेज़ित API से पहुँच योग्य हो।",
+      "उसका व्यवहार पुरानी चरण रिपोर्टों पर निर्भर हुए बिना वर्णित हो।",
+      "वर्तमान परीक्षण दस्तावेज़ित व्यवहार को कवर करें।",
+      "ज्ञात सीमाएँ क्षमता के साथ दर्ज हों।",
+      "feature-gated काम उस feature की जाँच पास करे।",
+    ],
   },
   docs: {
-    title: "रनटाइम मैनुअल",
-    subtitle: "Amber v1.16.0 डेवलपर और ऑपरेटर दस्तावेज़।",
-    backToHome: "होम पर वापस जाएं",
-    groups: [
-      {
-        title: "आरंभ",
-        items: [
-          { id: "introduction", label: "अवलोकन" },
-          { id: "installation", label: "स्थापना" },
-          { id: "quick-start", label: "त्वरित शुरुआत" },
-        ],
-      },
-      {
-        title: "रनटाइम",
-        items: [
-          { id: "v8-isolate-pool", label: "रनटाइम कोर" },
-          { id: "isolate-pool", label: "आइसोलेट पूल (amber:pool)", badge: "v1.4" },
-          { id: "jit-optimization", label: "TypeScript" },
-          { id: "ai-engine", label: "मूल एआई इंजन (amber:ai)" },
-          { id: "ai-embeddings", label: "नेटिव एम्बेडिंग्स और वैक्टर", badge: "v1.3" },
-          { id: "server-mode", label: "HTTP सर्वर और समवर्ती" },
-          { id: "memory-management", label: "SIMD बफर और मेमोरी" },
-        ],
-      },
-      {
-        title: "पारिस्थितिकी तंत्र और उपकरण",
-        items: [
-          {
-            id: "embedded-db",
-            label: "डेटाबेस और वैक्टर (amber:db & amber:vector)",
-            badge: "DB",
-          },
-          {
-            id: "standard-library",
-            label: "मानक लाइब्रेरी (amber:std)",
-            badge: "Std",
-          },
-          {
-            id: "package-manager-dlx",
-            label: "पैकेज रनर (amber x / dlx)",
-            badge: "CLI",
-          },
-          {
-            id: "deployment-docker",
-            label: "तैनाती और कंटेनर (amber deploy)",
-            badge: "Deploy",
-          },
-          { id: "ide-extension", label: "VS Code एक्सटेंशन", badge: "IDE" },
-        ],
-      },
-      {
-        title: "एजेंट और सैंडबॉक्स",
-        items: [
-          {
-            id: "agent-sandbox",
-            label: "सैंडबॉक्स और संसाधन कोटा",
-            badge: "Agent",
-          },
-          {
-            id: "agent-replay",
-            label: "डिटरमिनिस्टिक एजेंट रीप्ले इंजन (amber:replay)",
-            badge: "v1.6",
-          },
-          {
-            id: "model-weights",
-            label: "GGUF और SafeTensors वेट लोडर (amber:weights)",
-            badge: "v1.6",
-          },
-          {
-            id: "capability-security",
-            label: "क्षमता-आधारित सुरक्षा नियंत्रण (amber:security)",
-            badge: "v1.6",
-          },
-          {
-            id: "kv-store",
-            label: "पर्सिस्टेंट KV और टिकाऊ स्थिति (amber:kv)",
-            badge: "v1.7",
-          },
-          {
-            id: "tool-synthesis",
-            label: "टूल ऑटो-सिंथेसिस और OpenAPI (amber:tools)",
-            badge: "v1.7",
-          },
-          {
-            id: "hardened-sandbox",
-            label: "कठोर सैंडबॉक्स और ऑडिट लॉग्स (amber:sandbox)",
-            badge: "v1.7",
-          },
-          {
-            id: "agent-bus",
-            label: "एजेंट संदेश बस और PubSub (amber:bus)",
-            badge: "v1.8",
-          },
-          {
-            id: "streaming-grammar",
-            label: "स्ट्रीमिंग स्ट्रक्चर्ड JSON और ग्रामर (amber:grammar)",
-            badge: "v1.8",
-          },
-          {
-            id: "agent-checkpoint",
-            label: "एजेंट स्टेट चेकपॉइंट और रोलबैक (amber:checkpoint)",
-            badge: "v1.8",
-          },
-          {
-            id: "mcp-protocol",
-            label: "Model Context Protocol 2.0 (amber:mcp)",
-            badge: "v1.3",
-          },
-          {
-            id: "virtual-fs-sandbox",
-            label: "मेमोरी-आधारित वर्चुअल फ़ाइल सिस्टम",
-            badge: "v1.3",
-          },
-          {
-            id: "ffi-native",
-            label: "नेटिव C ABI FFI (amber:ffi)",
-            badge: "v1.4",
-          },
-          {
-            id: "wasm-interop",
-            label: "Wasm 2.0 ज़ीरो-कॉपी शेयर्ड मेमोरी ब्रिज (amber:wasm)",
-            badge: "v1.5",
-          },
-          {
-            id: "slm-inference",
-            label: "एज SLM और JSON डिकोडिंग (amber:ai)",
-            badge: "v1.4",
-          },
-          {
-            id: "framework-compat",
-            label: "मुख्य npm फ्रेमवर्क संगतता (Hono / Express / LangChain)",
-            badge: "v1.5",
-          },
-        ],
-      },
-      {
-        title: "संचालन",
-        items: [
-          { id: "cli-usage", label: "CLI उपयोग" },
-          { id: "wintertc-compliance", label: "WinterTC अनुपालन" },
-          { id: "api-reference", label: "API विवरण" },
-          { id: "modules", label: "मॉड्यूल्स" },
-        ],
-      },
-    ],
-    sections: {
-      introduction: {
-        title: "अवलोकन",
-        subtitle: "JavaScript और TypeScript के लिए Rust + V8 रनटाइम।",
-        body: [
-          "Amber v1.16.0 एक Rust + V8 JavaScript/TypeScript रनटाइम है, एक बाइनरी: amber. Node Conformance 5.0 = 55/55 fixtures — यह drop-in Node अनुकूलता नहीं है।",
-          "रिपॉजिटरी में ऐतिहासिक स्टेज रिपोर्ट और फ़ीचर-गेटेड मॉड्यूल भी हैं। वे दस्तावेज़ डिज़ाइन इतिहास के लिए उपयोगी हैं, लेकिन सार्वजनिक रिलीज़ डिफ़ॉल्ट Cargo बिल्ड का पालन करती है।",
-        ],
-        cards: [
-          {
-            title: "स्वच्छ CLI",
-            desc: "डिफ़ॉल्ट run और eval आउटपुट आंतरिक सेटअप लॉग को छुपाता है।",
-          },
-          {
-            title: "डिफ़ॉल्ट बिल्ड",
-            desc: "रिलीज़ जांच उसी फ़ीचर सेट को लक्षित करती है जिसे उपयोगकर्ता स्थापित करते हैं।",
-          },
-        ],
-      },
-      installation: {
-        title: "स्थापना",
-        subtitle: "प्रीबिल्ट आर्काइव इंस्टॉल करें या सोर्स से बिल्ड करें।",
-        body: [
-          "प्रीबिल्ट रिलीज़ आर्काइव वर्तमान में macOS x86_64, macOS arm64 और Linux x86_64 के लिए उपलब्ध हैं। अन्य प्लेटफ़ॉर्म Rust के साथ सोर्स से बिल्ड कर सकते हैं।",
-        ],
-        code: [
-          "$ curl -fsSL https://get.amberjs.com/install.sh | sh",
-          "$ amber --version",
-        ],
-      },
-      "quick-start": {
-        title: "त्वरित शुरुआत",
-        subtitle: "अपनी पहली स्क्रिप्ट चलाएं।",
-        body: [
-          "एक JavaScript या TypeScript फ़ाइल बनाएं और इसे run सब-कमांड के साथ निष्पादित करें।",
-        ],
-        code: [
-          'console.log("Hello from Amber");',
-          "amber run hello.js",
-          'amber eval "1 + 1"',
-        ],
-      },
-      "v8-isolate-pool": {
-        title: "रनटाइम कोर",
-        subtitle: "सक्रिय CLI पथ Rust के माध्यम से V8 का उपयोग करता है।",
-        body: [
-          "डिफ़ॉल्ट बाइनरी प्रविष्टि src/main.rs है। स्क्रिप्ट निष्पादन src/runtime_minimal.rs द्वारा नियंत्रित होता है, जो V8 आइसोलेट, संदर्भ सेटअप और परिणाम प्रबंधन का स्वामित्व रखता है।",
-        ],
-        list: [
-          "amber run के साथ JavaScript फ़ाइलें निष्पादित करें",
-          "amber eval के साथ कोड स्निपेट का मूल्यांकन करें",
-          "इंटरएक्टिव शेल के लिए amber repl का उपयोग करें",
-        ],
-      },
-      "jit-optimization": {
-        title: "TypeScript",
-        subtitle:
-          "TS और TSX फ़ाइलों को निष्पादन से पहले oxc द्वारा ट्रांसपाइल किया जाता है।",
-        body: [
-          "जब कोई .ts या .tsx फ़ाइल amber run को पास की जाती है, तो CLI इसे oxc (TypeScript 6.0 सिंटैक्स, केवल ट्रांसपाइल) के माध्यम से भेजता है। प्रकार हटा दिए जाते हैं। using और स्टेज 3 डेकोरेटर्स V8 के लिए ES2022 में डाउनलेवल हो जाते हैं। TSX क्लासिक React.createElement उत्पन्न करता है।",
-        ],
-        list: [
-          ".ts, .tsx, .mts, .cts, और .jsx फ़ाइलों का उपयोग करें",
-          "यह tsc --noEmit नहीं है। यदि JS मान्य है तो अमान्य प्रकार भी चल सकते हैं",
-          "अवांछित वैल्यू इम्पोर्ट्स बने रहते हैं, केवल import type हटाया जाता है",
-          "amber run examples/basics/typescript_latest.ts",
-        ],
-      },
-      "memory-management": {
-        title: "अनुकूलता",
-        subtitle: "चयनित Node.js और वेब API उपलब्ध हैं।",
-        body: [
-          "डिफ़ॉल्ट बिल्ड में सामान्य Node.js और वेब API के लिए कम्पैटिबिलिटी लेयर शामिल हैं। विशिष्ट मामलों पर निर्भर होने से पहले उदाहरणों या परीक्षणों के विरुद्ध जाँच की जानी चाहिए।",
-        ],
-        list: [
-          "Node.js मॉड्यूल: fs, path, crypto, buffer, process, timers और require",
-          "वेब API: fetch, URL, streams, Blob, events, timers और Web Crypto",
-        ],
-      },
-      "server-mode": {
-        title: "सर्वर मोड",
-        subtitle: "हेल्थ-चेक स्टब, एप्लिकेशन सर्वर नहीं।",
-        body: [
-          'amber serve एक tiny_http लिसनर को बाइंड करता है और एक निश्चित {"ok":true} JSON बॉडी लौटाता है। यह उपयोगकर्ता स्क्रिप्ट निष्पादित नहीं करता है। एप्लिकेशन HTTP के लिए http.createServer और amber run का उपयोग करें।',
-        ],
-        code: ["$ amber serve --host localhost --port 3000"],
-      },
-      "cli-usage": {
-        title: "CLI उपयोग",
-        subtitle: "मुख्य कमांड।",
-        list: [
-          "amber run <file> - JavaScript या TypeScript फ़ाइल निष्पादित करें",
-          "amber eval <code> - JavaScript स्निपेट का मूल्यांकन करें",
-          "amber test [file] - इन-बिल्ट टेस्ट रनर चलाएं",
-          "amber bundle <entry> - प्रोडक्शन बंडल लिखें",
-          "amber serve - हेल्थ स्टब (फिक्स्ड JSON)",
-          "amber install - package.json से निर्भरताएं इंस्टॉल करें",
-        ],
-      },
-      "api-reference": {
-        title: "API विवरण",
-        subtitle: "वर्तमान रनटाइम के विरुद्ध व्यवहार की पुष्टि करें।",
-        body: [
-          "Amber Node.js और वेब प्लेटफ़ॉर्म API का व्यावहारिक सबसेट प्रदान करता है। सबसे सुरक्षित संदर्भ निष्पादन योग्य टेस्ट सूट और examples निर्देशिका है।",
-        ],
-        list: [
-          "console और timers",
-          "CommonJS require",
-          "fetch और URL",
-          "fs, path, crypto, buffer, process",
-        ],
-      },
-      modules: {
-        title: "मॉड्यूल्स",
-        subtitle: "डिफ़ॉल्ट मॉड्यूल सीमाएं।",
-        list: [
-          "src/runtime_minimal.rs - वर्तमान V8 रनटाइम",
-          "src/nodejs_core/ - Node.js अनुकूलता मॉड्यूल्स",
-          "src/web_api/ - वेब API मॉड्यूल्स",
-          "src/testing/ - टेस्ट फ्रेमवर्क",
-          "src/package_manager.rs - पैकेज मैनेजर सपोर्ट",
-        ],
-      },
+    title: "डॉक्स",
+    subtitle: "Amber v1.17.0 का मैनुअल।",
+    backToHome: "होम",
+    searchPlaceholder: "डॉक्स खोजें…",
+    onThisPage: "इस पेज पर",
+    previousPage: "पिछला",
+    nextPage: "अगला",
+    noResults: "कोई मिलता-जुलता पेज नहीं।",
+    noHeadings: "इस पेज पर कोई शीर्षक नहीं।",
+    editOnGithub: "GitHub पर यह पेज संपादित करें",
+    groups: {
+      start: "शुरुआत",
+      guides: "गाइड",
+      compat: "संगतता",
+      agents: "एजेंट और सैंडबॉक्स",
+      experimental: "प्रायोगिक",
     },
+    statusBanner: {
+      experimental:
+        "Experimental: यह पेज ऐसे कोड का वर्णन करता है जो Stable या Preview दायरे में नहीं है। भरोसा करने से पहले स्वयं जाँचें।",
+      preview:
+        "Preview: उपयोगी और डिफ़ॉल्ट बिल्ड में, पर अनुबंध अभी कसा जा रहा है।",
+    },
+    asideTitle: "अंतिम स्रोत",
+    asideBody:
+      "क्षमता स्तर docs/CURRENT_SCOPE.md के अनुसार हैं। हर Stable API अपने अनुबंध से जुड़ी है।",
+    notFoundTitle: "पेज नहीं मिला",
+    notFoundBody:
+      "v1.17 डॉक्स पुनर्लेखन में यह पेज हटाया या बदला गया। साइडबार से कोई पेज चुनें।",
   },
   blog: {
-    title: "रिलीज़ नोट्स",
-    subtitle: "रनटाइम नोट्स, कार्यान्वयन अपडेट और रिलीज़ स्कोप।",
+    title: "ब्लॉग",
+    subtitle: "रिलीज़ नोट्स और रनटाइम इंजीनियरिंग अपडेट।",
     tagLabel: "विषय",
-    back: "नोट्स पर वापस जाएं",
+    back: "सभी पोस्ट",
     operator: "लेखक",
     by: "द्वारा ",
     timestamp: "दिनांक",
     readTime: "पठन समय",
-    readMore: "नोट खोलें",
-    notFound: "लेख नहीं मिला",
+    readMore: "पोस्ट पढ़ें",
+    notFound: "पोस्ट नहीं मिली",
     fallbackNote: "यह तकनीकी लेख वर्तमान में अंग्रेजी में उपलब्ध है।",
+    historicalBadge: "ऐतिहासिक पोस्ट",
+    historicalNote:
+      "ऐतिहासिक सूचना: इस पोस्ट में दिए गए बेंचमार्क और प्रदर्शन आंकड़े ऐतिहासिक हैं। इन्हें वर्तमान main पर दोबारा पुनरुत्पादित नहीं किया गया है और ये वर्तमान उत्पाद दावे नहीं हैं। Amber आज क्या समर्थित करता है, यह जानने के लिए देखें ",
+    historicalLink: "संगतता और दायरा",
+    historicalSuffix: "।",
   },
 };

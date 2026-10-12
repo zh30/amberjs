@@ -1,97 +1,44 @@
 ---
-title: "概览"
-subtitle: "Rust + V8 的 JavaScript/TypeScript 运行时。一个二进制：amber。"
-group: "开始"
+title: "简介"
+nav: "简介"
+subtitle: "Amber 是用 Rust 和 V8 构建的 JavaScript / TypeScript 运行时。本手册对应 v1.17.0。"
+status: "stable"
 id: "introduction"
 ---
 
-## Amber 是什么？
+Amber 用一个 `amber` 二进制运行 JavaScript 和 TypeScript 文件。它自带测试运行器、打包器、单文件编译器、一个小型包安装器、HTTP serve 命令，以及用于运行 Agent 工具的权限沙箱。
 
-**Amber** 是用 **Rust** 和 **Google V8** 构建的 JavaScript / TypeScript 运行时，发布形态是单一可执行文件 `amber`。
+Amber 以 MIT 协议开源，源码在 [github.com/zh30/amberjs](https://github.com/zh30/amberjs)。
 
-它面向 **Agent 工具与沙箱脚本**：不用 `tsc` 就能跑 TypeScript，内置 Jest 风格测试，通过 MCP / JSON-RPC 托管工具，并用 `amber:ai` 做进程内张量。它 **不是** Node.js 的即插即用替代品。
+## Amber 是什么
 
-适合这些场景：
+- **用 Rust 写的 V8 运行时。** CLI 通过 `src/runtime_minimal.rs` 在 V8 上执行脚本。TypeScript 和 TSX 先经 oxc 转译再运行。
+- **一个二进制，多个命令。** `amber run`、`amber test`、`amber bundle`、`amber compile`、`amber install`、`amber serve` 都在同一个可执行文件里。
+- **有书面契约的 Node.js 与 Web API。** 每个 Stable API 在 `docs/` 下有契约文件，在 `tests/` 下有集成测试。契约写明能做什么、边界在哪里。
+- **Agent 工具的宿主。** `amber run --sandbox` 默认拒绝文件、网络、环境变量和子进程访问，除非你显式放行。`amber session` 和 `amber mcp` 通过 JSON-RPC 调用工具文件导出的函数。
 
-- **一个二进制** 覆盖 `run` / `eval` / `test` / `repl` / `mcp`
-- **不用 `tsc` 的 TypeScript**（oxc 只做类型擦除）
-- **能力沙箱**（`--sandbox`、`--seed`、`--freeze-time`）
-- **进程内张量** `amber:ai`（不需要 Python sidecar）
+## Amber 不是什么
 
-最近的参照物：Deno（V8 + Rust，权限模型）和 Bun（一体化 CLI）。Amber 保留 V8，加上 Agent / MCP 宿主，并且每个命令都标了 Stable / Preview / Experimental。
+Amber **不是** Node.js、Bun 或 Deno 的直接替代品。很多 Node 模块只实现了一部分，有些还处于 Preview。依赖某个 API 之前，请先查 [兼容性页面](/compatibility)。
 
----
+Amber 目前不发布性能数字。仓库里较早的基准表格属于历史资料，本版本没有重新跑过。
 
-## 架构
+## 如何阅读本手册
 
-```text
-+-------------------------------------------------------------------+
-|  应用层  —  JS / TS  ·  测试  ·  MCP 工具  ·  HTTP fetch          |
-+-------------------------------------------------------------------+
-|  运行时 API                                                       |
-|    Node 兼容（fs, http, buffer, …）                               |
-|    Web API（fetch, Streams, URL, Web Crypto）                     |
-|    amber:ai（Tensor, LLM, AgentPipeline）                           |
-+-------------------------------------------------------------------+
-|  引擎  —  V8 isolate  ·  oxc TS/TSX  ·  Tokio I/O                 |
-+-------------------------------------------------------------------+
-|  宿主  —  能力经纪  ·  快照  ·  Wasm backing store                |
-+-------------------------------------------------------------------+
-```
+每项能力都带有四种标签之一：
 
----
+| 标签 | 含义 |
+| :--- | :--- |
+| **Stable** | 有契约文档和在 CI 中运行的可执行测试，限制写在 API 旁边。 |
+| **Preview** | 在默认构建中可用，但契约或边界情况仍在收紧。 |
+| **Experimental** | 代码存在，但在重新验证之前不构成产品承诺。 |
+| **不支持** | 目前刻意不做。Amber 会明确报错，而不是假装支持。 |
 
-## v1.16.0 里有什么
+这些标签的唯一事实来源是 [`docs/CURRENT_SCOPE.md`](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md)。如果本站与该文件不一致，以该文件为准。
 
-| 能力 | 状态 | 说明 |
-| :--- | :--- | :--- |
-| `amber run` / `eval` / `repl` | **Stable** | JS 始终可用；TS/TSX 走 oxc（契约仍是 Preview） |
-| `amber test` | **Stable** | Jest 风格 `describe` / `test` / `expect` |
-| `amber:ai` | **Stable** | 进程内 Tensor / LLM / AgentPipeline |
-| `--sandbox` / MCP / session | **Preview** | 默认拒绝 I/O，可冻结时钟与 PRNG |
-| `amber serve` | **Preview** | WinterCG `fetch` 处理器；`--https` 是 rustls HTTP/1.1 |
-| `amber bundle` | **Stable** | 本地 JS/TS/JSON 图 → 单个 IIFE。限制见 [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) |
-| `amber compile` | **Stable** | 宿主 SEA。Trailer `AMBER_STANDALONE`。不是 pkg/nexe/Bun |
-| `amber:wasm` | **Preview** | Memory / ArrayBuffer 零拷贝 |
-| `amber install` | **Stable** | 直接安装 `package.json` 依赖并核对 lock 的 `dependencies`。不是 npm/yarn/pnpm。`add` / `init` / `x` 仍是 Experimental |
-| Node API | **Preview** | 按 API 计。Conformance 5.0 为 **55/55** |
+## 下一步
 
-用户侧能力边界以仓库里的 [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) 为准。历史阶段报告不是产品承诺。
-
----
-
-## 对比
-
-| | Amber 1.16.0 | Node.js | Bun | Deno |
-| :--- | :--- | :--- | :--- | :--- |
-| 引擎 | V8 + Rust | V8 + C++ | JSC + Zig | V8 + Rust |
-| TypeScript | oxc，仅转译 | loaders / `tsc` | 内置 | 内置 |
-| 安全默认 | 可选 `--sandbox` | 无 | 无 | 权限开关 |
-| Node API | 增量 Preview | 原生 | 目标 drop-in | 兼容层 |
-| 测试 | 内置 `amber test` | 外部 | `bun test` | `deno test` |
-| 原生 AI | `amber:ai` | — | — | — |
-| 符合度记分牌 | 55/55 fixtures | 原生 | 高 | 高 |
-
-覆盖是 **按 API** 的，不是「兼容 Node」。当前存在的模块包括 `fs`、`path`、`os`、`url`、`buffer`、`events`、`stream`、`crypto`、`http`、`http2`、`net`、`child_process`（`execSync` / `spawnSync`）、`zlib`、`util`、`worker_threads`。Web：`fetch`、Streams、Web Crypto、URL、`Worker`。
-
----
-
-## 性能
-
-公开数字必须能在仓库 `benchmarks/` 里复现（硬件、命令、正确性检查）。Apple M2 Max（2026-09-16，Amber vs Node v22.22.3 vs Bun 1.4.1）：
-
-- URL + URLSearchParams（20k）：Amber **7.28 ms**，Node 12.54 ms
-- fetch 连续 100 次 GET：Amber **6.51 ms**，Node 17.00 ms
-- ReadableStream 5k chunks：Amber **0.92 ms**，Node 1.16 ms
-- Express 5.x：Amber **约 68k req/s**，Node 约 19k req/s
-- CLI `eval 1+1` 均值：Amber **18.47 ms**，Node 27.53 ms，Bun 8.03 ms
-
-这是一台机器、一次提交，不是 SLA。Bun 在若干微基准和冷启动上仍然更快。
-
----
-
-## 接下来
-
-1. [安装](/docs/installation)
-2. [快速开始](/docs/quick-start)
-3. [CLI 参考](/docs/cli-usage)
+- [安装 Amber](/docs/installation)
+- [运行第一个脚本](/docs/quick-start)
+- [浏览 CLI](/docs/cli-usage)
+- [查看 Node.js 兼容性](/docs/node-compat)

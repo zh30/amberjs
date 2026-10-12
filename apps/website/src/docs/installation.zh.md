@@ -1,161 +1,63 @@
 ---
 title: "安装"
-subtitle: "安装 v1.16.0 预编译包，或从源码构建"
-group: "开始"
+nav: "安装"
+subtitle: "从发布包安装 amber，或用 Cargo 从源码构建。"
+status: "stable"
 id: "installation"
 ---
 
-## 快速安装 (推荐)
-
-在 macOS 或 Linux 系统上，你可以直接在终端中运行以下一键安装脚本：
+## macOS 与 Linux
 
 ```bash
 curl -fsSL https://get.amberjs.com/install.sh | sh
-
-# 固定版本
-curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
 ```
 
-Windows（PowerShell）：
+脚本会从 GitHub Releases 下载适合当前系统和 CPU 的发布包，并安装为 `~/.amber/bin/amber`。如果脚本提示，请把该目录加入 `PATH`。
+
+可以用环境变量调整安装行为：
+
+| 变量 | 默认值 | 作用 |
+| :--- | :--- | :--- |
+| `AMBER_VERSION` | 最新版本 | 要安装的标签，例如 `v1.17.0` |
+| `AMBER_INSTALL_DIR` | `~/.amber/bin` | `amber` 的安装目录 |
+| `AMBER_REPO` | `zh30/amberjs` | 下载所用的 GitHub 仓库 |
+
+```bash
+AMBER_VERSION=v1.17.0 AMBER_INSTALL_DIR=~/.local/bin sh -c "$(curl -fsSL https://get.amberjs.com/install.sh)"
+```
+
+## Windows
 
 ```powershell
 irm https://get.amberjs.com/install.ps1 | iex
 ```
 
-Homebrew（配方在 Amber 仓库内；每次 GitHub Release 后填写 sha256）：
+PowerShell 脚本会把 `amber.exe` 安装到 `%LOCALAPPDATA%\amber\bin`，同样支持 `AMBER_VERSION`、`AMBER_INSTALL_DIR` 和 `AMBER_REPO`。
+
+## 从源码构建
+
+从源码构建是最直接的方式，也属于 Stable 范围。
 
 ```bash
-brew install zh30/tap/amber
-```
-
-crates.io（GitHub `v*` 标签通过 Release Assets + `CARGO_REGISTRY_TOKEN` 按 `amber_transpile` → `amber_sandbox` → `amberjs` 发布）：
-
-```bash
-cargo install amberjs
-```
-
-会安装 `amber` 二进制。需要 Rust **1.97.1** 以及编译 V8 的 C++ 工具链。
-
-### 安装脚本执行过程说明
-
-1. **自动识别硬件与系统**：自动检测你的系统（macOS / Linux）与 CPU 架构（Apple Silicon `arm64`、Intel `x86_64`）；
-2. **下载预编译产物**：从官方发布源下载经过 `-O3` 生产优化的二进制压缩包并校验完整性；
-3. **部署到用户主目录**：将可执行文件 `amber` 解压部署至 `~/.amber/bin/amber`；
-4. **自动配置环境变量**：自动检测当前 Shell（`~/.zshrc`、`~/.bashrc` 等），在文件末尾注入 `export PATH="$HOME/.amber/bin:$PATH"`。
-
-安装完成后，打开一个新的终端窗口或执行 `source ~/.zshrc`（或 `source ~/.bashrc`），即可直接使用 `amber` 命令。
-
----
-
-## 验证安装
-
-运行以下命令，验证 Amber 是否正确安装并就绪：
-
-```bash
-# 查看版本号
-amber --version
-
-# 快速运行 JavaScript 代码片段
-amber eval "1 + 1"
-```
-
-看到类似输出即可：
-
-```text
-amber 1.16.0
-2
-```
-
----
-
-## 支持平台与硬件要求
-
-| 操作系统 | CPU 架构 | 运行环境要求 | 预编译包支持 |
-| :--- | :---: | :---: | :---: |
-| **macOS (Apple Silicon)** | `arm64` (M1/M2/M3/M4) | macOS 12.0+ (Monterey 及以上) | ✅ 官方支持 |
-| **macOS (Intel)** | `x86_64` | macOS 12.0+ | ✅ 官方支持 |
-| **Linux** | `x86_64` | Linux Kernel 4.18+, glibc 2.28+ | ✅ 官方支持 |
-| **Linux (ARM64)** | `aarch64` | Linux Kernel 4.18+, glibc 2.28+ | ✅ 官方支持 |
-| **Windows** | `x86_64` | Windows 10+ | ✅ `install.ps1` zip |
-
-> [!NOTE]
-> Windows 也可在 **WSL 2** 下使用 Unix 的 `install.sh`。
-
----
-
-## 从源码编译构建
-
-如果你需要对 Amber 进行定制化开发、本地调试或在未提供预编译产物的操作系统上运行，可以通过 Rust 工具链从源码编译。
-
-### 1. 安装编译依赖
-
-确保本地已安装：
-
-- **Rust** **1.97.1**（仓库已锁定；用 [rustup.rs](https://rustup.rs) 安装）
-- **Clang / LLVM**（V8 编译与 C++ 绑定必需）
-- **Python 3**（构建辅助脚本）
-
-在 Ubuntu / Debian 上安装基础工具：
-
-```bash
-sudo apt update && sudo apt install -y build-essential clang llvm git curl cmake python3
-```
-
-在 macOS 上：
-
-```bash
-xcode-select --install
-```
-
-### 2. 克隆仓库并构建
-
-```bash
-git clone https://github.com/zh30/amberjs.git
+git clone https://github.com/zh30/amberjs
 cd amberjs
-
-# 生产级优化编译 (耗时约 5~15 分钟，视机器性能而定)
 cargo build --release
-
-# 编译生成的可执行文件位于：
 ./target/release/amber --version
 ```
 
-### 3. 安装到全局 PATH
+仓库在 `rust-toolchain.toml` 中固定了 Rust 工具链。首次构建会通过 `v8` crate 下载预编译的 V8 库，因此需要联网。
+
+## 发布产物
+
+每个 GitHub Release 都会发布 Linux、macOS、Windows 的压缩包，以及校验和、SBOM 和 cosign 签名。压缩包命名为 `amber-v<version>-<target>`。
+
+## 其他渠道
+
+仓库中还有 Homebrew formula、GHCR 容器镜像（`ghcr.io/zh30/amberjs`，仅 linux/amd64）和 winget 清单。它们属于 **Experimental** 分发渠道，本手册暂不推荐。
+
+## 验证安装
 
 ```bash
-sudo cp ./target/release/amber /usr/local/bin/
 amber --version
-```
-
----
-
-## 环境变量配置
-
-Amber 支持通过环境变量调整全局运行时行为：
-
-| 环境变量 | 默认值 | 作用说明 |
-| :--- | :---: | :--- |
-| `AMBER_WORKERS` | `1` | 设置 HTTP 服务或并发任务的默认 Worker 线程池并发数 |
-| `AMBER_HOME` | `~/.amber` | 指定 Amber 的缓存、下载与全局配置目录 |
-| `AMBER_AUDIT_LOG` | 无 | 指定沙箱全局安全审计日志 JSONL 输出文件路径 |
-| `AMBER_LOG` | `info` | 设置日志级别（`error`、`warn`、`info`、`debug`、`trace`） |
-
-示例：在 `~/.zshrc` 或生产环境 Dockerfile 中设置：
-
-```bash
-export AMBER_WORKERS=8
-export AMBER_LOG=warn
-```
-
----
-
-## 卸载与清理
-
-如果需要卸载 Amber，只需删除安装目录并移除 PATH 配置：
-
-```bash
-# 1. 移除二进制文件与缓存
-rm -rf ~/.amber
-
-# 2. 从 Shell 配置文件中移除 PATH (编辑 ~/.zshrc 或 ~/.bashrc 删除对应 export 行)
+amber eval "1 + 1"
 ```
