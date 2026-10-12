@@ -11,10 +11,12 @@ directory = "./dist"
 binding = "ASSETS"
 html_handling = "auto-trailing-slash"
 not_found_handling = "single-page-application"
-# Retired doc URLs must reach the Worker so it can 301 them; every other path is
-# served from assets directly. Keep in sync with LEGACY_DOC_REDIRECTS in
+# Retired doc URLs must reach the Worker so it can 301 them, and agent Markdown
+# (*.md) goes through it so unknown .md paths 404 instead of falling back to the
+# SPA shell; every other path is served from assets directly. Keep in sync with LEGACY_DOC_REDIRECTS in
 # src/lib/docs-nav.ts (scripts/prerender.mjs fails the build if they drift).
 run_worker_first = [
+  "/*.md",
   "/docs/jit-optimization",
   "/docs/jit-optimization/",
   "/docs/types-lsp",

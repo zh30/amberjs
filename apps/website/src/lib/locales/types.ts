@@ -72,6 +72,19 @@ export interface TranslationSchema {
     issues: string;
     releases: string;
     license: string;
+    agents: {
+      title: string;
+      intro: string;
+      llms: string;
+      llmsFull: string;
+      overview: string;
+      compatibility: string;
+      install: string;
+      cli: string;
+      ask: string;
+      /** Prefilled question for the chat links; keep the llms.txt URL verbatim. */
+      prompt: string;
+    };
   };
   home: {
     eyebrow: string;

@@ -3,3 +3,6 @@ User-agent: *
 Allow: /
 
 Sitemap: https://amberjs.com/sitemap.xml
+
+# Agent-readable docs (https://llmstxt.org): https://amberjs.com/llms.txt
+# Full text: https://amberjs.com/llms-full.txt · Every page has a .md twin, e.g. https://amberjs.com/docs/installation.md

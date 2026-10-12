@@ -74,6 +74,23 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
+    if (path.endsWith(".md")) {
+      const res = await env.ASSETS.fetch(request);
+      const type = res.headers.get("content-type") || "";
+      if (!res.ok || type.startsWith("text/html")) {
+        return new Response(
+          `Not found: ${path}\nIndex of agent-readable pages: ${url.origin}/llms.txt\n`,
+          { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } },
+        );
+      }
+      const headers = new Headers(res.headers);
+      headers.set("content-type", "text/markdown; charset=utf-8");
+      headers.set("access-control-allow-origin", "*");
+      const html = path === "/index.md" ? "/" : path.slice(0, -".md".length);
+      headers.set("link", `<${url.origin}${html}>; rel="canonical"`);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     const trimmed = path.replace(/\/+$/, "") || "/";
     const legacyDoc = trimmed.match(/^\/docs\/([^/]+)$/);
     if (legacyDoc && Object.hasOwn(LEGACY_DOC_REDIRECTS, legacyDoc[1])) {
