@@ -84,12 +84,68 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
     Ok(vec![hostname])
 }
 
+/// Windows SDK `gai_strerrorA` is an inline `FormatMessage`, and `ws2_32.lib` on
+/// the Windows Smoke image does not export the symbol (`LNK2019` / `__imp_gai_strerrorA`).
+/// System messages first, then ws2_32's message table (where Winsock codes live).
+#[cfg(windows)]
+fn windows_gai_strerror(code: i32) -> String {
+    use windows_sys::Win32::System::Diagnostics::Debug::{
+        FormatMessageA, FORMAT_MESSAGE_FROM_HMODULE, FORMAT_MESSAGE_FROM_SYSTEM,
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+    };
+    use windows_sys::Win32::System::LibraryLoader::GetModuleHandleA;
+
+    fn format_code(flags: u32, source: *const core::ffi::c_void, code: u32) -> Option<String> {
+        let mut buf = [0u8; 512];
+        let n = unsafe {
+            FormatMessageA(
+                flags,
+                source,
+                code,
+                0,
+                buf.as_mut_ptr(),
+                buf.len() as u32,
+                std::ptr::null(),
+            )
+        };
+        if n == 0 {
+            return None;
+        }
+        let end = (n as usize).min(buf.len());
+        let text = String::from_utf8_lossy(&buf[..end]).trim().to_string();
+        if text.is_empty() {
+            None
+        } else {
+            Some(text)
+        }
+    }
+
+    let code_u = code as u32;
+    if let Some(msg) = format_code(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        std::ptr::null(),
+        code_u,
+    ) {
+        return msg;
+    }
+    let module = unsafe { GetModuleHandleA(c"ws2_32.dll".as_ptr().cast()) };
+    if module != 0 {
+        if let Some(msg) = format_code(
+            FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS,
+            module as *const core::ffi::c_void,
+            code_u,
+        ) {
+            return msg;
+        }
+    }
+    format!("getnameinfo failed ({code})")
+}
+
 #[cfg(windows)]
 fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
-    use std::ffi::CStr;
     use windows_sys::Win32::Networking::WinSock::{
-        gai_strerrorA, getnameinfo, AF_INET, AF_INET6, NI_MAXHOST, NI_NAMEREQD, SOCKADDR,
-        SOCKADDR_IN, SOCKADDR_IN6,
+        getnameinfo, AF_INET, AF_INET6, NI_MAXHOST, NI_NAMEREQD, SOCKADDR, SOCKADDR_IN,
+        SOCKADDR_IN6,
     };
 
     let mut hostbuf = [0u8; NI_MAXHOST as usize];
@@ -98,16 +154,16 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
     let rc = match addr {
         IpAddr::V4(v4) => {
             let mut sa: SOCKADDR_IN = unsafe { std::mem::zeroed() };
-            sa.sin_family = AF_INET as _;
+            sa.sin_family = AF_INET;
             sa.sin_port = 0;
             unsafe {
                 sa.sin_addr.S_un.S_addr = u32::from(v4).to_be();
                 getnameinfo(
                     &sa as *const _ as *const SOCKADDR,
                     std::mem::size_of_val(&sa) as i32,
-                    hostbuf.as_mut_ptr() as *mut i8,
+                    hostbuf.as_mut_ptr(),
                     hostbuf.len() as u32,
-                    servbuf.as_mut_ptr() as *mut i8,
+                    servbuf.as_mut_ptr(),
                     servbuf.len() as u32,
                     NI_NAMEREQD as i32,
                 )
@@ -115,7 +171,7 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
         }
         IpAddr::V6(v6) => {
             let mut sa: SOCKADDR_IN6 = unsafe { std::mem::zeroed() };
-            sa.sin6_family = AF_INET6 as _;
+            sa.sin6_family = AF_INET6;
             sa.sin6_port = 0;
             sa.sin6_flowinfo = 0;
             unsafe {
@@ -123,9 +179,9 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
                 getnameinfo(
                     &sa as *const _ as *const SOCKADDR,
                     std::mem::size_of_val(&sa) as i32,
-                    hostbuf.as_mut_ptr() as *mut i8,
+                    hostbuf.as_mut_ptr(),
                     hostbuf.len() as u32,
-                    servbuf.as_mut_ptr() as *mut i8,
+                    servbuf.as_mut_ptr(),
                     servbuf.len() as u32,
                     NI_NAMEREQD as i32,
                 )
@@ -134,16 +190,7 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
     };
 
     if rc != 0 {
-        let detail = unsafe {
-            let ptr = gai_strerrorA(rc);
-            if ptr.is_null() {
-                format!("getnameinfo failed ({rc})")
-            } else {
-                CStr::from_ptr(ptr as *const i8)
-                    .to_string_lossy()
-                    .into_owned()
-            }
-        };
+        let detail = windows_gai_strerror(rc);
         return Err(format!("Error: dns.reverse {} - {}", ip, detail));
     }
 
@@ -170,6 +217,7 @@ fn read_dns_servers() -> Vec<String> {
     }
 }
 
+#[cfg(unix)]
 fn read_resolv_conf_nameservers(path: &str) -> Vec<String> {
     let Ok(text) = std::fs::read_to_string(path) else {
         return Vec::new();
@@ -196,7 +244,9 @@ fn read_resolv_conf_nameservers(path: &str) -> Vec<String> {
 #[cfg(windows)]
 fn read_windows_dns_servers() -> Vec<String> {
     use windows_sys::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
-    use windows_sys::Win32::NetworkManagement::IpHelper::{GetNetworkParams, FIXED_INFO_W2KSP1};
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        GetNetworkParams, FIXED_INFO_W2KSP1, IP_ADDR_STRING,
+    };
 
     let mut size: u32 = 0;
     let first = unsafe { GetNetworkParams(std::ptr::null_mut(), &mut size) };
@@ -210,7 +260,9 @@ fn read_windows_dns_servers() -> Vec<String> {
     }
     let info = unsafe { &*(buf.as_ptr() as *const FIXED_INFO_W2KSP1) };
     let mut servers = Vec::new();
-    let mut node = &info.DnsServerList as *const _;
+    // Head is the embedded list node. `Next` is `*mut` and null after the last server,
+    // which does not unify with `as *const _` under windows-sys 0.52.
+    let mut node: *const IP_ADDR_STRING = &info.DnsServerList;
     while !node.is_null() {
         let entry = unsafe { &*node };
         let bytes = entry.IpAddress.String;
@@ -219,7 +271,7 @@ fn read_windows_dns_servers() -> Vec<String> {
         if !s.is_empty() {
             servers.push(s);
         }
-        node = entry.Next;
+        node = entry.Next.cast_const();
     }
     servers
 }
