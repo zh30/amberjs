@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- SSR-only entry, never hot-reloaded; it also exports build data for scripts/agent-docs.mjs. */
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router-dom";
 import { AppRoutes } from "./app";
