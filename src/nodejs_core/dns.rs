@@ -84,17 +84,65 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
     Ok(vec![hostname])
 }
 
-/// windows-sys 0.52 WinSock does not declare `gai_strerrorA`. The export is in
-/// ws2_32 and formats the code `getnameinfo` returns (same role as `libc::gai_strerror`).
+/// Windows SDK `gai_strerrorA` is an inline `FormatMessage`, and `ws2_32.lib` on
+/// the Windows Smoke image does not export the symbol (`LNK2019` / `__imp_gai_strerrorA`).
+/// System messages first, then ws2_32's message table (where Winsock codes live).
 #[cfg(windows)]
-#[link(name = "ws2_32")]
-extern "system" {
-    fn gai_strerrorA(ecode: i32) -> *const i8;
+fn windows_gai_strerror(code: i32) -> String {
+    use windows_sys::Win32::System::Diagnostics::Debug::{
+        FormatMessageA, FORMAT_MESSAGE_FROM_HMODULE, FORMAT_MESSAGE_FROM_SYSTEM,
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+    };
+    use windows_sys::Win32::System::LibraryLoader::GetModuleHandleA;
+
+    fn format_code(flags: u32, source: *const core::ffi::c_void, code: u32) -> Option<String> {
+        let mut buf = [0u8; 512];
+        let n = unsafe {
+            FormatMessageA(
+                flags,
+                source,
+                code,
+                0,
+                buf.as_mut_ptr(),
+                buf.len() as u32,
+                std::ptr::null(),
+            )
+        };
+        if n == 0 {
+            return None;
+        }
+        let end = (n as usize).min(buf.len());
+        let text = String::from_utf8_lossy(&buf[..end]).trim().to_string();
+        if text.is_empty() {
+            None
+        } else {
+            Some(text)
+        }
+    }
+
+    let code_u = code as u32;
+    if let Some(msg) = format_code(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        std::ptr::null(),
+        code_u,
+    ) {
+        return msg;
+    }
+    let module = unsafe { GetModuleHandleA(c"ws2_32.dll".as_ptr().cast()) };
+    if module != 0 {
+        if let Some(msg) = format_code(
+            FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS,
+            module as *const core::ffi::c_void,
+            code_u,
+        ) {
+            return msg;
+        }
+    }
+    format!("getnameinfo failed ({code})")
 }
 
 #[cfg(windows)]
 fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
-    use std::ffi::CStr;
     use windows_sys::Win32::Networking::WinSock::{
         getnameinfo, AF_INET, AF_INET6, NI_MAXHOST, NI_NAMEREQD, SOCKADDR, SOCKADDR_IN,
         SOCKADDR_IN6,
@@ -142,14 +190,7 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
     };
 
     if rc != 0 {
-        let detail = unsafe {
-            let ptr = gai_strerrorA(rc);
-            if ptr.is_null() {
-                format!("getnameinfo failed ({rc})")
-            } else {
-                CStr::from_ptr(ptr).to_string_lossy().into_owned()
-            }
-        };
+        let detail = windows_gai_strerror(rc);
         return Err(format!("Error: dns.reverse {} - {}", ip, detail));
     }
 

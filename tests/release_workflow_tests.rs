@@ -844,8 +844,8 @@ fn windows_os_uptime_uses_gettickcount64_not_sys_info_boottime() {
 }
 
 /// windows-sys 0.52 does not export `GetComputerNameW` from SystemInformation
-/// or `gai_strerrorA` from WinSock. Windows Smoke (`cargo build --release` on
-/// windows-latest) fails closed on those paths.
+/// or `gai_strerrorA` from WinSock. `ws2_32.lib` also lacks `gai_strerrorA`
+/// (`LNK2019`), so the Windows error text uses `FormatMessageA`.
 #[test]
 fn windows_hostname_and_dns_match_windows_sys_0_52() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -873,12 +873,16 @@ fn windows_hostname_and_dns_match_windows_sys_0_52() {
         "dns.reverse must stay a real getnameinfo PTR lookup: {reverse}"
     );
     assert!(
-        !reverse.contains("WinSock::gai_strerrorA") && !reverse.contains("*mut i8"),
-        "windows-sys 0.52 PSTR is *mut u8 and WinSock has no gai_strerrorA: {reverse}"
+        !reverse.contains("*mut i8"),
+        "windows-sys 0.52 PSTR is *mut u8: {reverse}"
     );
     assert!(
-        dns.contains("extern \"system\" {\n    fn gai_strerrorA(ecode: i32) -> *const i8;"),
-        "format getnameinfo failures with ws2_32 gai_strerrorA"
+        !dns.contains("fn gai_strerrorA") && !dns.contains("#[link(name = \"ws2_32\")]"),
+        "do not link gai_strerrorA; Windows Smoke fails with LNK2019 __imp_gai_strerrorA"
+    );
+    assert!(
+        dns.contains("fn windows_gai_strerror") && dns.contains("FormatMessageA"),
+        "Windows getnameinfo errors use FormatMessageA, the SDK inline gai_strerror"
     );
 
     let servers = snippet_after(&dns, "fn read_windows_dns_servers", 1400);
