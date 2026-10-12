@@ -1,42 +1,46 @@
 ---
-title: "WinterTC 合规"
-subtitle: "Amber 上的 ECMA-429、Runtime Keys 与 Sockets API"
-group: "参考与规范"
+title: "WinterTC 基线"
+nav: "WinterTC"
+subtitle: "ECMA-429 最小通用 Web API、运行时键和 Sockets API。"
+status: "stable"
 id: "wintertc-compliance"
 ---
 
-Amber 实现 WinterTC（Ecma TC55，原 WinterCG）基线，使同一套 Web 平台代码可以在类 Node 与边缘运行时上运行。
+Amber 实现了 WinterTC（Ecma TC55，前身为 WinterCG）基线，使为边缘运行时编写的 Web 平台代码在 API 重叠的部分可以原样运行。该基线属于 `CURRENT_SCOPE.md` 中的 Stable 范围。
 
-## ECMA-429 最小公共 Web API
+## ECMA-429 最小通用 Web API
 
-| API | 状态 |
-|---|---|
-| `DOMException` | 全局构造器，`name` / `message` / `code` 与遗留常量 |
-| `globalThis.self` | 等于 `globalThis` |
-| `reportError(error)` | 若设置了 `onerror` 则调用 |
-| `PromiseRejectionEvent` | 未处理拒绝时派发到 `onunhandledrejection` |
-| `navigator.userAgent` | `Amber/{version}` |
-| `navigator.hardwareConcurrency` / `language` / `platform` | 已提供 |
-| `URLPattern` | `test()` / `exec()`，支持 `:param` |
-| `ByteLengthQueuingStrategy` / `CountQueuingStrategy` | 全局 |
-| `ReadableStream.from` | 支持可迭代与异步可迭代源 |
+| API | 行为 |
+| :--- | :--- |
+| `DOMException` | 全局构造函数，带 `name`、`message`、`code` 和旧版常量 |
+| `globalThis.self` | `globalThis` 的别名 |
+| `reportError(error)` | 设置了 `onerror` 时调用它 |
+| `PromiseRejectionEvent` | 未处理的 rejection 通过 `onunhandledrejection` 派发 |
+| `navigator.userAgent` | `Amber/<version>` |
+| `navigator.hardwareConcurrency`、`language`、`platform` | 存在 |
+| `URLPattern` | 支持 `:param` 分组的 `test()` 和 `exec()` |
+| `ByteLengthQueuingStrategy`、`CountQueuingStrategy` | 全局构造函数 |
+| `ReadableStream.from` | 可迭代与异步可迭代来源 |
 
-## Runtime Keys（ECMA TR-114）
+## 运行时键
 
-`package.json` 的 `"exports"` 条件在 `node` 之前匹配 `wintercg` 与 `wintertc`。`import.meta.resolve` 使用同一解析器，因此 `"wintercg": "./winter.js"` 会优先于 `"node"`。
+`package.json` 的 `"exports"` 条件中，`wintercg` 和 `wintertc` 优先于 `node`。`import.meta.resolve` 使用同一个解析器，因此发布了 `"wintercg": "./winter.js"` 的包会解析到该文件，而不是 `"node"` 入口。
 
-`import.meta.main` 标记 CLI 入口模块。`import.meta.env` 映射进程环境变量。
+CLI 入口模块的 `import.meta.main` 为 `true`。`import.meta.env` 映射进程环境变量。
 
 ## Sockets API
 
 ```js
-const { connect } = require('amber:sockets');
-const socket = connect({ hostname: 'example.com', port: 443 }, { secureTransport: 'on' });
-// socket.readable / socket.writable 是 Web Streams
-// socket.startTls() 走真实 rustls 握手
+const { connect } = require("amber:sockets");
+
+const socket = connect(
+  { hostname: "example.com", port: 443 },
+  { secureTransport: "on" },
+);
+// socket.readable 和 socket.writable 是 Web 流。
 ```
 
-`secureTransport: "on"` 与 `startTls()` 执行 rustls 客户端握手。对明文 TCP 端口做 TLS 会得到 TLS 错误，而不会静默保持明文。
+`secureTransport: "on"` 和 `socket.startTls()` 会执行真实的 rustls 客户端握手。对明文 TCP 端口发起 TLS 连接会报 TLS 错误，而不是悄悄保持明文。
 
 ## 测试
 

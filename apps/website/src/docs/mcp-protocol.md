@@ -1,122 +1,84 @@
 ---
-title: "Model Context Protocol 2.0 (amber:mcp)"
-subtitle: "Production-ready native MCP standard implementation: build servers, declare tools, expose resources, and inspect with visual CLI"
-group: "Agent & Advanced"
+title: "Tools, sessions, and MCP"
+nav: "Tools & MCP"
+subtitle: "Export functions from a file, then call them through a JSON-RPC session or an MCP stdio server."
+status: "stable"
 id: "mcp-protocol"
 ---
 
-## 1. What is Model Context Protocol (MCP)?
+`amber run --export-tools` (G4), `amber session`, and `amber mcp` are **Stable**. Models stay outside Amber: these commands only load a tool file and call its exports under the same runtime and permission broker as `amber run`.
 
-**Model Context Protocol (MCP)**, open-sourced by Anthropic (specification version `2024-11-05`), has become the premier standard for large language model agents to:
-1. **Call Tools**: Execute computational tasks, trigger actions, or interact with external systems;
-2. **Access Resources**: Expose contextual documents, file content, or system telemetry;
-3. **Template Prompts**: Provide standardized prompts and workflows to models.
+## A tool file
 
-Amber v1.3.0 embeds **`amber:mcp` natively in the runtime core**. Without installing external node modules or build systems, developers can build MCP servers, run standard Stdio transports for Claude Desktop / Cursor, or connect locally in-memory via `connectLocal()`.
+```ts
+// tools.ts
 
----
+/** Add two numbers. */
+export function add({ a, b }: { a: number; b: number }) {
+  return a + b;
+}
 
-## 2. Server & Client API
-
-Import from `amber:mcp`:
-
-```typescript
-import { McpServer, McpClient } from 'amber:mcp';
+/** Read a UTF-8 file. */
+export function readText({ path }: { path: string }) {
+  return require("node:fs").readFileSync(path, "utf8");
+}
 ```
 
-### `McpServer`
-
-Register tools, resources, and prompt templates:
-
-```typescript
-const server = new McpServer({
-  name: "dev-assistant",
-  version: "1.3.0"
-});
-
-// 1. Tool Declaration
-server.tool(
-  "calculate_hash",
-  "Compute cryptographic hash for input data",
-  {
-    type: "object",
-    properties: {
-      data: { type: "string", description: "Payload to hash" },
-      algorithm: { type: "string", enum: ["sha256", "md5"], default: "sha256" }
-    },
-    required: ["data"]
-  },
-  async ({ data, algorithm = "sha256" }) => {
-    const { crypto } = require('amber:std');
-    return { hash: crypto.hash(algorithm, data) };
-  }
-);
-
-// 2. Resource Declaration
-server.resource(
-  "system://metrics",
-  "Realtime system statistics",
-  () => ({
-    timestamp: Date.now(),
-    memoryUsage: process.memoryUsage()
-  }),
-  "application/json"
-);
-
-// 3. Prompt Declaration
-server.prompt(
-  "code_review",
-  "Security and performance review prompt",
-  [{ name: "code", description: "Code to review", required: true }],
-  ({ code }) => ({
-    prompt: `Review the following code for concurrency issues and safety:\n${code}`
-  })
-);
-```
-
----
-
-### In-Memory Testing with `connectLocal()`
-
-Connect a client directly to the server without spawning child processes or configuring network ports:
-
-```typescript
-const client = server.connectLocal();
-
-// Ping
-console.log("Ping:", await client.ping()); // true
-
-// List & invoke tools
-const tools = await client.listTools();
-const toolRes = await client.callTool("calculate_hash", { data: "Amber", algorithm: "sha256" });
-console.log("Tool result:", toolRes);
-
-// Read resource
-const res = await client.readResource("system://metrics");
-const metrics = JSON.parse(res[0].text);
-console.log("Resource data:", metrics);
-```
-
----
-
-### Production Stdio Transport
-
-Run the server over standard input/output for Claude Desktop or Cursor:
-
-```typescript
-server.startStdio();
-```
-
----
-
-## 3. CLI Inspection (`amber mcp --inspect`)
-
-Inspect MCP tool schemas with formatted tables directly from the command line:
+## Export schemas
 
 ```bash
-# Inspect built-in runtime tools
-amber mcp --inspect
-
-# Inspect a user module's exposed tools
-amber mcp --inspect ./my_tools.ts
+amber run --export-tools tools.ts
 ```
+
+```json
+{"tools":[{"name":"add","description":"Add two numbers.","inputSchema":{"type":"object"}}, ...]}
+```
+
+The command prints JSON and exits. It does not run the file or call a model. Contract: [`EXPORT_TOOLS_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/EXPORT_TOOLS_CONTRACT.md).
+
+Limits:
+
+- Only lines that start with `export function` or `export async function` are listed. `export const`, arrow functions, and `export default` are not.
+- The description comes from the nearby `//` or `/** */` comment, with `@` tags dropped.
+- `inputSchema` is always `{"type":"object"}`. TypeScript types and `@param` tags are not turned into JSON Schema.
+- A sibling `tools.json` replaces source scanning entirely.
+
+## JSON-RPC session
+
+```bash
+amber session --sandbox --allow-read ./data tools.ts
+```
+
+`amber session` reads one JSON-RPC request per line on stdin and writes one response per line on stdout.
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/list"}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"add","arguments":{"a":2,"b":3}}}
+```
+
+It also answers `initialize`, `ping`, and empty `prompts/list` and `resources/list`. Tool errors return code `-32000`; unknown methods return `-32601`.
+
+## MCP stdio server
+
+```bash
+amber mcp tools.ts
+amber mcp --inspect tools.ts   # list the tools and exit
+```
+
+`amber mcp` speaks MCP protocol version `2024-11-05` with `initialize`, `tools/list`, and `tools/call`. Tool results come back as one text content item, with `isError` set on failure.
+
+Messages are framed with `Content-Length` headers in both directions, the way LSP frames messages. If your MCP host only speaks newline-delimited JSON over stdio, check that it can talk to this framing before you wire it up.
+
+Pass `--isolate-per-call` to `session` or `mcp` to give every `tools/call` a fresh isolate.
+
+## Combine with the sandbox
+
+Every permission flag works here too. This is the intended pattern for agent hosts:
+
+```bash
+amber mcp --sandbox --allow-read ./workspace --audit-log audit.jsonl tools.ts
+```
+
+## The `amber:mcp` module
+
+A JavaScript `McpServer` API is also present as `amber:mcp`. It is not in the Stable scope, so treat it as Experimental. The Stable surface is the CLI described above.

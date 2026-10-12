@@ -1,124 +1,92 @@
 ---
 title: "快速开始"
-subtitle: "用 amber 跑 TypeScript、测试和一个很小的 HTTP 处理器"
-group: "开始"
+nav: "快速开始"
+subtitle: "几分钟内运行脚本、TypeScript 文件、测试和 HTTP 处理函数。"
+status: "stable"
 id: "quick-start"
 ---
 
-## 1. 第一段脚本
+## 1. 求值一段代码
 
-Amber 不需要 `tsc` 或 `ts-node` 就能跑 `.ts` / `.tsx`。oxc 擦掉类型，再交给 V8。
+```bash
+amber eval "1 + 1"
+```
 
-新建 `hello.ts`：
+## 2. 运行 JavaScript 文件
+
+```js
+// hello.js
+const os = require("node:os");
+console.log(`Hello from Amber on ${os.platform()}`);
+```
+
+```bash
+amber run hello.js
+```
+
+## 3. 直接运行 TypeScript
+
+不需要构建步骤。Amber 用 oxc 擦除类型后直接运行。
 
 ```ts
-const runtime = "Amber";
-console.log(`hello from ${runtime}`);
+// greet.ts
+interface User {
+  name: string;
+}
+
+const greet = (user: User): string => `Hello, ${user.name}`;
+console.log(greet({ name: "Amber" }));
 ```
 
 ```bash
-amber run hello.ts
-# hello from Amber
+amber run greet.ts
 ```
 
-运行时不做全项目类型检查。需要的话在 CI 里跑 `tsc --noEmit`。
+类型**不会**被检查。如果需要类型错误，请在 CI 中运行 `tsc --noEmit`。详见 [TypeScript](/docs/typescript)。
 
-一行表达式和 REPL：
-
-```bash
-amber eval "console.log(crypto.randomUUID())"
-amber repl
-```
-
----
-
-## 2. 测试
-
-Jest 风格的 `describe` / `test` / `expect`。自 v1.15.0 起为 Stable。
+## 4. 写一个测试
 
 ```js
 // math.test.js
 describe("math", () => {
   test("adds numbers", () => {
-    expect(2 + 3).toBe(5);
+    expect(1 + 2).toBe(3);
   });
 });
 ```
 
 ```bash
-amber test
 amber test math.test.js
-amber test --watch
+amber test          # 发现当前目录下所有测试文件
+amber test --watch  # 被监听的文件变化时重新运行
 ```
 
-`amber test --parallel` 会被拒绝（退出码 2）：V8 isolate 不能跨线程共享。
-
----
-
-## 3. HTTP（Preview）
-
-`amber serve` 加载导出 `fetch` 的模块：
+## 5. 提供 HTTP 服务
 
 ```js
-// app.js
+// server.js
 module.exports = {
-  fetch() {
-    return new Response("ok");
+  fetch(request) {
+    return new Response("Hello from Amber");
   },
 };
 ```
 
 ```bash
-amber serve app.js --host 127.0.0.1 --port 3000
+amber serve --port 3000 server.js
+curl http://localhost:3000/
 ```
 
-也可以写 `node:http` 服务器再用 `amber run server.ts`。`--https --cert --key` 时使用 rustls HTTP/1.1。
+`amber serve` 每个连接处理一个 HTTP/1.1 请求。它是一个小型处理函数桥接，不是通用 Web 服务器。详见 [Server 模式](/docs/server-mode)。
 
----
-
-## 4. 命令行参数
-
-文件名后面的参数在 `process.argv`：
-
-```ts
-console.log(process.argv.slice(2));
-```
+## 6. 使用 REPL
 
 ```bash
-amber run cli.ts --name myapp --port 8080
-# [ '--name', 'myapp', '--port', '8080' ]
+amber repl
 ```
 
----
+## 接下来
 
-## 5. Watch
-
-```bash
-amber run --watch hello.ts
-amber run --watch --debounce 200 app.ts
-```
-
----
-
-## 6. 建议目录
-
-```text
-my-amber-app/
-├── package.json
-├── tsconfig.json          # 可选，给编辑器用
-├── src/index.ts
-└── tests/math.test.js
-```
-
-```json
-{
-  "name": "my-amber-app",
-  "scripts": {
-    "dev": "amber run --watch src/index.ts",
-    "start": "amber run src/index.ts",
-    "test": "amber test"
-  }
-}
-```
-
-接下来：[CLI 参考](/docs/cli-usage) · [沙箱](/docs/agent-sandbox) · [打包 / 编译](/docs/bundling-compilation)
+- [CLI 参考](/docs/cli-usage) 列出了每个命令及其成熟度。
+- [Node.js 兼容性](/docs/node-compat) 说明哪些模块是 Stable。
+- [Agent 沙箱](/docs/agent-sandbox) 介绍如何运行不受信任的工具代码。

@@ -11,10 +11,13 @@ import {
   ChevronDown,
   Github,
   Globe,
+  Menu,
   Monitor,
   Moon,
   Sun,
+  X,
 } from "lucide-react";
+import { CONFORMANCE_URL, REPO_URL, SCOPE_DOC_URL } from "../lib/scope";
 
 function LanguageSelector() {
   const { lang, setLang, copy, languages } = useLang();
@@ -114,11 +117,52 @@ function LanguageSelector() {
   );
 }
 
+const NAV_LINKS = [
+  { to: "/docs", key: "docs" },
+  { to: "/compatibility", key: "scope" },
+  { to: "/blog", key: "blog" },
+  { to: "/play", key: "play" },
+] as const;
+
+function isActive(pathname: string, to: string) {
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
+
 function RootLayoutInner() {
   const { copy } = useLang();
   const { theme, toggleNext } = useTheme();
   const location = useLocation();
   const isPlay = location.pathname === "/play";
+  const [menuPath, setMenuPath] = useState<string | null>(null);
+  const menuOpen = menuPath === location.pathname;
+
+  const footerColumns = [
+    {
+      title: copy.footer.product,
+      links: [
+        { label: copy.footer.docs, to: "/docs" },
+        { label: copy.footer.scope, to: "/compatibility" },
+        { label: copy.footer.play, to: "/play" },
+        { label: copy.footer.blog, to: "/blog" },
+      ],
+    },
+    {
+      title: copy.footer.resources,
+      links: [
+        { label: copy.footer.conformance, href: CONFORMANCE_URL },
+        { label: "CURRENT_SCOPE.md", href: SCOPE_DOC_URL },
+        { label: copy.footer.releases, href: `${REPO_URL}/releases` },
+      ],
+    },
+    {
+      title: copy.footer.community,
+      links: [
+        { label: copy.footer.githubRepo, href: REPO_URL },
+        { label: copy.footer.issues, href: `${REPO_URL}/issues` },
+        { label: copy.footer.license, href: `${REPO_URL}/blob/main/LICENSE` },
+      ],
+    },
+  ];
 
   return (
     <div
@@ -129,8 +173,8 @@ function RootLayoutInner() {
       <RouteScroll />
       <div className="h-0.5 bg-[var(--honey)]" aria-hidden />
       <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[var(--bg-page)]">
-        <nav className="site-shell">
-          <div className="flex h-14 items-center justify-between">
+        <nav className="site-shell" aria-label="Primary">
+          <div className="flex h-14 items-center justify-between gap-4">
             <Link to="/" className="flex items-center gap-2.5">
               <AmberLogo className="h-6 w-6" />
               <span className="text-[15px] font-semibold tracking-tight">
@@ -141,34 +185,27 @@ function RootLayoutInner() {
               </span>
             </Link>
 
-            <div className="hidden items-center gap-6 text-sm text-[var(--text-secondary)] md:flex">
-              <Link
-                to="/"
-                className="hover:text-[var(--text-primary)] hover:underline"
-              >
-                {copy.nav.home}
-              </Link>
-              <Link
-                to="/docs"
-                className="hover:text-[var(--text-primary)] hover:underline"
-              >
-                {copy.nav.docs}
-              </Link>
-              <Link
-                to="/blog"
-                className="hover:text-[var(--text-primary)] hover:underline"
-              >
-                {copy.nav.blog}
-              </Link>
-              <Link
-                to="/play"
-                className="hover:text-[var(--text-primary)] hover:underline"
-              >
-                {copy.nav.play}
-              </Link>
+            <div className="hidden items-center gap-1 text-sm md:flex">
+              {NAV_LINKS.map((item) => {
+                const active = isActive(location.pathname, item.to);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    aria-current={active ? "page" : undefined}
+                    className={`px-3 py-1.5 ${
+                      active
+                        ? "font-medium text-[var(--text-primary)] underline decoration-[var(--honey)] decoration-2 underline-offset-[6px]"
+                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {copy.nav[item.key]}
+                  </Link>
+                );
+              })}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={toggleNext}
@@ -179,7 +216,7 @@ function RootLayoutInner() {
                 {theme === "system" && <Monitor className="h-4 w-4" />}
                 {theme === "light" && <Sun className="h-4 w-4" />}
                 {theme === "dark" && <Moon className="h-4 w-4" />}
-                <span className="hidden sm:inline">
+                <span className="hidden lg:inline">
                   {theme === "system"
                     ? copy.theme.system
                     : theme === "light"
@@ -191,7 +228,7 @@ function RootLayoutInner() {
               <LanguageSelector />
 
               <a
-                href="https://github.com/zh30/amberjs"
+                href={REPO_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="btn-ink !px-3 !py-1.5 !text-xs"
@@ -199,34 +236,48 @@ function RootLayoutInner() {
                 <Github className="h-4 w-4" />
                 <span className="hidden sm:inline">{copy.nav.github}</span>
               </a>
+
+              <button
+                type="button"
+                onClick={() => setMenuPath(menuOpen ? null : location.pathname)}
+                className="inline-flex items-center p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden"
+                aria-label={copy.nav.menu}
+                aria-expanded={menuOpen}
+                aria-controls="mobile-nav"
+              >
+                {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
             </div>
           </div>
-          <div className="flex gap-5 pb-3 text-sm text-[var(--text-secondary)] md:hidden">
-            <Link
-              to="/"
-              className="hover:text-[var(--text-primary)] hover:underline"
+          {menuOpen && (
+            <div
+              id="mobile-nav"
+              className="flex flex-col border-t border-[var(--line)] py-2 text-sm md:hidden"
             >
-              {copy.nav.home}
-            </Link>
-            <Link
-              to="/docs"
-              className="hover:text-[var(--text-primary)] hover:underline"
-            >
-              {copy.nav.docs}
-            </Link>
-            <Link
-              to="/blog"
-              className="hover:text-[var(--text-primary)] hover:underline"
-            >
-              {copy.nav.blog}
-            </Link>
-            <Link
-              to="/play"
-              className="hover:text-[var(--text-primary)] hover:underline"
-            >
-              {copy.nav.play}
-            </Link>
-          </div>
+              <Link
+                to="/"
+                className="py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                {copy.nav.home}
+              </Link>
+              {NAV_LINKS.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={
+                    isActive(location.pathname, item.to) ? "page" : undefined
+                  }
+                  className={`py-2 ${
+                    isActive(location.pathname, item.to)
+                      ? "font-medium text-[var(--text-primary)]"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  {copy.nav[item.key]}
+                </Link>
+              ))}
+            </div>
+          )}
         </nav>
       </header>
 
@@ -236,34 +287,55 @@ function RootLayoutInner() {
 
       {isPlay ? null : (
         <footer className="mt-16 border-t border-[var(--line)]">
-          <div className="site-shell flex flex-col gap-4 py-8 text-sm text-[var(--text-muted)] md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2">
-              <AmberLogo className="h-4 w-4" />
-              <span>{copy.footer.builtWith}</span>
+          <div className="site-shell grid gap-10 py-12 text-sm md:grid-cols-[1.4fr_repeat(3,1fr)]">
+            <div className="max-w-xs">
+              <div className="flex items-center gap-2">
+                <AmberLogo className="h-5 w-5" />
+                <span className="font-semibold">Amber</span>
+                <span className="font-mono text-xs text-[var(--honey-text)]">
+                  {AMBER_VERSION}
+                </span>
+              </div>
+              <p className="mt-3 text-[var(--text-muted)]">
+                {copy.footer.tagline}
+              </p>
             </div>
-            <div className="flex gap-5">
-              <Link
-                to="/docs"
-                className="hover:text-[var(--text-primary)] hover:underline"
-              >
-                {copy.footer.docs}
-              </Link>
-              <Link
-                to="/blog"
-                className="hover:text-[var(--text-primary)] hover:underline"
-              >
-                {copy.footer.blog}
-              </Link>
-              <a
-                href="https://github.com/zh30/amberjs"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-[var(--text-primary)] hover:underline"
-              >
-                {copy.footer.githubRepo}
-              </a>
+            {footerColumns.map((column) => (
+              <div key={column.title}>
+                <div className="meta uppercase tracking-wider">
+                  {column.title}
+                </div>
+                <ul className="mt-3 space-y-2">
+                  {column.links.map((link) => (
+                    <li key={link.label}>
+                      {"to" in link && link.to ? (
+                        <Link
+                          to={link.to}
+                          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline"
+                        >
+                          {link.label}
+                        </Link>
+                      ) : (
+                        <a
+                          href={"href" in link ? link.href : undefined}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline"
+                        >
+                          {link.label}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-[var(--line)]">
+            <div className="site-shell flex flex-col gap-2 py-5 text-xs text-[var(--text-muted)] sm:flex-row sm:justify-between">
+              <span>© {new Date().getFullYear()} Amber contributors · MIT</span>
+              <span className="font-mono">amberjs.com</span>
             </div>
-            <div>{copy.footer.copyright}</div>
           </div>
         </footer>
       )}

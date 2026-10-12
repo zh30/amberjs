@@ -1,143 +1,73 @@
 ---
-title: "原生 AI 引擎 (amber:ai)"
-subtitle: "免除 Python 胶水层，在 V8 中直接驱动零拷贝张量、本地模型流式推理与 Agent 管线"
-group: "核心系统"
+title: "amber:ai"
+nav: "amber:ai"
+subtitle: "基于类型化数组的张量、内置文本 embedding，以及加载本地模型文件的 LLM 接口。"
+status: "stable"
 id: "ai-engine"
 ---
 
-## 1. 为什么在运行时中内置 AI 引擎？
+`amber:ai` 属于 Stable 范围，并在默认构建中编译，不需要 `ai` Cargo feature（该 feature 为空）。在基于它开发之前，请先阅读下文关于 `LLM` 的说明。
 
-在生成式 AI 与大语言模型（LLM）驱动的应用时代，后端工程的重心正在从传统的 CRUD 转向**向量检索、高维张量运算、模型流式生成以及自治 Agent 工具调度**。
-
-传统服务端 JavaScript 开发者面临巨大的生态痛点：
-- **要么依赖 Python 子进程**：通过标准输入输出或 HTTP IPC 进行跨进程通信，带来巨大的序列化开销、内存翻倍与部署复杂性；
-- **要么依赖复杂的 node-gyp C++ 插件**：在不同平台和 Alpine Linux 上编译极易失败，且经常引发内存泄漏或 V8 崩溃。
-
-Amber 率先在运行时原生内置了 **`amber:ai`** 模块：直接使用 Rust 在宿主层对接高性能数学库与本地推理后端，以零拷贝 `Float32Array` 直通 V8，让 JavaScript 开发者用纯粹的 TypeScript 原生编写高性能 AI 应用。
-
----
-
-## 2. 核心组件 API
-
-通过 `import ... from 'amber:ai'` 即可直接引入原生模块：
-
-```typescript
-import { Tensor, LLM, AgentPipeline } from 'amber:ai';
+```js
+const { Tensor, LLM, AgentPipeline, embed, cosineSimilarity } = require("amber:ai");
 ```
 
----
+## Tensor
 
-### 一、`Tensor` 零拷贝张量运算
+`Tensor` 封装一个 `Float32Array` 和一个 shape。在可以避免时，运算不会复制底层缓冲区。
 
-`Tensor` 底层基于连续内存的 `Float32Array`，由 Rust SIMD 指令硬件加速，支持各种常见的向量与矩阵运算：
+```js
+const a = new Tensor([1, 2, 3, 4], [2, 2]);
+const b = new Tensor([5, 6, 7, 8], [2, 2]);
 
-```typescript
-// 1. 创建张量 (数据一维展开 + 形状数组)
-const a = Tensor.from([1.0, 2.0, 3.0, 4.0], [2, 2]);
-const b = Tensor.from([5.0, 6.0, 7.0, 8.0], [2, 2]);
+a.matmul(b).toArray(); // [[19, 22], [43, 50]]
 
-// 2. 硬件加速矩阵乘法 (matmul)
-const c = Tensor.matmul(a, b);
-console.log('矩阵乘法结果:', c.toArray(), c.shape);
-
-// 3. 向量点积与模长
-const v1 = Tensor.from([1.0, 2.0, 3.0], [3]);
-const v2 = Tensor.from([4.0, 5.0, 6.0], [3]);
-console.log('点积:', Tensor.dot(v1, v2)); // 32.0
-console.log('L2 范数 (模长):', Tensor.norm(v1)); // 3.7416...
-
-// 4. 数值稳定 Softmax (防止浮点上溢)
-const logits = Tensor.from([2.0, 1.0, 0.1], [3]);
-const probs = Tensor.softmax(logits);
-console.log('归一化概率分布:', probs.toArray());
-
-// 5. 向量余弦相似度 (语义检索核心算子)
-const queryEmbedding = Tensor.from([0.1, 0.8, 0.3], [3]);
-const docEmbedding = Tensor.from([0.12, 0.79, 0.31], [3]);
-const similarity = Tensor.cosineSimilarity(queryEmbedding, docEmbedding);
-console.log('余弦相似度:', similarity); // 0.999...
+const v1 = new Tensor([1, 2, 3]);
+const v2 = new Tensor([4, 5, 6]);
+v1.dot(v2);              // 32
+v1.norm();               // 3.7416...
+v1.cosineSimilarity(v2); // 0.9746...
+new Tensor([2, 1, 0.1]).softmax().toArray();
 ```
 
----
+## Embedding
 
-### 二、`LLM` 本地流式模型推理
+```js
+const vector = embed("hello world");          // Float32Array，默认 64 维
+const other = embed("hello there", { dimensions: 128 });
+```
 
-无需部署庞大的 Ollama 外部服务，直接加载 GGUF 或本地轻量权重，进行流式输出与文本向量嵌入：
+`embed` 是在 Rust 中计算的确定性哈希 token embedding。它快速且可复现，但**不是**经过训练的语义模型，适合测试、去重或粗略的词面相似度。需要语义检索时，请加载真正的 embedding 模型，再把输出交给 `Tensor`。
 
-```typescript
-// 加载本地轻量量化模型
-const model = await LLM.load('./models/qwen2.5-0.5b-instruct.gguf', {
-  threads: 4,
-  contextSize: 2048,
-});
+## LLM
 
-// 1. 异步流式生成 (SSE / Web 界面打字机效果)
-const prompt = "请用 3 句话介绍 Rust 语言的核心优势。";
-console.log(`提示词: ${prompt}\n生成中: `);
+```js
+const llm = await LLM.load("./models/model.gguf");
+const result = await llm.generate("Summarize this file.");
 
-for await (const token of model.generateStream(prompt, { maxTokens: 256, temperature: 0.7 })) {
-  process.stdout.write(token);
+for await (const chunk of llm.generateStream("Write a haiku.")) {
+  process.stdout.write(chunk);
 }
-console.log('\n--- 生成完成 ---');
-
-// 2. 生成语义向量嵌入 (Embedding)
-const vector = await model.embed("现代高性能云原生运行时");
-console.log(`向量维度: ${vector.length}, 前 3 维:`, vector.slice(0, 3));
 ```
 
----
+当 `LLM.load` 能打开模型文件时，生成通过 Candle 在本地运行。默认构建使用 CPU；CUDA 与 Metal 需要用 `cuda` 或 `metal` Cargo feature 从源码构建，这两个 feature 没有 CI 门禁。
 
-### 三、`AgentPipeline` 确定性智能体编排
+**重要：** 模型无法加载时，`LLM.load` 不会抛错，而是返回一个由内置模板生成器驱动的 `LLM`。它产生占位文本，传入 schema 时产生占位 JSON。这些输出不是模型输出。在信任结果之前，请先确认模型路径能够正常加载。
 
-Amber 为构建自主 AI Agent 提供了完整的状态机与工具调度管线：
+## AgentPipeline
 
-```typescript
-// agent_example.ts
-import { AgentPipeline } from 'amber:ai';
-
-const agent = new AgentPipeline({
-  name: 'DevOps Assistant',
-  instructions: '你是一名运维助手，可通过工具执行排查任务。',
+```js
+const pipeline = new AgentPipeline({
+  model: llm,
+  tools: [{ name: "echo", execute: (input) => input }],
 });
 
-// 注册智能体可用工具与 JSON Schema 描述
-agent.registerTool({
-  name: 'query_server_status',
-  description: '查询当前服务器的 CPU 与内存使用率',
-  parameters: {
-    type: 'object',
-    properties: {
-      server_id: { type: 'string', description: '服务器编号，如 srv-01' },
-    },
-    required: ['server_id'],
-  },
-  handler: async ({ server_id }) => {
-    return {
-      server_id,
-      cpu_usage: '24.5%',
-      memory_free: '8.2 GB',
-      healthy: true,
-    };
-  },
-});
-
-// 运行智能体决策步
-const response = await agent.runStep('帮我检查一下 srv-01 服务器的状态是否正常？');
-console.log('智能体最终回复:', response.content);
+const step = await pipeline.step("hello");
+// { status: "completed", output: "...", historyLength: 2 }
 ```
 
----
+`AgentPipeline` 记录历史并保存已注册的工具。`step()` 把输入交给 `model.generate()` 并保存回复。它不会自行规划或调用工具，何时调用 `tool.execute` 由你的代码决定。
 
-## 3. 确定性回放与测试沙箱
+## 不在范围内
 
-AI Agent 的自主行为往往具有随机性，在生产测试与调试重放时极难复现 Bug。Amber 提供两项系统级标志，保证 AI 决策的绝对确定性：
-
-- **`--seed <UINT64>`**：锁定伪随机数生成器（`Math.random()` 与 `crypto.getRandomValues()`）的种子；
-- **`--freeze-time <ISO_STRING>`**：冻结全局虚拟时钟（`Date.now()`、`new Date()` 与 `performance.now()`）。
-
-```bash
-# 在固定种子与固定虚拟时间下回放 Agent 运行
-amber run --seed 42 --freeze-time "2026-09-07T08:00:00Z" agent_example.ts
-```
-
-每次运行，所有随机采样的 Token、生成的 UUID、事件时间戳都将保持 100% 严丝合缝的一致，为自动化测试与安全审查提供了坚如磐石的保障。
+`amber:ai` 上的 `weights`、`tools`、`kv`、`bus`、`grammar` 和 `checkpoint` getter 指向范围页中未分级的模块，请视为 Experimental。

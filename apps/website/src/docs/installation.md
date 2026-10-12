@@ -1,159 +1,63 @@
 ---
 title: "Installation"
-subtitle: "Install a v1.16.0 binary, or build from source"
-group: "Getting Started"
+nav: "Installation"
+subtitle: "Install the amber binary from a release archive, or build it from source with Cargo."
+status: "stable"
 id: "installation"
 ---
 
-## Quick Install (Recommended)
-
-On macOS or Linux, run the official one-line install script in your terminal:
+## macOS and Linux
 
 ```bash
 curl -fsSL https://get.amberjs.com/install.sh | sh
-
-# pin a release
-curl -fsSL https://get.amberjs.com/install.sh | AMBER_VERSION=v1.16.0 sh
 ```
 
-On Windows (PowerShell):
+The script downloads the release archive for your OS and CPU from GitHub Releases and installs it as `~/.amber/bin/amber`. Add that directory to your `PATH` if the script asks you to.
+
+You can change what it installs with environment variables:
+
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `AMBER_VERSION` | latest release | Tag to install, for example `v1.17.0` |
+| `AMBER_INSTALL_DIR` | `~/.amber/bin` | Where the `amber` binary goes |
+| `AMBER_REPO` | `zh30/amberjs` | GitHub repository to download from |
+
+```bash
+AMBER_VERSION=v1.17.0 AMBER_INSTALL_DIR=~/.local/bin sh -c "$(curl -fsSL https://get.amberjs.com/install.sh)"
+```
+
+## Windows
 
 ```powershell
 irm https://get.amberjs.com/install.ps1 | iex
 ```
 
-Homebrew (formula in the Amber repo; tap hashes are filled after each GitHub Release):
+The PowerShell script installs `amber.exe` under `%LOCALAPPDATA%\amber\bin`. It honors the same `AMBER_VERSION`, `AMBER_INSTALL_DIR`, and `AMBER_REPO` variables.
+
+## Build from source
+
+Building from source is the most direct path and is part of the Stable scope.
 
 ```bash
-brew install zh30/tap/amber
-```
-
-From crates.io (GitHub `v*` tags publish `amber_transpile`, `amber_sandbox`, then `amberjs` via Release Assets + `CARGO_REGISTRY_TOKEN`):
-
-```bash
-cargo install amberjs
-```
-
-This installs the `amber` binary. Needs Rust **1.97.1** and a C++ toolchain for V8.
-
-### What the Install Script Does
-
-1. **Detects Environment**: Automatically identifies your OS (macOS / Linux) and CPU architecture (Apple Silicon `arm64` or Intel `x86_64`).
-2. **Fetches Prebuilt Archive**: Downloads the release archive optimized with `-O3` and verifies binary integrity.
-3. **Deploys Binary**: Unpacks the `amber` executable into `~/.amber/bin/amber`.
-4. **Configures PATH**: Updates your active shell profile (`~/.zshrc`, `~/.bashrc`, etc.) with `export PATH="$HOME/.amber/bin:$PATH"`.
-
-After installation finishes, either restart your terminal or run `source ~/.zshrc` (or `source ~/.bashrc`) to start using `amber`.
-
----
-
-## Verifying Installation
-
-Verify that `amber` is properly installed and accessible:
-
-```bash
-# Print version info
-amber --version
-
-# Evaluate a quick JavaScript snippet
-amber eval "1 + 1"
-```
-
-You should see output similar to:
-
-```text
-amber 1.16.0
-2
-```
-
----
-
-## Supported Platforms & Requirements
-
-| Operating System | Architecture | Minimum Requirements | Prebuilt Release |
-| :--- | :---: | :---: | :---: |
-| **macOS (Apple Silicon)** | `arm64` (M1–M4) | macOS 12.0+ (Monterey or later) | ✅ Yes |
-| **macOS (Intel)** | `x86_64` | macOS 12.0+ | ✅ Yes |
-| **Linux** | `x86_64` | Kernel 4.18+, glibc 2.28+ | ✅ Yes |
-| **Linux (ARM64)** | `aarch64` | Kernel 4.18+, glibc 2.28+ | ✅ Yes |
-| **Windows** | `x86_64` | Windows 10+ | ✅ `install.ps1` zip |
-
-> [!NOTE]
-> Windows also works under **WSL 2** with the Unix `install.sh` script.
-
----
-
-## Building from Source
-
-To customize Amber, debug internal subsystems, or build for non-standard architectures, compile directly using the Rust toolchain.
-
-### 1. Prerequisites
-
-Ensure you have the following installed:
-
-- **Rust** **1.97.1** (pinned in this repo; [rustup.rs](https://rustup.rs))
-- **Clang / LLVM** (required for V8 C++ bindings)
-- **Python 3** (build helper scripts)
-
-On Ubuntu / Debian:
-
-```bash
-sudo apt update && sudo apt install -y build-essential clang llvm git curl cmake python3
-```
-
-On macOS:
-
-```bash
-xcode-select --install
-```
-
-### 2. Clone and Build
-
-```bash
-git clone https://github.com/zh30/amberjs.git
+git clone https://github.com/zh30/amberjs
 cd amberjs
-
-# Release build with full optimizations
 cargo build --release
-
-# The compiled binary is output to:
 ./target/release/amber --version
 ```
 
-### 3. Install to Global PATH
+The repository pins its Rust toolchain in `rust-toolchain.toml`. The first build downloads a prebuilt V8 library through the `v8` crate, so it needs network access.
+
+## Release assets
+
+Each GitHub release publishes archives for Linux, macOS, and Windows, plus checksums, an SBOM, and cosign signatures. The archives are named `amber-v<version>-<target>`.
+
+## Other channels
+
+A Homebrew formula, a GHCR container image (`ghcr.io/zh30/amberjs`, linux/amd64 only), and a winget manifest exist in the repository. They are **Experimental** distribution channels, so this manual does not recommend them yet.
+
+## Verify the install
 
 ```bash
-sudo cp ./target/release/amber /usr/local/bin/
 amber --version
-```
-
----
-
-## Environment Variables
-
-| Variable | Default | Purpose |
-| :--- | :---: | :--- |
-| `AMBER_WORKERS` | `1` | Default number of worker threads for parallel HTTP execution |
-| `AMBER_HOME` | `~/.amber` | Base directory for package caches and downloads |
-| `AMBER_AUDIT_LOG` | None | File path for writing JSONL security sandbox audit records |
-| `AMBER_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
-
-Example for `~/.zshrc` or Dockerfile:
-
-```bash
-export AMBER_WORKERS=8
-export AMBER_LOG=warn
-```
-
----
-
-## Uninstallation
-
-To uninstall Amber, delete the binary directory and remove the PATH entry from your shell configuration:
-
-```bash
-# 1. Remove binary and caches
-rm -rf ~/.amber
-
-# 2. Remove the PATH export line from ~/.zshrc or ~/.bashrc
+amber eval "1 + 1"
 ```

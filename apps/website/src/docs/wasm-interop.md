@@ -1,46 +1,50 @@
 ---
-title: "Wasm 2.0 (amber:wasm)"
-subtitle: "Preview in v1.16.0: zero-copy WebAssembly.Memory and ArrayBuffer"
-group: "Agent & Advanced"
+title: "WebAssembly"
+nav: "WebAssembly"
+subtitle: "Standard WebAssembly on V8, Stable streaming compilation, and the Preview amber:wasm zero-copy helpers."
+status: "preview"
 id: "wasm-interop"
 ---
 
-v1.16.0 adds a **Preview** `amber:wasm` module so JavaScript and WebAssembly can share the same backing store instead of copying buffers at the boundary.
+## Standard WebAssembly
 
-This is not a new Wasm engine. V8 still compiles and runs Wasm. Amber adds host helpers around `WebAssembly.Memory` / `ArrayBuffer`.
-
----
-
-## What you get
-
-- `WebAssembly.Memory.buffer` can share pages with a V8 `ArrayBuffer` via `new_backing_store_from_ptr`
-- mmap-backed module load (large `.wasm` files are mapped, not fully copied into the isolate first)
-- `require('amber:wasm')` / `import wasm from 'amber:wasm'`
-
-```ts
-import wasm from "amber:wasm";
-
-const mem = new WebAssembly.Memory({ initial: 2 });
-const addr = wasm.ptr(mem); // bigint host address of linear memory
-```
-
-Standard Wasm still works:
+V8 compiles and runs WebAssembly. The standard JavaScript API works as usual:
 
 ```js
-const { instance } = await WebAssembly.instantiate(bytes, imports);
+const bytes = require("node:fs").readFileSync("add.wasm");
+const { instance } = await WebAssembly.instantiate(bytes, {});
 instance.exports.add(1, 2);
 ```
 
-Streaming APIs (`WebAssembly.compileStreaming` / `instantiateStreaming`) consume `Response` without stuffing the body through a string.
+`WebAssembly.compileStreaming` and `WebAssembly.instantiateStreaming` are **Stable**. They accept a `Response` or a `Promise<Response>` and consume the body without routing it through a string.
 
----
+```js
+const { instance } = await WebAssembly.instantiateStreaming(fetch("https://example.com/add.wasm"));
+```
 
-## Status
+## amber:wasm (Preview)
 
-| | |
-| :--- | :--- |
-| Maturity | Preview |
-| Tests | `tests/wasm_zero_copy_tests.rs` |
-| Not claimed | a custom Wasm JIT, or drop-in WASI |
+`amber:wasm` adds host helpers so JavaScript and WebAssembly can share a backing store instead of copying buffers:
 
-FFI pointer wrapping and `amber:ai.Tensor` views exist on the same module; treat those helpers as Preview too.
+- `WebAssembly.Memory.buffer` can share pages with a V8 `ArrayBuffer`.
+- Large `.wasm` files are memory-mapped on load instead of copied into the isolate first.
+
+```js
+const wasm = require("amber:wasm");
+
+const memory = new WebAssembly.Memory({ initial: 1 });
+const shared = wasm.shareMemory(memory);
+
+shared.uint8[0] = 77;      // writes straight into linear memory
+shared.float32[1] = 3.14;  // bytes 4..8
+shared.ptr;                // bigint host address of linear memory
+
+memory.asUint8Array(0, 1)[0]; // 77
+```
+
+This module is **Preview**. Its API may change, and it is covered by `tests/wasm_zero_copy_tests.rs` rather than a Stable contract. The FFI pointer helpers and `Tensor` views on the same module are Preview too.
+
+## Not claimed
+
+- A custom Wasm compiler or JIT. V8 does the work.
+- WASI. There is no drop-in WASI host.

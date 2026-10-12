@@ -243,7 +243,7 @@ function writePage(relPath, html) {
 }
 
 function nav() {
-  return `<nav><a href="/">Amber</a> · <a href="/docs">Docs</a> · <a href="/blog">Blog</a> · <a href="https://github.com/zh30/amberjs">GitHub</a></nav>`;
+  return `<nav><a href="/">Amber</a> · <a href="/docs">Docs</a> · <a href="/compatibility">Compatibility</a> · <a href="/blog">Blog</a> · <a href="https://github.com/zh30/amberjs">GitHub</a></nav>`;
 }
 
 function loadDocs() {
@@ -297,11 +297,25 @@ export function renderRoute(pathname) {
       canonical: `${SITE}/`,
       body: `<main>
 ${nav()}
-<p>v1.16.0</p>
-<h1>A JavaScript &amp; TypeScript runtime in Rust &amp; V8</h1>
+<p>v1.17.0</p>
+<h1>One binary for JavaScript and TypeScript</h1>
 <p>${esc(homeDesc)}</p>
-<p><a href="/docs">Explore Docs</a> · <a href="/docs/installation">Installation</a></p>
+<p><a href="/docs/quick-start">Get started</a> · <a href="/compatibility">See what's supported</a></p>
 <pre><code>curl -fsSL https://get.amberjs.com/install.sh | sh</code></pre>
+</main>`,
+    };
+  }
+
+  if (path === "/compatibility") {
+    return {
+      title: "Compatibility & scope | Amber",
+      description:
+        "What Amber v1.17.0 supports: Stable contracts, Preview and Experimental surfaces, and deliberate non-goals, mirrored from docs/CURRENT_SCOPE.md.",
+      canonical: `${SITE}/compatibility`,
+      body: `<main>
+${nav()}
+<h1>Compatibility &amp; scope</h1>
+<p>Stable, Preview, Experimental, and Not supported surfaces of the amber runtime. Source of truth: <a href="https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md">docs/CURRENT_SCOPE.md</a>.</p>
 </main>`,
     };
   }
@@ -414,6 +428,7 @@ export async function prerender() {
   const posts = loadPosts();
   const urls = [
     "/",
+    "/compatibility",
     "/docs",
     "/blog",
     "/play",

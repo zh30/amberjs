@@ -1,3 +1,5 @@
+import { LEGACY_DOC_REDIRECTS } from "./lib/docs-nav";
+
 interface Env {
   ASSETS: {
     fetch: (request: Request | string) => Promise<Response>;
@@ -73,6 +75,12 @@ export default {
     }
 
     const trimmed = path.replace(/\/+$/, "") || "/";
+    const legacyDoc = trimmed.match(/^\/docs\/([^/]+)$/);
+    if (legacyDoc && Object.hasOwn(LEGACY_DOC_REDIRECTS, legacyDoc[1])) {
+      const target = new URL(`/docs/${LEGACY_DOC_REDIRECTS[legacyDoc[1]]}`, url.origin);
+      target.search = url.search;
+      return Response.redirect(target.toString(), 301);
+    }
     if (trimmed !== "/") {
       const prerendered = await firstOk(env, url.origin, [
         `${trimmed}.html`,

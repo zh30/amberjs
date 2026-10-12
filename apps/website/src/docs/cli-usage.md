@@ -1,125 +1,76 @@
 ---
 title: "CLI reference"
-subtitle: "What amber actually ships in v1.16.0 — Stable, Preview, Experimental"
-group: "Reference & Specs"
+nav: "CLI reference"
+subtitle: "Every amber subcommand in v1.17.0, grouped by maturity. Checked against src/main.rs."
+status: "stable"
 id: "cli-usage"
 ---
 
-`amber --help` is the source of truth. This page groups the same commands by maturity. See [Current Scope](https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md) in the repo.
+Run `amber --help` or `amber <command> --help` for the full flag list on your build.
 
-`--verbose` is global and must come **before** the subcommand: `amber --verbose run app.js`.
+## Stable commands
 
----
+| Command | What it does | Contract |
+| :--- | :--- | :--- |
+| `amber run <file> [args...]` | Run a JS or TS file | — |
+| `amber eval <code>` | Evaluate a snippet and print the result | — |
+| `amber repl` | Interactive REPL | — |
+| `amber test [file]` | Discover and run Jest-style tests | [Testing](/docs/testing) |
+| `amber bundle <entry> -o <out>` | Pack a local module graph into one JS file | [`BUNDLE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md) |
+| `amber compile <entry> -o <bin>` | Build a single executable for this host | [`COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md) |
+| `amber install [--frozen-lockfile]` | Install direct dependencies from `package.json` | [`INSTALL_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md) |
+| `amber serve [file]` | Serve a fetch handler over HTTP/1.1 | [`SERVE_HTTP_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/SERVE_HTTP_CONTRACT.md) |
+| `amber serve --https --cert --key` | Same, over rustls TLS | [`SERVE_HTTPS_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/SERVE_HTTPS_CONTRACT.md) |
+| `amber session <file>` | JSON-RPC tool session over stdin and stdout | [MCP & sessions](/docs/mcp-protocol) |
+| `amber mcp <file>` | MCP stdio server for a tool file | [MCP & sessions](/docs/mcp-protocol) |
+| `amber snapshot build\|status\|clean` | Manage the V8 startup snapshot | — |
+| `amber version` / `amber --version` | Print the version | — |
 
-## Stable
+## Stable `amber run` flags
 
-| Command | What it does |
+| Flag | What it does | Contract |
+| :--- | :--- | :--- |
+| `--watch`, `-w` | Re-run the entry when a watched file changes | [`WATCH_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/WATCH_CONTRACT.md) |
+| `--inspect`, `--inspect-brk`, `--inspect-port` | A small CDP endpoint on `127.0.0.1` | [`INSPECT_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/INSPECT_CONTRACT.md) |
+| `--export-tools` | Print tool schemas as JSON and exit, without running the file | [`EXPORT_TOOLS_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/EXPORT_TOOLS_CONTRACT.md) |
+
+`--watch` restarts the whole process after the previous run returns. It is not hot module replacement.
+
+## Permission and determinism flags
+
+These flags work on `run`, `test`, `serve`, `session`, `mcp`, and the other commands that execute code.
+
+| Flag | What it does |
 | :--- | :--- |
-| `amber run <file> [args...]` | Run JS. `.ts` / `.tsx` go through oxc first (TS contract is Preview). |
-| `amber eval <code>` | Evaluate an expression |
-| `amber repl` | Interactive REPL |
-| `amber test [files...] [--watch]` | Jest-style runner |
-| `amber snapshot [build\|status\|clean]` | V8 startup snapshots |
-| `amber session <tool>` | JSON-RPC over stdin for agent hosts |
-| `amber mcp [tool]` | MCP stdio server |
-| `amber --version` / `amber version` | Version |
-| `amber bundle <entry>` | Local JS/TS/JSON graph → one JS file. Limits: [bundle & compile](/docs/bundling-compilation) |
-| `amber compile <file> [-o myapp]` | Host SEA binary. Contract: [COMPILE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md) |
-| `amber install [--frozen-lockfile]` | Direct `package.json` deps and lock `dependencies` pins. Not npm/yarn/pnpm. Contract: [INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md) |
+| `--sandbox` | Deny file, network, environment, and child-process access by default |
+| `--allow-read <path>` / `--allow-write <path>` | Allow one exact path (repeatable) |
+| `--allow-net <host>` / `--allow-listen <host>` | Allow outbound connections or listeners for a host or URL |
+| `--allow-env <NAME>` / `--allow-run <command>` | Allow one variable or one command |
+| `--deny-fs`, `--deny-net`, `--deny-env`, `--deny-run` | Deny one capability without the full sandbox |
+| `--permission-policy <file>` | Load allow and deny rules from JSON |
+| `--audit-log <file>` | Append each permission decision as JSONL |
+| `--seed <u64>` | Seed `Math.random`, `crypto.getRandomValues`, and `crypto.randomBytes` |
+| `--freeze-time <spec>` | Freeze `Date.now`, `new Date()`, and `performance.now` |
+| `--timeout <ms>` / `--max-memory <MB>` | Stop runaway scripts |
 
-`amber compile` copies this machine's `amber` and writes a bundled script plus an `AMBER_STANDALONE` trailer. Linux and Windows append it. macOS stores it in a `__AMBER` segment before `__LINKEDIT`, then ad-hoc `codesign`. Dynamic `import()`, computed `require()`, and `.node` addons fail the compile. `AMBER_STANDALONE` is not an environment variable. Not pkg/nexe/Bun parity.
+See [Agent sandbox](/docs/agent-sandbox) for examples.
 
-```bash
-amber compile app.ts -o myapp
-./myapp
-```
+## Experimental commands
 
-### `amber run`
+These commands exist, but they are outside the Stable scope. Expect rough edges.
 
-```bash
-amber run app.ts
-amber run app.js -- arg1 arg2
-amber run --watch --debounce 200 app.ts
-amber run --preload ./setup.js app.js
-amber run --sandbox --permission-policy policy.json app.ts
-amber run --inspect-brk app.ts
-```
-
-Useful flags:
-
-| Flag | Purpose |
+| Command | Notes |
 | :--- | :--- |
-| `-w, --watch` | Restart on change |
-| `--debounce <ms>` | Watch debounce (default 100) |
-| `-r, --preload <module>` | Load before the entry |
-| `--timeout <ms>` | CPU watchdog |
-| `--max-memory <mb>` | V8 heap cap |
-| `--seed <u64>` | Deterministic `Math.random` |
-| `--freeze-time <spec>` | Freeze `Date.now` / `performance.now` |
-| `--sandbox` | Deny fs / net / env / run, then `--allow-*` |
-| `--permission-policy <file>` | JSON policy (alias `--policy`) |
-| `--inspect` / `--inspect-brk` | CDP on `127.0.0.1:9229` (Preview) |
+| `amber debug <file>` | Older debug entry point. Use `amber run --inspect` instead. |
+| `amber init`, `amber create` | Project scaffolding |
+| `amber add`, `amber remove`, `amber prune`, `amber upgrade` | Package edits outside the `amber install` contract |
+| `amber x <pkg>` (aliases `dlx`, `bunx`) | Run a package binary without installing |
+| `amber test --parallel` | Rejected with exit code 2. V8 isolates are not shared across threads. |
 
-`amber test --parallel` is rejected (exit code 2).
+## Present but not classified
 
----
+The binary also includes these commands. `CURRENT_SCOPE.md` does not classify them yet, so this manual treats them as Experimental: `amber fmt`, `amber lint`, `amber bench`, `amber task`, `amber types`, `amber lsp`, `amber profile`, `amber deploy`, `amber record`, and `amber replay`, plus the `--import-map` and `--virtual-fs` flags. See [Experimental](/docs/experimental).
 
-## Preview
+## Exit codes
 
-Present in the default binary; the contract is still tightening.
-
-| Command | What it does |
-| :--- | :--- |
-| `amber serve [file]` | WinterCG `fetch` handler. `--https --cert --key` is rustls HTTP/1.1. |
-| TypeScript / TSX | oxc type-strip, not `tsc` |
-| `--inspect` / `--inspect-brk` | CDP `Runtime.evaluate` |
-
-```bash
-amber serve app.js --host 127.0.0.1 --port 3000
-```
-
-`amber bundle` and `amber compile` are **Stable**: [bundle & compile](/docs/bundling-compilation). `amber install` is **Stable** for the subset in [INSTALL_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md). It does not replace npm, yarn, or pnpm.
-
----
-
-## Experimental
-
-Do **not** treat these as product promises. They exist on the CLI; behavior may be incomplete.
-
-`debug`, `record`, `replay`, `init`, `create`, `add`, `remove`, `prune`, `x`, `upgrade`, `fmt`, `lint`, `bench`, `types`, `task`, `profile`, `lsp`, `deploy`.
-
-`amber install` is not in this list. It is the Stable command above, and it is not a full package-manager replacement.
-
-Chrome DevTools attach should use `amber run --inspect`, not `amber debug`.
-
----
-
-## Permission flags
-
-Default is still allow-all unless `--sandbox` or `--deny-*` is set.
-
-```bash
-amber eval --deny-fs "require('fs').readFileSync('secret.txt', 'utf8')"
-amber run --deny-fs --allow-read config.json app.js
-amber eval --deny-net --allow-net example.com "fetch('https://example.com')"
-```
-
-Policy file (relative paths resolve from the policy file directory):
-
-```json
-{
-  "permissions": {
-    "deny_fs": true,
-    "allow_read": ["./config.json"],
-    "allow_write": ["./out"],
-    "deny_net": true,
-    "allow_net": ["api.example.com"],
-    "deny_env": true,
-    "allow_env": ["PUBLIC_TOKEN"],
-    "deny_run": true,
-    "allow_run": ["git"]
-  }
-}
-```
-
-More: [agent sandbox](/docs/agent-sandbox).
+Contracted failures print a prefix such as `error: amber serve:` or `error: amber install:` and exit non-zero. Misuse of a flag, such as `amber test --parallel`, exits 2.

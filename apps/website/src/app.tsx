@@ -4,6 +4,7 @@ import Home from "./routes/index";
 import Docs from "./routes/docs";
 import Blog from "./routes/blog";
 import Play from "./routes/play";
+import Compatibility from "./routes/compatibility";
 
 export function AppRoutes() {
   return (
@@ -12,6 +13,7 @@ export function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/docs/:section" element={<Docs />} />
+        <Route path="/compatibility" element={<Compatibility />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<Blog />} />
         <Route path="/play" element={<Play />} />

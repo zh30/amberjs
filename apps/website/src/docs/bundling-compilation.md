@@ -1,84 +1,50 @@
 ---
-title: "Bundle & compile"
-subtitle: "Stable amber bundle and Stable SEA amber compile"
-group: "Developer Tooling"
+title: "Bundle and compile"
+nav: "Bundle & compile"
+subtitle: "amber bundle packs a module graph into one file. amber compile turns it into a single executable for this host."
+status: "stable"
 id: "bundling-compilation"
 ---
 
-Two packaging tools:
+## amber bundle
 
-1. **`amber bundle`** — **Stable**. Pack a local JS/TS/JSON graph into one IIFE
-2. **`amber compile`** — **Stable**. Copy the host `amber` binary and embed a script payload (SEA)
-
-`amber bundle` is not webpack / rollup / esbuild parity. Full contract: [BUNDLE_CONTRACT.md](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md). `amber compile` is not pkg, nexe, or Bun compile. The SEA contract is [`docs/COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md). `amber install` is a separate **Stable** subset, not an npm replacement: [`docs/INSTALL_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/INSTALL_CONTRACT.md).
-
----
-
-## `amber bundle`
+`amber bundle` is **Stable** (G1) for the contract in [`docs/BUNDLE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/BUNDLE_CONTRACT.md).
 
 ```bash
-amber bundle src/index.ts -o dist/bundle.js
-amber bundle src/index.ts -o dist/bundle.min.js --minify
-amber bundle src/index.ts -o dist/bundle.js --sourcemap
+amber bundle src/index.ts -o dist/app.js
+amber bundle src/index.ts -o dist/app.js --minify --sourcemap
 ```
 
-Contract (pinned by `tests/bundle_contract_tests.rs`):
+It reads static `import` and `require` calls from a local JS, TS, or JSON graph and writes one IIFE with oxc.
 
-- Single file entry. Static `import` / `export from` / `require("...")` only
-- Inlines `.js` / `.mjs` / `.cjs` / `.jsx` / `.ts` / `.tsx` / `.mts` / `.cts` / `.json`
-- Unresolved bare specifiers stay runtime `require()` (Node builtins, missing packages)
-- Unresolved `./` / `../` and non-JS/JSON assets fail with `error: amber bundle:` and do not write the outfile
-- `--sourcemap` writes SourceMap v3 `<name>.map` with `sources` listed and `mappings` empty
-- `--target` is a header comment; `--tree-shake` is accepted and ignored
-- `node_modules` uses `package.json` `"main"` only (not `"exports"`)
+### Limits
 
-Out of scope: code splitting, CSS/image/Wasm pipelines, dynamic `import()`, full Node ecosystem bundling.
+- Only static `import` and `require` are followed.
+- Unresolved bare specifiers stay as runtime `require()` calls.
+- A missing relative import or a non-JS/JSON asset fails with `error: amber bundle:`.
+- `--sourcemap` writes a SourceMap v3 file that lists sources, but `mappings` is empty.
+- `--target` only writes a header comment. `--tree-shake` is accepted and ignored.
+- Only `package.json` `"main"` is used, not `"exports"`.
 
----
+This is not webpack, Rollup, or esbuild.
 
-## `amber compile` (Stable)
+## amber compile
+
+`amber compile` is **Stable** (G2) for the contract in [`docs/COMPILE_CONTRACT.md`](https://github.com/zh30/amberjs/blob/main/docs/COMPILE_CONTRACT.md).
 
 ```bash
-amber compile app.ts -o myapp
-./myapp
+amber compile src/cli.ts -o mytool
+./mytool --help
 ```
 
-Linux, macOS, and Windows hosts only. The output is a copy of **this** `amber` plus a trailer. It is not cross-compiled and not freestanding: it needs the same dynamic linker as the `amber` that built it. Other operating systems fail with `unsupported host OS` and write nothing.
+It copies the running `amber` executable and appends the bundled script with an `AMBER_STANDALONE` trailer. On macOS the payload goes in a `__AMBER` Mach-O segment and the binary is ad-hoc signed.
 
-On Linux and Windows the trailer is the last 32 bytes of the file. On macOS those same bytes are the end of a `__AMBER` segment inserted before `__LINKEDIT`; ad-hoc `codesign` then appends a signature, which is the end of the file.
+### Limits
 
-Layout:
+- Linux, macOS, and Windows hosts only. There is no cross-compilation.
+- The output uses the same dynamic linker as the `amber` that built it.
+- Native `.node` addons are rejected.
+- Dynamic `import()` and computed `require()` fail the compile.
+- There is no embedded virtual filesystem. `--help` and `--version` are passed through to your script.
 
-```text
-+---------------------------------------------------------------+
-|  host amber executable (unmodified copy)                      |
-+---------------------------------------------------------------+
-|  UTF-8 bundled script                                         |
-+---------------------------------------------------------------+
-|  payload length (u64 LE)  |  flags (u64 LE, must be 0)        |
-+---------------------------------------------------------------+
-|  magic AMBER_STANDALONE (16 bytes)                            |
-+---------------------------------------------------------------+
-```
-
-`AMBER_STANDALONE` is that magic. It is not an environment variable. On boot, a valid trailer runs the payload and skips the CLI, so `--help` and `--version` are script arguments. `process.argv[0]` and `process.argv[1]` are both the executable path.
-
-Contracted failures print a line starting with `error: amber compile:` (or `error: amber standalone:` once the binary is running) and do not leave a half-written output.
-
-Limits, all explicit:
-
-- dynamic `import()` and computed `require(expr)` fail the compile
-- `.node` native addons are rejected, not embedded
-- no virtual filesystem; workers and `fs` paths are the real disk
-- macOS inserts segment `__AMBER`, then ad-hoc `codesign`; if either step fails, the compile fails
-- not pkg / nexe / Bun compile parity
-
----
-
-## Status
-
-| | Status |
-| :--- | :--- |
-| `amber bundle` | **Stable** (limits in the contract above) |
-| `amber compile` | **Stable** |
-| Tests | `tests/bundle_contract_tests.rs`, `tests/compile_contract_tests.rs`, `tests/bundle_compile_tests.rs` |
+This is not pkg, nexe, or `bun build --compile`.

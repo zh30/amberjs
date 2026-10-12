@@ -11,6 +11,8 @@
   --text-secondary: #3f3f46;
   --text-muted: #52525b;
   --line: #e4e4e7;
+  --line-strong: #d4d4d8;
+  --bg-raised: #ffffff;
   --honey: #f0c000;
   --honey-ink: #14120b;
   --honey-text: #7a5b00;
@@ -28,6 +30,8 @@
   --text-secondary: #d4d4d8;
   --text-muted: #a1a1aa;
   --line: #27272a;
+  --line-strong: #3f3f46;
+  --bg-raised: #141413;
   --honey: #f0c000;
   --honey-ink: #14120b;
   --honey-text: #f0c000;
