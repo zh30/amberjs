@@ -62,6 +62,18 @@ export const fr: TranslationSchema = {
     issues: "Issues",
     releases: "Versions",
     license: "Licence MIT",
+    agents: {
+      title: "Pour les agents IA",
+      intro: "Ce site en Markdown brut, pour les LLM et les agents de code.",
+      llms: "llms.txt (index)",
+      llmsFull: "llms-full.txt (tout)",
+      overview: "Présentation (.md)",
+      compatibility: "Compatibilité (.md)",
+      install: "Installation (.md)",
+      cli: "Référence CLI (.md)",
+      ask: "Demander à une IA à propos d’Amber",
+      prompt: "Lis https://amberjs.com/llms.txt et explique en français ce qu’est Amber, comment l’installer et ce qui est Stable ou Preview.",
+    },
   },
   home: {
     eyebrow: "Open source · Rust + V8 · MIT",

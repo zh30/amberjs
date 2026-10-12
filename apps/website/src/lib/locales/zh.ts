@@ -61,6 +61,18 @@ export const zh: TranslationSchema = {
     issues: "问题反馈",
     releases: "版本发布",
     license: "MIT 许可证",
+    agents: {
+      title: "面向 AI 智能体",
+      intro: "本站的纯文本 Markdown 版本，供大模型与编码智能体读取。",
+      llms: "llms.txt（索引）",
+      llmsFull: "llms-full.txt（全文）",
+      overview: "概览（.md）",
+      compatibility: "兼容性（.md）",
+      install: "安装（.md）",
+      cli: "CLI 参考（.md）",
+      ask: "让 AI 介绍 Amber",
+      prompt: "请阅读 https://amberjs.com/llms.txt，用中文说明 Amber 是什么、如何安装，以及哪些能力是 Stable、哪些是 Preview。",
+    },
   },
   home: {
     eyebrow: "开源 · Rust + V8 · MIT",

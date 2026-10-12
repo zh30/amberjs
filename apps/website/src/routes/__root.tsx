@@ -124,6 +124,24 @@ const NAV_LINKS = [
   { to: "/play", key: "play" },
 ] as const;
 
+const AGENT_DOCS = [
+  { key: "llms", href: "/llms.txt" },
+  { key: "llmsFull", href: "/llms-full.txt" },
+  { key: "overview", href: "/index.md" },
+  { key: "compatibility", href: "/compatibility.md" },
+  { key: "install", href: "/docs/installation.md" },
+  { key: "cli", href: "/docs/cli-usage.md" },
+] as const;
+
+// Only chat apps whose URL query actually prefills a prompt; gemini.google.com/app
+// ignores ?q=, so Gemini is reached through Google AI Mode (udm=50) instead.
+const ASK_AI = [
+  { name: "ChatGPT", base: "https://chatgpt.com/?q=" },
+  { name: "Claude", base: "https://claude.ai/new?q=" },
+  { name: "Perplexity", base: "https://www.perplexity.ai/search?q=" },
+  { name: "Google AI Mode", base: "https://www.google.com/search?udm=50&q=" },
+] as const;
+
 function isActive(pathname: string, to: string) {
   return pathname === to || pathname.startsWith(`${to}/`);
 }
@@ -331,6 +349,49 @@ function RootLayoutInner() {
               </div>
             ))}
           </div>
+          <section
+            aria-labelledby="footer-agents"
+            className="site-shell grid gap-6 border-t border-[var(--line)] py-8 text-sm md:grid-cols-[1.4fr_3fr]"
+          >
+            <div className="max-w-xs">
+              <h2 id="footer-agents" className="meta uppercase tracking-wider">
+                {copy.footer.agents.title}
+              </h2>
+              <p className="mt-3 text-[var(--text-muted)]">
+                {copy.footer.agents.intro}
+              </p>
+            </div>
+            <div className="grid gap-5">
+              <ul className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-[13px]">
+                {AGENT_DOCS.map((doc) => (
+                  <li key={doc.href}>
+                    <a
+                      href={doc.href}
+                      className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline"
+                    >
+                      {copy.footer.agents[doc.key]}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="text-[var(--text-muted)]">
+                  {copy.footer.agents.ask}
+                </span>
+                {ASK_AI.map((ai) => (
+                  <a
+                    key={ai.name}
+                    href={`${ai.base}${encodeURIComponent(copy.footer.agents.prompt)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md border border-[var(--line)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]"
+                  >
+                    {ai.name}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </section>
           <div className="border-t border-[var(--line)]">
             <div className="site-shell flex flex-col gap-2 py-5 text-xs text-[var(--text-muted)] sm:flex-row sm:justify-between">
               <span>© {new Date().getFullYear()} Amber contributors · MIT</span>

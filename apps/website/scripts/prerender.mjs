@@ -6,6 +6,7 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { markdownPathFor, writeAgentDocs } from "./agent-docs.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -442,7 +443,8 @@ function checkLegacyRedirectRouting() {
 export async function prerender() {
   checkLegacyRedirectRouting();
   const ssrUrl = pathToFileURL(join(ROOT, "dist-ssr/entry-server.js")).href;
-  const { render } = await import(ssrUrl);
+  const ssr = await import(ssrUrl);
+  const { render } = ssr;
   const template = readFileSync(join(DIST, "index.html"), "utf8");
   const docs = loadDocs();
   const posts = loadPosts();
@@ -455,11 +457,26 @@ export async function prerender() {
     ...docs.map((d) => `/docs/${d.id}`),
     ...posts.map((p) => `/blog/${p.slug}`),
   ];
+  const markdownRoutes = new Set(
+    writeAgentDocs({
+      dist: DIST,
+      repoRoot: join(ROOT, "../.."),
+      docs,
+      posts,
+      ssr,
+    }),
+  );
   for (const path of urls) {
     const page = renderRoute(path);
     if (!page) continue;
     const appHtml = render(path);
-    const html = injectRoot(applyHead(template, page), appHtml);
+    let html = injectRoot(applyHead(template, page), appHtml);
+    if (markdownRoutes.has(path)) {
+      html = html.replace(
+        /(<link rel="canonical" href="[^"]*" \/>)/,
+        `$1\n  <link rel="alternate" type="text/markdown" href="${SITE}${markdownPathFor(path)}" />`,
+      );
+    }
     if (path === "/") {
       writeFileSync(join(DIST, "index.html"), html);
       continue;
@@ -469,7 +486,7 @@ export async function prerender() {
   }
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url>\n    <loc>${SITE}${u}</loc>\n  </url>`).join("\n")}
+${[...urls, "/llms.txt"].map((u) => `  <url>\n    <loc>${SITE}${u}</loc>\n  </url>`).join("\n")}
 </urlset>\n`;
   writeFileSync(join(DIST, "sitemap.xml"), sitemap);
   console.log(`ssg ${urls.length} routes`);
