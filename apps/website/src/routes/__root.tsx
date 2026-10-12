@@ -133,12 +133,13 @@ const AGENT_DOCS = [
   { key: "cli", href: "/docs/cli-usage.md" },
 ] as const;
 
-// Only chat apps whose URL query actually prefills a prompt.
+// Only chat apps whose URL query actually prefills a prompt; gemini.google.com/app
+// ignores ?q=, so Gemini is reached through Google AI Mode (udm=50) instead.
 const ASK_AI = [
   { name: "ChatGPT", base: "https://chatgpt.com/?q=" },
   { name: "Claude", base: "https://claude.ai/new?q=" },
   { name: "Perplexity", base: "https://www.perplexity.ai/search?q=" },
-  { name: "Gemini", base: "https://gemini.google.com/app?q=" },
+  { name: "Google AI Mode", base: "https://www.google.com/search?udm=50&q=" },
 ] as const;
 
 function isActive(pathname: string, to: string) {
