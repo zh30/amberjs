@@ -230,5 +230,10 @@ export const zh: TranslationSchema = {
     readMore: "阅读全文",
     notFound: "未找到相关文章",
     fallbackNote: "",
+    historicalBadge: "历史文章",
+    historicalNote:
+      "历史说明：本文中的基准与性能数字均为历史记录，未在当前 main 上复现，不代表当前产品承诺。Amber 当前支持的能力请见",
+    historicalLink: "兼容性与能力范围",
+    historicalSuffix: "。",
   },
 };

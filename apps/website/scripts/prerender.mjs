@@ -420,7 +420,27 @@ export function applyPage(template, page) {
   return injectRoot(applyHead(template, page), page.body);
 }
 
+/** run_worker_first must list every retired doc path, or its 301 never runs. */
+function checkLegacyRedirectRouting() {
+  const nav = readFileSync(join(ROOT, "src/lib/docs-nav.ts"), "utf8");
+  const block = nav.slice(nav.indexOf("LEGACY_DOC_REDIRECTS"));
+  const ids = [...block.matchAll(/^\s+"?([a-z0-9-]+)"?:\s*"[a-z0-9-]+",?$/gm)].map(
+    (m) => m[1],
+  );
+  const wrangler = readFileSync(join(ROOT, "wrangler.toml"), "utf8");
+  const missing = ids.filter(
+    (id) =>
+      !wrangler.includes(`"/docs/${id}"`) || !wrangler.includes(`"/docs/${id}/"`),
+  );
+  if (!ids.length || missing.length) {
+    throw new Error(
+      `wrangler.toml run_worker_first is missing legacy doc paths: ${missing.join(", ") || "(none parsed)"}`,
+    );
+  }
+}
+
 export async function prerender() {
+  checkLegacyRedirectRouting();
   const ssrUrl = pathToFileURL(join(ROOT, "dist-ssr/entry-server.js")).href;
   const { render } = await import(ssrUrl);
   const template = readFileSync(join(DIST, "index.html"), "utf8");

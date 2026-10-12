@@ -5,6 +5,7 @@ date: "2026-07-27"
 author: "Amber Core Team"
 readTime: "3 min read"
 tag: "Release"
+historical: "true"
 ---
 
 # Full-Site i18n & 3-Year Technical Roadmap Announced

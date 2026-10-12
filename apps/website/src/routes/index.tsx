@@ -156,7 +156,7 @@ function InstallCard() {
         ))}
       </div>
       <div className="flex items-start gap-3 px-4 py-4">
-        <pre className="m-0 min-w-0 flex-1 overflow-x-auto font-mono text-[13px] leading-relaxed">
+        <pre className="m-0 min-w-0 flex-1 overflow-x-auto whitespace-pre-wrap break-all font-mono text-[13px] leading-relaxed sm:whitespace-pre sm:break-normal">
           <code>
             <span className="select-none text-[var(--honey)]">$ </span>
             {INSTALL[tab]}
@@ -250,7 +250,7 @@ export default function HomeComponent() {
             </p>
             <h1 className="mt-6 max-w-[18ch] text-[clamp(2.5rem,6vw,4.25rem)] font-bold leading-[1.04] tracking-[-0.03em]">
               {home.titleLead}
-              <span className="underline decoration-[var(--honey-ink)]/30 decoration-[0.12em] underline-offset-[0.14em]">
+              <span className="underline decoration-[var(--honey-ink)]/30 decoration-[0.12em] underline-offset-[0.14em] [text-decoration-skip-ink:none]">
                 {home.titleAccent}
               </span>
             </h1>

@@ -245,5 +245,10 @@ export const fr: TranslationSchema = {
     notFound: "Article introuvable",
     fallbackNote:
       "Cet article technique est temporairement affiché en anglais.",
+    historicalBadge: "Article historique",
+    historicalNote:
+      "Avis historique : les chiffres de performance et de benchmark de cet article sont historiques. Ils n’ont pas été reproduits sur le main actuel et ne constituent pas des engagements produit. Pour savoir ce qu’Amber prend en charge aujourd’hui, consultez ",
+    historicalLink: "Compatibilité et périmètre",
+    historicalSuffix: ".",
   },
 };

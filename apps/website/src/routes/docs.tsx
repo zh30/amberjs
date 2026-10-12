@@ -121,6 +121,10 @@ function PreBlock({ children }: { children?: ReactNode }) {
   const extractText = (node: ReactNode): string => nodeText(node);
 
   const text = extractText(children).trim();
+  const codeClass = isValidElement<{ className?: string }>(children)
+    ? children.props.className
+    : undefined;
+  const language = codeClass?.match(/language-([\w-]+)/)?.[1] ?? "code";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
@@ -133,12 +137,12 @@ function PreBlock({ children }: { children?: ReactNode }) {
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5 font-mono text-[12px] text-[var(--code-fg)]">
         <span className="flex items-center gap-1.5">
           <Terminal className="h-3.5 w-3.5 opacity-70" />
-          <span>code</span>
+          <span>{language}</span>
         </span>
         <button
           onClick={handleCopy}
           aria-label="Copy code"
-          className="hover:text-white"
+          className="inline-flex items-center gap-1.5 hover:text-white"
         >
           {copied ? (
             <>
@@ -153,7 +157,7 @@ function PreBlock({ children }: { children?: ReactNode }) {
           )}
         </button>
       </div>
-      <pre className="m-0 overflow-x-auto bg-transparent p-5 font-mono text-[13px] leading-relaxed text-[var(--code-fg)]">
+      <pre className="m-0! overflow-x-auto rounded-none! bg-transparent! p-5! font-mono text-[13px] leading-relaxed text-[var(--code-fg)]">
         {children}
       </pre>
     </div>
@@ -216,7 +220,7 @@ function BlockquoteBlock({ children }: { children?: ReactNode }) {
 function TableBlock({ children }: { children?: ReactNode }) {
   return (
     <div className="my-6 overflow-x-auto border border-[var(--line)]">
-      <table className="w-full text-left border-collapse text-xs sm:text-sm m-0">
+      <table className="m-0! w-full border-collapse text-left text-xs sm:text-sm">
         {children}
       </table>
     </div>
@@ -464,7 +468,7 @@ export default function DocsComponent() {
                           id={id}
                           className="mb-4 mt-12 scroll-mt-24 border-b border-[var(--line)] pb-2 text-2xl font-bold tracking-tight"
                         >
-                          <a href={`#${id}`} className="text-inherit no-underline hover:underline">
+                          <a href={`#${id}`} className="text-inherit no-underline! hover:underline!">
                             {children}
                           </a>
                         </h2>
@@ -477,7 +481,7 @@ export default function DocsComponent() {
                           id={id}
                           className="mb-3 mt-8 scroll-mt-24 text-lg font-bold tracking-tight"
                         >
-                          <a href={`#${id}`} className="text-inherit no-underline hover:underline">
+                          <a href={`#${id}`} className="text-inherit no-underline! hover:underline!">
                             {children}
                           </a>
                         </h3>

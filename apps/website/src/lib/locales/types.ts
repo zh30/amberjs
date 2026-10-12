@@ -181,5 +181,9 @@ export interface TranslationSchema {
     readMore: string;
     notFound: string;
     fallbackNote: string;
+    historicalBadge: string;
+    historicalNote: string;
+    historicalLink: string;
+    historicalSuffix: string;
   };
 }

@@ -245,5 +245,10 @@ export const es: TranslationSchema = {
     notFound: "Entrada no encontrada",
     fallbackNote:
       "Este artículo técnico se encuentra disponible temporalmente en inglés.",
+    historicalBadge: "Entrada histórica",
+    historicalNote:
+      "Aviso histórico: las cifras de rendimiento y benchmarks de esta entrada son históricas. No se han reproducido en el main actual y no son afirmaciones vigentes del producto. Para ver lo que Amber admite hoy, consulta ",
+    historicalLink: "Compatibilidad y alcance",
+    historicalSuffix: ".",
   },
 };

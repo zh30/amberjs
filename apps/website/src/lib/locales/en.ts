@@ -244,5 +244,10 @@ export const en: TranslationSchema = {
     readMore: "Read post",
     notFound: "Post not found",
     fallbackNote: "",
+    historicalBadge: "Historical post",
+    historicalNote:
+      "Historical notice: benchmark and performance figures in this post are historical. They have not been reproduced on current main and are not current product claims. For what Amber supports today, see ",
+    historicalLink: "Compatibility & scope",
+    historicalSuffix: ".",
   },
 };

@@ -5,7 +5,79 @@ compatibility_date = "2024-11-01"
 # like /docs and /blog. Real files (robots.txt, sitemap.xml, images) are served first.
 # The ASSETS binding is required so the Worker can fetch static files without 1101 errors.
 main = "src/worker.ts"
-assets = { directory = "./dist", binding = "ASSETS", html_handling = "auto-trailing-slash", not_found_handling = "single-page-application" }
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+html_handling = "auto-trailing-slash"
+not_found_handling = "single-page-application"
+# Retired doc URLs must reach the Worker so it can 301 them; every other path is
+# served from assets directly. Keep in sync with LEGACY_DOC_REDIRECTS in
+# src/lib/docs-nav.ts (scripts/prerender.mjs fails the build if they drift).
+run_worker_first = [
+  "/docs/jit-optimization",
+  "/docs/jit-optimization/",
+  "/docs/types-lsp",
+  "/docs/types-lsp/",
+  "/docs/testing-benchmarking",
+  "/docs/testing-benchmarking/",
+  "/docs/debugging-lsp",
+  "/docs/debugging-lsp/",
+  "/docs/package-manager-dlx",
+  "/docs/package-manager-dlx/",
+  "/docs/v8-isolate-pool",
+  "/docs/v8-isolate-pool/",
+  "/docs/memory-management",
+  "/docs/memory-management/",
+  "/docs/framework-compat",
+  "/docs/framework-compat/",
+  "/docs/api-reference",
+  "/docs/api-reference/",
+  "/docs/modules",
+  "/docs/modules/",
+  "/docs/hardened-sandbox",
+  "/docs/hardened-sandbox/",
+  "/docs/capability-security",
+  "/docs/capability-security/",
+  "/docs/virtual-fs-sandbox",
+  "/docs/virtual-fs-sandbox/",
+  "/docs/isolate-pool",
+  "/docs/isolate-pool/",
+  "/docs/ai-embeddings",
+  "/docs/ai-embeddings/",
+  "/docs/slm-inference",
+  "/docs/slm-inference/",
+  "/docs/embedded-db",
+  "/docs/embedded-db/",
+  "/docs/standard-library",
+  "/docs/standard-library/",
+  "/docs/deployment-docker",
+  "/docs/deployment-docker/",
+  "/docs/ide-extension",
+  "/docs/ide-extension/",
+  "/docs/task-runner",
+  "/docs/task-runner/",
+  "/docs/code-quality",
+  "/docs/code-quality/",
+  "/docs/agent-replay",
+  "/docs/agent-replay/",
+  "/docs/model-weights",
+  "/docs/model-weights/",
+  "/docs/kv-store",
+  "/docs/kv-store/",
+  "/docs/tool-synthesis",
+  "/docs/tool-synthesis/",
+  "/docs/agent-bus",
+  "/docs/agent-bus/",
+  "/docs/streaming-grammar",
+  "/docs/streaming-grammar/",
+  "/docs/agent-checkpoint",
+  "/docs/agent-checkpoint/",
+  "/docs/ffi-native",
+  "/docs/ffi-native/",
+  "/docs/import-maps-native",
+  "/docs/import-maps-native/",
+]
 
 [[routes]]
 pattern = "amberjs.com"
