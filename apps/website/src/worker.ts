@@ -74,6 +74,14 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
+    if (path === "/llms.txt" || path === "/llms-full.txt") {
+      const res = await env.ASSETS.fetch(request);
+      const headers = new Headers(res.headers);
+      headers.set("content-type", "text/plain; charset=utf-8");
+      headers.set("access-control-allow-origin", "*");
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     if (path.endsWith(".md")) {
       const res = await env.ASSETS.fetch(request);
       const type = res.headers.get("content-type") || "";
