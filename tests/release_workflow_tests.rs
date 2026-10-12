@@ -843,6 +843,51 @@ fn windows_os_uptime_uses_gettickcount64_not_sys_info_boottime() {
     );
 }
 
+/// windows-sys 0.52 does not export `GetComputerNameW` from SystemInformation
+/// or `gai_strerrorA` from WinSock. Windows Smoke (`cargo build --release` on
+/// windows-latest) fails closed on those paths.
+#[test]
+fn windows_hostname_and_dns_match_windows_sys_0_52() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let os = fs::read_to_string(root.join("src/nodejs_core/os.rs")).unwrap();
+    let dns = fs::read_to_string(root.join("src/nodejs_core/dns.rs")).unwrap();
+    let cargo = fs::read_to_string(root.join("Cargo.toml")).unwrap();
+
+    let host = snippet_after(&os, "fn host_hostname", 1200);
+    assert!(
+        host.contains("Win32::System::WindowsProgramming::GetComputerNameW"),
+        "GetComputerNameW is in WindowsProgramming on windows-sys 0.52: {host}"
+    );
+    assert!(
+        !host.contains("SystemInformation::GetComputerNameW"),
+        "SystemInformation has GetComputerNameExW, not GetComputerNameW: {host}"
+    );
+    assert!(
+        cargo.contains("Win32_System_WindowsProgramming"),
+        "GetComputerNameW needs windows-sys feature Win32_System_WindowsProgramming"
+    );
+
+    let reverse = snippet_after(&dns, "#[cfg(windows)]\nfn reverse_lookup_addr", 2200);
+    assert!(
+        reverse.contains("getnameinfo"),
+        "dns.reverse must stay a real getnameinfo PTR lookup: {reverse}"
+    );
+    assert!(
+        !reverse.contains("WinSock::gai_strerrorA") && !reverse.contains("*mut i8"),
+        "windows-sys 0.52 PSTR is *mut u8 and WinSock has no gai_strerrorA: {reverse}"
+    );
+    assert!(
+        dns.contains("extern \"system\" {\n    fn gai_strerrorA(ecode: i32) -> *const i8;"),
+        "format getnameinfo failures with ws2_32 gai_strerrorA"
+    );
+
+    let servers = snippet_after(&dns, "fn read_windows_dns_servers", 1400);
+    assert!(
+        servers.contains("*const IP_ADDR_STRING"),
+        "DnsServerList cursor must name IP_ADDR_STRING (Next is *mut): {servers}"
+    );
+}
+
 #[test]
 fn linux_amber_exports_napi_symbols_via_per_binary_flag() {
     let build = fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("build.rs"))

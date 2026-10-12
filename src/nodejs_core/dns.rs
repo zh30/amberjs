@@ -84,12 +84,20 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
     Ok(vec![hostname])
 }
 
+/// windows-sys 0.52 WinSock does not declare `gai_strerrorA`. The export is in
+/// ws2_32 and formats the code `getnameinfo` returns (same role as `libc::gai_strerror`).
+#[cfg(windows)]
+#[link(name = "ws2_32")]
+extern "system" {
+    fn gai_strerrorA(ecode: i32) -> *const i8;
+}
+
 #[cfg(windows)]
 fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
     use std::ffi::CStr;
     use windows_sys::Win32::Networking::WinSock::{
-        gai_strerrorA, getnameinfo, AF_INET, AF_INET6, NI_MAXHOST, NI_NAMEREQD, SOCKADDR,
-        SOCKADDR_IN, SOCKADDR_IN6,
+        getnameinfo, AF_INET, AF_INET6, NI_MAXHOST, NI_NAMEREQD, SOCKADDR, SOCKADDR_IN,
+        SOCKADDR_IN6,
     };
 
     let mut hostbuf = [0u8; NI_MAXHOST as usize];
@@ -98,16 +106,16 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
     let rc = match addr {
         IpAddr::V4(v4) => {
             let mut sa: SOCKADDR_IN = unsafe { std::mem::zeroed() };
-            sa.sin_family = AF_INET as _;
+            sa.sin_family = AF_INET;
             sa.sin_port = 0;
             unsafe {
                 sa.sin_addr.S_un.S_addr = u32::from(v4).to_be();
                 getnameinfo(
                     &sa as *const _ as *const SOCKADDR,
                     std::mem::size_of_val(&sa) as i32,
-                    hostbuf.as_mut_ptr() as *mut i8,
+                    hostbuf.as_mut_ptr(),
                     hostbuf.len() as u32,
-                    servbuf.as_mut_ptr() as *mut i8,
+                    servbuf.as_mut_ptr(),
                     servbuf.len() as u32,
                     NI_NAMEREQD as i32,
                 )
@@ -115,7 +123,7 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
         }
         IpAddr::V6(v6) => {
             let mut sa: SOCKADDR_IN6 = unsafe { std::mem::zeroed() };
-            sa.sin6_family = AF_INET6 as _;
+            sa.sin6_family = AF_INET6;
             sa.sin6_port = 0;
             sa.sin6_flowinfo = 0;
             unsafe {
@@ -123,9 +131,9 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
                 getnameinfo(
                     &sa as *const _ as *const SOCKADDR,
                     std::mem::size_of_val(&sa) as i32,
-                    hostbuf.as_mut_ptr() as *mut i8,
+                    hostbuf.as_mut_ptr(),
                     hostbuf.len() as u32,
-                    servbuf.as_mut_ptr() as *mut i8,
+                    servbuf.as_mut_ptr(),
                     servbuf.len() as u32,
                     NI_NAMEREQD as i32,
                 )
@@ -139,9 +147,7 @@ fn reverse_lookup_addr(addr: IpAddr, ip: &str) -> Result<Vec<String>, String> {
             if ptr.is_null() {
                 format!("getnameinfo failed ({rc})")
             } else {
-                CStr::from_ptr(ptr as *const i8)
-                    .to_string_lossy()
-                    .into_owned()
+                CStr::from_ptr(ptr).to_string_lossy().into_owned()
             }
         };
         return Err(format!("Error: dns.reverse {} - {}", ip, detail));
@@ -170,6 +176,7 @@ fn read_dns_servers() -> Vec<String> {
     }
 }
 
+#[cfg(unix)]
 fn read_resolv_conf_nameservers(path: &str) -> Vec<String> {
     let Ok(text) = std::fs::read_to_string(path) else {
         return Vec::new();
@@ -196,7 +203,9 @@ fn read_resolv_conf_nameservers(path: &str) -> Vec<String> {
 #[cfg(windows)]
 fn read_windows_dns_servers() -> Vec<String> {
     use windows_sys::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
-    use windows_sys::Win32::NetworkManagement::IpHelper::{GetNetworkParams, FIXED_INFO_W2KSP1};
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        GetNetworkParams, FIXED_INFO_W2KSP1, IP_ADDR_STRING,
+    };
 
     let mut size: u32 = 0;
     let first = unsafe { GetNetworkParams(std::ptr::null_mut(), &mut size) };
@@ -210,7 +219,9 @@ fn read_windows_dns_servers() -> Vec<String> {
     }
     let info = unsafe { &*(buf.as_ptr() as *const FIXED_INFO_W2KSP1) };
     let mut servers = Vec::new();
-    let mut node = &info.DnsServerList as *const _;
+    // Head is the embedded list node. `Next` is `*mut` and null after the last server,
+    // which does not unify with `as *const _` under windows-sys 0.52.
+    let mut node: *const IP_ADDR_STRING = &info.DnsServerList;
     while !node.is_null() {
         let entry = unsafe { &*node };
         let bytes = entry.IpAddress.String;
@@ -219,7 +230,7 @@ fn read_windows_dns_servers() -> Vec<String> {
         if !s.is_empty() {
             servers.push(s);
         }
-        node = entry.Next;
+        node = entry.Next.cast_const();
     }
     servers
 }

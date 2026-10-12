@@ -357,7 +357,9 @@ fn host_hostname() -> String {
     }
     #[cfg(windows)]
     {
-        use windows_sys::Win32::System::SystemInformation::GetComputerNameW;
+        // GetComputerNameW lives in WindowsProgramming in windows-sys 0.52
+        // (SystemInformation only has GetComputerNameExW / SetComputerNameW).
+        use windows_sys::Win32::System::WindowsProgramming::GetComputerNameW;
         let mut buf = [0u16; 256];
         let mut size = buf.len() as u32;
         let ok = unsafe { GetComputerNameW(buf.as_mut_ptr(), &mut size) };
