@@ -190,7 +190,7 @@ roxmltree = "0.20"
 # Stage 54.2 & Task 1.1: Native Local AI Inference (Candle / GGUF / SafeTensors)
 candle-core = { version = "0.8.2", default-features = false }
 candle-transformers = { version = "0.8.2", default-features = false }
-candle-nn = { version = "0.8.2", default-features = false }
+candle-nn = { version = "0.11.0", default-features = false }
 tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
 
 # Stage 54.3: PyTorch TorchScript dependencies
