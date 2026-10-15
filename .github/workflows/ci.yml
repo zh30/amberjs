@@ -25,6 +25,9 @@ jobs:
   checks:
     name: Format, Lint, Test, Package
     runs-on: ubuntu-latest
+    # The full suite is large; this bound is only so a hung test cannot
+    # occupy a runner for many hours. Individual tests must still fail fast.
+    timeout-minutes: 120
     steps:
       - name: Free disk space
         run: |
@@ -281,6 +284,7 @@ jobs:
 
   release-build:
     name: Release Build (${{ matrix.os }})
+    timeout-minutes: 60
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -323,6 +327,7 @@ jobs:
   windows-smoke:
     name: Windows Smoke
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -365,6 +370,7 @@ jobs:
   audit:
     name: cargo-audit
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v7
