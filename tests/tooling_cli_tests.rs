@@ -431,28 +431,59 @@ fn test_import_map_parser_and_bundler() {
 
 #[test]
 fn test_agent_timeout_watchdog() {
-    let mut runtime = amberjs::runtime_minimal::MinimalRuntime::new().expect("runtime");
-    // Install APIs before the watchdog. terminate_execution during startup makes
-    // Script::compile return None, and structuredClone setup unwraps that.
-    runtime.execute_code("1").expect("warmup before watchdog");
-    let handle = runtime.isolate_handle();
+    // `amber run --timeout` is the supported watchdog: one terminate call,
+    // then the helper thread returns, then the isolate thread joins it.
+    // The previous in-process test pulsed terminate_execution for ~1s and
+    // joined that thread from the isolate thread. IsolateHandle::terminate_execution
+    // holds V8's break_access lock until the call returns; joining (or dropping
+    // the isolate) while a pulse is still inside that call deadlocks, because
+    // the isolate thread is no longer in JS to finish the interrupt. The
+    // heavier rustls 0.23 / reqwest 0.12 / candle 0.11 / wasmtime 49.0.3
+    // process made that race reliable on the CI runner, so tooling_cli_tests
+    // never exited.
+    let dir = tempdir().expect("tempdir");
+    let script = dir.path().join("spin.js");
+    fs::write(&script, "while (true) {}\n").expect("write spin.js");
 
-    // Watchdog thread: pulse terminate_execution every 20ms to handle any scheduling race
-    let watchdog = std::thread::spawn(move || {
-        for _ in 0..50 {
-            std::thread::sleep(std::time::Duration::from_millis(20));
-            handle.terminate_execution();
-        }
-    });
+    let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_amber"))
+        .args(["run", "--timeout", "300"])
+        .arg(&script)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("spawn amber run --timeout");
 
     let start = std::time::Instant::now();
-    // Run an infinite loop
-    let res = runtime.execute_code("while (true) {}");
-    let elapsed = start.elapsed().as_millis();
-    let _ = watchdog.join();
-
-    assert!(res.is_err(), "Infinite loop must be terminated by watchdog");
-    assert!(elapsed < 1000, "Should terminate promptly around 50ms");
+    let deadline = start + std::time::Duration::from_secs(5);
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if std::time::Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("amber run --timeout did not stop while(true) within 5s");
+            }
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(20)),
+            Err(err) => panic!("wait amber: {err}"),
+        }
+    };
+    let elapsed = start.elapsed();
+    if status.success() {
+        panic!("infinite loop must exit non-zero when the watchdog fires");
+    }
+    let mut err = String::new();
+    if let Some(mut stderr) = child.stderr.take() {
+        use std::io::Read;
+        let _ = stderr.read_to_string(&mut err);
+    }
+    assert!(
+        err.contains("timed out"),
+        "expected timeout error, got {err:?} ({status})"
+    );
+    assert!(
+        elapsed < std::time::Duration::from_secs(3),
+        "watchdog took {elapsed:?}"
+    );
 }
 
 #[test]
