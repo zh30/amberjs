@@ -15,6 +15,8 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+
 use serde_json::Value;
 
 /// Stderr prefix for contracted `amber serve` / `amber serve --https` failures before listen.
@@ -206,7 +208,6 @@ pub fn load_server_config(
     let key = parse_private_key(&key_pem)?;
     ensure_key_matches_leaf(&cert_pem, &key_pem)?;
     let mut tls_config = rustls::ServerConfig::builder()
-        .with_safe_defaults()
         .with_no_client_auth()
         .with_single_cert(certs, key)
         .map_err(|err| ServeHttpsError::Tls(err.to_string()))?;
@@ -254,14 +255,14 @@ fn read_pem(path: &Path, cert: bool) -> Result<Vec<u8>, ServeHttpsError> {
     Ok(bytes)
 }
 
-fn parse_certs(pem: &[u8]) -> Result<Vec<rustls::Certificate>, ServeHttpsError> {
+fn parse_certs(pem: &[u8]) -> Result<Vec<CertificateDer<'static>>, ServeHttpsError> {
     let mut reader = std::io::BufReader::new(std::io::Cursor::new(pem));
     let mut certs = Vec::new();
     for cert in rustls_pemfile::certs(&mut reader) {
         let der = cert.map_err(|err| {
             ServeHttpsError::InvalidCert(format!("failed to parse certificate: {err}"))
         })?;
-        certs.push(rustls::Certificate(der.as_ref().to_vec()));
+        certs.push(der);
     }
     if certs.is_empty() {
         return Err(ServeHttpsError::InvalidCert(
@@ -271,7 +272,7 @@ fn parse_certs(pem: &[u8]) -> Result<Vec<rustls::Certificate>, ServeHttpsError> 
     Ok(certs)
 }
 
-fn parse_private_key(pem: &[u8]) -> Result<rustls::PrivateKey, ServeHttpsError> {
+fn parse_private_key(pem: &[u8]) -> Result<PrivateKeyDer<'static>, ServeHttpsError> {
     if pem_is_encrypted(pem) {
         return Err(ServeHttpsError::InvalidKey(
             "encrypted private keys are not supported".to_string(),
@@ -326,7 +327,7 @@ enum KeyFormat {
 fn first_key_der(
     pem: &[u8],
     format: KeyFormat,
-) -> Result<Option<rustls::PrivateKey>, ServeHttpsError> {
+) -> Result<Option<PrivateKeyDer<'static>>, ServeHttpsError> {
     let mut reader = std::io::BufReader::new(std::io::Cursor::new(pem));
     match format {
         KeyFormat::Pkcs8 => {
@@ -336,7 +337,7 @@ fn first_key_der(
                         "failed to parse PKCS#8 private key: {err}"
                     ))
                 })?;
-                return Ok(Some(rustls::PrivateKey(key.secret_pkcs8_der().to_vec())));
+                return Ok(Some(key.into()));
             }
         }
         KeyFormat::Pkcs1 => {
@@ -346,7 +347,7 @@ fn first_key_der(
                         "failed to parse PKCS#1 private key: {err}"
                     ))
                 })?;
-                return Ok(Some(rustls::PrivateKey(key.secret_pkcs1_der().to_vec())));
+                return Ok(Some(key.into()));
             }
         }
         KeyFormat::Sec1 => {
@@ -354,7 +355,7 @@ fn first_key_der(
                 let key = item.map_err(|err| {
                     ServeHttpsError::InvalidKey(format!("failed to parse SEC1 private key: {err}"))
                 })?;
-                return Ok(Some(rustls::PrivateKey(key.secret_sec1_der().to_vec())));
+                return Ok(Some(key.into()));
             }
         }
     }
@@ -860,6 +861,7 @@ fn reason_phrase(status: u16) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
     use std::io::{self, Cursor, Read};
     use std::process::Command;
     use std::thread;
@@ -1365,7 +1367,7 @@ mod tests {
         let mut tcp = std::net::TcpStream::connect(addr)?;
         tcp.set_read_timeout(Some(Duration::from_secs(3)))?;
         tcp.set_write_timeout(Some(Duration::from_secs(3)))?;
-        let name = rustls::ServerName::try_from("localhost").expect("localhost");
+        let name = ServerName::try_from("localhost").expect("localhost");
         let mut conn = rustls::ClientConnection::new(client_config(alpn), name)
             .map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))?;
         let mut stream = rustls::Stream::new(&mut conn, &mut tcp);
@@ -1386,22 +1388,48 @@ mod tests {
     }
 
     fn client_config(alpn: &[u8]) -> Arc<rustls::ClientConfig> {
+        #[derive(Debug)]
         struct AcceptAny;
-        impl rustls::client::ServerCertVerifier for AcceptAny {
+        impl rustls::client::danger::ServerCertVerifier for AcceptAny {
             fn verify_server_cert(
                 &self,
-                _end_entity: &rustls::Certificate,
-                _intermediates: &[rustls::Certificate],
-                _server_name: &rustls::ServerName,
-                _scts: &mut dyn Iterator<Item = &[u8]>,
+                _end_entity: &CertificateDer<'_>,
+                _intermediates: &[CertificateDer<'_>],
+                _server_name: &ServerName<'_>,
                 _ocsp_response: &[u8],
-                _now: std::time::SystemTime,
-            ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
-                Ok(rustls::client::ServerCertVerified::assertion())
+                _now: UnixTime,
+            ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+                Ok(rustls::client::danger::ServerCertVerified::assertion())
+            }
+
+            fn verify_tls12_signature(
+                &self,
+                _message: &[u8],
+                _cert: &CertificateDer<'_>,
+                _dss: &rustls::DigitallySignedStruct,
+            ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error>
+            {
+                Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+            }
+
+            fn verify_tls13_signature(
+                &self,
+                _message: &[u8],
+                _cert: &CertificateDer<'_>,
+                _dss: &rustls::DigitallySignedStruct,
+            ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error>
+            {
+                Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+            }
+
+            fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+                rustls::crypto::ring::default_provider()
+                    .signature_verification_algorithms
+                    .supported_schemes()
             }
         }
         let mut config = rustls::ClientConfig::builder()
-            .with_safe_defaults()
+            .dangerous()
             .with_custom_certificate_verifier(Arc::new(AcceptAny))
             .with_no_client_auth();
         config.alpn_protocols = vec![alpn.to_vec()];

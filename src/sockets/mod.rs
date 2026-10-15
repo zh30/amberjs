@@ -3,7 +3,8 @@
 
 use anyhow::{anyhow, Result};
 use once_cell::sync::Lazy;
-use rustls::{ClientConfig, OwnedTrustAnchor, RootCertStore, ServerName};
+use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, ServerName};
+use rustls::{ClientConfig, RootCertStore};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -51,28 +52,21 @@ static SOCKET_REGISTRY: Lazy<Mutex<HashMap<u64, Arc<ActiveSocket>>>> =
 
 fn tls_connector() -> Result<TlsConnector> {
     let mut roots = RootCertStore::empty();
-    roots.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.iter().map(|ta| {
-        OwnedTrustAnchor::from_subject_spki_name_constraints(
-            ta.subject,
-            ta.spki,
-            ta.name_constraints,
-        )
-    }));
+    roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
     if let Ok(extra) = EXTRA_TEST_ROOTS.lock() {
         for der in extra.iter() {
-            let _ = roots.add(&rustls::Certificate(der.clone()));
+            let _ = roots.add(CertificateDer::from(der.clone()));
         }
     }
     let config = ClientConfig::builder()
-        .with_safe_defaults()
         .with_root_certificates(roots)
         .with_no_client_auth();
     Ok(TlsConnector::from(Arc::new(config)))
 }
 
-fn rustls_server_name(host: &str) -> Result<ServerName> {
+fn rustls_server_name(host: &str) -> Result<ServerName<'static>> {
     ServerName::try_from(host)
-        .map(|n| n.to_owned())
+        .map(|name| name.to_owned())
         .map_err(|_| anyhow!("invalid TLS server name: {host}"))
 }
 
@@ -304,10 +298,9 @@ fn generate_self_signed_localhost() -> Result<(Vec<u8>, Vec<u8>)> {
 /// Accept TCP then complete a rustls server handshake (for `secureTransport` / `startTls` tests).
 pub fn start_self_signed_tls_listener() -> Result<TestTlsListener> {
     let (cert_der, key_der) = generate_self_signed_localhost()?;
-    let cert = rustls::Certificate(cert_der.clone());
-    let key = rustls::PrivateKey(key_der);
+    let cert = CertificateDer::from(cert_der.clone());
+    let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(key_der));
     let server_config = rustls::ServerConfig::builder()
-        .with_safe_defaults()
         .with_no_client_auth()
         .with_single_cert(vec![cert], key)
         .map_err(|e| anyhow!("TLS server cert: {e}"))?;

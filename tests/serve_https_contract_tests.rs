@@ -202,7 +202,8 @@ fn tls_http(port: u16, alpn: &[u8], request: &[u8]) -> Result<String, String> {
         .map_err(|err| err.to_string())?;
     tcp.set_write_timeout(Some(Duration::from_secs(5)))
         .map_err(|err| err.to_string())?;
-    let name = rustls::ServerName::try_from("localhost").map_err(|err| err.to_string())?;
+    let name =
+        rustls::pki_types::ServerName::try_from("localhost").map_err(|err| err.to_string())?;
     let mut conn = rustls::ClientConnection::new(tls_client_config(alpn), name)
         .map_err(|err| err.to_string())?;
     let mut stream = rustls::Stream::new(&mut conn, &mut tcp);
@@ -240,22 +241,48 @@ fn tls_http_text(port: u16, alpn: &[u8], request: &[u8]) -> String {
 }
 
 fn tls_client_config(alpn: &[u8]) -> Arc<rustls::ClientConfig> {
+    use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
+
+    #[derive(Debug)]
     struct AcceptAny;
-    impl rustls::client::ServerCertVerifier for AcceptAny {
+    impl rustls::client::danger::ServerCertVerifier for AcceptAny {
         fn verify_server_cert(
             &self,
-            _end_entity: &rustls::Certificate,
-            _intermediates: &[rustls::Certificate],
-            _server_name: &rustls::ServerName,
-            _scts: &mut dyn Iterator<Item = &[u8]>,
+            _end_entity: &CertificateDer<'_>,
+            _intermediates: &[CertificateDer<'_>],
+            _server_name: &ServerName<'_>,
             _ocsp_response: &[u8],
-            _now: std::time::SystemTime,
-        ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
-            Ok(rustls::client::ServerCertVerified::assertion())
+            _now: UnixTime,
+        ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+            Ok(rustls::client::danger::ServerCertVerified::assertion())
+        }
+
+        fn verify_tls12_signature(
+            &self,
+            _message: &[u8],
+            _cert: &CertificateDer<'_>,
+            _dss: &rustls::DigitallySignedStruct,
+        ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+            Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+        }
+
+        fn verify_tls13_signature(
+            &self,
+            _message: &[u8],
+            _cert: &CertificateDer<'_>,
+            _dss: &rustls::DigitallySignedStruct,
+        ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+            Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+        }
+
+        fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+            rustls::crypto::ring::default_provider()
+                .signature_verification_algorithms
+                .supported_schemes()
         }
     }
     let mut config = rustls::ClientConfig::builder()
-        .with_safe_defaults()
+        .dangerous()
         .with_custom_certificate_verifier(Arc::new(AcceptAny))
         .with_no_client_auth();
     config.alpn_protocols = vec![alpn.to_vec()];

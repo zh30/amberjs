@@ -4318,6 +4318,8 @@ pub fn set_global_request_handler(
 use std::fs::File;
 use std::io::BufReader;
 
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+
 /// HTTPS/TLS 配置
 /// v0.3.98: 新增结构体
 #[derive(Debug, Clone)]
@@ -4354,9 +4356,9 @@ impl Default for HttpsServerConfig {
 #[derive(Debug)]
 pub struct TlsCertificate {
     /// 证书链
-    pub cert_chain: Vec<rustls::Certificate>,
+    pub cert_chain: Vec<CertificateDer<'static>>,
     /// 私钥
-    pub private_key: rustls::PrivateKey,
+    pub private_key: PrivateKeyDer<'static>,
 }
 
 /// 加载 TLS 证书和私钥
@@ -4380,7 +4382,7 @@ pub fn load_tls_certificate(cert_path: &str, key_path: &str) -> Result<TlsCertif
     let mut certs = Vec::new();
     for cert in certs_result {
         let cert_der = cert.map_err(|e| format!("Failed to parse certificate: {}", e))?;
-        certs.push(rustls::Certificate(cert_der.to_vec()));
+        certs.push(cert_der);
     }
 
     if certs.is_empty() {
@@ -4396,7 +4398,7 @@ pub fn load_tls_certificate(cert_path: &str, key_path: &str) -> Result<TlsCertif
     let mut keys = Vec::new();
     for key in keys_result {
         let key_bytes = key.map_err(|e| format!("Failed to parse private key: {}", e))?;
-        keys.push(rustls::PrivateKey(key_bytes.secret_pkcs1_der().to_vec()));
+        keys.push(key_bytes.into());
     }
 
     // 如果没有 RSA 密钥，尝试 PKCS8 格式
@@ -4409,7 +4411,7 @@ pub fn load_tls_certificate(cert_path: &str, key_path: &str) -> Result<TlsCertif
         let pkcs8_result = rustls_pemfile::pkcs8_private_keys(&mut key_reader);
         for key in pkcs8_result {
             let key_bytes = key.map_err(|e| format!("Failed to parse PKCS8 private key: {}", e))?;
-            keys.push(rustls::PrivateKey(key_bytes.secret_pkcs8_der().to_vec()));
+            keys.push(key_bytes.into());
         }
     }
 
@@ -4448,7 +4450,7 @@ pub fn load_tls_certificate_from_pem(
     let mut certs = Vec::new();
     for cert in certs_result {
         let cert_der = cert.map_err(|e| format!("Failed to parse certificate: {}", e))?;
-        certs.push(rustls::Certificate(cert_der.to_vec()));
+        certs.push(cert_der);
     }
     if certs.is_empty() {
         return Err("No certificates found in PEM".to_string());
@@ -4459,14 +4461,14 @@ pub fn load_tls_certificate_from_pem(
     let keys_result = rustls_pemfile::rsa_private_keys(&mut key_reader);
     for key in keys_result {
         let key_bytes = key.map_err(|e| format!("Failed to parse private key: {}", e))?;
-        keys.push(rustls::PrivateKey(key_bytes.secret_pkcs1_der().to_vec()));
+        keys.push(key_bytes.into());
     }
     if keys.is_empty() {
         let mut key_reader = BufReader::new(std::io::Cursor::new(key_pem));
         let pkcs8_result = rustls_pemfile::pkcs8_private_keys(&mut key_reader);
         for key in pkcs8_result {
             let key_bytes = key.map_err(|e| format!("Failed to parse PKCS8 private key: {}", e))?;
-            keys.push(rustls::PrivateKey(key_bytes.secret_pkcs8_der().to_vec()));
+            keys.push(key_bytes.into());
         }
     }
     if keys.is_empty() {
@@ -4493,9 +4495,8 @@ pub fn create_tls_server_config(
     config: &HttpsServerConfig,
 ) -> Arc<rustls::ServerConfig> {
     let mut tls_config = rustls::ServerConfig::builder()
-        .with_safe_defaults()
         .with_no_client_auth()
-        .with_single_cert(cert.cert_chain.clone(), cert.private_key.clone())
+        .with_single_cert(cert.cert_chain.clone(), cert.private_key.clone_key())
         .expect("Failed to create TLS config");
 
     // 设置 ALPN 协议
@@ -4509,9 +4510,8 @@ pub fn try_create_tls_server_config_http11(
     cert: &TlsCertificate,
 ) -> Result<Arc<rustls::ServerConfig>, String> {
     let mut tls_config = rustls::ServerConfig::builder()
-        .with_safe_defaults()
         .with_no_client_auth()
-        .with_single_cert(cert.cert_chain.clone(), cert.private_key.clone())
+        .with_single_cert(cert.cert_chain.clone(), cert.private_key.clone_key())
         .map_err(|e| format!("Failed to create TLS config: {e}"))?;
     tls_config.alpn_protocols = vec![b"http/1.1".to_vec()];
     Ok(Arc::new(tls_config))
