@@ -1,6 +1,6 @@
 # Node `fs.watch` / `fs.watchFile` contract
 
-This is the user-facing contract for the Stable `fs.watch` / `fs.watchFile` slice in Amber (**tentative G64**). It is derived from `src/nodejs_core/fs_watch.rs`, `src/runtime_minimal.rs` (fs-watch pump), and `tests/fs_watch_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable `fs.watch` / `fs.watchFile` slice in Amber (**G64**). It is derived from `src/nodejs_core/fs_watch.rs`, `src/runtime_minimal.rs` (fs-watch pump), and `tests/fs_watch_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 The broader Node `fs` byte I/O surface stays G8 ([`docs/FS_CONTRACT.md`](FS_CONTRACT.md)). This page does **not** replace G8. CLI `amber run --watch` stays G6 ([`docs/WATCH_CONTRACT.md`](WATCH_CONTRACT.md)) and is a separate process re-exec product.
 

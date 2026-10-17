@@ -4,7 +4,7 @@ This is the user-facing contract for Stable `atob` and `btoa` in the default Amb
 
 These globals are reachable from `amber run` / `amber eval` through `src/runtime_minimal.rs`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, and `structuredClone` stay the G10 contract. Every other `src/web_api/` module stays on its own Stable or Preview surface. This is not the full HTML Living Standard `WindowOrWorkerGlobalScope` base64 algorithm.
 
-**Numbering:** This contract is **G29** after CommonJS `require` (**provisional G28**). G9–G16 (web) and G8 / G17–G28 (`nodejs_core`) stay intact. Stream stays **G24**.
+**Numbering:** This contract is **G29** after CommonJS `require` (**G28**). G9–G16 (web) and G8 / G17–G28 (`nodejs_core`) stay intact. Stream stays **G24**.
 
 ## Stable surface
 

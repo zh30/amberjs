@@ -1,10 +1,10 @@
 # Node `child_process.fork` contract
 
-This is the user-facing contract for the Stable **narrow `fork`** subset of Node `child_process` in Amber (**tentative G67**). It is derived from `src/nodejs_core/child_process_fork.rs`, `src/nodejs_core/child_process.rs`, `src/runtime_minimal.rs`, and `tests/child_process_fork_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable **narrow `fork`** subset of Node `child_process` in Amber (**G67**). It is derived from `src/nodejs_core/child_process_fork.rs`, `src/nodejs_core/child_process.rs`, `src/runtime_minimal.rs`, and `tests/child_process_fork_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 `require('child_process')`, `require('node:child_process')`, and ESM `import` of those names reach the same object installed by `setup_child_process_api`. Named ESM exports include `fork`.
 
-Sync `execSync` / `spawnSync` stay **G25** ([`docs/CHILD_PROCESS_CONTRACT.md`](CHILD_PROCESS_CONTRACT.md)). Narrow async `exec` / `execFile` stay **tentative G47** ([`docs/CHILD_PROCESS_ASYNC_CONTRACT.md`](CHILD_PROCESS_ASYNC_CONTRACT.md)). This page does not renumber G25 or G47.
+Sync `execSync` / `spawnSync` stay **G25** ([`docs/CHILD_PROCESS_CONTRACT.md`](CHILD_PROCESS_CONTRACT.md)). Narrow async `exec` / `execFile` stay **G47** ([`docs/CHILD_PROCESS_ASYNC_CONTRACT.md`](CHILD_PROCESS_ASYNC_CONTRACT.md)). This page does not renumber G25 or G47.
 
 This is not full Node `child_process.fork`. Only the IPC slice listed below is Stable under G67.
 

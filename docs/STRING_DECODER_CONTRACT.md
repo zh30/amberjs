@@ -6,7 +6,7 @@ This is the user-facing contract for the Stable `StringDecoder` subset of Node `
 
 This is **not** full Node `string_decoder`. Stable behavior is incremental `write` / `end` decode (or encode-to-string for `base64` / `hex`) with incomplete-unit buffering, plus string passthrough and Buffer / `Uint8Array` byte paths.
 
-**Numbering:** UTF-8 `StringDecoder` graduated as **G39**. Additive multi-encoding support (`latin1` / `ascii` / `binary`, `base64`, `hex`, `utf16le` / `ucs2`) graduates as **tentative G68**. Do not renumber G1–G67.
+**Numbering:** UTF-8 `StringDecoder` graduated as **G39**. Additive multi-encoding support (`latin1` / `ascii` / `binary`, `base64`, `hex`, `utf16le` / `ucs2`) graduates as **G68**. Do not renumber G1–G67.
 
 ## Stable surface
 

@@ -1,6 +1,6 @@
 # Node `diagnostics_channel` contract
 
-This is the user-facing contract for the Stable subset of Node `diagnostics_channel` in Amber (**tentative G56**). It is derived from `src/nodejs_core/diagnostics_channel.rs`, CLI install via `setup_diagnostics_channel_api` / `require('diagnostics_channel')`, `tests/diagnostics_channel_contract_tests.rs`, and conformance `tests/conformance/fixtures/diagnostics_channel.js`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable subset of Node `diagnostics_channel` in Amber (**G56**). It is derived from `src/nodejs_core/diagnostics_channel.rs`, CLI install via `setup_diagnostics_channel_api` / `require('diagnostics_channel')`, `tests/diagnostics_channel_contract_tests.rs`, and conformance `tests/conformance/fixtures/diagnostics_channel.js`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 `require('diagnostics_channel')` and `require('node:diagnostics_channel')` reach the same object installed on `globalThis.diagnostics_channel`.
 

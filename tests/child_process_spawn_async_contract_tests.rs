@@ -1,4 +1,4 @@
-//! Pins docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md (tentative G60).
+//! Pins docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md (G60).
 //! Narrow async spawn: host-thread run + later-turn exit callback.
 use serial_test::serial;
 use std::process::Command;

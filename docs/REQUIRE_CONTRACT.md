@@ -4,7 +4,7 @@ This is the user-facing contract for Stable CommonJS `require` and Node-compatib
 
 The CLI path is `runtime_minimal`. The older helper in `src/nodejs_core/require.rs` is not what `amber run` / `amber eval` install.
 
-This is not the full Node.js Module loader. Builtin module **APIs** stay on their own Stable or Preview contracts (for example `fs` is G8, `path` is G17, Node `events` / EventEmitter is G18, `buffer` is G19, `os` is G20, `zlib` sync is G21, `util`/`process` basics are G22, Node `crypto` is G23, stream is G24, `child_process` sync is G25, Node `url` fileURL helpers are G26, and `dns` getaddrinfo is provisional G27; HTTP, networking, readline, and other `src/nodejs_core/` surfaces stay Preview unless another Stable contract names them). This page graduates the loader and resolution surface only (**provisional G28**; merge last among wave-2). G24 is stream, never require.
+This is not the full Node.js Module loader. Builtin module **APIs** stay on their own Stable or Preview contracts (for example `fs` is G8, `path` is G17, Node `events` / EventEmitter is G18, `buffer` is G19, `os` is G20, `zlib` sync is G21, `util`/`process` basics are G22, Node `crypto` is G23, stream is G24, `child_process` sync is G25, Node `url` fileURL helpers are G26, and `dns` getaddrinfo is G27; HTTP, networking, readline, and other `src/nodejs_core/` surfaces stay Preview unless another Stable contract names them). This page graduates the loader and resolution surface only (**G28**). G24 is stream, never require.
 
 ## Reachability
 

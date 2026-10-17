@@ -1,6 +1,6 @@
 # Node `vm` `runInThisContext` / `Script.runInThisContext` contract
 
-This is the user-facing contract for the Stable same-context `vm` slice in Amber (**tentative G55**). It is derived from `src/nodejs_core/vm.rs`, `src/runtime_minimal.rs`, and `tests/vm_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable same-context `vm` slice in Amber (**G55**). It is derived from `src/nodejs_core/vm.rs`, `src/runtime_minimal.rs`, and `tests/vm_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 ## Stable surface
 
