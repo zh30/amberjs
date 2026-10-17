@@ -73,13 +73,21 @@ fn start_stdin_reader() {
     }
     let (tx, rx) = mpsc::channel::<StdinEvent>();
     *STDIN_RX.lock().unwrap() = Some(rx);
-    STDIN_LIVENESS.store(true, Ordering::SeqCst);
+    // 不在这里置 LIVENESS：裸 read() 只启动读线程而不保活事件循环
+    // （Node 语义一致）；保活由 resume() / '__readable' 监听各自置位。
     thread::spawn(move || {
         let stdin = std::io::stdin();
-        let mut lock = stdin.lock();
         let mut buf = [0u8; 8192];
         loop {
-            match lock.read(&mut buf) {
+            // 每次 read 重新加锁而不是长占 StdinLock：否则线程一旦启动就持锁
+            // 阻塞，readline.question 等其他 stdin 消费者会被卡到 EOF。
+            // 锁在两次 read 之间释放，其它消费者可以穿插（但字节会被分流——
+            // 混用 stdin 与 readline 本来就语义模糊，契约里已列为 Limit）。
+            let read_result = {
+                let mut lock = stdin.lock();
+                lock.read(&mut buf)
+            };
+            match read_result {
                 Ok(0) => {
                     let _ = tx.send(StdinEvent::Eof);
                     // EOF 标志必须在读线程内就置位：不能等 pump 排干 channel，

@@ -300,6 +300,26 @@ fn pause_releases_keepalive_with_open_stdin() {
 
 #[test]
 #[serial]
+fn bare_read_does_not_keep_process_alive() {
+    // A one-off read() must not ref the event loop (Node semantics): with an
+    // OPEN stdin the process still exits. Regression guard for the case where
+    // starting the reader also claimed liveness and hung the process.
+    let (stdout, stderr, _ok) = run_eval(
+        r#"
+        const r = process.stdin.read();
+        console.log('READ_RET=' + String(r === null || typeof r === 'string'));
+        "#,
+        b"",
+        false,
+    );
+    assert!(
+        stdout.contains("READ_RET=true"),
+        "bare read() must return null-or-string and let the process exit: {stdout} stderr={stderr}"
+    );
+}
+
+#[test]
+#[serial]
 fn unref_releases_keepalive_with_open_stdin() {
     let (stdout, stderr, _ok) = run_eval(
         r#"

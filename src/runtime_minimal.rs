@@ -9051,6 +9051,9 @@ impl MinimalRuntime {
                         crate::nodejs_core::fs_watch::pump_pending_fs_watch_events_in_scope(
                             scope, &context,
                         );
+                    let stdin_p = crate::nodejs_core::process::pump_pending_stdin_events_in_scope(
+                        scope, &context,
+                    );
                     let websocket_events = crate::web_api::websocket::pump_websocket_events(scope);
                     execute_next_tick_callbacks(scope);
                     scope.perform_microtask_checkpoint();
@@ -9060,7 +9063,7 @@ impl MinimalRuntime {
                     mark_immediate_callbacks_deferred();
                     execute_next_tick_callbacks(scope);
                     scope.perform_microtask_checkpoint();
-                    (p + net_p + sock_p + fs_watch_p, websocket_events)
+                    (p + net_p + sock_p + fs_watch_p + stdin_p, websocket_events)
                 };
 
                 let listening = crate::nodejs_core::http::has_listening_http_servers()
@@ -9082,6 +9085,7 @@ impl MinimalRuntime {
                     && !has_pending_next_ticks()
                     && !has_pending_immediates()
                     && !crate::web_api::websocket::has_pending_websocket_work()
+                    && !crate::nodejs_core::process::has_pending_stdin_work()
                 {
                     break;
                 }
