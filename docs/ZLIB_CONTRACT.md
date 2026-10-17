@@ -4,7 +4,7 @@ This is the user-facing contract for the Stable sync subset of Node `zlib` in Am
 
 `require('zlib')` and `require('node:zlib')` return the same object installed on `globalThis.zlib` by `setup_zlib_api`. This is not full Node `zlib`. It is also not the Stable Web `CompressionStream` / `DecompressionStream` surface in [`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md) (G13). G13 does not graduate `require('zlib')`.
 
-Methods that are not listed here are outside this sync contract. Async callback codecs (`gzip` / `gunzip` / `deflate` / `inflate` / `deflateRaw` / `inflateRaw`) are a separate Stable surface under [`docs/ZLIB_ASYNC_CONTRACT.md`](ZLIB_ASYNC_CONTRACT.md) (tentative G48 + additive tentative G58). Streaming zlib (`createGzip` and friends), brotli, and `zlib.constants` stay Non-goals of both contracts (not Stable Limits fiction).
+Methods that are not listed here are outside this sync contract. Async callback codecs (`gzip` / `gunzip` / `deflate` / `inflate` / `deflateRaw` / `inflateRaw`) are a separate Stable surface under [`docs/ZLIB_ASYNC_CONTRACT.md`](ZLIB_ASYNC_CONTRACT.md) (G48 + additive G58). Streaming zlib (`createGzip` and friends), brotli, and `zlib.constants` stay Non-goals of both contracts (not Stable Limits fiction).
 
 ## Stable surface
 

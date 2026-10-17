@@ -4,7 +4,7 @@ This is the user-facing contract for the Stable sync subset of Node `child_proce
 
 `require('child_process')`, `require('node:child_process')`, and ESM `import` of those names reach the same object installed by `setup_child_process_api`. The default ESM export is that object. Named ESM exports include `execSync` and `spawnSync`.
 
-This is not full Node `child_process`. Only `execSync` and `spawnSync` are Stable on this page. Narrow async `exec` / `execFile` (host-thread + later-turn callback) is Stable under **tentative G47** ([`docs/CHILD_PROCESS_ASYNC_CONTRACT.md`](CHILD_PROCESS_ASYNC_CONTRACT.md)). Narrow async `spawn` (same scheduling model; no pipes) is Stable under **tentative G60** ([`docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md`](CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md)). Narrow `fork` + IPC is Stable under **tentative G67** ([`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md)). Streaming stdio pipes and detached processes stay outside these contracts (Preview / Non-goals).
+This is not full Node `child_process`. Only `execSync` and `spawnSync` are Stable on this page. Narrow async `exec` / `execFile` (host-thread + later-turn callback) is Stable under **G47** ([`docs/CHILD_PROCESS_ASYNC_CONTRACT.md`](CHILD_PROCESS_ASYNC_CONTRACT.md)). Narrow async `spawn` (same scheduling model; no pipes) is Stable under **G60** ([`docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md`](CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md)). Narrow `fork` + IPC is Stable under **G67** ([`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md)). Streaming stdio pipes and detached processes stay outside these contracts (Preview / Non-goals).
 
 ## Stable surface
 
