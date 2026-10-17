@@ -28,13 +28,13 @@ Wire proof required by this contract: piping bytes into `amber eval` with a `'da
 
 These are real behaviors of the Stable stdin surface, not cover for missing reads:
 
-- Chunks are always **UTF-8 strings** (invalid bytes replaced via lossy decoding). There are no Buffer chunks on stdin — `setEncoding` exists only to validate the encoding argument, not to switch modes.
+- Chunks are always **UTF-8 strings**. A multi-byte sequence split across host-read boundaries is reassembled before decoding (invalid bytes that never complete are replaced once at EOF via lossy decoding). There are no Buffer chunks on stdin — `setEncoding` exists only to validate the encoding argument, not to switch modes.
 - Event delivery is isolate-thread pump based (same model as G45 net / G64 fs.watch). A `'data'` listener's callback runs on a later pump turn — never synchronously inside `on()` — and tests must let the event loop pump.
 - Chunk boundaries follow host `read()` granularity (≤ 8 KiB per chunk), not line boundaries or Node's exact segmentation. Concatenate chunks if you need the full input.
 - `pause()` deliberately doubles as the liveness release (Node's `unref` semantics): pausing a flowing stdin lets the process exit once queued `'end'` work is gone or nothing remains pinned. Resume with `resume()` to keep reading.
-- `'end'` is delivered only while stdin holds liveness when EOF arrives — stdin paused/unref'd at EOF means the process may exit before `'end'`.
+- In non-flowing mode (`'readable'` listener), an EOF with undrained buffered bytes does **not** keep the process alive — nothing can progress, so the event loop exits without emitting `'end'` (a script that drains via `read()` still gets `'end'` normally).
 - One stdin exists per process: the reader starts on first use (`read()`, `resume()`, `'data'`/`'readable'` listener) and cannot be restarted after EOF.
-- `process.stdin` state is **process-global**: multiple runtimes/isolates inside one host process share the single fd-0 queue — a second runtime cannot start an independent stdin after EOF, and runtimes can consume each other's buffered input. Scripts that need stdin should own it in the main runtime (the CLI model).
+- `process.stdin` is **owned by the first runtime** that builds it — a process-global fd-0 resource. Later runtimes/isolates in the same host process get an **inert stdin** (Node `worker_threads` dummy semantics): `read()` → `null`, methods are no-ops that still return `process.stdin`, events never fire, and the owning runtime's queue/EOF/liveness are not shared.
 - Mixing an active `process.stdin` reader with `readline.question` in the same process splits fd-0 bytes between two consumers (the reader re-locks per host read rather than starving readline outright). Pin stdin to one consumer — Node has the same "two readers on one stream" hazard in spirit.
 - `isTTY` reflects the real fd-0 terminal state; a TTY stdin with a `'data'` listener keeps the process alive until `pause()`/`unref()` — matching Node, not a bug.
 - `'close'`, `'error'`, `'timeout'` events, `read(0)`/size arguments, `isRaw`/`setRawMode`, and `iter`/`Symbol.asyncIterator` are not pinned by this contract.

@@ -358,3 +358,74 @@ fn resume_holds_loop_until_eof_then_end() {
         "'end' must be delivered on a later pump turn: {stdout} stderr={stderr}"
     );
 }
+
+#[test]
+#[serial]
+fn readable_undrained_at_eof_exits_instead_of_hanging() {
+    // 'readable' 模式 + EOF 但队列残留未读字节：没有消费者能推进，
+    // 保活 = 挂死。进程必须退出（'end' 未交付是已知 Limit）。
+    let (stdout, stderr, _ok) = run_eval(
+        r#"
+        process.stdin.on('readable', () => {
+          const c = process.stdin.read();
+          console.log('GOT1=' + String(typeof c === 'string' || c === null));
+        });
+        "#,
+        b"left unread after first signal",
+        true,
+    );
+    assert!(
+        stdout.contains("GOT1=true"),
+        "readable mode must signal once and still exit at EOF: {stdout} stderr={stderr}"
+    );
+}
+
+#[test]
+#[serial]
+fn utf8_multibyte_split_across_chunks_decodes_whole() {
+    // 8191 'a' + 4 字节 '🦀'（跨 8KiB 读边界）必须还原为一个字符，
+    // 不能切成两个 U+FFFD。
+    let mut payload = vec![b'a'; 8191];
+    payload.extend_from_slice("🦀".as_bytes());
+    payload.extend_from_slice(b"tail");
+    let (stdout, stderr, _ok) = run_eval(
+        r#"
+        let all = '';
+        process.stdin.on('data', (c) => { all += c; });
+        process.stdin.on('end', () => {
+          console.log('ENDS=' + all.endsWith('🦀tail') + '|BAD=' + all.includes('�'));
+        });
+        "#,
+        &payload,
+        true,
+    );
+    assert!(
+        stdout.contains("ENDS=true|BAD=false"),
+        "split multibyte must reassemble without U+FFFD: {stdout} stderr={stderr}"
+    );
+}
+
+#[test]
+#[serial]
+fn end_fires_only_after_all_data_beyond_pump_cap() {
+    // >256 chunk 事件：'end' 必须等所有 Data 交付完（pump 每轮排 256 上限
+    // 不能提前发 'end'）。2.2MB 输入 ≈ 269 个 8KiB 读 chunk。
+    let payload = vec![b'x'; 2_200_000];
+    let (stdout, stderr, _ok) = run_eval(
+        r#"
+        let n = 0, afterEnd = 0;
+        let ended = false;
+        process.stdin.on('data', (c) => { n += c.length; if (ended) afterEnd++; });
+        process.stdin.on('end', () => {
+          ended = true;
+          console.log('TOTAL=' + n + '|AFTER=' + afterEnd);
+        });
+        "#,
+        &payload,
+        true,
+    );
+    assert!(
+        stdout.contains("TOTAL=2200000|AFTER=0"),
+        "all data must arrive before 'end': {stdout} stderr={stderr}"
+    );
+}
