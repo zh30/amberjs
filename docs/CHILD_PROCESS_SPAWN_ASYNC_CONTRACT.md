@@ -1,6 +1,6 @@
 # Node `child_process.spawn` async contract
 
-This is the user-facing contract for the Stable **narrow async `spawn`** subset of Node `child_process` in Amber (**tentative G60**). It is derived from `src/nodejs_core/child_process.rs`, `src/runtime_minimal.rs`, and `tests/child_process_spawn_async_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable **narrow async `spawn`** subset of Node `child_process` in Amber (**G60**). It is derived from `src/nodejs_core/child_process.rs`, `src/runtime_minimal.rs`, and `tests/child_process_spawn_async_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 `require('child_process')`, `require('node:child_process')`, and ESM `import` of those names reach the same object installed by `setup_child_process_api`. Named ESM exports include `spawn`.
 
@@ -47,7 +47,7 @@ These are true quirks of the shipped Stable `spawn` surface (not missing APIs dr
 These are outside Stable. Do **not** document them as Stable Limits fiction for unfinished surfaces:
 
 - Live `stdin` / `stdout` / `stderr` pipes, streaming `ChildProcess`, or `ChildProcess` EventEmitter exit/close parity.
-- Narrow `fork` + IPC — see **tentative G67** [`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md) (not this spawn page).
+- Narrow `fork` + IPC — see **G67** [`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md) (not this spawn page).
 - Detached processes beyond G67, real `pid` on this spawn page, signals, `kill`, and honored option bags (`timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, `windowsHide`, encoding).
 - Reintroducing same-turn callback delivery or sync-block `Command::output()` inside the `spawn` call (the pre-G60 Preview lie).
 - Graduating pipes by documenting absence as Stable Limits.

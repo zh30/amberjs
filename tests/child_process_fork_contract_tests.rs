@@ -1,4 +1,4 @@
-//! Pins docs/CHILD_PROCESS_FORK_CONTRACT.md (tentative G67).
+//! Pins docs/CHILD_PROCESS_FORK_CONTRACT.md (G67).
 //! Real OS-process fork + TCP IPC message round-trip.
 use serial_test::serial;
 use std::process::Command;

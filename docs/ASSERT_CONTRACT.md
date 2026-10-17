@@ -4,7 +4,7 @@ This is the user-facing contract for a **narrow** Stable subset of Node `assert`
 
 This is **not** full Node `assert`. Methods that are not listed under Stable surface are outside the contract.
 
-**Numbering:** The base narrow surface is **G40** after Node `querystring` (**G38**) and Node `string_decoder` (**G39**). Additive `match` / `doesNotMatch` / `rejects` / `doesNotReject` graduate as **tentative G69**. Do not assign G38/G39 to assert. Do not renumber G1–G68.
+**Numbering:** The base narrow surface is **G40** after Node `querystring` (**G38**) and Node `string_decoder` (**G39**). Additive `match` / `doesNotMatch` / `rejects` / `doesNotReject` graduate as **G69**. Do not assign G38/G39 to assert. Do not renumber G1–G68.
 
 ## Stable surface
 

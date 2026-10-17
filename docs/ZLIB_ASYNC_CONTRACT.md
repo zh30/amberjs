@@ -1,6 +1,6 @@
 # Node `zlib` async callback contract
 
-This is the user-facing contract for the Stable async callback slice of Node `zlib` in Amber (**tentative G48** gzip/gunzip; additive **tentative G58** deflate/inflate(+Raw)). It is derived from `src/nodejs_core/zlib.rs`, `src/runtime_minimal.rs`, and `tests/zlib_async_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable async callback slice of Node `zlib` in Amber (**G48** gzip/gunzip; additive **G58** deflate/inflate(+Raw)). It is derived from `src/nodejs_core/zlib.rs`, `src/runtime_minimal.rs`, and `tests/zlib_async_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 The six sync methods remain the G21 contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md). This page does not replace G21. Web `CompressionStream` / `DecompressionStream` stay G13 ([`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md)).
 
