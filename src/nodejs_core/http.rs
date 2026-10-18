@@ -1749,11 +1749,15 @@ fn http_request_callback(
     let callback: _ = args.get(1);
 
     // G72: URL 字符串形式 http.request('http://host[:port][/path]'[, cb])
-    let url_parts = options
+    let url_string = options
         .to_string(scope)
         .filter(|_| options.is_string())
-        .map(|u| u.to_rust_string_lossy(scope))
-        .and_then(|u| parse_http_url_arg(&u));
+        .map(|u| u.to_rust_string_lossy(scope));
+    let url_parts = url_string.as_deref().and_then(parse_http_url_arg);
+    let url_is_https = url_string
+        .as_deref()
+        .map(|u| u.starts_with("https://"))
+        .unwrap_or(false);
 
     // 解析请求选项
     let method = extract_string_option(scope, &options, "method", "GET");
@@ -1833,6 +1837,14 @@ fn http_request_callback(
         req_obj.set(scope, response_callback_key.into(), callback);
     }
 
+    // G72 review：https:// URL 打标——end() 时发 'error'（fail-closed，
+    // 不静默发明文到 localhost:80）
+    if url_is_https {
+        let sk: _ = v8::String::new(scope, "_urlScheme").unwrap();
+        let sv: _ = v8::String::new(scope, "https").unwrap();
+        req_obj.set(scope, sk.into(), sv.into());
+    }
+
     // G72: req 'response'/'error' 事件槽
     install_http_event_methods(scope, &req_obj);
 
@@ -1847,11 +1859,15 @@ fn http_get_callback(
     let callback: _ = args.get(1);
 
     // G72: URL 字符串形式 http.get('http://host[:port][/path]'[, cb])
-    let url_parts = options
+    let url_string = options
         .to_string(scope)
         .filter(|_| options.is_string())
-        .map(|u| u.to_rust_string_lossy(scope))
-        .and_then(|u| parse_http_url_arg(&u));
+        .map(|u| u.to_rust_string_lossy(scope));
+    let url_parts = url_string.as_deref().and_then(parse_http_url_arg);
+    let url_is_https = url_string
+        .as_deref()
+        .map(|u| u.starts_with("https://"))
+        .unwrap_or(false);
 
     // 解析请求选项（http.get 固定为 GET 方法）
     let (hostname, port, path) = if let Some((h, p, pa)) = url_parts {
@@ -1926,6 +1942,14 @@ fn http_get_callback(
     let response_callback_key: _ = v8::String::new(scope, "_responseCallback").unwrap();
     if callback.is_function() {
         req_obj.set(scope, response_callback_key.into(), callback);
+    }
+
+    // G72 review：https:// URL 打标——end() 时发 'error'（fail-closed，
+    // 不静默发明文到 localhost:80）
+    if url_is_https {
+        let sk: _ = v8::String::new(scope, "_urlScheme").unwrap();
+        let sv: _ = v8::String::new(scope, "https").unwrap();
+        req_obj.set(scope, sk.into(), sv.into());
     }
 
     // G72: req 'response'/'error' 事件槽
@@ -2446,6 +2470,39 @@ fn http_req_end_callback(
             body_key.into(),
             v8::String::new(scope, &combined).unwrap().into(),
         );
+    }
+
+    // G72 review：https:// URL → 'error' 事件，fail-closed（TLS 是 Preview，
+    // 绝不静默发明文到 localhost:80）
+    {
+        let sk = v8::String::new(scope, "_urlScheme").unwrap();
+        let scheme = this
+            .get(scope, sk.into())
+            .and_then(|v| v.to_string(scope))
+            .map(|s| s.to_rust_string_lossy(scope));
+        if scheme.as_deref() == Some("https") {
+            let err_obj = v8::Object::new(scope);
+            let ek = v8::String::new(scope, "message").unwrap();
+            err_obj.set(
+                scope,
+                ek.into(),
+                v8::String::new(
+                    scope,
+                    "https:// URLs stay Preview (fail-closed): TLS client not implemented",
+                )
+                .unwrap()
+                .into(),
+            );
+            let nk = v8::String::new(scope, "name").unwrap();
+            err_obj.set(
+                scope,
+                nk.into(),
+                v8::String::new(scope, "Error").unwrap().into(),
+            );
+            http_emit_event(scope, &this, "error", &[err_obj.into()]);
+            retval.set(this.into());
+            return;
+        }
     }
 
     // 从请求对象提取选项

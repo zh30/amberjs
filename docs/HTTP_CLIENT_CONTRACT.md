@@ -34,7 +34,11 @@ Non-UTF-8 bodies: `'data'` delivers the string `"[binary data]"`; `res.body` hol
 - `req.end(cb)`'s `cb` is called after the request completes (buffered model has no distinct `'finish'` timing); it is not Node's `'finish'` event.
 - An unhandled `'error'` logs to stderr instead of throwing (there is no `'error'` throw contract yet).
 - `Connection: close` is always sent; keep-alive / response `Agent` pooling across requests is not contracted (the `_poolStats` field is informational only).
-- `https://` URLs and the `https` module are **fail-closed Preview** — `parse_http_url_arg` refuses them; they never silently downgrade to `http`.
+- `https://` URLs and the `https` module are **fail-closed Preview** — an `https://` URL string marks the request and `end()` emits `'error'` (`"https:// URLs stay Preview"`); it never silently downgrades to `http` or to the default `localhost:80` target.
+- Responses are capped at **64 MiB**; exceeding it fails with `'error'` instead of exhausting memory.
+- Request header names/values containing `\r` or `\n` are rejected (`'error'`) — no CRLF header injection.
+- A malformed status line (not `HTTP/…`) or a connection that errors/times out before the response is complete (per `Content-Length`, or before EOF when no `Content-Length`) is `'error'`, never a delivered response.
+- A client request to a G37 `http` server **in the same runtime** cannot complete: the synchronous read blocks the V8 dispatcher that would dispatch the server-side request, so it times out into `'error'`. Use a separate process or a Rust/JS bridge instead.
 - Chunked / `Transfer-Encoding` responses, trailers, `CONNECT`, redirect following, `ClientRequest#abort`, `socket`, and ESM `import 'http'` are outside this page.
 
 ## Non-goals

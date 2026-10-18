@@ -458,7 +458,15 @@ pub fn sync_http_request(options: HttpRequestOptions, timeout_secs: u64) -> Resu
         "{} {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n",
         options.method, options.path, options.host
     );
+    // 自定义请求头——CR/LF 注入拒绝（G72 review）：头名/值含 \r 或 \n
+    // 会注入伪造头甚至第二个请求，直接 Err
     for (key, value) in &options.headers {
+        if key.contains('\r') || key.contains('\n') || value.contains('\r') || value.contains('\n')
+        {
+            return Err(anyhow::anyhow!(
+                "invalid character in HTTP header (CR/LF injection)"
+            ));
+        }
         request.push_str(&format!("{}: {}\r\n", key, value));
     }
     if !options.body.is_empty() {
@@ -472,21 +480,65 @@ pub fn sync_http_request(options: HttpRequestOptions, timeout_secs: u64) -> Resu
     }
     let _ = stream.shutdown(std::net::Shutdown::Write);
 
-    // 读取响应：Connection: close 语义——读到对端关闭或读超时
+    // 读取响应：Connection: close 语义——读到对端关闭为止。
+    // G72 review：总量上限防内存耗尽；读超时/错误不算 EOF——
+    // 只有拿到完整响应（按 Content-Length）才允许交付，否则 Err。
+    const MAX_RESPONSE_BYTES: usize = 64 * 1024 * 1024; // 64 MiB
     let mut response_buffer = Vec::new();
     let mut buf = [0u8; 8192];
+    let mut clean_eof = false;
     loop {
         match stream.read(&mut buf) {
-            Ok(0) => break,
-            Ok(n) => response_buffer.extend_from_slice(&buf[..n]),
+            Ok(0) => {
+                clean_eof = true;
+                break;
+            }
+            Ok(n) => {
+                response_buffer.extend_from_slice(&buf[..n]);
+                if response_buffer.len() > MAX_RESPONSE_BYTES {
+                    return Err(anyhow::anyhow!(
+                        "HTTP response exceeds {} byte cap",
+                        MAX_RESPONSE_BYTES
+                    ));
+                }
+            }
             Err(_) => break,
         }
+    }
+
+    if !clean_eof && !http_response_is_complete(&response_buffer) {
+        return Err(anyhow::anyhow!(
+            "HTTP response incomplete: connection error or timeout before EOF"
+        ));
     }
 
     parse_http_response(&response_buffer)
 }
 
 /// 解析 HTTP 响应
+/// 响应是否已完整：\r\n\r\n 头部分界存在，且若声明了
+/// Content-Length 则 body 长度达标（G72 review：超时截断不交付）
+fn http_response_is_complete(data: &[u8]) -> bool {
+    let sep = match data.windows(4).position(|w| w == b"\r\n\r\n") {
+        Some(p) => p,
+        None => return false,
+    };
+    let head = match std::str::from_utf8(&data[..sep]) {
+        Ok(h) => h,
+        Err(_) => return false,
+    };
+    let declared: Option<usize> = head.split("\r\n").skip(1).find_map(|l| {
+        l.to_ascii_lowercase()
+            .strip_prefix("content-length:")
+            .and_then(|v| v.trim().parse().ok())
+    });
+    match declared {
+        Some(need) => data.len() >= sep + 4 + need,
+        // 无 Content-Length：以 EOF 为准（连接断开即算交付）
+        None => true,
+    }
+}
+
 fn parse_http_response(data: &[u8]) -> Result<HttpResponse> {
     // G72：按字节找 \r\n\r\n 边界——body 允许非 UTF-8；
     // 头部按 ASCII 解析（header 名转小写，对齐 Node IncomingMessage.headers）
@@ -500,11 +552,19 @@ fn parse_http_response(data: &[u8]) -> Result<HttpResponse> {
 
     let mut lines = head.split("\r\n");
     let status_line = lines.next().unwrap_or("");
+    // G72 review：状态行畸形（非 HTTP/ 前缀或状态码缺失）→ Err，
+    // 绝不默认成 200——失败必须走 'error'，不能伪装成功
+    if !status_line.starts_with("HTTP/") {
+        return Err(anyhow::anyhow!(
+            "malformed HTTP response status line: {:?}",
+            status_line
+        ));
+    }
     let status_parts: Vec<&str> = status_line.splitn(3, ' ').collect();
-    let status_code = status_parts
+    let status_code: u16 = status_parts
         .get(1)
         .and_then(|s| s.parse().ok())
-        .unwrap_or(200);
+        .ok_or_else(|| anyhow::anyhow!("malformed HTTP response status line: {:?}", status_line))?;
     let status_message = status_parts.get(2).unwrap_or(&"").to_string();
 
     let mut headers = Vec::new();
