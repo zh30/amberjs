@@ -460,6 +460,23 @@ pub fn setup_stream_api(
                     // Register 'end' listener on source
                     this.set(scope, end_key.into(), end_callback.into());
 
+                    // G71: 源已 ended（push(null) 先于 pipe）→ 'end' 立即触发，
+                    // 与 on('end') 的已结束即时语义一致；否则 pipeline 链
+                    // 永远等不到收尾（pre-ended source outruns setup）。
+                    {
+                        let state_key0 = v8::String::new(scope, "_readableState").unwrap();
+                        if let Some(state_val) = this.get(scope, state_key0.into()) {
+                            if let Some(state_obj) = state_val.to_object(scope) {
+                                let ended_key = v8::String::new(scope, "ended").unwrap();
+                                if let Some(ended_val) = state_obj.get(scope, ended_key.into()) {
+                                    if ended_val.to_boolean(scope).boolean_value(scope) {
+                                        end_callback.call(scope, this.into(), &[]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // v0.3.59: Set flowing=true on source readable
                     let state_key = v8::String::new(scope, "_readableState").unwrap();
                     if let Some(state_val) = this.get(scope, state_key.into()) {
@@ -827,6 +844,23 @@ pub fn setup_stream_api(
                  mut retval: v8::ReturnValue| {
                     let this = args.this();
                     let chunk = args.get(0);
+
+                    // G71: EOF 守卫——ended 之后 push 直接失败：
+                    // 不再发 'data'，也不重发 'end'（防二次 EOF）
+                    {
+                        let state_key = v8::String::new(scope, "_readableState").unwrap();
+                        if let Some(state_val) = this.get(scope, state_key.into()) {
+                            if let Some(state_obj) = state_val.to_object(scope) {
+                                let ended_key = v8::String::new(scope, "ended").unwrap();
+                                if let Some(ended_val) = state_obj.get(scope, ended_key.into()) {
+                                    if ended_val.to_boolean(scope).boolean_value(scope) {
+                                        retval.set(v8::Boolean::new(scope, false).into());
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // G71: push(null) = readable EOF → ended + 'end' 监听
                     // （pipe 场景下该监听把 end 转发给 _pipeDest.end()）
@@ -1283,26 +1317,6 @@ pub fn setup_stream_api(
                         )
                     };
 
-                    // 末尾 chunk 先走 _write → _transform
-                    if !chunk.is_undefined() && !chunk.is_null() {
-                        let write_key = v8::String::new(scope, "_write").unwrap();
-                        if let Some(write_val) = this.get(scope, write_key.into()) {
-                            if write_val.is_function() {
-                                if let Ok(wf) = v8::Local::<v8::Function>::try_from(write_val) {
-                                    let enc = v8::String::new(scope, &encoding).unwrap();
-                                    let noop = v8::Function::new(
-                                        scope,
-                                        |_s: &mut v8::PinScope,
-                                         _a: v8::FunctionCallbackArguments,
-                                         _r: v8::ReturnValue| {},
-                                    )
-                                    .unwrap();
-                                    wf.call(scope, this.into(), &[chunk, enc.into(), noop.into()]);
-                                }
-                            }
-                        }
-                    }
-
                     // 收尾序列（封装成可被 _flush cb 与无 flush 路径共用的函数）：
                     // wstate.ended → push(null) 发 'end' → 'finish' → 用户 cb
                     let finish_pack = v8::Array::new(scope, 2);
@@ -1370,16 +1384,54 @@ pub fn setup_stream_api(
                     .build(scope)
                     .unwrap();
 
-                    // _flush：用户可能再 push 尾数据；注入 cb 按
-                    // (err, out) → err 走 'error' / out 走 push / 然后 finish
-                    let flush_key = v8::String::new(scope, "_flush").unwrap();
-                    let flush_fn_val = this.get(scope, flush_key.into());
-                    let has_flush = flush_fn_val.map(|f| f.is_function()).unwrap_or(false);
-                    if has_flush {
-                        let flush_pack = v8::Array::new(scope, 2);
-                        flush_pack.set_index(scope, 0, this.into());
-                        flush_pack.set_index(scope, 1, finish_fn.into());
-                        let flush_cb = v8::Function::builder(
+                    // G71: 收尾入口 seq(err)——末块交给 _write 的写回调驱动；
+                    // 异步 transform 的 cb 到达前不提前 flush/finish（否则
+                    // push(null) 先落地，后到的输出被 EOF 丢弃）。
+                    // err 真值 → 发 'error' 并中止收尾。
+                    let seq_pack = v8::Array::new(scope, 2);
+                    seq_pack.set_index(scope, 0, this.into());
+                    seq_pack.set_index(scope, 1, finish_fn.into());
+                    let seq_fn =
+                        v8::Function::builder(
+                            |scope: &mut v8::PinScope,
+                             args: v8::FunctionCallbackArguments,
+                             _retval: v8::ReturnValue| {
+                                let arr = args.data().to_object(scope).unwrap();
+                                let i0: v8::Local<v8::Value> = v8::Integer::new(scope, 0).into();
+                                let i1: v8::Local<v8::Value> = v8::Integer::new(scope, 1).into();
+                                let this = arr.get(scope, i0).unwrap();
+                                let finish_fn = arr.get(scope, i1).unwrap();
+                                let err = args.get(0);
+                                let this_obj = match v8::Local::<v8::Object>::try_from(this) {
+                                    Ok(o) => o,
+                                    Err(_) => return,
+                                };
+                                if err.to_boolean(scope).boolean_value(scope) {
+                                    if let Some(ev) = stream_events_obj(scope, &this_obj) {
+                                        let ek = v8::String::new(scope, "error").unwrap();
+                                        if let Some(l) = ev.get(scope, ek.into()) {
+                                            if l.is_function() {
+                                                if let Ok(f) =
+                                                    v8::Local::<v8::Function>::try_from(l)
+                                                {
+                                                    f.call(scope, this, &[err]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    return;
+                                }
+                                // _flush：用户可能再 push 尾数据；注入 cb 按
+                                // (err, out) → err 走 'error' / out 走 push / 然后 finish
+                                let flush_key = v8::String::new(scope, "_flush").unwrap();
+                                let flush_fn_val = this_obj.get(scope, flush_key.into());
+                                let has_flush =
+                                    flush_fn_val.map(|f| f.is_function()).unwrap_or(false);
+                                if has_flush {
+                                    let flush_pack = v8::Array::new(scope, 2);
+                                    flush_pack.set_index(scope, 0, this.into());
+                                    flush_pack.set_index(scope, 1, finish_fn.into());
+                                    let flush_cb = v8::Function::builder(
                             |scope: &mut v8::PinScope,
                              args: v8::FunctionCallbackArguments,
                              _retval: v8::ReturnValue| {
@@ -1428,13 +1480,40 @@ pub fn setup_stream_api(
                         .data(flush_pack.into())
                         .build(scope)
                         .unwrap();
-                        if let Ok(flush_fn) =
-                            v8::Local::<v8::Function>::try_from(flush_fn_val.unwrap())
-                        {
-                            flush_fn.call(scope, this.into(), &[flush_cb.into()]);
+                                    if let Ok(flush_fn) =
+                                        v8::Local::<v8::Function>::try_from(flush_fn_val.unwrap())
+                                    {
+                                        flush_fn.call(scope, this.into(), &[flush_cb.into()]);
+                                    }
+                                } else if finish_fn.is_function() {
+                                    if let Ok(f) = v8::Local::<v8::Function>::try_from(finish_fn) {
+                                        f.call(scope, this, &[]);
+                                    }
+                                }
+                            },
+                        )
+                        .data(seq_pack.into())
+                        .build(scope)
+                        .unwrap();
+
+                    // 末块走 _write → _transform（写回调 = seq）；
+                    // 无末块直接 seq(undefined)
+                    if !chunk.is_undefined() && !chunk.is_null() {
+                        let write_key = v8::String::new(scope, "_write").unwrap();
+                        if let Some(write_val) = this.get(scope, write_key.into()) {
+                            if write_val.is_function() {
+                                if let Ok(wf) = v8::Local::<v8::Function>::try_from(write_val) {
+                                    let enc = v8::String::new(scope, &encoding).unwrap();
+                                    wf.call(
+                                        scope,
+                                        this.into(),
+                                        &[chunk, enc.into(), seq_fn.into()],
+                                    );
+                                }
+                            }
                         }
                     } else {
-                        finish_fn.call(scope, this.into(), &[]);
+                        seq_fn.call(scope, this.into(), &[v8::undefined(scope).into()]);
                     }
                     retval.set(this.into());
                 },
@@ -2069,53 +2148,37 @@ pub fn setup_stream_api(
                 return;
             }
 
-            // Establish pipe connections sequentially
-            let mut last_writable: Option<v8::Local<v8::Value>> = None;
-
-            for i in 0..streams.len() - 1 {
-                let source = streams[i];
-                let destination = streams[i + 1];
-
-                if let (Some(source_obj), Some(dest_obj)) =
-                    (source.to_object(scope), destination.to_object(scope))
-                {
-                    // Check if source has pipe method
-                    let pipe_key: v8::Local<v8::Value> =
-                        v8::String::new(scope, "pipe").unwrap().into();
-
-                    if source_obj.has(scope, pipe_key).unwrap_or(false) {
-                        if let Some(pipe_func) = source_obj.get(scope, pipe_key) {
-                            if pipe_func.is_function() {
-                                if let Ok(pipe_fn) = v8::Local::<v8::Function>::try_from(pipe_func)
-                                {
-                                    // Call source.pipe(destination)
-                                    pipe_fn.call(scope, source.into(), &[destination]);
-
-                                    // Check if destination has 'end' method (indicates Writable)
-                                    let end_key: v8::Local<v8::Value> =
-                                        v8::String::new(scope, "end").unwrap().into();
-                                    if dest_obj.has(scope, end_key).unwrap_or(false) {
-                                        last_writable = Some(destination);
-                                    }
-                                }
-                            }
-                        }
-                    }
+            // 末段（最后一个实参）：只要有 'end' 方法就当 dest
+            let last = *streams.last().unwrap();
+            let last_writable: Option<v8::Local<v8::Value>> = last.to_object(scope).and_then(|o| {
+                let end_key: v8::Local<v8::Value> = v8::String::new(scope, "end").unwrap().into();
+                if o.has(scope, end_key).unwrap_or(false) {
+                    Some(last)
+                } else {
+                    None
                 }
-            }
+            });
 
-            // 完成回调：挂到末个 dest 的 'finish'——保留已有 finish 监听
-            // （顺序调用旧监听再调 cb），单监听模型下用注入函数合并。
-            if let (Some(last), Some(cb)) = (last_writable, done_cb) {
-                if let Some(last_obj) = last.to_object(scope) {
-                    // dest 侧 finish 槽位：Transform/PassThrough 用 _events.finish，
+            // G71: 完成回调先挂到末段 'finish'，再开始接管——同步源在
+            // 第一个 pipe 上就开始流动，回调若后挂会永远错过。
+            // 合并旧监听 + once 守卫（dest.end() 被调两次时 cb 只跑一次）。
+            if let (Some(last_v), Some(cb)) = (last_writable, done_cb) {
+                if let Some(last_obj) = last_v.to_object(scope) {
+                    // dest 侧 finish 槽位：Transform/PassThrough 用 _events.finish
+                    // （特征：有 _events 对象或有 push 方法——fresh Transform
+                    // 尚未 on()，没有 _events，但 push 存在），
                     // 朴素 Writable 用 this['finish']（按各自 on() 约定）
-                    let use_events = last_obj
+                    let has_events_slot = last_obj
                         .get(scope, v8::String::new(scope, "_events").unwrap().into())
                         .map(|v| v.is_object())
                         .unwrap_or(false);
+                    let has_push = last_obj
+                        .get(scope, v8::String::new(scope, "push").unwrap().into())
+                        .map(|v| v.is_function())
+                        .unwrap_or(false);
+                    let use_events = has_events_slot || has_push;
                     let finish_key = v8::String::new(scope, "finish").unwrap();
-                    let old_finish = if use_events {
+                    let old_finish = if has_events_slot {
                         stream_events_obj(scope, &last_obj)
                             .and_then(|ev| ev.get(scope, finish_key.into()))
                             .unwrap_or_else(|| v8::undefined(scope).into())
@@ -2124,10 +2187,19 @@ pub fn setup_stream_api(
                             .get(scope, finish_key.into())
                             .unwrap_or_else(|| v8::undefined(scope).into())
                     };
-                    let pack = v8::Array::new(scope, 3);
-                    pack.set_index(scope, 0, last);
+                    // pack: [0]=this [1]=old_finish [2]=cb [3]=once-flag {called:false}
+                    let flag = v8::Object::new(scope);
+                    let called_key = v8::String::new(scope, "called").unwrap();
+                    flag.set(
+                        scope,
+                        called_key.into(),
+                        v8::Boolean::new(scope, false).into(),
+                    );
+                    let pack = v8::Array::new(scope, 4);
+                    pack.set_index(scope, 0, last_v);
                     pack.set_index(scope, 1, old_finish);
                     pack.set_index(scope, 2, cb);
+                    pack.set_index(scope, 3, flag.into());
                     let merged = v8::Function::builder(
                         |scope: &mut v8::PinScope,
                          args: v8::FunctionCallbackArguments,
@@ -2136,9 +2208,25 @@ pub fn setup_stream_api(
                             let i0: v8::Local<v8::Value> = v8::Integer::new(scope, 0).into();
                             let i1: v8::Local<v8::Value> = v8::Integer::new(scope, 1).into();
                             let i2: v8::Local<v8::Value> = v8::Integer::new(scope, 2).into();
+                            let i3: v8::Local<v8::Value> = v8::Integer::new(scope, 3).into();
                             let this = arr.get(scope, i0).unwrap();
                             let old_l = arr.get(scope, i1).unwrap();
                             let cb = arr.get(scope, i2).unwrap();
+                            let flag = arr.get(scope, i3).unwrap();
+                            // once 守卫：flag.called 已在 → 直接返回
+                            if let Ok(flag_obj) = v8::Local::<v8::Object>::try_from(flag) {
+                                let ck = v8::String::new(scope, "called").unwrap();
+                                if let Some(v) = flag_obj.get(scope, ck.into()) {
+                                    if v.to_boolean(scope).boolean_value(scope) {
+                                        return;
+                                    }
+                                }
+                                flag_obj.set(
+                                    scope,
+                                    ck.into(),
+                                    v8::Boolean::new(scope, true).into(),
+                                );
+                            }
                             if old_l.is_function() {
                                 if let Ok(f) = v8::Local::<v8::Function>::try_from(old_l) {
                                     f.call(scope, this, &[]);
@@ -2158,6 +2246,28 @@ pub fn setup_stream_api(
                         stream_set_event(scope, &last_obj, "finish", merged.into());
                     } else {
                         last_obj.set(scope, finish_key.into(), merged.into());
+                    }
+                }
+            }
+
+            // G71: 反向接管（下游先连）：src.pipe(t) 会先置 flowing，
+            // 同步源立刻开始流动——下游转发器必须在场才不丢块。
+            for i in (0..streams.len() - 1).rev() {
+                let source = streams[i];
+                let destination = streams[i + 1];
+
+                if let Some(source_obj) = source.to_object(scope) {
+                    let pipe_key: v8::Local<v8::Value> =
+                        v8::String::new(scope, "pipe").unwrap().into();
+                    if source_obj.has(scope, pipe_key).unwrap_or(false) {
+                        if let Some(pipe_func) = source_obj.get(scope, pipe_key) {
+                            if pipe_func.is_function() {
+                                if let Ok(pipe_fn) = v8::Local::<v8::Function>::try_from(pipe_func)
+                                {
+                                    pipe_fn.call(scope, source.into(), &[destination]);
+                                }
+                            }
+                        }
                     }
                 }
             }
