@@ -1748,11 +1748,24 @@ fn http_request_callback(
     let options: _ = args.get(0);
     let callback: _ = args.get(1);
 
+    // G72: URL 字符串形式 http.request('http://host[:port][/path]'[, cb])
+    let url_parts = options
+        .to_string(scope)
+        .filter(|_| options.is_string())
+        .map(|u| u.to_rust_string_lossy(scope))
+        .and_then(|u| parse_http_url_arg(&u));
+
     // 解析请求选项
     let method = extract_string_option(scope, &options, "method", "GET");
-    let hostname = extract_string_option(scope, &options, "hostname", "localhost");
-    let port = extract_port(scope, &options, 80);
-    let path = extract_string_option(scope, &options, "path", "/");
+    let (hostname, port, path) = if let Some((h, p, pa)) = url_parts {
+        (h, p, pa)
+    } else {
+        (
+            extract_string_option(scope, &options, "hostname", "localhost"),
+            extract_port(scope, &options, 80),
+            extract_string_option(scope, &options, "path", "/"),
+        )
+    };
 
     // 创建请求对象
     let req_obj: _ = v8::Object::new(scope);
@@ -1820,6 +1833,9 @@ fn http_request_callback(
         req_obj.set(scope, response_callback_key.into(), callback);
     }
 
+    // G72: req 'response'/'error' 事件槽
+    install_http_event_methods(scope, &req_obj);
+
     retval.set(req_obj.into());
 }
 fn http_get_callback(
@@ -1830,10 +1846,23 @@ fn http_get_callback(
     let options: _ = args.get(0);
     let callback: _ = args.get(1);
 
+    // G72: URL 字符串形式 http.get('http://host[:port][/path]'[, cb])
+    let url_parts = options
+        .to_string(scope)
+        .filter(|_| options.is_string())
+        .map(|u| u.to_rust_string_lossy(scope))
+        .and_then(|u| parse_http_url_arg(&u));
+
     // 解析请求选项（http.get 固定为 GET 方法）
-    let hostname = extract_string_option(scope, &options, "hostname", "localhost");
-    let port = extract_port(scope, &options, 80);
-    let path = extract_string_option(scope, &options, "path", "/");
+    let (hostname, port, path) = if let Some((h, p, pa)) = url_parts {
+        (h, p, pa)
+    } else {
+        (
+            extract_string_option(scope, &options, "hostname", "localhost"),
+            extract_port(scope, &options, 80),
+            extract_string_option(scope, &options, "path", "/"),
+        )
+    };
 
     // 创建请求对象
     let req_obj: _ = v8::Object::new(scope);
@@ -1897,6 +1926,20 @@ fn http_get_callback(
     let response_callback_key: _ = v8::String::new(scope, "_responseCallback").unwrap();
     if callback.is_function() {
         req_obj.set(scope, response_callback_key.into(), callback);
+    }
+
+    // G72: req 'response'/'error' 事件槽
+    install_http_event_methods(scope, &req_obj);
+
+    // G72: Node 语义——http.get 自动发送请求；同步缓冲模型下整个
+    // 响应分发（'response'/cb/'data'/'end'/'error'）发生在 get() 调用内
+    let end_key: _ = v8::String::new(scope, "end").unwrap();
+    if let Some(end_fn) = req_obj.get(scope, end_key.into()) {
+        if end_fn.is_function() {
+            if let Ok(f) = v8::Local::<v8::Function>::try_from(end_fn) {
+                f.call(scope, req_obj.into(), &[]);
+            }
+        }
     }
 
     retval.set(req_obj.into());
@@ -2125,6 +2168,238 @@ fn http_server_on_callback(
     // 支持链式调用
     retval.set(this.into());
 }
+
+/// G72：ClientRequest / IncomingMessage 的 _events 帮助——单监听槽模型
+/// （与 stream 契约一致，不是 EventEmitter 多播）。
+fn http_events_obj<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    this: &v8::Local<v8::Object>,
+) -> Option<v8::Local<'a, v8::Object>> {
+    let key = v8::String::new(scope, "_events").unwrap();
+    this.get(scope, key.into()).and_then(|v| {
+        if v.is_undefined() || v.is_null() {
+            None
+        } else {
+            v.to_object(scope)
+        }
+    })
+}
+
+fn http_set_event(
+    scope: &mut v8::PinScope,
+    this: &v8::Local<v8::Object>,
+    name: &str,
+    value: v8::Local<v8::Value>,
+) {
+    let events_key = v8::String::new(scope, "_events").unwrap();
+    let events_obj = http_events_obj(scope, this).unwrap_or_else(|| {
+        let o = v8::Object::new(scope);
+        this.set(scope, events_key.into(), o.into());
+        o
+    });
+    let name_key = v8::String::new(scope, name).unwrap();
+    events_obj.set(scope, name_key.into(), value);
+}
+
+fn http_emit_event(
+    scope: &mut v8::PinScope,
+    this: &v8::Local<v8::Object>,
+    name: &str,
+    argv: &[v8::Local<v8::Value>],
+) {
+    if let Some(ev) = http_events_obj(scope, this) {
+        let name_key = v8::String::new(scope, name).unwrap();
+        if let Some(l) = ev.get(scope, name_key.into()) {
+            if l.is_function() {
+                if let Ok(f) = v8::Local::<v8::Function>::try_from(l) {
+                    f.call(scope, (*this).into(), argv);
+                }
+            }
+        }
+    }
+}
+
+/// 安装 req.on / req.once / res.on / res.setEncoding / res.pipe（G72）。
+fn install_http_event_methods(scope: &mut v8::PinScope, obj: &v8::Local<v8::Object>) {
+    let on_func = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let this = args.this();
+            let name = args.get(0);
+            let listener = args.get(1);
+            if name.is_string() && listener.is_function() {
+                let n = name
+                    .to_string(scope)
+                    .map(|s| s.to_rust_string_lossy(scope))
+                    .unwrap_or_default();
+                http_set_event(scope, &this, &n, listener);
+            }
+            retval.set(this.into());
+        },
+    )
+    .get_function(scope)
+    .unwrap();
+    let on_key = v8::String::new(scope, "on").unwrap();
+    obj.set(scope, on_key.into(), on_func.into());
+    // once 与 on 同槽（单监听模型下等价）
+    let once_key = v8::String::new(scope, "once").unwrap();
+    obj.set(scope, once_key.into(), on_func.into());
+
+    // setEncoding：窄契约存标记（'data' 始终给字符串）
+    let set_enc_func = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let this = args.this();
+            let enc = args.get(0);
+            let key = v8::String::new(scope, "_encoding").unwrap();
+            this.set(scope, key.into(), enc);
+            retval.set(this.into());
+        },
+    )
+    .get_function(scope)
+    .unwrap();
+    let set_enc_key = v8::String::new(scope, "setEncoding").unwrap();
+    obj.set(scope, set_enc_key.into(), set_enc_func.into());
+}
+
+/// 安装 IncomingMessage.pipe(dest)：'data' → dest.write，'end' → dest.end()
+/// （与 stream pipe 同一转发器模型；chunk 用 utf8 编码实参）。
+fn install_http_res_pipe(scope: &mut v8::PinScope, obj: &v8::Local<v8::Object>) {
+    let pipe_func = v8::FunctionTemplate::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            let this = args.this();
+            let dest = args.get(0);
+            if dest.is_object() {
+                // 'data' 转发器（dest 打包进 data）
+                let data_pack = v8::Array::new(scope, 1);
+                data_pack.set_index(scope, 0, dest);
+                let data_fwd = v8::Function::builder(
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     _retval: v8::ReturnValue| {
+                        let arr = args.data().to_object(scope).unwrap();
+                        let i0: v8::Local<v8::Value> = v8::Integer::new(scope, 0).into();
+                        let dest = arr.get(scope, i0).unwrap();
+                        let chunk = args.get(0);
+                        if let Ok(dest_obj) = v8::Local::<v8::Object>::try_from(dest) {
+                            let wk = v8::String::new(scope, "write").unwrap();
+                            if let Some(w) = dest_obj.get(scope, wk.into()) {
+                                if w.is_function() {
+                                    if let Ok(f) = v8::Local::<v8::Function>::try_from(w) {
+                                        let enc = v8::String::new(scope, "utf8").unwrap();
+                                        let noop = v8::Function::new(
+                                            scope,
+                                            |_s: &mut v8::PinScope,
+                                             _a: v8::FunctionCallbackArguments,
+                                             _r: v8::ReturnValue| {},
+                                        )
+                                        .unwrap();
+                                        f.call(
+                                            scope,
+                                            dest_obj.into(),
+                                            &[chunk, enc.into(), noop.into()],
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+                .data(data_pack.into())
+                .build(scope)
+                .unwrap();
+                http_set_event(scope, &this, "data", data_fwd.into());
+
+                // 'end' 转发器
+                let end_pack = v8::Array::new(scope, 1);
+                end_pack.set_index(scope, 0, dest);
+                let end_fwd = v8::Function::builder(
+                    |scope: &mut v8::PinScope,
+                     args: v8::FunctionCallbackArguments,
+                     _retval: v8::ReturnValue| {
+                        let arr = args.data().to_object(scope).unwrap();
+                        let i0: v8::Local<v8::Value> = v8::Integer::new(scope, 0).into();
+                        let dest = arr.get(scope, i0).unwrap();
+                        if let Ok(dest_obj) = v8::Local::<v8::Object>::try_from(dest) {
+                            let ek = v8::String::new(scope, "end").unwrap();
+                            if let Some(e) = dest_obj.get(scope, ek.into()) {
+                                if e.is_function() {
+                                    if let Ok(f) = v8::Local::<v8::Function>::try_from(e) {
+                                        f.call(scope, dest_obj.into(), &[]);
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+                .data(end_pack.into())
+                .build(scope)
+                .unwrap();
+                http_set_event(scope, &this, "end", end_fwd.into());
+            }
+            retval.set(dest);
+        },
+    )
+    .get_function(scope)
+    .unwrap();
+    let pipe_key = v8::String::new(scope, "pipe").unwrap();
+    obj.set(scope, pipe_key.into(), pipe_func.into());
+}
+
+/// 解析 'http://host[:port][/path]' 形式的 URL 字符串实参（G72 窄面）。
+/// https:// 返回 None ——由调用方走 'error' 语义（fail-closed，不伪装）。
+fn parse_http_url_arg(url: &str) -> Option<(String, u16, String)> {
+    let rest = url.strip_prefix("http://")?;
+    let (authority, path) = match rest.find('/') {
+        Some(i) => (&rest[..i], &rest[i..]),
+        None => (rest, "/"),
+    };
+    if authority.is_empty() {
+        return None;
+    }
+    let (host, port) = match authority.rfind(':') {
+        Some(i) => (&authority[..i], authority[i + 1..].parse::<u16>().ok()?),
+        None => (authority, 80),
+    };
+    Some((host.to_string(), port, path.to_string()))
+}
+
+/// 把 req._headers 对象摊开为 (name, value) 列表发给对端（G72：此前被丢弃）。
+fn extract_request_headers(
+    scope: &mut v8::PinScope,
+    this: &v8::Local<v8::Object>,
+) -> Vec<(String, String)> {
+    let key = v8::String::new(scope, "_headers").unwrap();
+    let mut out = Vec::new();
+    if let Some(hv) = this.get(scope, key.into()) {
+        if let Ok(hobj) = v8::Local::<v8::Object>::try_from(hv) {
+            if let Some(names) = hobj.get_own_property_names(scope, Default::default()) {
+                for i in 0..names.length() {
+                    let idx: v8::Local<v8::Value> = v8::Integer::new(scope, i as i32).into();
+                    if let Some(nv) = names.get(scope, idx) {
+                        if let Some(ns) = nv.to_string(scope) {
+                            if let Some(vv) = hobj.get(scope, ns.into()) {
+                                let name = ns.to_rust_string_lossy(scope);
+                                if let Some(vs) = vv.to_string(scope) {
+                                    out.push((name, vs.to_rust_string_lossy(scope)));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
 /// http.request().end() 回调 - v0.3.84 集成连接池
 fn http_req_end_callback(
     scope: &mut v8::PinScope,
@@ -2132,7 +2407,46 @@ fn http_req_end_callback(
     mut retval: v8::ReturnValue,
 ) {
     let this: _ = args.this();
-    let callback: _ = args.get(0);
+
+    // G72 归一化：end([chunk][, cb])——首个函数实参为回调；
+    // 之前的非函数实参作为末块并进 _body
+    let a0 = args.get(0);
+    let a1 = args.get(1);
+    let callback = if a0.is_function() {
+        a0
+    } else if a1.is_function() {
+        a1
+    } else {
+        v8::undefined(scope).into()
+    };
+    if !a0.is_undefined() && !a0.is_function() {
+        // 与 write() 相同的 _body 字符串拼接
+        let body_key = v8::String::new(scope, "_body").unwrap();
+        let existing = this
+            .get(scope, body_key.into())
+            .unwrap_or(v8::undefined(scope).into());
+        let chunk_str = a0
+            .to_string(scope)
+            .map(|s| s.to_rust_string_lossy(scope))
+            .unwrap_or_default();
+        let combined = if existing.is_string() {
+            format!(
+                "{}{}",
+                existing
+                    .to_string(scope)
+                    .map(|s| s.to_rust_string_lossy(scope))
+                    .unwrap_or_default(),
+                chunk_str
+            )
+        } else {
+            chunk_str
+        };
+        this.set(
+            scope,
+            body_key.into(),
+            v8::String::new(scope, &combined).unwrap().into(),
+        );
+    }
 
     // 从请求对象提取选项
     let method =
@@ -2160,13 +2474,14 @@ fn http_req_end_callback(
     }
 
     // v0.3.73: 尝试发送真实的 HTTP 请求
+    let request_headers = extract_request_headers(scope, &this);
     let http_response = sync_http_request(
         HttpRequestOptions {
             method: method.clone(),
             host: host.clone(),
             port: port as u16,
             path: path.clone(),
-            headers: vec![],
+            headers: request_headers,
             body: body.into_bytes(),
         },
         10, // 10秒超时
@@ -2175,49 +2490,80 @@ fn http_req_end_callback(
     // v0.3.84: 释放连接回连接池
     release_http_connection(&host, port as u16);
 
-    // 使用真实响应或回退到模拟响应
-    let (status_code, status_message, response_headers, response_body) = match http_response {
-        Ok(resp) => (
-            resp.status_code as i32,
-            resp.status_message,
-            resp.headers,
-            resp.body,
-        ),
+    // G72: end() 的用户回调 —— 请求发送完成后调用一次（缓冲模型下
+    // 无单独的 'finish' 时机，在响应分发前调用，语义写进契约 Limits）
+    if callback.is_function() {
+        if let Ok(f) = v8::Local::<v8::Function>::try_from(callback) {
+            f.call(scope, this.into(), &[]);
+        }
+    }
+
+    // G72: fail-closed——请求失败发 req 'error' 事件，绝不伪装 200。
+    let resp = match http_response {
+        Ok(r) => r,
         Err(e) => {
-            eprintln!("[Amber] HTTP request failed: {}", e);
-            (200, "OK".to_string(), vec![], vec![])
+            let msg = format!("[Amber] HTTP request failed: {}", e);
+            eprintln!("{}", msg);
+            let err_obj = v8::Object::new(scope);
+            let ek = v8::String::new(scope, "message").unwrap();
+            err_obj.set(
+                scope,
+                ek.into(),
+                v8::String::new(scope, &msg).unwrap().into(),
+            );
+            let nk = v8::String::new(scope, "name").unwrap();
+            err_obj.set(
+                scope,
+                nk.into(),
+                v8::String::new(scope, "Error").unwrap().into(),
+            );
+            http_emit_event(scope, &this, "error", &[err_obj.into()]);
+            retval.set(this.into());
+            return;
         }
     };
 
-    // 创建响应对象
+    // 创建响应对象（IncomingMessage：字段 + _events + on/setEncoding/pipe）
     let res_obj = create_response_object_with_data(
         scope,
-        status_code,
-        &status_message,
-        &response_headers,
-        &response_body,
+        resp.status_code as i32,
+        &resp.status_message,
+        &resp.headers,
+        &resp.body,
     );
+    install_http_event_methods(scope, &res_obj);
+    install_http_res_pipe(scope, &res_obj);
 
     // v0.3.84: 在响应对象中存储连接池统计
     let pool_stats_key: _ = v8::String::new(scope, "_poolStats").unwrap();
     let pool_stats_val: _ = v8::String::new(scope, &get_connection_pool_stats()).unwrap();
     res_obj.set(scope, pool_stats_key.into(), pool_stats_val.into());
 
-    // 优先使用传入的回调，其次使用请求对象中存储的回调
-    let response_callback = if callback.is_function() {
-        callback
-    } else {
+    // 分发响应：req 'response' 监听 或 request()/get() 传入的 cb（二选一
+    // 都兼容——先 'response' 事件，再 _responseCallback；Node 语义两者都会发）
+    http_emit_event(scope, &this, "response", &[res_obj.into()]);
+    {
         let cb_key: _ = v8::String::new(scope, "_responseCallback").unwrap();
-        this.get(scope, cb_key.into())
-            .unwrap_or(v8::undefined(scope).into())
-    };
-
-    if response_callback.is_function() {
-        if let Ok(cb_func) = v8::Local::<v8::Function>::try_from(response_callback) {
-            let call_args: &[v8::Local<v8::Value>] = &[res_obj.into()];
-            cb_func.call(scope, this.into(), call_args);
+        let stored_cb = this
+            .get(scope, cb_key.into())
+            .unwrap_or(v8::undefined(scope).into());
+        if stored_cb.is_function() {
+            if let Ok(cb_func) = v8::Local::<v8::Function>::try_from(stored_cb) {
+                cb_func.call(scope, this.into(), &[res_obj.into()]);
+            }
         }
     }
+
+    // IncomingMessage 缓冲投递：'data'(body) → 'end'（单块模型，见契约 Limits）
+    if !resp.body.is_empty() {
+        let body_str = match std::str::from_utf8(&resp.body) {
+            Ok(s) => v8::String::new(scope, s).unwrap(),
+            Err(_) => v8::String::new(scope, "[binary data]").unwrap(),
+        };
+        http_emit_event(scope, &res_obj, "data", &[body_str.into()]);
+    }
+    http_emit_event(scope, &res_obj, "end", &[]);
+
     retval.set(this.into());
 }
 

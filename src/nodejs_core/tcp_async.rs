@@ -430,86 +430,76 @@ pub struct HttpRequestOptions {
     pub body: Vec<u8>,
 }
 
-/// 同步发送 HTTP 请求并接收响应 - v0.3.73
+/// 同步发送 HTTP 请求并接收响应 - v0.3.73 / G72 改写：
+/// 用 std::net::TcpStream（阻塞+超时）。G72 契约是同步缓冲模型，
+/// 不走 tokio/TcpConnectionHandle——后者在 isolate 内 block_on 会撞
+/// runtime 生命周期（"context found, but it is being shutdown"）。
 pub fn sync_http_request(options: HttpRequestOptions, timeout_secs: u64) -> Result<HttpResponse> {
-    // 建立 TCP 连接
-    let handle = sync_connect(&options.host, options.port, timeout_secs)?;
+    use std::io::{Read, Write};
+    use std::net::{TcpStream, ToSocketAddrs};
+
+    // 建立 TCP 连接（阻塞 + 超时）
+    let addr = format!("{}:{}", options.host, options.port);
+    let sock_addr = addr
+        .as_str()
+        .to_socket_addrs()?
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("resolve {} failed", addr))?;
+    let mut stream = TcpStream::connect_timeout(
+        &sock_addr,
+        std::time::Duration::from_secs(timeout_secs.max(1)),
+    )?;
+    let rw_timeout = std::time::Duration::from_secs(timeout_secs.max(1));
+    let _ = stream.set_read_timeout(Some(rw_timeout));
+    let _ = stream.set_write_timeout(Some(rw_timeout));
 
     // 构建 HTTP 请求
     let mut request = format!(
-        "{} {} HTTP/1.1\r\nHost: {}\r\n",
+        "{} {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n",
         options.method, options.path, options.host
     );
-
-    // 添加自定义请求头
     for (key, value) in &options.headers {
         request.push_str(&format!("{}: {}\r\n", key, value));
     }
-
-    // 添加 Content-Length（如果有 body）
     if !options.body.is_empty() {
         request.push_str(&format!("Content-Length: {}\r\n", options.body.len()));
     }
-
-    // 结束请求头
     request.push_str("\r\n");
 
-    // 发送请求头
-    sync_write(&handle, request.as_bytes())?;
-
-    // 发送 body（如果有）
+    stream.write_all(request.as_bytes())?;
     if !options.body.is_empty() {
-        sync_write(&handle, &options.body)?;
+        stream.write_all(&options.body)?;
     }
+    let _ = stream.shutdown(std::net::Shutdown::Write);
 
-    // 读取响应
+    // 读取响应：Connection: close 语义——读到对端关闭或读超时
     let mut response_buffer = Vec::new();
-    let mut buf = [0u8; 4096];
-
+    let mut buf = [0u8; 8192];
     loop {
-        match sync_read(&handle, &mut buf) {
-            Ok(0) => break, // 连接关闭
-            Ok(n) => {
-                response_buffer.extend_from_slice(&buf[..n]);
-            }
+        match stream.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => response_buffer.extend_from_slice(&buf[..n]),
             Err(_) => break,
         }
     }
 
-    close_connection(&handle);
-
-    // 解析 HTTP 响应
     parse_http_response(&response_buffer)
 }
 
 /// 解析 HTTP 响应
 fn parse_http_response(data: &[u8]) -> Result<HttpResponse> {
-    let response_str = match std::str::from_utf8(data) {
-        Ok(s) => s,
-        Err(_) => {
-            // 如果不是有效 UTF-8，尝试查找 HTTP 分隔符
-            return Ok(HttpResponse {
-                status_code: 200,
-                status_message: String::from("OK"),
-                headers: vec![(
-                    String::from("content-type"),
-                    String::from("application/octet-stream"),
-                )],
-                body: data.to_vec(),
-            });
-        }
-    };
+    // G72：按字节找 \r\n\r\n 边界——body 允许非 UTF-8；
+    // 头部按 ASCII 解析（header 名转小写，对齐 Node IncomingMessage.headers）
+    let sep = data
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .ok_or_else(|| anyhow::anyhow!("malformed HTTP response: no header terminator"))?;
+    let head = std::str::from_utf8(&data[..sep])
+        .map_err(|_| anyhow::anyhow!("malformed HTTP response: non-UTF-8 headers"))?;
+    let body = data[sep + 4..].to_vec();
 
-    // 分割 headers 和 body
-    let parts: Vec<&str> = response_str.split("\r\n\r\n").collect();
-    let header_section = parts.get(0).unwrap_or(&response_str);
-    let body = parts.get(1).unwrap_or(&"");
-
-    // 解析状态行
-    let lines: Vec<&str> = header_section.split("\r\n").collect();
-    let status_line = lines.get(0).unwrap_or(&"");
-
-    // 解析状态码
+    let mut lines = head.split("\r\n");
+    let status_line = lines.next().unwrap_or("");
     let status_parts: Vec<&str> = status_line.splitn(3, ' ').collect();
     let status_code = status_parts
         .get(1)
@@ -517,14 +507,13 @@ fn parse_http_response(data: &[u8]) -> Result<HttpResponse> {
         .unwrap_or(200);
     let status_message = status_parts.get(2).unwrap_or(&"").to_string();
 
-    // 解析 headers
     let mut headers = Vec::new();
-    for line in lines.iter().skip(1) {
+    for line in lines {
         if line.is_empty() {
             continue;
         }
         if let Some(pos) = line.find(':') {
-            let key = line[..pos].trim().to_string();
+            let key = line[..pos].trim().to_ascii_lowercase();
             let value = line[pos + 1..].trim().to_string();
             headers.push((key, value));
         }
@@ -534,6 +523,6 @@ fn parse_http_response(data: &[u8]) -> Result<HttpResponse> {
         status_code,
         status_message,
         headers,
-        body: body.as_bytes().to_vec(),
+        body,
     })
 }

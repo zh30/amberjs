@@ -202,6 +202,8 @@ jobs:
 
       - name: node http server Stable contract
         run: cargo test --test http_server_contract_tests -- --test-threads=1
+      - name: node http client Stable contract
+        run: cargo test --test http_client_contract_tests -- --test-threads=1
 
       - name: node querystring Stable contract
         run: cargo test --test querystring_contract_tests -- --test-threads=1
