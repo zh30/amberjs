@@ -104,3 +104,72 @@ fn thrown_errors_and_syntax_errors_surface_to_caller() {
         "#);
     assert_eq!(output, "err|err|err");
 }
+
+// ===== G73 additive: createContext/isContext markers + runInContext =====
+
+#[test]
+#[serial]
+fn g73_create_context_marks_and_is_context() {
+    let output = run(r#"
+        const vm = require('vm');
+        const r = [];
+        r.push(vm.isContext({}));
+        r.push(vm.isContext(42));
+        r.push(vm.isContext('x'));
+        const ctx = vm.createContext({ seed: 2 });
+        r.push(vm.isContext(ctx));
+        const fresh = vm.createContext();
+        r.push(vm.isContext(fresh));
+        r.join('|');
+        "#);
+    assert_eq!(output, "false|false|false|true|true");
+}
+
+#[test]
+#[serial]
+fn g73_run_in_context_top_level_and_script() {
+    let output = run(r#"
+        const vm = require('vm');
+        const r = [];
+        const ctx = vm.createContext({ x: 5 });
+        r.push(vm.runInContext('x * 2', ctx));
+        r.push(ctx.x);           // sandbox copy-back keeps mutations
+        r.push(ctx.y === undefined ? 'u' : ctx.y);
+        const s = new vm.Script('a + b');
+        r.push(s.runInContext(vm.createContext({ a: 3, b: 4 })));
+        vm.runInContext('y = 42; x = x * 10', ctx);
+        r.push(ctx.x + '/' + ctx.y);  // 第二次调用拷回新全局 + 覆盖 sandbox key
+        r.join('|');
+        "#);
+    assert_eq!(output, "10|5|u|7|50/42");
+}
+
+#[test]
+#[serial]
+fn g73_contextified_globals_do_not_leak_to_caller() {
+    let output = run(r#"
+        const vm = require('vm');
+        const ctx = vm.createContext({});
+        vm.runInContext('leaked = 1', ctx);
+        String(typeof globalThis.leaked) + '|' + ctx.leaked;
+        "#);
+    assert_eq!(output, "undefined|1");
+}
+
+#[test]
+#[serial]
+fn g73_exceptions_rethrown_as_caller_errors() {
+    let output = run(r#"
+        const vm = require('vm');
+        const r = [];
+        const ctx = vm.createContext({});
+        try { vm.runInContext('throw new RangeError("boom")', ctx); } catch (e) {
+          r.push(e.name + ':' + (e instanceof Error) + ':' + e.message);
+        }
+        try { new vm.Script('syntax error((').runInContext(ctx); } catch (e) {
+          r.push(e.name);
+        }
+        r.join('|');
+        "#);
+    assert_eq!(output, "RangeError:true:boom|SyntaxError");
+}
