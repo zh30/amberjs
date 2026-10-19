@@ -42,7 +42,7 @@ These are real behaviors of the Stable server surface, not cover for client/`htt
 
 Outside this contract (Preview / DEFER / unimplemented). Do **not** treat these as Stable Limits of dishonest behavior:
 
-- **`http.request` / `http.get` client** — today fail-open: transport errors can surface as status `200` / empty body. Never graduate that as a Limit.
+- **`http.request` / `http.get` client** — the narrow fail-closed client (`'error'` event, real headers, buffered `'data'`/`'end'`) is **tentative G72**: [`docs/HTTP_CLIENT_CONTRACT.md`](HTTP_CLIENT_CONTRACT.md). Agent/pool mocks and `https` remain outside both pages.
 - **`http.Agent` / connection pool** — counters and mock `createConnection` (`"[Socket connected]"`); no real pooled `TcpStream`.
 - **Node `https` module** — thin wrap copying `http` client/Agent plus optional TLS PEM fields; inherits client fail-open. Not G7 CLI `amber serve --https`.
 - **`http2`** — JS stub constructors; no framing.
