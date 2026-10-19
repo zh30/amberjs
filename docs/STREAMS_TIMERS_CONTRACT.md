@@ -81,7 +81,7 @@ Formats are `gzip`, `deflate`, and `deflate-raw`. Any other string throws `Range
 - `clearMarks()` drops marks. `clearMeasures()` drops measures.
 - `toJSON()` returns `{ now, timeOrigin }`.
 
-Marks and measures are process-global. This is not a per-document timeline, and it does not implement `PerformanceObserver`.
+Marks and measures are process-global. This is not a per-document timeline, and it does not implement `PerformanceObserver` — the observer slice is the `perf_hooks` module contract ([`docs/PERF_HOOKS_CONTRACT.md`](PERF_HOOKS_CONTRACT.md), **G74**), not this page.
 
 ## Non-goals
 
@@ -92,7 +92,7 @@ Marks and measures are process-global. This is not a per-document timeline, and 
 - `response.body` as a `ReadableStream`. See [`docs/FETCH_CONTRACT.md`](FETCH_CONTRACT.md).
 - `setImmediate` and Node `require('timers')`. Those surfaces have their own Stable module contract in [`docs/TIMERS_MODULE_CONTRACT.md`](TIMERS_MODULE_CONTRACT.md) (**G42**). This page does not graduate the module bag.
 - Node `require('stream')`. That module has its own Stable subset contract in [`docs/NODE_STREAM_CONTRACT.md`](NODE_STREAM_CONTRACT.md) (**G24**). This page does not graduate it.
-- A `Performance` constructor, `PerformanceObserver`, or resource timing.
+- A `Performance` constructor or resource timing. `PerformanceObserver` and `performance.timerify` graduated on the `perf_hooks` module page instead ([`docs/PERF_HOOKS_CONTRACT.md`](PERF_HOOKS_CONTRACT.md), **G74**).
 - Node `zlib` (`require('zlib')`). That module has its own Stable sync contract in [`docs/ZLIB_CONTRACT.md`](ZLIB_CONTRACT.md) and async callback contract in [`docs/ZLIB_ASYNC_CONTRACT.md`](ZLIB_ASYNC_CONTRACT.md) (G48 gzip/gunzip + G58 deflate/inflate(+Raw)). This page does not graduate it.
 
 ## Tests

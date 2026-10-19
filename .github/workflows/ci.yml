@@ -239,6 +239,9 @@ jobs:
       - name: node async_hooks Stable contract
         run: cargo test --test async_hooks_contract_tests -- --test-threads=1
 
+      - name: node perf_hooks Stable contract
+        run: cargo test --test perf_hooks_contract_tests -- --test-threads=1
+
       - name: web fetch Stable contract
         run: cargo test --test fetch_contract_tests -- --test-threads=1
 
