@@ -630,6 +630,26 @@ pub fn setup_performance_api(
             {
                 let mut state = PERFORMANCE_STATE.lock().unwrap();
                 state.add_entry(entry.clone());
+                // Keep the function-entry log bounded: timerified calls are
+                // unbounded otherwise (clearMarks/clearMeasures never touch
+                // them, and Node's setResourceTimingBufferSize is a Non-goal).
+                const MAX_FUNCTION_ENTRIES: usize = 10_000;
+                let fn_count = state
+                    .entries
+                    .iter()
+                    .filter(|e| matches!(e.entry_type, PerformanceEntryType::Function))
+                    .count();
+                if fn_count > MAX_FUNCTION_ENTRIES {
+                    let mut drop = fn_count - MAX_FUNCTION_ENTRIES;
+                    state.entries.retain(|e| {
+                        if matches!(e.entry_type, PerformanceEntryType::Function) && drop > 0 {
+                            drop -= 1;
+                            false
+                        } else {
+                            true
+                        }
+                    });
+                }
             }
             notify_perf_observers(scope, &entry);
         },
@@ -733,6 +753,10 @@ fn notify_perf_observers(scope: &mut v8::PinScope, entry: &PerformanceEntry) {
         let Ok(records_arr) = v8::Local::<v8::Array>::try_from(records_val) else {
             continue;
         };
+        let already_scheduled = obs
+            .get(scope, scheduled_key.into())
+            .map(|v| v.boolean_value(scope))
+            .unwrap_or(false);
         let entry_obj = entry_to_v8_object(scope, entry);
         let next_idx = records_arr.length();
         records_arr.set_index(scope, next_idx, entry_obj.into());
@@ -741,7 +765,12 @@ fn notify_perf_observers(scope: &mut v8::PinScope, entry: &PerformanceEntry) {
             scheduled_key.into(),
             v8::Boolean::new(scope, true).into(),
         );
-        needs_flush = true;
+        // A new flush is only needed when this record newly schedules the
+        // observer — an already-queued flush splices `_records` at run time
+        // and picks this record up without another microtask.
+        if !already_scheduled {
+            needs_flush = true;
+        }
     }
 
     if needs_flush {

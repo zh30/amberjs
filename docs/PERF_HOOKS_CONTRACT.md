@@ -34,6 +34,7 @@ These are real behaviors of the Stable slice, not cover for missing machinery:
 - Observer `entryTypes` matching is exact-string, case-sensitive; duplicates inside `entryTypes` are accepted and deduped on read.
 - The callback's `list` is a minimal entry-list shape (`getEntries`/`getEntriesByType`/`getEntriesByName` only) — not Node's full `PerformanceObserverEntryList` prototype.
 - A record dropped into a buffer whose observer never flushes stays buffered until `takeRecords()`/`disconnect()`.
+- The `'function'` entry log is bounded: it retains at most 10_000 entries (oldest dropped) — `clearMarks`/`clearMeasures` never touch them and `setResourceTimingBufferSize` is a Non-goal, so this cap stands in for a long-running runtime's retention control. Marks and measures keep G13's unbounded retention.
 
 ## Non-goals
 

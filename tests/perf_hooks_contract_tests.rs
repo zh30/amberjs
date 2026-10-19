@@ -229,3 +229,41 @@ fn g74_observer_type_filter_and_timerify_delivery() {
         "#);
     assert_eq!(output, "0|1");
 }
+
+#[test]
+#[serial]
+fn g74_function_entries_bounded() {
+    // Regression for the review finding: timerified calls must not grow the
+    // process-global entry store without bound — it is capped at 10_000
+    // (oldest dropped), declared as a Limit.
+    let output = run(r#"
+        const p = require('perf_hooks').performance;
+        const tf = p.timerify(function g74Cap() { return 1; });
+        for (let i = 0; i < 10005; i++) tf();
+        const fns = p.getEntriesByType('function');
+        [fns.length <= 10000, fns[fns.length - 1].name].join('|');
+        "#);
+    assert_eq!(output, "true|g74Cap");
+}
+
+#[test]
+#[serial]
+fn g74_batched_records_deliver_together() {
+    // Regression for the review finding: a synchronous batch of entries is
+    // delivered by the already-queued flush — the callback still sees every
+    // record, batched into one delivery (not one microtask per entry).
+    let output = run(r#"
+        const ph = require('perf_hooks');
+        let calls = 0; let seen = 0;
+        const obs = new ph.PerformanceObserver((list) => {
+          calls++;
+          seen += list.getEntries().filter(e => e.name.startsWith('g74-b')).length;
+        });
+        obs.observe({ entryTypes: ['mark'] });
+        ph.performance.mark('g74-b1');
+        ph.performance.mark('g74-b2');
+        ph.performance.mark('g74-b3');
+        new Promise((resolve) => queueMicrotask(() => resolve([calls, seen].join('|'))));
+        "#);
+    assert_eq!(output, "1|3");
+}
