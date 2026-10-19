@@ -12,7 +12,7 @@ use std::net::{SocketAddr, TcpListener, ToSocketAddrs};
 use std::pin::Pin;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
+    Arc, Mutex, OnceLock,
 };
 use std::task::{Context, Poll};
 use std::thread;
@@ -763,64 +763,65 @@ impl HttpConnectionPool {
     }
 }
 
-/// 全局 HTTP 连接池 - 使用 Mutex 确保线程安全
-static mut HTTP_CONNECTION_POOL: Option<Arc<Mutex<HttpConnectionPool>>> = None;
+/// 全局 HTTP 连接池。
+///
+/// 每个 `MinimalRuntime` 都会调用 `init_http_connection_pool`。并行测试会同时
+/// 走进 `setup_http_api` → `get_connection_pool_stats`。以前这里是 `static mut`
+/// 每次 init 都换一个新 `Mutex`：一个线程正在 `lock()` 时另一个线程把 Arc 换掉
+/// 并 drop 掉还锁着的 Mutex，锁等待就再也醒不过来（`typescript_tests` 在
+/// `cargo test` 默认并行下会卡死，CI 的 2 小时超时就是这么被打满的）。
+/// 池子只创建一次，后续 init 复用同一把锁。
+static HTTP_CONNECTION_POOL: OnceLock<Mutex<HttpConnectionPool>> = OnceLock::new();
 
-/// 初始化全局连接池
+fn http_connection_pool() -> Option<&'static Mutex<HttpConnectionPool>> {
+    HTTP_CONNECTION_POOL.get()
+}
+
+/// 初始化全局连接池。参数只在第一次调用时生效。
 pub fn init_http_connection_pool(max_free_sockets: usize, max_sockets: usize, keep_alive: bool) {
-    unsafe {
-        HTTP_CONNECTION_POOL = Some(Arc::new(Mutex::new(HttpConnectionPool::new(
+    let _ = HTTP_CONNECTION_POOL.get_or_init(|| {
+        Mutex::new(HttpConnectionPool::new(
             max_free_sockets,
             max_sockets,
             keep_alive,
-        ))));
-    }
+        ))
+    });
 }
 
 /// 从全局连接池获取连接
 pub fn acquire_http_connection(host: &str, port: u16) -> bool {
-    unsafe {
-        if let Some(ref pool) = HTTP_CONNECTION_POOL {
-            return pool.lock().unwrap().acquire(host, port);
-        }
-        false
-    }
+    http_connection_pool()
+        .map(|pool| pool.lock().unwrap().acquire(host, port))
+        .unwrap_or(false)
 }
 
 /// 释放连接到全局连接池
 pub fn release_http_connection(host: &str, port: u16) {
-    unsafe {
-        if let Some(ref pool) = HTTP_CONNECTION_POOL {
-            pool.lock().unwrap().release(host, port);
-        }
+    if let Some(pool) = http_connection_pool() {
+        pool.lock().unwrap().release(host, port);
     }
 }
 
 /// 获取全局连接池状态
 pub fn get_connection_pool_stats() -> String {
-    unsafe {
-        if let Some(ref pool) = HTTP_CONNECTION_POOL {
-            let pool = pool.lock().unwrap();
-            format!(
-                "active: {}, total_free: {}",
-                pool.active_count(),
-                pool.free_connections
-                    .values()
-                    .map(|v| v.len())
-                    .sum::<usize>()
-            )
-        } else {
-            "pool not initialized".to_string()
-        }
-    }
+    let Some(pool) = http_connection_pool() else {
+        return "pool not initialized".to_string();
+    };
+    let pool = pool.lock().unwrap();
+    format!(
+        "active: {}, total_free: {}",
+        pool.active_count(),
+        pool.free_connections
+            .values()
+            .map(|v| v.len())
+            .sum::<usize>()
+    )
 }
 
 /// 清理全局连接池中的超时连接
 pub fn cleanup_connection_pool() {
-    unsafe {
-        if let Some(ref pool) = HTTP_CONNECTION_POOL {
-            pool.lock().unwrap().cleanup();
-        }
+    if let Some(pool) = http_connection_pool() {
+        pool.lock().unwrap().cleanup();
     }
 }
 
