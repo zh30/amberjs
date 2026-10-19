@@ -154,6 +154,15 @@ impl InspectorServer {
     }
 }
 
+/// True while `--inspect` is inside the user script and can service CDP evals.
+///
+/// The HTTP keep-alive loop keeps a 1 ms poll in that case. `Runtime.evaluate`
+/// is queued from the inspector thread and only drained here, so a multi-second
+/// park would stall DevTools until the watchdog.
+pub fn is_armed() -> bool {
+    INSPECTOR_ARMED.load(Ordering::Acquire)
+}
+
 /// Called from the isolate thread between tasks. No-op when inspect is off.
 pub fn service_pending_evaluations(scope: &mut v8::PinScope) {
     if !INSPECTOR_ARMED.load(Ordering::Acquire) {

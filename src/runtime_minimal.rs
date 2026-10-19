@@ -277,6 +277,35 @@ fn remaining_timer_drain_ms(start: std::time::Instant, limit_ms: u64) -> u64 {
     limit_ms.saturating_sub(start.elapsed().as_millis() as u64)
 }
 
+/// How long a quiet HTTP/net keep-alive turn may sleep.
+///
+/// Accept and request paths call `wake_http_dispatch_thread`, so a listener with
+/// nothing else pending can block instead of polling. The previous 1 ms park
+/// woke ~2800 times per 3 s (~200 ms of CPU in the honest idle-HTTP probe).
+/// Timers, `fs.watch`, an open WebSocket, an active `net` client, and
+/// `--inspect` still poll every 1 ms: those sources are delivered by pumping,
+/// not by an unpark, and a multi-second sleep would delay them.
+fn http_keepalive_idle_park() -> std::time::Duration {
+    let timer_manager = crate::event_loop::get_async_timer_manager();
+    let timers_pending = timer_manager.has_fired_timers()
+        || timer_manager.has_scheduled_timers()
+        || crate::nodejs_core::timers::has_pending_zero_delay_timers()
+        || crate::nodejs_core::timers::has_pending_refed_timers();
+    let needs_short_poll = timers_pending
+        || crate::nodejs_core::fs_watch::has_active_fs_watchers()
+        || crate::web_api::websocket::has_pending_websocket_work()
+        || crate::nodejs_core::net::has_active_net_client_sockets()
+        || crate::tooling::inspector::is_armed();
+    if needs_short_poll {
+        std::time::Duration::from_millis(1)
+    } else {
+        // Watchdog for a wake that was not wired. Longer than the honest
+        // harness's 3 s idle window, so a quiet listener stays parked for the
+        // whole sample.
+        std::time::Duration::from_secs(8)
+    }
+}
+
 fn serde_json_value_to_v8<'scope>(
     scope: &mut v8::PinScope<'scope, '_>,
     value: &serde_json::Value,
@@ -9025,7 +9054,6 @@ impl MinimalRuntime {
                     malloc_zone_pressure_relief(zone, 0);
                 }
             }
-            let mut idle_ticks: u32 = 0;
             let mut last_trim_time = std::time::Instant::now();
             loop {
                 crate::tooling::inspector::service_pending_evaluations(scope);
@@ -9086,19 +9114,15 @@ impl MinimalRuntime {
                     || pending_fs_watch
                     || websocket_events
                 {
-                    idle_ticks = 0;
                     // Active traffic: keep pumping without delay while there is work
                     continue;
                 } else {
-                    idle_ticks = idle_ticks.saturating_add(1);
-                    // Phase 3: Active Idle Memory Trimming (Aligning with Bun v1.4.1)
-                    // When idle for >50 ticks (after traffic cools down)
-                    if idle_ticks >= 50
-                        && last_trim_time.elapsed() >= std::time::Duration::from_millis(250)
-                    {
-                        for _ in 0..3 {
-                            scope.low_memory_notification();
-                        }
+                    // One compaction per 30s of quiet idle. The old gate (50×1 ms
+                    // ticks, then every 250 ms, three low_memory_notification
+                    // calls, plus malloc_trim) ran inside the 1 ms park and
+                    // accounted for hundreds of madvise calls per 3 s sample.
+                    if last_trim_time.elapsed() >= std::time::Duration::from_secs(30) {
+                        scope.low_memory_notification();
                         #[cfg(target_os = "macos")]
                         unsafe {
                             extern "C" {
@@ -9119,7 +9143,7 @@ impl MinimalRuntime {
                         }
                         last_trim_time = std::time::Instant::now();
                     }
-                    std::thread::park_timeout(std::time::Duration::from_millis(1));
+                    std::thread::park_timeout(http_keepalive_idle_park());
                 }
             }
         }
