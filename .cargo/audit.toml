@@ -44,4 +44,11 @@ ignore = [
     "RUSTSEC-2026-0222",
     "RUSTSEC-2026-0258",
     "RUSTSEC-2026-0269",
+    # zip 8.x archive-extraction advisories (2026-10): zip is only reachable via
+    # candle-core 0.11.0 (latest release, requires zip ^8.6.0) — no >=9.0 upgrade
+    # path until candle-core relaxes the requirement. Tracked for upgrade when
+    # candle releases a zip-9-compatible version.
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
 ]

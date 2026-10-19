@@ -8181,6 +8181,8 @@ impl MinimalRuntime {
         Self::setup_web_primitives(scope, context)?;
         crate::nodejs_core::process::setup_process_api(scope, context)?;
         crate::nodejs_core::events::setup_events_api(scope, context)?;
+        // G70: process.stdin 在 EventEmitter 就绪后挂原型与自动 resume 包装
+        crate::nodejs_core::process::install_stdin_event_emitter(scope, context)?;
         setup_path_api(scope, context)?;
         setup_fs_api(scope, context)?;
         // G64: fs.watch / watchFile after EventEmitter + fs object exist.
@@ -8758,6 +8760,7 @@ impl MinimalRuntime {
             crate::nodejs_core::net::pump_pending_net_connections_in_scope(scope, &context);
             crate::nodejs_core::net::pump_pending_socket_events_in_scope(scope, &context);
             crate::nodejs_core::fs_watch::pump_pending_fs_watch_events_in_scope(scope, &context);
+            crate::nodejs_core::process::pump_pending_stdin_events_in_scope(scope, &context);
             if crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope) > 0 {
                 execute_next_tick_callbacks(scope);
                 scope.perform_microtask_checkpoint();
@@ -8790,6 +8793,7 @@ impl MinimalRuntime {
                     || crate::web_api::worker_host::WorkerHost::has_active_workers()
                     || crate::web_api::websocket::has_pending_websocket_work()
                     || crate::nodejs_core::child_process::has_pending_child_process_work()
+                    || crate::nodejs_core::process::has_pending_stdin_work()
             };
 
             if !has_initial_pending_work {
@@ -8827,6 +8831,9 @@ impl MinimalRuntime {
                     || has_next_ticks
                     || has_pending_immediates()
                     || crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                    || crate::nodejs_core::process::pump_pending_stdin_events_in_scope(
+                        scope, &context,
+                    ) > 0
                     || crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope) > 0
                 {
                     break;
@@ -8967,6 +8974,7 @@ impl MinimalRuntime {
                 && !has_active_workers
                 && !crate::web_api::websocket::has_pending_websocket_work()
                 && !has_pending_child
+                && !crate::nodejs_core::process::has_pending_stdin_work()
             {
                 // Run any remaining microtasks before exiting
                 scope.perform_microtask_checkpoint();
@@ -9043,6 +9051,9 @@ impl MinimalRuntime {
                         crate::nodejs_core::fs_watch::pump_pending_fs_watch_events_in_scope(
                             scope, &context,
                         );
+                    let stdin_p = crate::nodejs_core::process::pump_pending_stdin_events_in_scope(
+                        scope, &context,
+                    );
                     let websocket_events = crate::web_api::websocket::pump_websocket_events(scope);
                     execute_next_tick_callbacks(scope);
                     scope.perform_microtask_checkpoint();
@@ -9052,7 +9063,7 @@ impl MinimalRuntime {
                     mark_immediate_callbacks_deferred();
                     execute_next_tick_callbacks(scope);
                     scope.perform_microtask_checkpoint();
-                    (p + net_p + sock_p + fs_watch_p, websocket_events)
+                    (p + net_p + sock_p + fs_watch_p + stdin_p, websocket_events)
                 };
 
                 let listening = crate::nodejs_core::http::has_listening_http_servers()
@@ -9074,6 +9085,7 @@ impl MinimalRuntime {
                     && !has_pending_next_ticks()
                     && !has_pending_immediates()
                     && !crate::web_api::websocket::has_pending_websocket_work()
+                    && !crate::nodejs_core::process::has_pending_stdin_work()
                 {
                     break;
                 }
