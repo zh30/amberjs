@@ -15,5 +15,7 @@
 !crates/**
 !extensions/
 !extensions/**
+!third_party/
+!third_party/**
 !examples/
 !examples/**
