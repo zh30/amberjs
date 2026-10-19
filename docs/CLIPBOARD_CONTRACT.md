@@ -4,7 +4,7 @@ This is the user-facing contract for Stable `navigator.clipboard.writeText` and 
 
 These methods are reachable from `amber run` / `amber eval` through `src/runtime_minimal.rs`. This is not the browser Clipboard API, not the OS clipboard, and not a secure-context / Permissions Policy surface.
 
-**Numbering:** This contract is **G31** after `ErrorEvent` / `onerror` (**provisional G30**, [`ERROR_EVENT_CONTRACT.md`](ERROR_EVENT_CONTRACT.md)). Do not renumber G9–G16, G8 / G17–G28, G29, or G30.
+**Numbering:** This contract is **G31** after `ErrorEvent` / `onerror` (**G30**, [`ERROR_EVENT_CONTRACT.md`](ERROR_EVENT_CONTRACT.md)). Do not renumber G9–G16, G8 / G17–G28, G29, or G30.
 
 ## Stable surface
 

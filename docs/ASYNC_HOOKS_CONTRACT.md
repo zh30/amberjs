@@ -1,6 +1,6 @@
 # Node `async_hooks` narrow contract (`AsyncResource` + `AsyncLocalStorage`)
 
-This is the user-facing contract for the Stable narrow subset of Node `async_hooks` in Amber (**tentative G57**). It is derived from `src/nodejs_core/async_hooks.rs`, CLI install via `setup_async_hooks_api` / `require('async_hooks')`, `tests/async_hooks_contract_tests.rs`, and conformance `tests/conformance/fixtures/async_hooks.js`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable narrow subset of Node `async_hooks` in Amber (**G57**). It is derived from `src/nodejs_core/async_hooks.rs`, CLI install via `setup_async_hooks_api` / `require('async_hooks')`, `tests/async_hooks_contract_tests.rs`, and conformance `tests/conformance/fixtures/async_hooks.js`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 `require('async_hooks')` and `require('node:async_hooks')` reach the same object installed on `globalThis.async_hooks` by `setup_async_hooks_api` on the CLI path (`runtime_minimal`).
 

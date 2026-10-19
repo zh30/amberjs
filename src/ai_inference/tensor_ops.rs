@@ -207,39 +207,18 @@ impl Tensor {
         format!("Tensor(shape={:?}, data={:?})", self.shape, self.data)
     }
     /// 转换为 PyTorch 张量
-    #[cfg(feature = "tch")]
-    pub fn to_tch_tensor(&self, device: &tch::Device) -> Result<tch::Tensor> {
-        let tensor: _ = tch::Tensor::from(&self.data[..])
-            .reshape(self.shape.as_slice())
-            .to_device(device);
-        Ok(tensor)
-    }
-    /// 从 PyTorch 张量创建
-    #[cfg(feature = "tch")]
-    pub fn from_tch_tensor(tch_tensor: tch::Tensor, _device: &tch::Device) -> Result<Self> {
-        // 获取张量数据和形状
-        let data_vec: Vec<f32> = tch_tensor
-            .to_kind(tch::Kind::Float)
-            .try_into()
-            .context("Failed to convert PyTorch tensor to Vec<f32>")?;
-        let shape: Vec<usize> = tch_tensor.dims().iter().map(|&d| d as usize).collect();
-        Ok(Tensor {
-            data: data_vec,
-            shape,
-        })
-    }
-    /// 转换为 PyTorch 张量（未启用功能时的占位符）
-    #[cfg(not(feature = "tch"))]
+    ///
+    /// The optional `tch` crate is not part of this tree (it required unpatched
+    /// `zip` 0.6). This module is not compiled into the default runtime.
     pub fn to_tch_tensor(&self, _device: &()) -> Result<Box<dyn std::fmt::Debug>> {
         Err(anyhow::anyhow!(
-            "PyTorch support not enabled. Enable with --features tch"
+            "PyTorch support is not available (tch was removed with vulnerable zip 0.6)"
         ))
     }
-    /// 从 PyTorch 张量创建（未启用功能时的占位符）
-    #[cfg(not(feature = "tch"))]
+    /// 从 PyTorch 张量创建
     pub fn from_tch_tensor(_tch_tensor: Box<dyn std::fmt::Debug>, _device: &()) -> Result<Self> {
         Err(anyhow::anyhow!(
-            "PyTorch support not enabled. Enable with --features tch"
+            "PyTorch support is not available (tch was removed with vulnerable zip 0.6)"
         ))
     }
 }

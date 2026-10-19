@@ -5,8 +5,13 @@
 
 use anyhow::Result;
 use rusty_v8 as v8;
+use std::collections::VecDeque;
+use std::io::Read;
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use std::sync::Mutex;
+use std::thread;
 use std::time::Instant;
 
 thread_local! {
@@ -42,6 +47,387 @@ mod next_tick_queue_mod {
 }
 
 use next_tick_queue_mod::{NextTickCallback, NEXT_TICK_QUEUE};
+
+// ============ G70: process.stdin 窄契约 ============
+// Host 读线程把 fd 0 的字节推进 mpsc；事件循环每轮
+// pump_pending_stdin_events_in_scope 排干成 'data'/'readable'/'end'。
+// pause() 同时解除事件循环保活（等价 unref 语义），队列继续累积。
+enum StdinEvent {
+    Data(Vec<u8>),
+    Eof,
+}
+
+static STDIN_RX: Mutex<Option<mpsc::Receiver<StdinEvent>>> = Mutex::new(None);
+static STDIN_QUEUE: Mutex<VecDeque<Vec<u8>>> = Mutex::new(VecDeque::new());
+static STDIN_STARTED: AtomicBool = AtomicBool::new(false);
+static STDIN_FLOWING: AtomicBool = AtomicBool::new(false);
+static STDIN_LIVENESS: AtomicBool = AtomicBool::new(false);
+static STDIN_READER_DONE: AtomicBool = AtomicBool::new(false);
+static STDIN_EOF: AtomicBool = AtomicBool::new(false);
+static STDIN_EOF_PUMPED: AtomicBool = AtomicBool::new(false);
+static STDIN_END_EMITTED: AtomicBool = AtomicBool::new(false);
+static STDIN_READABLE_SIGNALED: AtomicBool = AtomicBool::new(false);
+// UTF-8 跨 chunk 边界：未收完的多字节序列尾段暂存，下一段到来时拼接后再解码。
+static STDIN_UTF8_TAIL: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+// stdin 归首个构建 process.stdin 对象的 runtime 所有（Node worker_threads
+// 的 dummy stdin 语义）：后续 runtime/isolate 拿到惰性 stdin ——
+// read() 恒 null、事件永不触发、不共享首个 runtime 的队列与 EOF。
+static STDIN_OWNER_CLAIMED: AtomicBool = AtomicBool::new(false);
+
+/// stdin 对象是否属于非首个 runtime（惰性 dummy）。
+fn stdin_is_inert(this: &v8::Local<v8::Object>, scope: &mut v8::PinScope) -> bool {
+    let key = v8::String::new(scope, "__stdinInert").unwrap();
+    this.get(scope, key.into())
+        .map(|v| v.to_boolean(scope).boolean_value(scope))
+        .unwrap_or(false)
+}
+
+/// chunk 字节 → UTF-8 字符串。处理跨 host-read 边界被切断的多字节序列：
+/// 尾部不完整序列不进本次解码（避免切成两个 U+FFFD），暂存后随下一段拼接。
+fn stdin_bytes_to_string(bytes: &[u8]) -> String {
+    let mut guard = STDIN_UTF8_TAIL.lock().unwrap();
+    let mut joined = std::mem::take(&mut *guard);
+    joined.extend_from_slice(bytes);
+    match std::str::from_utf8(&joined) {
+        Ok(_) => String::from_utf8_lossy(&joined).into_owned(),
+        Err(e) if e.error_len().is_none() => {
+            // 结尾停在未完成的多字节序列：前缀有效部分解码，尾巴留给下一段
+            let up_to = e.valid_up_to();
+            let (head, tail) = joined.split_at(up_to);
+            *guard = tail.to_vec();
+            String::from_utf8_lossy(head).into_owned()
+        }
+        Err(_) => String::from_utf8_lossy(&joined).into_owned(),
+    }
+}
+
+fn start_stdin_reader() {
+    if STDIN_STARTED.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    let (tx, rx) = mpsc::channel::<StdinEvent>();
+    *STDIN_RX.lock().unwrap() = Some(rx);
+    // 不在这里置 LIVENESS：裸 read() 只启动读线程而不保活事件循环
+    // （Node 语义一致）；保活由 resume() / '__readable' 监听各自置位。
+    thread::spawn(move || {
+        let stdin = std::io::stdin();
+        let mut buf = [0u8; 8192];
+        loop {
+            // 每次 read 重新加锁而不是长占 StdinLock：否则线程一旦启动就持锁
+            // 阻塞，readline.question 等其他 stdin 消费者会被卡到 EOF。
+            // 锁在两次 read 之间释放，其它消费者可以穿插（但字节会被分流——
+            // 混用 stdin 与 readline 本来就语义模糊，契约里已列为 Limit）。
+            let read_result = {
+                let mut lock = stdin.lock();
+                lock.read(&mut buf)
+            };
+            match read_result {
+                Ok(0) => {
+                    let _ = tx.send(StdinEvent::Eof);
+                    // EOF 标志必须在读线程内就置位：不能等 pump 排干 channel，
+                    // 否则空 stdin（读线程瞬间结束）会让 has_pending_stdin_work
+                    // 在 'end' 交付前误判为无工作而提前退出进程。
+                    STDIN_EOF.store(true, Ordering::SeqCst);
+                    break;
+                }
+                Ok(n) => {
+                    if tx.send(StdinEvent::Data(buf[..n].to_vec())).is_err() {
+                        break;
+                    }
+                }
+                Err(_) => {
+                    let _ = tx.send(StdinEvent::Eof);
+                    STDIN_EOF.store(true, Ordering::SeqCst);
+                    break;
+                }
+            }
+        }
+        STDIN_READER_DONE.store(true, Ordering::SeqCst);
+    });
+}
+
+/// stdin 是否应继续保活事件循环：resume 且未 pause，且还有
+/// 未交付的字节 / 未结束的读线程 / 未发出的 'end'。
+pub fn has_pending_stdin_work() -> bool {
+    if !STDIN_LIVENESS.load(Ordering::SeqCst) {
+        return false;
+    }
+    if !STDIN_READER_DONE.load(Ordering::SeqCst) {
+        return true;
+    }
+    let queued = STDIN_QUEUE
+        .lock()
+        .map(|queue| !queue.is_empty())
+        .unwrap_or(false);
+    if STDIN_EOF.load(Ordering::SeqCst) && !STDIN_FLOWING.load(Ordering::SeqCst) {
+        // 非 flowing 模式 + EOF：队列里残留未读字节时没有消费者能再推进，
+        // 保活只会把进程挂死（'readable' 监听不读的场景）。只在队列已空、
+        // 还差一次 'end' 交付时保活，其余放行退出。
+        return !queued && !STDIN_END_EMITTED.load(Ordering::SeqCst);
+    }
+    queued || (STDIN_EOF.load(Ordering::SeqCst) && !STDIN_END_EMITTED.load(Ordering::SeqCst))
+}
+
+fn stdin_object_emit_args<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+    context: &v8::Local<v8::Context>,
+    event: &str,
+    chunk: Option<&[u8]>,
+) -> Option<()> {
+    let global = context.global(scope);
+    let process_key = v8::String::new(scope, "process").unwrap();
+    let process_val = global.get(scope, process_key.into())?;
+    let process_obj = v8::Local::<v8::Object>::try_from(process_val).ok()?;
+    let stdin_key = v8::String::new(scope, "stdin").unwrap();
+    let stdin_val = process_obj.get(scope, stdin_key.into())?;
+    let stdin_obj = v8::Local::<v8::Object>::try_from(stdin_val).ok()?;
+    let emit_key = v8::String::new(scope, "emit").unwrap();
+    let emit_val = stdin_obj.get(scope, emit_key.into())?;
+    let emit_fn = v8::Local::<v8::Function>::try_from(emit_val).ok()?;
+    let event_name = v8::String::new(scope, event).unwrap();
+    let call_args: &[v8::Local<v8::Value>] = match chunk {
+        Some(bytes) => {
+            let text = stdin_bytes_to_string(bytes);
+            let chunk_val = v8::String::new(scope, &text).unwrap();
+            &[event_name.into(), chunk_val.into()]
+        }
+        None => &[event_name.into()],
+    };
+    let _ = emit_fn.call(scope, stdin_obj.into(), call_args);
+    Some(())
+}
+
+/// 事件循环每轮调用（仅 V8 线程）：排干 stdin channel → 队列 →
+/// 按 flowing/readable 语义 emit 'data'/'readable'，EOF + 队列空 → 'end'。
+pub fn pump_pending_stdin_events_in_scope(
+    scope: &mut v8::PinScope,
+    context: &v8::Local<v8::Context>,
+) -> usize {
+    let mut drained = 0usize;
+    {
+        let guard = STDIN_RX.lock().unwrap();
+        if let Some(rx) = guard.as_ref() {
+            while let Ok(event) = rx.try_recv() {
+                match event {
+                    StdinEvent::Data(bytes) => {
+                        STDIN_QUEUE.lock().unwrap().push_back(bytes);
+                    }
+                    StdinEvent::Eof => {
+                        STDIN_EOF_PUMPED.store(true, Ordering::SeqCst);
+                        // EOF 时把暂存的 UTF-8 尾巴作为最后一段入队：
+                        // 避免未收完的多字节序列被丢弃（以 U+FFFD 交付一次）。
+                        let tail = std::mem::take(&mut *STDIN_UTF8_TAIL.lock().unwrap());
+                        if !tail.is_empty() {
+                            STDIN_QUEUE.lock().unwrap().push_back(tail);
+                        }
+                    }
+                }
+                drained += 1;
+                if drained >= 256 {
+                    break;
+                }
+            }
+        }
+    }
+    let queue_nonempty = STDIN_QUEUE
+        .lock()
+        .map(|queue| !queue.is_empty())
+        .unwrap_or(false);
+    // 'end' 的门必须是「pump 排干到 Eof 事件」，不能是读线程早已置位的
+    // STDIN_EOF：每轮最多排 256 项，超过上限时 channel 里还有未交付的 Data，
+    // 用线程标志会在剩余 chunk 之前提前 emit 'end'。
+    let end_pending = STDIN_EOF_PUMPED.load(Ordering::SeqCst)
+        && !queue_nonempty
+        && !STDIN_END_EMITTED.load(Ordering::SeqCst);
+    if drained == 0 && !end_pending && !(queue_nonempty && STDIN_FLOWING.load(Ordering::SeqCst)) {
+        return 0;
+    }
+
+    let mut emitted = 0usize;
+    if STDIN_FLOWING.load(Ordering::SeqCst) {
+        loop {
+            let bytes = STDIN_QUEUE.lock().unwrap().pop_front();
+            let Some(bytes) = bytes else { break };
+            stdin_object_emit_args(scope, context, "data", Some(&bytes));
+            emitted += 1;
+        }
+    } else if queue_nonempty && !STDIN_READABLE_SIGNALED.swap(true, Ordering::SeqCst) {
+        stdin_object_emit_args(scope, context, "readable", None);
+        emitted += 1;
+    }
+    if STDIN_QUEUE
+        .lock()
+        .map(|queue| queue.is_empty())
+        .unwrap_or(true)
+    {
+        STDIN_READABLE_SIGNALED.store(false, Ordering::SeqCst);
+    }
+    if end_pending {
+        STDIN_END_EMITTED.store(true, Ordering::SeqCst);
+        stdin_object_emit_args(scope, context, "end", None);
+        emitted += 1;
+    }
+    emitted
+}
+
+fn stdin_read_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let this = args.this();
+    if stdin_is_inert(&this, scope) {
+        retval.set(v8::null(scope).into());
+        return;
+    }
+    // read() 显式消费：启动读线程（不阻塞），返回已缓冲的下一个 chunk。
+    start_stdin_reader();
+    let bytes = STDIN_QUEUE.lock().unwrap().pop_front();
+    match bytes {
+        Some(bytes) => {
+            let text = stdin_bytes_to_string(&bytes);
+            let chunk = v8::String::new(scope, &text).unwrap();
+            retval.set(chunk.into());
+        }
+        None => {
+            let null_val = v8::null(scope);
+            retval.set(null_val.into());
+        }
+    }
+}
+
+fn stdin_resume_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    if !stdin_is_inert(&args.this(), scope) {
+        STDIN_FLOWING.store(true, Ordering::SeqCst);
+        STDIN_LIVENESS.store(true, Ordering::SeqCst);
+        start_stdin_reader();
+    }
+    retval.set(args.this().into());
+}
+
+fn stdin_readable_start_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    // 'readable' 监听专用入口：启动读线程但不进入 flowing 模式。
+    if !stdin_is_inert(&args.this(), scope) {
+        STDIN_LIVENESS.store(true, Ordering::SeqCst);
+        start_stdin_reader();
+    }
+    retval.set(args.this().into());
+}
+
+fn stdin_pause_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    if !stdin_is_inert(&args.this(), scope) {
+        STDIN_FLOWING.store(false, Ordering::SeqCst);
+        STDIN_LIVENESS.store(false, Ordering::SeqCst);
+    }
+    retval.set(args.this().into());
+}
+
+fn stdin_ref_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    if !stdin_is_inert(&args.this(), scope) && STDIN_STARTED.load(Ordering::SeqCst) {
+        STDIN_LIVENESS.store(true, Ordering::SeqCst);
+    }
+    retval.set(args.this().into());
+}
+
+fn stdin_unref_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    if !stdin_is_inert(&args.this(), scope) {
+        STDIN_LIVENESS.store(false, Ordering::SeqCst);
+    }
+    retval.set(args.this().into());
+}
+
+fn stdin_set_encoding_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    // 惰性 stdin 也照常校验参数（Node dummy 仍接受合法编码）
+    let enc = args.get(0);
+    let ok = enc.is_null_or_undefined()
+        || enc
+            .to_string(scope)
+            .map(|s| {
+                let s = s.to_rust_string_lossy(scope);
+                s.eq_ignore_ascii_case("utf8") || s.eq_ignore_ascii_case("utf-8")
+            })
+            .unwrap_or(false);
+    if !ok {
+        let msg = v8::String::new(
+            scope,
+            "Unknown encoding: process.stdin only supports 'utf8' (chunk strings)",
+        )
+        .unwrap();
+        let err = v8::Exception::type_error(scope, msg);
+        scope.throw_exception(err.into());
+        return;
+    }
+    retval.set(args.this().into());
+}
+
+/// EventEmitter 原型挂载 bootstrap：process.stdin 在 setup_process_api
+/// 时构造，但 globalThis.EventEmitter 要到 setup_events_api 才存在，
+/// 所以必须在 install_core_apis 里 events 之后调用。
+pub fn install_stdin_event_emitter(
+    scope: &mut v8::PinScope,
+    _context: &v8::Local<v8::Context>,
+) -> Result<()> {
+    let bootstrap = r#"
+        (function() {
+            const proc = globalThis.process;
+            if (!proc || !proc.stdin || proc.stdin.__amberStdinBootstrapped) return;
+            const s = proc.stdin;
+            const EE = globalThis.EventEmitter;
+            if (EE && EE.prototype) {
+                Object.setPrototypeOf(s, EE.prototype);
+            }
+            s._events = Object.create(null);
+            s._eventsCount = 0;
+            const _on = s.on ? s.on.bind(s) : null;
+            if (_on) {
+                const wrap = function(ev, fn) {
+                    if (ev === 'data' && typeof fn === 'function') s.resume();
+                    else if (ev === 'readable' && typeof fn === 'function') s.__startReadable();
+                    return _on(ev, fn);
+                };
+                s.on = wrap;
+                s.addListener = wrap;
+            }
+            const _once = s.once ? s.once.bind(s) : null;
+            if (_once) {
+                s.once = function(ev, fn) {
+                    if (ev === 'data' && typeof fn === 'function') s.resume();
+                    else if (ev === 'readable' && typeof fn === 'function') s.__startReadable();
+                    return _once(ev, fn);
+                };
+            }
+            s.__amberStdinBootstrapped = true;
+        })();
+    "#;
+    let code = v8::String::new(scope, bootstrap).unwrap();
+    let script = v8::Script::compile(scope, code, None).unwrap();
+    let _ = script.run(scope);
+    Ok(())
+}
 
 /// v0.3.261: 添加 nextTick 回调到队列（供 runtime_minimal.rs 使用）
 pub fn push_next_tick_callback(callback: v8::Global<v8::Value>, args: Vec<v8::Global<v8::Value>>) {
@@ -1126,29 +1512,73 @@ pub fn setup_process_api(
     stderr_obj.set(scope, rows_key.into(), stderr_rows.into());
     process_obj.set(scope, stderr_key.into(), stderr_obj.into());
 
-    // v0.3.240: Add process.stdin (basic implementation)
-    // v0.3.240: Add stdin.fd and stdin.read()
+    // G70: process.stdin — fd/isTTY + 非阻塞 read() + resume/pause
+    // （'data'/'readable'/'end' 由 host 读线程 + 事件循环 pump 交付）
     let stdin_key = v8::String::new(scope, "stdin").unwrap();
     let stdin_obj = v8::Object::new(scope);
-    // stdin.fd - file descriptor (0 for stdin)
+    // stdin 归首个 runtime 所有（Node worker_threads dummy 语义）：后续
+    // runtime 的 stdin 标记 __stdinInert，方法变为无副作用的空转，
+    // 不共享首个 runtime 的读线程、队列与 EOF/保活状态。
+    let stdin_inert = STDIN_OWNER_CLAIMED.swap(true, Ordering::SeqCst);
+    if stdin_inert {
+        let inert_key = v8::String::new(scope, "__stdinInert").unwrap();
+        stdin_obj.set(
+            scope,
+            inert_key.into(),
+            v8::Boolean::new(scope, true).into(),
+        );
+    }
     let stdin_fd_key = v8::String::new(scope, "fd").unwrap();
     let stdin_fd_value = v8::Integer::new(scope, 0);
     let stdin_tty = v8::Boolean::new(scope, is_stdin_tty);
     stdin_obj.set(scope, stdin_fd_key.into(), stdin_fd_value.into());
     stdin_obj.set(scope, is_tty_key.into(), stdin_tty.into());
-    // stdin.read() - returns null (sync mode can't read stdin)
-    let stdin_read_fn = v8::FunctionTemplate::new(
-        scope,
-        |_scope: &mut v8::PinScope,
-         _args: v8::FunctionCallbackArguments,
-         mut retval: v8::ReturnValue| {
-            let null_val = v8::null(_scope);
-            retval.set(null_val.into());
-        },
-    );
+    let stdin_read_fn = v8::FunctionTemplate::new(scope, stdin_read_callback);
     let stdin_read_key = v8::String::new(scope, "read").unwrap();
     let stdin_read_instance = stdin_read_fn.get_function(scope).unwrap();
     stdin_obj.set(scope, stdin_read_key.into(), stdin_read_instance.into());
+    let stdin_resume_fn = v8::FunctionTemplate::new(scope, stdin_resume_callback);
+    let stdin_resume_key = v8::String::new(scope, "resume").unwrap();
+    stdin_obj.set(
+        scope,
+        stdin_resume_key.into(),
+        stdin_resume_fn.get_function(scope).unwrap().into(),
+    );
+    let stdin_start_readable_fn = v8::FunctionTemplate::new(scope, stdin_readable_start_callback);
+    let stdin_start_readable_key = v8::String::new(scope, "__startReadable").unwrap();
+    stdin_obj.set(
+        scope,
+        stdin_start_readable_key.into(),
+        stdin_start_readable_fn.get_function(scope).unwrap().into(),
+    );
+    let stdin_pause_fn = v8::FunctionTemplate::new(scope, stdin_pause_callback);
+    let stdin_pause_key = v8::String::new(scope, "pause").unwrap();
+    stdin_obj.set(
+        scope,
+        stdin_pause_key.into(),
+        stdin_pause_fn.get_function(scope).unwrap().into(),
+    );
+    let stdin_ref_fn = v8::FunctionTemplate::new(scope, stdin_ref_callback);
+    let stdin_ref_key = v8::String::new(scope, "ref").unwrap();
+    stdin_obj.set(
+        scope,
+        stdin_ref_key.into(),
+        stdin_ref_fn.get_function(scope).unwrap().into(),
+    );
+    let stdin_unref_fn = v8::FunctionTemplate::new(scope, stdin_unref_callback);
+    let stdin_unref_key = v8::String::new(scope, "unref").unwrap();
+    stdin_obj.set(
+        scope,
+        stdin_unref_key.into(),
+        stdin_unref_fn.get_function(scope).unwrap().into(),
+    );
+    let stdin_set_encoding_fn = v8::FunctionTemplate::new(scope, stdin_set_encoding_callback);
+    let stdin_set_encoding_key = v8::String::new(scope, "setEncoding").unwrap();
+    stdin_obj.set(
+        scope,
+        stdin_set_encoding_key.into(),
+        stdin_set_encoding_fn.get_function(scope).unwrap().into(),
+    );
     process_obj.set(scope, stdin_key.into(), stdin_obj.into());
 
     // v0.3.240: Add process.cpuUsage()

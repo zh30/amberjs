@@ -1,6 +1,6 @@
 # Node `child_process` async contract
 
-This is the user-facing contract for the Stable **narrow async** subset of Node `child_process` in Amber (**tentative G47**). It is derived from `src/nodejs_core/child_process.rs`, `src/runtime_minimal.rs`, and `tests/child_process_async_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable **narrow async** subset of Node `child_process` in Amber (**G47**). It is derived from `src/nodejs_core/child_process.rs`, `src/runtime_minimal.rs`, and `tests/child_process_async_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 `require('child_process')`, `require('node:child_process')`, and ESM `import` of those names reach the same object installed by `setup_child_process_api`. Named ESM exports include `exec` and `execFile`.
 
@@ -37,7 +37,7 @@ Stable callers must use the callback, not `on('exit')` / streaming stdio, for co
 
 - Live `stdin` / `stdout` / `stderr` pipes, streaming `ChildProcess`, or `ChildProcess` EventEmitter exit/close parity.
 - Narrow async `spawn` (host-thread + later-turn callback, no pipes) — see **G60** [`docs/CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md`](CHILD_PROCESS_SPAWN_ASYNC_CONTRACT.md) (not this G47 page).
-- Narrow `fork` + IPC — see **tentative G67** [`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md) (not this async exec page).
+- Narrow `fork` + IPC — see **G67** [`docs/CHILD_PROCESS_FORK_CONTRACT.md`](CHILD_PROCESS_FORK_CONTRACT.md) (not this async exec page).
 - Detached processes beyond G67, real `pid` on this page, signals, `kill`, `timeout`, `maxBuffer`, `cwd`, `env`, `uid` / `gid`, `shell`, `input`, `stdio`, `windowsHide`, and encoding option bags.
 - Same-turn callback delivery (the pre-G47 Preview lie). Stable async must not block the isolate on `Command::output()` inside the `exec` / `execFile` call.
 - Graduating pipes by documenting absence as Stable Limits (fork is **G67**, not this page).

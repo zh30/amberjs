@@ -1,4 +1,4 @@
-//! Pins docs/ERROR_EVENT_CONTRACT.md (provisional G30).
+//! Pins docs/ERROR_EVENT_CONTRACT.md (G30).
 //! Narrow ErrorEvent constructor + global onerror; not HTML document errors.
 
 use amberjs::runtime_minimal::MinimalRuntime;

@@ -1,4 +1,4 @@
-//! Pins docs/CHILD_PROCESS_ASYNC_CONTRACT.md (tentative G47).
+//! Pins docs/CHILD_PROCESS_ASYNC_CONTRACT.md (G47).
 //! Narrow async exec / execFile: host-thread run + later-turn callback.
 use serial_test::serial;
 use std::process::Command;

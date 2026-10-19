@@ -196,8 +196,10 @@ candle-transformers = { version = "0.11.0", default-features = false }
 candle-nn = { version = "0.11.0", default-features = false }
 tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
 
-# Stage 54.3: PyTorch TorchScript dependencies
-tch = { version = "0.11", optional = true }  # 可选依赖，支持条件编译
+# tch / torch-sys were removed from the graph. crates.io tch 0.11 through 0.26
+# (and torch-sys) require zip ^0.6. RUSTSEC-2026-0367/0368/0369 are fixed only
+# in zip >= 9, and the 0.6 API does not build against zip 9. The feature was
+# not CI-gated; src/ai_inference (the only caller) is not compiled.
 
 # Stage 88: Multi-language support
 pyo3 = { version = "0.29", features = ["auto-initialize"], optional = true }  # Python integration
@@ -285,7 +287,7 @@ harness = false
 [features]
 default = []
 verbose_logging = []  # Enable verbose logging for debugging
-tch = ["dep:tch"]     # Enable PyTorch/Tch support for ML workloads
+# tch feature removed with the zip 0.6 dependency. See the comment above.
 multilang = ["dep:pyo3", "dep:pyo3-build-config"]
 cloudnative = ["dep:kube", "dep:kube-runtime", "dep:k8s-openapi"]
 enterprise = ["dep:elasticsearch", "dep:git2", "dep:schemars"]
@@ -306,4 +308,10 @@ opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
+
+# candle-core 0.11.0 on crates.io requires zip ^8.6.0. The zip archive-extraction
+# advisories are fixed only in zip >= 9. Upstream has not shipped that bump, so
+# the default build uses third_party/candle-core (0.11.0 + zip 9.0.5 call sites).
+[patch.crates-io]
+candle-core = { path = "third_party/candle-core" }
 

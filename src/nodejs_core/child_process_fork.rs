@@ -1,6 +1,6 @@
 //! Narrow `child_process.fork` with real OS-process bootstrap + TCP IPC.
 //!
-//! Stable contract: `docs/CHILD_PROCESS_FORK_CONTRACT.md` (tentative G67).
+//! Stable contract: `docs/CHILD_PROCESS_FORK_CONTRACT.md` (G67).
 //! Parent spawns this machine's `amber run <module>` with `AMBER_FORK_CHANNEL`
 //! set to a localhost TCP address. Parent and child exchange length-prefixed
 //! JSON frames. This is not full Node `fork` (no silent/stdio/execArgv product).
