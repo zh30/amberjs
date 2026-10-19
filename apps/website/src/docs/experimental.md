@@ -20,7 +20,7 @@ These are listed as Experimental in `CURRENT_SCOPE.md`:
 | `amber x` (`dlx`, `bunx`) | Run a package binary without installing |
 | `amber test --parallel` | Rejected with exit code 2 |
 | N-API hello loader | `process.dlopen` can load a C hello addon. Not a Node ABI commitment; Prisma and sharp are out of scope. |
-| Optional Cargo features | `benchmarks` and `observability` compile in CI. `cloudnative`, `enterprise`, `multilang`, and `tch` are not CI-gated. The `ai` feature is empty. |
+| Optional Cargo features | `benchmarks` and `observability` compile in CI. `cloudnative`, `enterprise`, and `multilang` are not CI-gated. The `tch` feature is not in this tree (it pulled unpatched `zip` 0.6). The `ai` feature is empty. |
 | Homebrew, GHCR, winget | Distribution channels. The GHCR image is linux/amd64 only; the winget manifest is not submitted. |
 
 ## Present but not classified

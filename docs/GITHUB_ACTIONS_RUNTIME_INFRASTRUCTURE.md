@@ -17,7 +17,7 @@ PR gates, multi-OS GitHub Releases (including Windows zip), GHCR publish, SBOM/c
 
 - GHCR is **amd64-only**.
 - `feature = "ai"` is empty and is not in the CI matrix; default `amber:ai` compiles without it.
-- `enterprise` / `cloudnative` / `multilang` / `tch` are not CI-gated.
+- `enterprise` / `cloudnative` / `multilang` are not CI-gated. The `tch` feature is not in this tree (it pulled unpatched `zip` 0.6).
 - crates.io publish is skipped without `CARGO_REGISTRY_TOKEN` (warning annotation). With the token, Release Assets publishes workspace crates in dependency order; already-uploaded versions are skipped.
 - Live tag, brew checksum against a published Release, and `microsoft/winget-pkgs` submission are out of band.
 
