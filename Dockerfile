@@ -28,6 +28,7 @@ ENV CARGO_BUILD_JOBS=1
 
 # Manifest + benches + workspace members must exist before `cargo fetch`.
 # Cargo.toml lists [[bench]] and workspace members crates/* + extensions/zed.
+# [patch.crates-io] candle-core points at third_party/candle-core (zip 9).
 COPY Cargo.toml Cargo.lock build.rs ./
 COPY benches ./benches
 COPY src ./src
@@ -35,6 +36,7 @@ COPY src ./src
 COPY types ./types
 COPY crates ./crates
 COPY extensions ./extensions
+COPY third_party ./third_party
 
 RUN cargo fetch --locked
 RUN cargo build --release --bin amber

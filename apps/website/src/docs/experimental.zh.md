@@ -20,7 +20,7 @@ id: "experimental"
 | `amber x`（`dlx`、`bunx`） | 不安装直接运行包的可执行文件 |
 | `amber test --parallel` | 直接拒绝，退出码 2 |
 | N-API hello 加载器 | `process.dlopen` 能加载 C hello 插件。这不是 Node ABI 承诺，Prisma 与 sharp 不在范围内 |
-| 可选 Cargo feature | `benchmarks` 与 `observability` 在 CI 中编译；`cloudnative`、`enterprise`、`multilang`、`tch` 没有 CI 门禁；`ai` feature 为空 |
+| 可选 Cargo feature | `benchmarks` 与 `observability` 在 CI 中编译；`cloudnative`、`enterprise`、`multilang` 没有 CI 门禁；`tch` 已从本树移除（它引入未修复的 `zip` 0.6）；`ai` feature 为空 |
 | Homebrew、GHCR、winget | 分发渠道。GHCR 镜像仅支持 linux/amd64，winget 清单尚未提交 |
 
 ## 存在但未分级

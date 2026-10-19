@@ -508,7 +508,7 @@ Current experimental scope:
 - `amber test --parallel` is rejected (exit code 2). V8 isolates are not shared across threads.
 - Package-manager behavior outside [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md): workspaces, lifecycle scripts, peer-dependency installs, Yarn/pnpm lockfiles, the npm `packages` lock map, and transitive lock reproducibility.
 - V8 snapshot, benchmarking helpers, performance reporting, memory/fallback/error support modules, and ecosystem-lite helpers beyond the behaviors covered by current tests.
-- Optional Cargo features: `benchmarks` and `observability` are in the CI compile matrix. `cloudnative`, `enterprise`, `multilang`, and `tch` exist in `Cargo.toml` but are not CI-gated (they may not compile). `feature = "ai"` is empty and does not enable extra modules; default `amber:ai` compiles without it. `verbose_logging` is a debug flag only.
+- Optional Cargo features: `benchmarks` and `observability` are in the CI compile matrix. `cloudnative`, `enterprise`, and `multilang` exist in `Cargo.toml` but are not CI-gated (they may not compile). The optional `tch` feature is not in this tree: crates.io `tch` / `torch-sys` 0.11 through 0.26 require `zip` ^0.6, and RUSTSEC-2026-0367 / 0368 / 0369 are fixed only in `zip` >= 9. `feature = "ai"` is empty and does not enable extra modules; default `amber:ai` compiles without it. `verbose_logging` is a debug flag only.
 - GHCR: `ghcr.io/zh30/amberjs` is linux/amd64 only. Homebrew `Formula/amber.rb` hashes are filled by the Release job. Winget manifest is in-repo only (not submitted to microsoft/winget-pkgs). V8 is the `v8` crate `152.2.0` (Cargo dependency alias `rusty_v8`); the 0.22 upgrade shipped in v1.10.0.
 
 Experimental capabilities may be useful for contributors. They are not stable user promises.
@@ -543,7 +543,7 @@ Current experimental scope:
 - `amber test --parallel` is rejected (exit code 2). V8 isolates are not shared across threads.
 - Package-manager behavior outside [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md): workspaces, lifecycle scripts, peer-dependency installs, Yarn/pnpm lockfiles, the npm `packages` lock map, and transitive lock reproducibility.
 - V8 snapshot, benchmarking helpers, performance reporting, memory/fallback/error support modules, and ecosystem-lite helpers beyond the behaviors covered by current tests.
-- Optional Cargo features: `benchmarks` and `observability` are in the CI compile matrix. `cloudnative`, `enterprise`, `multilang`, and `tch` exist in `Cargo.toml` but are not CI-gated (they may not compile). `feature = "ai"` is empty and does not enable extra modules; default `amber:ai` compiles without it. `verbose_logging` is a debug flag only.
+- Optional Cargo features: `benchmarks` and `observability` are in the CI compile matrix. `cloudnative`, `enterprise`, and `multilang` exist in `Cargo.toml` but are not CI-gated (they may not compile). The optional `tch` feature is not in this tree: crates.io `tch` / `torch-sys` 0.11 through 0.26 require `zip` ^0.6, and RUSTSEC-2026-0367 / 0368 / 0369 are fixed only in `zip` >= 9. `feature = "ai"` is empty and does not enable extra modules; default `amber:ai` compiles without it. `verbose_logging` is a debug flag only.
 - GHCR: `ghcr.io/zh30/amberjs` is linux/amd64 only. Homebrew `Formula/amber.rb` hashes are filled by the Release job. Winget manifest is in-repo only (not submitted to microsoft/winget-pkgs). V8 is the `v8` crate `152.2.0` (Cargo dependency alias `rusty_v8`); the 0.22 upgrade shipped in v1.10.0.
 
 Experimental capabilities may be useful for contributors. They are not stable user promises.
@@ -583,7 +583,7 @@ Current experimental scope:
 - `amber test --parallel` is rejected (exit code 2). V8 isolates are not shared across threads.
 - Package-manager behavior outside [`docs/INSTALL_CONTRACT.md`](INSTALL_CONTRACT.md): workspaces, lifecycle scripts, peer-dependency installs, Yarn/pnpm lockfiles, the npm `packages` lock map, and transitive lock reproducibility.
 - V8 snapshot, benchmarking helpers, performance reporting, memory/fallback/error support modules, and ecosystem-lite helpers beyond the behaviors covered by current tests.
-- Optional Cargo features: `benchmarks` and `observability` are in the CI compile matrix. `cloudnative`, `enterprise`, `multilang`, and `tch` exist in `Cargo.toml` but are not CI-gated (they may not compile). `feature = "ai"` is empty and does not enable extra modules; default `amber:ai` compiles without it. `verbose_logging` is a debug flag only.
+- Optional Cargo features: `benchmarks` and `observability` are in the CI compile matrix. `cloudnative`, `enterprise`, and `multilang` exist in `Cargo.toml` but are not CI-gated (they may not compile). The optional `tch` feature is not in this tree: crates.io `tch` / `torch-sys` 0.11 through 0.26 require `zip` ^0.6, and RUSTSEC-2026-0367 / 0368 / 0369 are fixed only in `zip` >= 9. `feature = "ai"` is empty and does not enable extra modules; default `amber:ai` compiles without it. `verbose_logging` is a debug flag only.
 - GHCR: `ghcr.io/zh30/amberjs` is linux/amd64 only. Homebrew `Formula/amber.rb` hashes are filled by the Release job. Winget manifest is in-repo only (not submitted to microsoft/winget-pkgs). V8 is the `v8` crate `152.2.0` (Cargo dependency alias `rusty_v8`); the 0.22 upgrade shipped in v1.10.0.
 
 Experimental capabilities may be useful for contributors. They are not stable user promises.
@@ -628,7 +628,7 @@ cargo check --features observability
 cargo check --features benchmarks
 ```
 
-`enterprise`, `cloudnative`, `multilang`, `tch`, and empty `ai` are not in the v1.17.0 CI matrix.
+`enterprise`, `cloudnative`, `multilang`, and empty `ai` are not in the v1.17.0 CI matrix. The `tch` feature is not part of this tree (it pulled unpatched `zip` 0.6).
 
 If a feature build fails or has not been checked in the current branch, document the related capability as Experimental, not Stable.
 
