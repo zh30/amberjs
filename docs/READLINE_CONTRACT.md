@@ -4,7 +4,7 @@ This is the user-facing contract for a **narrow** Stable subset of Node `readlin
 
 This is **not** full Node `readline`. Completer, history navigation, keypress events, async iterators, and `readline.promises` stay outside this page.
 
-**Provisional numbering:** **tentative G46** after inventory READY paperwork (G38–G40), plain `amber serve` (G41), `require('timers')` (G42), and other NEEDS_IMPL slices ahead of readline rank 6. Tip Stable max at authorship was **G37**. Do not renumber G1–G37.
+**Numbering:** **G46** after inventory READY paperwork (G38–G40), plain `amber serve` (G41), `require('timers')` (G42), and other NEEDS_IMPL slices ahead of readline rank 6. Tip Stable max at authorship was **G37**. Do not renumber G1–G37.
 
 ## Stable surface
 

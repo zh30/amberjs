@@ -1,6 +1,6 @@
 # Node `vm.runInNewContext` / `Script.runInNewContext` contract
 
-This is the user-facing contract for the Stable separate-context `vm` sandbox slice in Amber (**tentative G66**). It is derived from `src/nodejs_core/vm.rs`, `src/runtime_minimal.rs`, and `tests/vm_newcontext_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable separate-context `vm` sandbox slice in Amber (**G66**). It is derived from `src/nodejs_core/vm.rs`, `src/runtime_minimal.rs`, and `tests/vm_newcontext_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 Same-context `vm.runInThisContext` / `Script.runInThisContext` is a separate surface (G55 / [`docs/VM_CONTRACT.md`](VM_CONTRACT.md) when that page is on tip). This page does not graduate that slice.
 

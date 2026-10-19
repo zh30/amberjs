@@ -4,7 +4,7 @@ This is the user-facing contract for Stable `ErrorEvent` and the global `onerror
 
 `ErrorEvent` is reachable from `amber run` / `amber eval` as `globalThis.ErrorEvent`. The WebSocket client (G15) builds error payloads with the same shape via `create_error_event_object`. This is not the HTML document error pipeline, and it is not a full browser `window` model.
 
-**Provisional numbering:** This contract is **provisional G30** after `atob` / `btoa` (**G29**, [`ATOB_BTOA_CONTRACT.md`](ATOB_BTOA_CONTRACT.md)). Do not renumber G9–G16, G8 / G17–G28, or G29. Do not rewrite the atob/btoa contract here.
+**Numbering:** This contract is **G30** after `atob` / `btoa` (**G29**, [`ATOB_BTOA_CONTRACT.md`](ATOB_BTOA_CONTRACT.md)). Do not renumber G9–G16, G8 / G17–G28, or G29. Do not rewrite the atob/btoa contract here.
 
 ## `ErrorEvent` constructor
 

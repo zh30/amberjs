@@ -6,7 +6,7 @@ This is the user-facing contract for the Stable Node `dns` surface in Amber. It 
 
 This is not full Node `dns`. Stable methods use host OS lookups (`ToSocketAddrs` / `getnameinfo`) and the system resolver list — not a DNS wire client and not invented defaults.
 
-**Numbering:** getaddrinfo (`lookup` / `resolve` / `resolve4` / `resolve6`) is **G27**. Real `reverse` / `getServers` are additive **tentative G65**. Do not renumber G1–G64.
+**Numbering:** getaddrinfo (`lookup` / `resolve` / `resolve4` / `resolve6`) is **G27**. Real `reverse` / `getServers` are additive **G65**. Do not renumber G1–G64.
 
 ## Stable surface
 
