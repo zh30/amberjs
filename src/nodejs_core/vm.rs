@@ -242,8 +242,18 @@ fn create_context_cb(
     };
     let mark_key = v8::String::new(scope, "_vmContext").unwrap();
     let mark_val = v8::Boolean::new(scope, true);
-    ctx_obj.set(scope, mark_key.into(), mark_val.into());
-    rv.set(ctx_obj.into());
+    // 冻结/不可扩展对象打不上标记——fail-closed 抛 TypeError，
+    // 否则返回的对象 isContext 为 false，语义自相矛盾。
+    // `set` 走 [[Set]] 语义，冻结时会静默不写却报成功，必须用
+    // `create_data_property`（[[DefineOwnProperty]]）才能拿到真实结果。
+    match ctx_obj.create_data_property(scope, mark_key.into(), mark_val.into()) {
+        Some(true) => rv.set(ctx_obj.into()),
+        _ => throw_caller_error(
+            scope,
+            "TypeError",
+            "vm.createContext: cannot contextify a frozen or non-extensible object",
+        ),
+    }
 }
 
 fn is_context_cb(
@@ -251,12 +261,17 @@ fn is_context_cb(
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
+    // 只认 own property —— 原型链上继承的 `_vmContext` 不算标记。
     let marked = args
         .get(0)
         .to_object(scope)
         .map(|obj| {
             let mark_key = v8::String::new(scope, "_vmContext").unwrap();
-            obj.get(scope, mark_key.into())
+            let own = obj
+                .has_own_property(scope, mark_key.into())
+                .unwrap_or(false);
+            own && obj
+                .get(scope, mark_key.into())
                 .map(|v| v.is_true())
                 .unwrap_or(false)
         })

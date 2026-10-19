@@ -173,3 +173,43 @@ fn g73_exceptions_rethrown_as_caller_errors() {
         "#);
     assert_eq!(output, "RangeError:true:boom|SyntaxError");
 }
+
+#[test]
+#[serial]
+fn g73_is_context_rejects_inherited_marker() {
+    let output = run(r#"
+        const vm = require('vm');
+        const proto = { _vmContext: true };
+        const child = Object.create(proto);
+        const forge = { _vmContext: true };  // own 标记可伪造——契约 Limit
+        [
+          vm.isContext(child),
+          vm.isContext(forge),
+          vm.isContext(vm.createContext({}))
+        ].join('|');
+        "#);
+    assert_eq!(output, "false|true|true");
+}
+
+#[test]
+#[serial]
+fn g73_create_context_frozen_sandbox_fails_closed() {
+    let output = run(r#"
+        const vm = require('vm');
+        const r = [];
+        try {
+          vm.createContext(Object.freeze({}));
+          r.push('no-throw');
+        } catch (e) {
+          r.push(e.name + ':' + (e instanceof TypeError));
+        }
+        try {
+          vm.createContext(Object.preventExtensions({}));
+          r.push('no-throw-2');
+        } catch (e) {
+          r.push(e.name);
+        }
+        r.join('|');
+        "#);
+    assert_eq!(output, "TypeError:true|TypeError");
+}

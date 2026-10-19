@@ -24,6 +24,7 @@ Compile-time and run-time failures surface as ordinary V8 exceptions to the call
 
 - Sandbox is a plain object property copy into / out of a new V8 Context global — not Node's full Contextify global-proxy binding.
 - Each `runInContext` / `runInNewContext` call creates a **new** V8 context; two calls with the same contextified object do not share one (globals reach the sandbox only via copy-back). `runInContext` accepts any object as sandbox, not only `createContext` output.
+- The `_vmContext` marker is checked as an **own** property: inherited flags do not count, and a caller that deliberately sets its own `_vmContext: true` can forge the marker (no hidden internal slot exists — honest Limit). `createContext` on a frozen / non-extensible sandbox fails closed with `TypeError` instead of returning an unmarked object.
 - Fresh contexts do not receive Amber / Node builtins (`require`, `Buffer`, `process`, …) unless the caller puts them on `sandbox`.
 - `code` is taken only from argument 0 via V8 string conversion.
 - `Script` is a factory-style function that returns a plain object with `runInThisContext` / `runInNewContext`; it is not a full Node `vm.Script` class.
