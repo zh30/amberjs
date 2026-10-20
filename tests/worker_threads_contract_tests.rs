@@ -185,6 +185,9 @@ fn g75_worker_side_surface_limits() {
 fn g75_post_message_json_serialization() {
     // JSON-shaped transport (not structured clone): plain values pass;
     // circular / undefined / functions throw inside postMessage.
+    // (The worker's pending timer keeps it alive — see the timer-liveness
+    // test — so the throws here come from the serialization guard, not from
+    // posting to a dead worker.)
     let output = run(r#"
         const wt = require('worker_threads');
         const w = new wt.Worker("setTimeout(() => {}, 30000)", { eval: true });
@@ -199,6 +202,43 @@ fn g75_post_message_json_serialization() {
         r.join(',');
         "#);
     assert_eq!(output, "num,obj,circ-throw,undef-throw,fn-throw");
+}
+
+#[test]
+#[serial]
+fn g75_worker_timer_runs_without_listener() {
+    // A worker with a pending timer but no 'message' listener stays alive
+    // until the timer drains (Node parity), then exits on its own.
+    let output = run(r#"
+        const wt = require('worker_threads');
+        const w = new wt.Worker("setTimeout(() => require('worker_threads').parentPort.postMessage('tick'), 30)", { eval: true });
+        const done = new Promise((resolve) => {
+          w.on('message', (m) => { w.terminate(); resolve(m); });
+        });
+        done;
+        "#);
+    assert_eq!(output, "tick");
+}
+
+#[test]
+#[serial]
+fn g75_terminate_preempts_busy_worker() {
+    // terminate() preempts a worker stuck in synchronous code via
+    // terminate_execution — it does not wait for the script to yield.
+    let output = run(r#"
+        const wt = require('worker_threads');
+        const w = new wt.Worker("while (true) {}", { eval: true });
+        const done = new Promise((resolve) => {
+          let exitCode = 'none';
+          w.on('exit', (c) => { exitCode = c; });
+          setTimeout(() => {
+            w.terminate();
+            resolve(['term-returned', exitCode].join('|'));
+          }, 80);
+        });
+        done;
+        "#);
+    assert_eq!(output, "term-returned|0");
 }
 
 #[test]
