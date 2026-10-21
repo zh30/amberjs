@@ -18,9 +18,12 @@ pub fn setup_vm_api(
     let is_context = v8::Function::new(scope, is_context_cb).unwrap();
     let script_ctor = v8::Function::new(scope, script_constructor).unwrap();
 
+    let run_in_ctx = v8::Function::new(scope, run_in_new_context).unwrap();
+
     for (name, func) in [
         ("runInThisContext", run_in_this),
         ("runInNewContext", run_in_new),
+        ("runInContext", run_in_ctx),
         ("createContext", create_context),
         ("isContext", is_context),
         ("Script", script_ctor),
@@ -225,15 +228,31 @@ fn run_in_new_context(
     run_code_in_new_context(scope, &code, sandbox, &mut rv);
 }
 
+/// G73：createContext 把 `_vmContext` 标记打到传入的 sandbox 上；
+/// isContext 只认标记——此前对任意对象都 true 是 dishonest。
 fn create_context_cb(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
-    if args.length() > 0 && args.get(0).is_object() {
-        rv.set(args.get(0));
+    let ctx_obj = if args.length() > 0 && args.get(0).is_object() {
+        args.get(0).to_object(scope).unwrap()
     } else {
-        rv.set(v8::Object::new(scope).into());
+        v8::Object::new(scope)
+    };
+    let mark_key = v8::String::new(scope, "_vmContext").unwrap();
+    let mark_val = v8::Boolean::new(scope, true);
+    // 冻结/不可扩展对象打不上标记——fail-closed 抛 TypeError，
+    // 否则返回的对象 isContext 为 false，语义自相矛盾。
+    // `set` 走 [[Set]] 语义，冻结时会静默不写却报成功，必须用
+    // `create_data_property`（[[DefineOwnProperty]]）才能拿到真实结果。
+    match ctx_obj.create_data_property(scope, mark_key.into(), mark_val.into()) {
+        Some(true) => rv.set(ctx_obj.into()),
+        _ => throw_caller_error(
+            scope,
+            "TypeError",
+            "vm.createContext: cannot contextify a frozen or non-extensible object",
+        ),
     }
 }
 
@@ -242,7 +261,22 @@ fn is_context_cb(
     args: v8::FunctionCallbackArguments,
     mut rv: v8::ReturnValue,
 ) {
-    rv.set(v8::Boolean::new(scope, args.get(0).is_object()).into());
+    // 只认 own property —— 原型链上继承的 `_vmContext` 不算标记。
+    let marked = args
+        .get(0)
+        .to_object(scope)
+        .map(|obj| {
+            let mark_key = v8::String::new(scope, "_vmContext").unwrap();
+            let own = obj
+                .has_own_property(scope, mark_key.into())
+                .unwrap_or(false);
+            own && obj
+                .get(scope, mark_key.into())
+                .map(|v| v.is_true())
+                .unwrap_or(false)
+        })
+        .unwrap_or(false);
+    rv.set(v8::Boolean::new(scope, marked).into());
 }
 
 fn script_constructor(
@@ -298,6 +332,11 @@ fn script_constructor(
     .unwrap();
     let run_new_key = v8::String::new(scope, "runInNewContext").unwrap();
     obj.set(scope, run_new_key.into(), run_new.into());
+
+    // G73: script.runInContext(ctxObj)——对 contextified sandbox 执行，
+    // 窄契约里与 runInNewContext 同一实现（sandbox 语义见契约 Limits）
+    let run_ctx_key = v8::String::new(scope, "runInContext").unwrap();
+    obj.set(scope, run_ctx_key.into(), run_new.into());
 
     rv.set(obj.into());
 }
