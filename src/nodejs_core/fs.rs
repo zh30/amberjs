@@ -1800,6 +1800,24 @@ enum FsWork {
     Close {
         fd: i32,
     },
+    Fstat {
+        fd: i32,
+    },
+    Ftruncate {
+        fd: i32,
+        len: u64,
+    },
+    Fchmod {
+        fd: i32,
+        mode: u32,
+    },
+    ReadFdAll {
+        fd: i32,
+    },
+    WriteFdAll {
+        fd: i32,
+        bytes: Vec<u8>,
+    },
 }
 
 enum JobFail {
@@ -1954,7 +1972,14 @@ fn work_denial<'a>(
                 None
             }
         }
-        FsWork::ReadFd { .. } | FsWork::WriteFd { .. } | FsWork::Close { .. } => None,
+        FsWork::ReadFd { .. }
+        | FsWork::WriteFd { .. }
+        | FsWork::Close { .. }
+        | FsWork::Fstat { .. }
+        | FsWork::Ftruncate { .. }
+        | FsWork::Fchmod { .. }
+        | FsWork::ReadFdAll { .. }
+        | FsWork::WriteFdAll { .. } => None,
     }
 }
 
@@ -2201,6 +2226,46 @@ fn execute_work<'a>(
             })?;
             Ok(v8::undefined(scope).into())
         }
+        FsWork::Fstat { fd } => {
+            let metadata = fstat_fd(*fd).map_err(|err| JobFail::Io {
+                syscall: "fstat",
+                path: fd.to_string(),
+                err,
+            })?;
+            Ok(create_stats_object(scope, &metadata).into())
+        }
+        FsWork::Ftruncate { fd, len } => {
+            ftruncate_fd(*fd, *len).map_err(|err| JobFail::Io {
+                syscall: "ftruncate",
+                path: fd.to_string(),
+                err,
+            })?;
+            Ok(v8::undefined(scope).into())
+        }
+        FsWork::Fchmod { fd, mode } => {
+            fchmod_fd(*fd, *mode).map_err(|err| JobFail::Io {
+                syscall: "fchmod",
+                path: fd.to_string(),
+                err,
+            })?;
+            Ok(v8::undefined(scope).into())
+        }
+        FsWork::ReadFdAll { fd } => {
+            let bytes = read_fd_all(*fd).map_err(|err| JobFail::Io {
+                syscall: "read",
+                path: fd.to_string(),
+                err,
+            })?;
+            Ok(bytes_to_js(scope, &bytes, FileEncoding::Buffer))
+        }
+        FsWork::WriteFdAll { fd, bytes } => {
+            write_fd_all(*fd, bytes).map_err(|err| JobFail::Io {
+                syscall: "write",
+                path: fd.to_string(),
+                err,
+            })?;
+            Ok(v8::Integer::new(scope, bytes.len() as i32).into())
+        }
     }
 }
 
@@ -2371,6 +2436,71 @@ fn close_fd(fd: i32) -> std::io::Result<()> {
     } else {
         Err(std::io::Error::from_raw_os_error(libc::EBADF))
     }
+}
+
+/// `filehandle.stat()` — metadata through the open fd (fstat semantics).
+fn fstat_fd(fd: i32) -> std::io::Result<std::fs::Metadata> {
+    FD_TABLE.with(|table| {
+        let table = table.borrow();
+        let handle = table
+            .get(&fd)
+            .ok_or_else(|| std::io::Error::from_raw_os_error(libc::EBADF))?;
+        handle.file.metadata()
+    })
+}
+
+/// `filehandle.truncate(len)` — ftruncate semantics via `File::set_len`.
+fn ftruncate_fd(fd: i32, len: u64) -> std::io::Result<()> {
+    FD_TABLE.with(|table| {
+        let mut table = table.borrow_mut();
+        let handle = table
+            .get_mut(&fd)
+            .ok_or_else(|| std::io::Error::from_raw_os_error(libc::EBADF))?;
+        handle.file.set_len(len)
+    })
+}
+
+/// `filehandle.chmod(mode)` — fchmod semantics; Unix only, fails closed elsewhere.
+fn fchmod_fd(fd: i32, mode: u32) -> std::io::Result<()> {
+    FD_TABLE.with(|table| {
+        let table = table.borrow();
+        let handle = table
+            .get(&fd)
+            .ok_or_else(|| std::io::Error::from_raw_os_error(libc::EBADF))?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            handle
+                .file
+                .set_permissions(std::fs::Permissions::from_mode(mode))
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = (handle, mode);
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                "chmod on a file handle is unsupported on this platform",
+            ))
+        }
+    })
+}
+
+/// `filehandle.readFile()` — read from the current offset to EOF.
+fn read_fd_all(fd: i32) -> std::io::Result<Vec<u8>> {
+    let mut all = Vec::new();
+    loop {
+        let chunk = read_fd(fd, None, 64 * 1024)?;
+        if chunk.is_empty() {
+            break;
+        }
+        all.extend_from_slice(&chunk);
+    }
+    Ok(all)
+}
+
+/// `filehandle.writeFile(data)` — write the whole payload at the current offset.
+fn write_fd_all(fd: i32, bytes: &[u8]) -> std::io::Result<()> {
+    write_fd(fd, None, bytes).map(|_| ())
 }
 
 fn write_view_bytes(
@@ -3330,6 +3460,102 @@ fn fs_promises_write_callback(
     ));
 }
 
+/// JS snippet installing the `FileHandle` wrapper on `fs.promises.open`.
+/// `promises.open` resolves a `FileHandle` whose methods delegate to the
+/// promise-shaped fd primitives bound above (`read` / `write` / `close` and the
+/// `__`-prefixed internals). Keeping the wrapper in JS mirrors the
+/// `perf_hooks` / `stream` module pattern and lets the result objects stay
+/// honest (`{ bytesRead, buffer }`, `{ bytesWritten, buffer }`) without
+/// hand-building objects in Rust.
+pub const FS_FILEHANDLE_JS: &str = r#"
+(function () {
+    const __p = globalThis.__fsPromises;
+    delete globalThis.__fsPromises;
+    const __openRaw = __p.open;
+    const __pread = __p.read;
+    const __pwrite = __p.write;
+    const __pclose = __p.close;
+    const __fstat = __p.__fstat;
+    const __ftruncate = __p.__ftruncate;
+    const __fchmod = __p.__fchmod;
+    const __readAll = __p.__readFdAll;
+    const __writeAll = __p.__writeFdAll;
+
+    function ebadf(op) {
+        const err = new Error('EBADF: bad file descriptor, ' + op);
+        err.code = 'EBADF';
+        err.syscall = op;
+        return err;
+    }
+
+    class FileHandle {
+        constructor(fd) {
+            this.__fd = fd;
+            this.__closed = false;
+        }
+        get fd() {
+            return this.__fd;
+        }
+        read(buffer, offset, length, position) {
+            if (this.__closed) return Promise.reject(ebadf('read'));
+            const off = offset == null ? 0 : offset;
+            const len = length == null ? buffer.byteLength - off : length;
+            return __pread(this.__fd, buffer, off, len, position == null ? null : position)
+                .then(function (bytesRead) { return { bytesRead: bytesRead, buffer: buffer }; });
+        }
+        write(data, offset, length, position) {
+            if (this.__closed) return Promise.reject(ebadf('write'));
+            if (typeof data === 'string') {
+                return __pwrite(this.__fd, data, position == null ? null : position)
+                    .then(function (bytesWritten) { return { bytesWritten: bytesWritten, buffer: data }; });
+            }
+            const off = offset == null ? 0 : offset;
+            const len = length == null ? data.byteLength - off : length;
+            return __pwrite(this.__fd, data, off, len, position == null ? null : position)
+                .then(function (bytesWritten) { return { bytesWritten: bytesWritten, buffer: data }; });
+        }
+        readFile(options) {
+            if (this.__closed) return Promise.reject(ebadf('read'));
+            const enc = typeof options === 'string' ? options : (options && options.encoding);
+            return __readAll(this.__fd).then(function (buf) {
+                if (enc === 'utf8' || enc === 'utf-8') {
+                    return new TextDecoder().decode(buf);
+                }
+                return buf;
+            });
+        }
+        writeFile(data) {
+            if (this.__closed) return Promise.reject(ebadf('write'));
+            const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+            return __writeAll(this.__fd, bytes).then(function () { return undefined; });
+        }
+        stat() {
+            if (this.__closed) return Promise.reject(ebadf('stat'));
+            return __fstat(this.__fd);
+        }
+        truncate(len) {
+            if (this.__closed) return Promise.reject(ebadf('truncate'));
+            return __ftruncate(this.__fd, len == null ? 0 : len);
+        }
+        chmod(mode) {
+            if (this.__closed) return Promise.reject(ebadf('chmod'));
+            return __fchmod(this.__fd, mode);
+        }
+        close() {
+            if (this.__closed) return Promise.resolve();
+            this.__closed = true;
+            return __pclose(this.__fd);
+        }
+    }
+
+    __p.open = function (path, flags, mode) {
+        return __openRaw(path, flags, mode).then(function (fd) {
+            return new FileHandle(fd);
+        });
+    };
+})();
+"#;
+
 fn fs_promises_close_callback(
     scope: &mut v8::PinScope,
     args: v8::FunctionCallbackArguments,
@@ -3337,6 +3563,59 @@ fn fs_promises_close_callback(
 ) {
     let fd = arg_i32(scope, args.get(0), -1);
     retval.set(start_promise(scope, FsWork::Close { fd }));
+}
+
+fn fs_promises_fstat_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let fd = arg_i32(scope, args.get(0), -1);
+    retval.set(start_promise(scope, FsWork::Fstat { fd }));
+}
+
+fn fs_promises_ftruncate_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let fd = arg_i32(scope, args.get(0), -1);
+    let len = arg_usize(scope, args.get(1), 0) as u64;
+    retval.set(start_promise(scope, FsWork::Ftruncate { fd, len }));
+}
+
+fn fs_promises_fchmod_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let fd = arg_i32(scope, args.get(0), -1);
+    let mode = arg_i32(scope, args.get(1), 0o666) as u32;
+    retval.set(start_promise(scope, FsWork::Fchmod { fd, mode }));
+}
+
+fn fs_promises_read_fd_all_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let fd = arg_i32(scope, args.get(0), -1);
+    retval.set(start_promise(scope, FsWork::ReadFdAll { fd }));
+}
+
+fn fs_promises_write_fd_all_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let fd = arg_i32(scope, args.get(0), -1);
+    let data = args.get(1);
+    let bytes = if data.is_string() {
+        arg_text(scope, data).into_bytes()
+    } else {
+        copy_binary_value(scope, data).unwrap_or_default()
+    };
+    retval.set(start_promise(scope, FsWork::WriteFdAll { fd, bytes }));
 }
 
 fn set_constant(scope: &mut v8::PinScope, obj: v8::Local<v8::Object>, name: &str, value: i32) {
@@ -3407,6 +3686,24 @@ fn install_stable_fs_methods(scope: &mut v8::PinScope, fs_obj: v8::Local<v8::Obj
             bind_fn!(promises, "read", fs_promises_read_callback);
             bind_fn!(promises, "write", fs_promises_write_callback);
             bind_fn!(promises, "close", fs_promises_close_callback);
+            bind_fn!(promises, "__fstat", fs_promises_fstat_callback);
+            bind_fn!(promises, "__ftruncate", fs_promises_ftruncate_callback);
+            bind_fn!(promises, "__fchmod", fs_promises_fchmod_callback);
+            bind_fn!(promises, "__readFdAll", fs_promises_read_fd_all_callback);
+            bind_fn!(promises, "__writeFdAll", fs_promises_write_fd_all_callback);
+
+            // `promises.open` resolves a real `FileHandle` object; the wrapper
+            // class is defined in JS so `{ bytesRead, buffer }` result shapes
+            // stay honest. The promises object is passed through a scratch
+            // global — `globalThis.fs` is not installed yet at this point.
+            let global = scope.get_current_context().global(scope);
+            let scratch_key = v8::String::new(scope, "__fsPromises").unwrap();
+            global.set(scope, scratch_key.into(), promises.into());
+            let src = v8::String::new(scope, FS_FILEHANDLE_JS).unwrap();
+            if let Some(script) = v8::Script::compile(scope, src, None) {
+                let _ = script.run(scope);
+            }
+            global.delete(scope, scratch_key.into());
         }
     }
 }
