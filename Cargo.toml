@@ -148,7 +148,7 @@ fastrand = "2.0"
 # Stage 41.0: Quantum computing
 num-complex = "0.4"
 url = "2.0"
-dirs = "5.0"
+dirs = "7.0"
 wat = "1.0"
 
 # Stage 27.1: Embedded builtins dependencies
