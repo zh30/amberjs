@@ -1269,6 +1269,13 @@ struct DirEntryInfo {
 
 fn read_directory(path: &str, with_file_types: bool) -> std::io::Result<Vec<DirEntryInfo>> {
     if crate::sandbox::virtual_fs::is_enabled() {
+        // vfs_read_dir reports a non-directory file as missing (ENOENT); a
+        // directory listing call must distinguish ENOTDIR.
+        if let Ok(meta) = crate::sandbox::virtual_fs::vfs_metadata(Path::new(path)) {
+            if !meta.is_dir {
+                return Err(std::io::Error::from_raw_os_error(libc::ENOTDIR));
+            }
+        }
         let names = crate::sandbox::virtual_fs::vfs_read_dir(Path::new(path))?;
         let mut entries = Vec::with_capacity(names.len());
         for name in names {
@@ -2255,7 +2262,11 @@ fn execute_work<'a>(
             })?;
             // Snapshot semantics: the entries are captured at opendir time —
             // read() replays this list, it does not see later changes.
-            let id = dir_register(path.clone(), entries);
+            let id = dir_register(path.clone(), entries).map_err(|err| JobFail::Io {
+                syscall: "opendir",
+                path: path.clone(),
+                err,
+            })?;
             Ok(dir_to_js(scope, id, path))
         }
         FsWork::Statfs { path } => {
@@ -3538,18 +3549,24 @@ thread_local! {
     static NEXT_DIR_ID: Cell<i32> = const { Cell::new(1) };
 }
 
-fn dir_register(_path: String, entries: Vec<DirEntryInfo>) -> i32 {
+/// Live `Dir` snapshots are retained until `close` — the VM has no GC
+/// finalizer for them, so the table is capped to bound the leak.
+const MAX_OPEN_DIRS: usize = 256;
+
+fn dir_register(_path: String, entries: Vec<DirEntryInfo>) -> std::io::Result<i32> {
     let id = NEXT_DIR_ID.with(|next| {
         let id = next.get();
         next.set(id.saturating_add(1));
         id
     });
     DIR_TABLE.with(|table| {
-        table
-            .borrow_mut()
-            .insert(id, DirHandle { entries, index: 0 });
-    });
-    id
+        let mut table = table.borrow_mut();
+        if table.len() >= MAX_OPEN_DIRS {
+            return Err(std::io::Error::from_raw_os_error(libc::EMFILE));
+        }
+        table.insert(id, DirHandle { entries, index: 0 });
+        Ok(id)
+    })
 }
 
 fn dir_read_next(id: i32) -> std::io::Result<Option<DirEntryInfo>> {
@@ -3734,6 +3751,14 @@ fn cp_path(
         // metadata() follows symlinks: cp dereferences them (verbatimSymlinks
         // is out of this carve).
         let meta = std::fs::metadata(from)?;
+        // Lexical containment misses symlinked paths: `cp link-to-src
+        // real-src/dst` must also fail EINVAL. Resolve the deepest existing
+        // ancestor of dest so a not-yet-created tail still compares real.
+        let src_real = realpath_deepest(from)?;
+        let dst_real = realpath_deepest(to)?;
+        if dst_real == src_real || dst_real.starts_with(&src_real) {
+            return Err(std::io::Error::from_raw_os_error(libc::EINVAL));
+        }
         if meta.is_dir() {
             if !recursive {
                 return Err(std::io::Error::from_raw_os_error(libc::EISDIR));
@@ -3745,7 +3770,46 @@ fn cp_path(
     }
 }
 
+/// Canonicalize the deepest existing ancestor of `path`, then re-attach the
+/// missing tail. Lets the containment guard see through symlinks even when
+/// the destination itself does not exist yet.
+fn realpath_deepest(path: &str) -> std::io::Result<std::path::PathBuf> {
+    let mut cursor = std::path::PathBuf::from(path);
+    loop {
+        match std::fs::canonicalize(&cursor) {
+            Ok(real) => {
+                let tail = Path::new(path)
+                    .strip_prefix(&cursor)
+                    .unwrap_or_else(|_| Path::new(""));
+                return Ok(real.join(tail));
+            }
+            Err(err) => {
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    if !cursor.pop() {
+                        return Err(err);
+                    }
+                } else {
+                    return Err(err);
+                }
+            }
+        }
+    }
+}
+
+/// Recursive `cp` expands child paths under a root grant; the broker may
+/// deny paths beneath an allowed root, so every copied entry is checked.
+fn cp_entry_allowed(action: PermissionAction, path: &Path) -> std::io::Result<()> {
+    check_global_permission(
+        PermissionKind::FileSystem,
+        action,
+        ResourceId::Path(path.to_path_buf()),
+    )
+    .map_err(|_| std::io::Error::from_raw_os_error(libc::EACCES))
+}
+
 fn cp_file_real(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::io::Result<()> {
+    cp_entry_allowed(PermissionAction::Read, Path::new(from))?;
+    cp_entry_allowed(PermissionAction::Write, Path::new(to))?;
     if let Ok(dest) = std::fs::symlink_metadata(to) {
         if dest.is_dir() {
             return Err(std::io::Error::from_raw_os_error(libc::EISDIR));
@@ -3762,15 +3826,12 @@ fn cp_file_real(from: &str, to: &str, force: bool, error_on_exist: bool) -> std:
 }
 
 fn cp_dir_real(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::io::Result<()> {
+    cp_entry_allowed(PermissionAction::Read, Path::new(from))?;
+    cp_entry_allowed(PermissionAction::Write, Path::new(to))?;
     if let Ok(dest) = std::fs::symlink_metadata(to) {
         if !dest.is_dir() {
-            if !force {
-                if error_on_exist {
-                    return Err(std::io::Error::from_raw_os_error(libc::EEXIST));
-                }
-                return Ok(());
-            }
-            // Node: copying a dir onto a non-dir is an error.
+            // Node: copying a dir onto a non-dir is always an error —
+            // `force` only governs same-type overwrites.
             return Err(std::io::Error::from_raw_os_error(libc::ENOTDIR));
         }
     } else {
@@ -3795,8 +3856,9 @@ fn cp_dir_real(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::
 }
 
 fn cp_file_vfs(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::io::Result<()> {
-    let vfs = crate::sandbox::virtual_fs::is_enabled();
-    debug_assert!(vfs);
+    cp_entry_allowed(PermissionAction::Read, Path::new(from))?;
+    cp_entry_allowed(PermissionAction::Write, Path::new(to))?;
+    debug_assert!(crate::sandbox::virtual_fs::is_enabled());
     if let Ok(dest) = crate::sandbox::virtual_fs::vfs_metadata(Path::new(to)) {
         if dest.is_dir {
             return Err(std::io::Error::from_raw_os_error(libc::EISDIR));
@@ -3813,14 +3875,12 @@ fn cp_file_vfs(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::
 }
 
 fn cp_dir_vfs(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::io::Result<()> {
+    cp_entry_allowed(PermissionAction::Read, Path::new(from))?;
+    cp_entry_allowed(PermissionAction::Write, Path::new(to))?;
     if let Ok(dest) = crate::sandbox::virtual_fs::vfs_metadata(Path::new(to)) {
         if !dest.is_dir {
-            if !force {
-                if error_on_exist {
-                    return Err(std::io::Error::from_raw_os_error(libc::EEXIST));
-                }
-                return Ok(());
-            }
+            // Same as the real path: dir onto non-dir is ENOTDIR regardless
+            // of `force`.
             return Err(std::io::Error::from_raw_os_error(libc::ENOTDIR));
         }
     } else {
@@ -3850,6 +3910,15 @@ fn cp_dir_vfs(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::i
 }
 
 fn statfs_info(path: &str) -> std::io::Result<StatfsInfo> {
+    // statvfs runs against the real host filesystem. Under the sandbox VFS
+    // there is no host mapping and answering would leak host stats — fail
+    // closed instead.
+    if crate::sandbox::virtual_fs::is_enabled() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "statfs is unavailable under the sandbox VFS",
+        ));
+    }
     #[cfg(unix)]
     {
         let c_path = std::ffi::CString::new(path)
@@ -3953,9 +4022,8 @@ fn fs_opendir_sync_callback(
     if !ensure_fs_permission(scope, PermissionAction::Read, &path) {
         return;
     }
-    match read_directory(&path, true) {
-        Ok(entries) => {
-            let id = dir_register(path.clone(), entries);
+    match read_directory(&path, true).and_then(|entries| dir_register(path.clone(), entries)) {
+        Ok(id) => {
             retval.set(dir_to_js(scope, id, &path));
         }
         Err(err) => throw_fs_io_error(scope, "opendir", &path, &err),

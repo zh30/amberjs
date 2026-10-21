@@ -618,3 +618,70 @@ fn g76_statfs_fields_errors_and_promises() {
         "number,number,number,number,number,number,number,number,number|true|ENOENT:statfs|true|true|ENOENT"
     );
 }
+
+#[test]
+#[serial]
+fn g76_cp_symlink_containment_and_type_conflicts() {
+    let dir = TempDir::new().expect("temp dir");
+    let root = js_path(dir.path());
+    // A symlinked source must not mask the dest-inside-src guard.
+    symlink(dir.path().join("real"), dir.path().join("link")).expect("symlink");
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        const root = '{root}';
+        fs.mkdirSync(root + '/real/sub', {{ recursive: true }});
+        fs.writeFileSync(root + '/real/f.txt', 'x');
+        const out = [];
+        // dest inside the symlinked target -> EINVAL (not unbounded recursion)
+        try {{ fs.cpSync(root + '/link', root + '/real/dst', {{ recursive: true }}); out.push('ok'); }}
+        catch (e) {{ out.push(e.code); }}
+        // dir onto an existing file -> ENOTDIR even with force:false
+        fs.writeFileSync(root + '/afile.txt', 'y');
+        try {{ fs.cpSync(root + '/real', root + '/afile.txt', {{ recursive: true, force: false }}); out.push('ok'); }}
+        catch (e) {{ out.push(e.code); }}
+        try {{ fs.cpSync(root + '/real', root + '/afile.txt', {{ recursive: true, force: false, errorOnExist: true }}); out.push('ok'); }}
+        catch (e) {{ out.push(e.code); }}
+        out.join('|');
+        "#,
+    );
+    assert_eq!(run(&code), "EINVAL|ENOTDIR|ENOTDIR");
+}
+
+#[test]
+#[serial]
+fn g76_esm_named_imports() {
+    let dir = TempDir::new().expect("temp dir");
+    let script = dir.path().join("mod.mjs");
+    let root = js_path(dir.path());
+    fs::write(
+        &script,
+        format!(
+            r#"
+            import {{ cpSync, opendirSync, statfsSync }} from 'fs';
+            import {{ cp, opendir, statfs }} from 'fs';
+            const root = '{root}';
+            cpSync(root + '/none.txt', root + '/out.txt');
+            "#,
+        ),
+    )
+    .expect("write mjs");
+    // Static link must resolve the names (failure would throw at parse/link).
+    fs::write(dir.path().join("none.txt"), "data").expect("seed");
+    let binary =
+        std::env::var("CARGO_BIN_EXE_amber").unwrap_or_else(|_| "./target/debug/amber".into());
+    let output = Command::new(&binary)
+        .arg("run")
+        .arg(&script)
+        .output()
+        .expect("amber run");
+    assert!(
+        output.status.success(),
+        "named ESM imports failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(dir.path().join("out.txt")).unwrap(),
+        "data"
+    );
+}
