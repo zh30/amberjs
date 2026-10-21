@@ -195,7 +195,7 @@ roxmltree = "0.20"
 candle-core = { version = "0.11.0", default-features = false }
 candle-transformers = { version = "0.11.0", default-features = false }
 candle-nn = { version = "0.11.0", default-features = false }
-tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
+tokenizers = { version = "0.22", default-features = false, features = ["onig"] }
 
 # tch / torch-sys were removed from the graph. crates.io tch 0.11 through 0.26
 # (and torch-sys) require zip ^0.6. RUSTSEC-2026-0367/0368/0369 are fixed only
