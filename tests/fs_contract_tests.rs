@@ -417,3 +417,204 @@ fn cli_require_fs_reaches_the_contract() {
         "cli|function|function|function|true|number"
     );
 }
+
+// --- G76 additive carve: cp / opendir / statfs -----------------------------
+
+#[test]
+#[serial]
+fn g76_cp_sync_copy_and_error_codes() {
+    let dir = TempDir::new().expect("temp dir");
+    let root = js_path(dir.path());
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        const root = '{root}';
+        fs.mkdirSync(root + '/src/sub', {{ recursive: true }});
+        fs.writeFileSync(root + '/src/a.txt', 'hello');
+        fs.writeFileSync(root + '/src/sub/b.txt', 'world');
+        const out = [];
+        // file copy
+        fs.cpSync(root + '/src/a.txt', root + '/one.txt');
+        out.push(fs.readFileSync(root + '/one.txt', 'utf8'));
+        // dir without recursive -> EISDIR
+        try {{ fs.cpSync(root + '/src', root + '/d0'); out.push('ok'); }}
+        catch (e) {{ out.push(e.code + ':' + e.syscall); }}
+        // recursive dir copy preserves tree
+        fs.cpSync(root + '/src', root + '/dst', {{ recursive: true }});
+        out.push(fs.readdirSync(root + '/dst').sort().join(','));
+        out.push(fs.readFileSync(root + '/dst/sub/b.txt', 'utf8'));
+        // dest inside src -> EINVAL
+        try {{ fs.cpSync(root + '/src', root + '/src/inner', {{ recursive: true }}); out.push('ok'); }}
+        catch (e) {{ out.push(e.code); }}
+        // missing src -> ENOENT
+        try {{ fs.cpSync(root + '/nope', root + '/x'); out.push('ok'); }}
+        catch (e) {{ out.push(e.code); }}
+        // force:false + errorOnExist:true -> EEXIST; force:false alone skips
+        try {{ fs.cpSync(root + '/src/a.txt', root + '/one.txt', {{ force: false, errorOnExist: true }}); out.push('ok'); }}
+        catch (e) {{ out.push(e.code); }}
+        fs.cpSync(root + '/src/a.txt', root + '/one.txt', {{ force: false }});
+        out.push(fs.readFileSync(root + '/one.txt', 'utf8'));
+        // file onto dir dest -> EISDIR
+        try {{ fs.cpSync(root + '/src/a.txt', root + '/dst'); out.push('ok'); }}
+        catch (e) {{ out.push(e.code); }}
+        out.join('|');
+        "#,
+    );
+    assert_eq!(
+        run(&code),
+        "hello|EISDIR:cp|a.txt,sub|world|EINVAL|ENOENT|EEXIST|hello|EISDIR"
+    );
+}
+
+#[test]
+#[serial]
+fn g76_cp_callback_and_promise_forms() {
+    let dir = TempDir::new().expect("temp dir");
+    let root = js_path(dir.path());
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        const fsp = require('fs/promises');
+        const root = '{root}';
+        fs.mkdirSync(root + '/s', {{ recursive: true }});
+        fs.writeFileSync(root + '/s/f.txt', 'data');
+        (async () => {{
+          const out = [];
+          // callback form: void shape, settles on a later turn
+          let order = 'sync';
+          await new Promise((res, rej) => fs.cp(root + '/s/f.txt', root + '/cb.txt', (e) => e ? rej(e) : res(order)));
+          order = 'after-cb';
+          out.push(fs.readFileSync(root + '/cb.txt', 'utf8'));
+          // promise form
+          const p = fsp.cp(root + '/s', root + '/pd', {{ recursive: true }});
+          out.push(p instanceof Promise);
+          await p;
+          out.push(fs.readFileSync(root + '/pd/f.txt', 'utf8'));
+          // rejection on missing source
+          try {{ await fsp.cp(root + '/gone', root + '/q'); out.push('ok'); }}
+          catch (e) {{ out.push(e.code + ':' + e.syscall); }}
+          // promise form also honors recursive:false default on a dir
+          try {{ await fsp.cp(root + '/s', root + '/pdx'); out.push('ok'); }}
+          catch (e) {{ out.push(e.code); }}
+          return out.join('|');
+        }})();
+        "#,
+    );
+    assert_eq!(run(&code), "data|true|data|ENOENT:cp|EISDIR");
+}
+
+#[test]
+#[serial]
+fn g76_opendir_sync_snapshot_dirent_and_close() {
+    let dir = TempDir::new().expect("temp dir");
+    let root = js_path(dir.path());
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        const root = '{root}';
+        fs.mkdirSync(root + '/d/sub', {{ recursive: true }});
+        fs.writeFileSync(root + '/d/f.txt', 'x');
+        const dir = fs.opendirSync(root + '/d');
+        const out = [dir.path === root + '/d'];
+        const names = {{}};
+        let e;
+        while ((e = dir.readSync()) !== null) {{
+          names[e.name] = [e.isFile(), e.isDirectory(), e.isSymbolicLink()].join(',');
+        }}
+        out.push(JSON.stringify(names));
+        // snapshot: a file created after opendir is not visible
+        fs.writeFileSync(root + '/d/late.txt', 'y');
+        out.push(dir.readSync());
+        dir.closeSync();
+        try {{ dir.readSync(); out.push('ok'); }} catch (err) {{ out.push(err.code); }}
+        try {{ dir.closeSync(); out.push('ok'); }} catch (err) {{ out.push(err.code); }}
+        // opendir on a file -> ENOTDIR; missing -> ENOENT
+        try {{ fs.opendirSync(root + '/d/f.txt'); out.push('ok'); }} catch (err) {{ out.push(err.code + ':' + err.syscall); }}
+        try {{ fs.opendirSync(root + '/gone'); out.push('ok'); }} catch (err) {{ out.push(err.code); }}
+        out.join('|');
+        "#,
+    );
+    let result = run(&code);
+    // entry order is the OS order; compare via the sorted JSON-ish content
+    assert!(result.starts_with("true|"), "{result}");
+    assert!(result.contains(r#""f.txt":"true,false,false""#), "{result}");
+    assert!(result.contains(r#""sub":"false,true,false""#), "{result}");
+    assert!(
+        result.ends_with("||EBADF|EBADF|ENOTDIR:opendir|ENOENT"),
+        "{result}"
+    );
+}
+
+#[test]
+#[serial]
+fn g76_opendir_async_and_promises() {
+    let dir = TempDir::new().expect("temp dir");
+    let root = js_path(dir.path());
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        const fsp = require('fs/promises');
+        const root = '{root}';
+        fs.mkdirSync(root + '/d', {{ recursive: true }});
+        fs.writeFileSync(root + '/d/a.txt', '1');
+        fs.writeFileSync(root + '/d/b.txt', '2');
+        (async () => {{
+          const out = [];
+          // callback opendir + read/close callback chain
+          const names = [];
+          await new Promise((res, rej) => {{
+            fs.opendir(root + '/d', (err, dir) => {{
+              if (err) return rej(err);
+              const step = () => dir.read((e, ent) => e ? rej(e) : ent ? (names.push(ent.name), step()) : dir.close((ce) => ce ? rej(ce) : res()));
+              step();
+            }});
+          }});
+          out.push(names.sort().join(','));
+          // promises.opendir: readSync on the same Dir object
+          const d2 = await fsp.opendir(root + '/d');
+          out.push(d2.path === root + '/d');
+          out.push(typeof d2.readSync().name);
+          d2.closeSync();
+          // missing path rejects
+          try {{ await fsp.opendir(root + '/nope'); out.push('ok'); }}
+          catch (e) {{ out.push(e.code); }}
+          return out.join('|');
+        }})();
+        "#,
+    );
+    assert_eq!(run(&code), "a.txt,b.txt|true|string|ENOENT");
+}
+
+#[test]
+#[serial]
+fn g76_statfs_fields_errors_and_promises() {
+    let dir = TempDir::new().expect("temp dir");
+    let root = js_path(dir.path());
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        const fsp = require('fs/promises');
+        const root = '{root}';
+        (async () => {{
+          const out = [];
+          const st = fs.statfsSync(root);
+          out.push(['bsize','frsize','blocks','bfree','bavail','files','ffree','favail','namemax']
+            .map(k => typeof st[k]).join(','));
+          out.push(st.blocks > 0 && st.bavail > 0 && st.namemax > 0);
+          try {{ fs.statfsSync(root + '/missing'); out.push('ok'); }}
+          catch (e) {{ out.push(e.code + ':' + e.syscall); }}
+          const cb = await new Promise((res, rej) => fs.statfs(root, (e, s) => e ? rej(e) : res(s)));
+          out.push(cb.blocks === st.blocks);
+          const pst = await fsp.statfs(root);
+          out.push(pst.bavail === st.bavail);
+          try {{ await fsp.statfs(root + '/missing'); out.push('ok'); }}
+          catch (e) {{ out.push(e.code); }}
+          return out.join('|');
+        }})();
+        "#,
+    );
+    assert_eq!(
+        run(&code),
+        "number,number,number,number,number,number,number,number,number|true|ENOENT:statfs|true|true|ENOENT"
+    );
+}
