@@ -13,6 +13,19 @@ pub enum PerformanceEntryType {
     Mark,
     Measure,
     Histogram,
+    Function,
+}
+
+impl PerformanceEntryType {
+    /// Node `entryType` string for this variant.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PerformanceEntryType::Mark => "mark",
+            PerformanceEntryType::Measure => "measure",
+            PerformanceEntryType::Histogram => "histogram",
+            PerformanceEntryType::Function => "function",
+        }
+    }
 }
 
 /// Performance entry for storing timing data
@@ -197,18 +210,19 @@ pub fn setup_performance_api(
 
             let start_time = get_high_res_time();
 
-            let mut state = PERFORMANCE_STATE.lock().unwrap();
-            state.add_mark(PerformanceMark {
+            let entry = PerformanceEntry {
                 name: name.clone(),
-                start_time,
-            });
-            state.add_entry(PerformanceEntry {
-                name,
                 entry_type: PerformanceEntryType::Mark,
                 start_time,
                 duration: 0.0,
                 detail: None,
-            });
+            };
+            {
+                let mut state = PERFORMANCE_STATE.lock().unwrap();
+                state.add_mark(PerformanceMark { name, start_time });
+                state.add_entry(entry.clone());
+            }
+            notify_perf_observers(scope, &entry);
         },
     )
     .unwrap();
@@ -266,43 +280,82 @@ pub fn setup_performance_api(
 
             let duration = end_time - start_time;
 
-            let mut state = PERFORMANCE_STATE.lock().unwrap();
-            state.add_entry(PerformanceEntry {
-                name: name.clone(),
+            let entry = PerformanceEntry {
+                name,
                 entry_type: PerformanceEntryType::Measure,
                 start_time,
                 duration,
                 detail: None,
-            });
+            };
+            {
+                let mut state = PERFORMANCE_STATE.lock().unwrap();
+                state.add_entry(entry.clone());
+            }
+            notify_perf_observers(scope, &entry);
         },
     )
     .unwrap();
 
-    // performance.clearMarks() - removes all marks
+    // performance.clearMarks([name]) - drops marks; an optional name drops only that mark
     let clear_marks_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::PinScope,
-         _args: v8::FunctionCallbackArguments,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
+            let name_filter = if args.length() >= 1 && !args.get(0).is_undefined() {
+                Some(
+                    args.get(0)
+                        .to_string(scope)
+                        .unwrap()
+                        .to_rust_string_lossy(scope),
+                )
+            } else {
+                None
+            };
             let mut state = PERFORMANCE_STATE.lock().unwrap();
-            state.marks.clear();
-            state
-                .entries
-                .retain(|e| e.entry_type != PerformanceEntryType::Mark);
+            match name_filter {
+                Some(n) => {
+                    state.marks.retain(|m| m.name != n);
+                    state
+                        .entries
+                        .retain(|e| !(e.entry_type == PerformanceEntryType::Mark && e.name == n));
+                }
+                None => {
+                    state.marks.clear();
+                    state
+                        .entries
+                        .retain(|e| e.entry_type != PerformanceEntryType::Mark);
+                }
+            }
         },
     )
     .unwrap();
 
-    // performance.clearMeasures() - removes all measures
+    // performance.clearMeasures([name]) - drops measures; an optional name drops only that measure
     let clear_measures_fn = v8::Function::new(
         scope,
-        |_scope: &mut v8::PinScope,
-         _args: v8::FunctionCallbackArguments,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
          _retval: v8::ReturnValue| {
+            let name_filter = if args.length() >= 1 && !args.get(0).is_undefined() {
+                Some(
+                    args.get(0)
+                        .to_string(scope)
+                        .unwrap()
+                        .to_rust_string_lossy(scope),
+                )
+            } else {
+                None
+            };
             let mut state = PERFORMANCE_STATE.lock().unwrap();
-            state
-                .entries
-                .retain(|e| e.entry_type != PerformanceEntryType::Measure);
+            match name_filter {
+                Some(n) => state
+                    .entries
+                    .retain(|e| !(e.entry_type == PerformanceEntryType::Measure && e.name == n)),
+                None => state
+                    .entries
+                    .retain(|e| e.entry_type != PerformanceEntryType::Measure),
+            }
         },
     )
     .unwrap();
@@ -340,15 +393,7 @@ pub fn setup_performance_api(
                     obj.set(scope, name_key.into(), name_val.into());
 
                     let entry_type_key = v8::String::new(scope, "entryType").unwrap();
-                    let entry_type_val = v8::String::new(
-                        scope,
-                        match e.entry_type {
-                            PerformanceEntryType::Mark => "mark",
-                            PerformanceEntryType::Measure => "measure",
-                            PerformanceEntryType::Histogram => "histogram",
-                        },
-                    )
-                    .unwrap();
+                    let entry_type_val = v8::String::new(scope, e.entry_type.as_str()).unwrap();
                     obj.set(scope, entry_type_key.into(), entry_type_val.into());
 
                     let start_time_key = v8::String::new(scope, "startTime").unwrap();
@@ -400,15 +445,7 @@ pub fn setup_performance_api(
                     obj.set(scope, name_key.into(), name_val.into());
 
                     let entry_type_key = v8::String::new(scope, "entryType").unwrap();
-                    let entry_type_val = v8::String::new(
-                        scope,
-                        match e.entry_type {
-                            PerformanceEntryType::Mark => "mark",
-                            PerformanceEntryType::Measure => "measure",
-                            PerformanceEntryType::Histogram => "histogram",
-                        },
-                    )
-                    .unwrap();
+                    let entry_type_val = v8::String::new(scope, e.entry_type.as_str()).unwrap();
                     obj.set(scope, entry_type_key.into(), entry_type_val.into());
 
                     let start_time_key = v8::String::new(scope, "startTime").unwrap();
@@ -451,14 +488,7 @@ pub fn setup_performance_api(
             let entries: Vec<v8::Local<v8::Value>> = state
                 .entries
                 .iter()
-                .filter(|e| {
-                    let e_type_str = match e.entry_type {
-                        PerformanceEntryType::Mark => "mark",
-                        PerformanceEntryType::Measure => "measure",
-                        PerformanceEntryType::Histogram => "histogram",
-                    };
-                    e_type_str == entry_type
-                })
+                .filter(|e| e.entry_type.as_str() == entry_type)
                 .map(|e| {
                     let obj = v8::Object::new(scope);
 
@@ -467,15 +497,7 @@ pub fn setup_performance_api(
                     obj.set(scope, name_key.into(), name_val.into());
 
                     let type_key = v8::String::new(scope, "entryType").unwrap();
-                    let type_val = v8::String::new(
-                        scope,
-                        match e.entry_type {
-                            PerformanceEntryType::Mark => "mark",
-                            PerformanceEntryType::Measure => "measure",
-                            PerformanceEntryType::Histogram => "histogram",
-                        },
-                    )
-                    .unwrap();
+                    let type_val = v8::String::new(scope, e.entry_type.as_str()).unwrap();
                     obj.set(scope, type_key.into(), type_val.into());
 
                     let start_time_key = v8::String::new(scope, "startTime").unwrap();
@@ -567,7 +589,206 @@ pub fn setup_performance_api(
     let perf_key = v8::String::new(scope, "performance").unwrap();
     global.set(scope, perf_key.into(), perf_obj.into());
 
+    // Hidden natives backing the JS-level perf_hooks surface (G74):
+    // `__perf_now()` shares the same clock as `performance.now()`, and
+    // `__perf_record_fn(name, startTime)` records a 'function'-type entry and
+    // notifies observers — used by `performance.timerify`'s JS wrapper.
+    let perf_now_native = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         _args: v8::FunctionCallbackArguments,
+         mut retval: v8::ReturnValue| {
+            retval.set(v8::Number::new(scope, get_high_res_time()).into());
+        },
+    )
+    .unwrap();
+    let perf_now_key = v8::String::new(scope, "__perf_now").unwrap();
+    global.set(scope, perf_now_key.into(), perf_now_native.into());
+
+    let perf_record_fn = v8::Function::new(
+        scope,
+        |scope: &mut v8::PinScope,
+         args: v8::FunctionCallbackArguments,
+         _retval: v8::ReturnValue| {
+            let name = args
+                .get(0)
+                .to_string(scope)
+                .map(|s| s.to_rust_string_lossy(scope))
+                .unwrap_or_else(|| "anonymous".to_string());
+            let start_time = args
+                .get(1)
+                .number_value(scope)
+                .unwrap_or_else(get_high_res_time);
+            let end_time = get_high_res_time();
+            let entry = PerformanceEntry {
+                name,
+                entry_type: PerformanceEntryType::Function,
+                start_time,
+                duration: end_time - start_time,
+                detail: None,
+            };
+            {
+                let mut state = PERFORMANCE_STATE.lock().unwrap();
+                state.add_entry(entry.clone());
+                // Keep the function-entry log bounded: timerified calls are
+                // unbounded otherwise (clearMarks/clearMeasures never touch
+                // them, and Node's setResourceTimingBufferSize is a Non-goal).
+                const MAX_FUNCTION_ENTRIES: usize = 10_000;
+                let fn_count = state
+                    .entries
+                    .iter()
+                    .filter(|e| matches!(e.entry_type, PerformanceEntryType::Function))
+                    .count();
+                if fn_count > MAX_FUNCTION_ENTRIES {
+                    let mut drop = fn_count - MAX_FUNCTION_ENTRIES;
+                    state.entries.retain(|e| {
+                        if matches!(e.entry_type, PerformanceEntryType::Function) && drop > 0 {
+                            drop -= 1;
+                            false
+                        } else {
+                            true
+                        }
+                    });
+                }
+            }
+            notify_perf_observers(scope, &entry);
+        },
+    )
+    .unwrap();
+    let perf_record_key = v8::String::new(scope, "__perf_record_fn").unwrap();
+    global.set(scope, perf_record_key.into(), perf_record_fn.into());
+
+    // Install the shared observer/timerify snippet (`__perf_observers`,
+    // `__perf_observer_flush`, `__PerfObserver`, `performance.timerify`).
+    let snippet_src =
+        v8::String::new(scope, crate::nodejs_core::perf_hooks::PERF_OBSERVER_JS).unwrap();
+    if let Some(script) = v8::Script::compile(scope, snippet_src, None) {
+        let _ = script.run(scope);
+    }
+
     Ok(())
+}
+
+/// Build the `{ name, entryType, startTime, duration }` object shape used by
+/// `getEntries*` and observer deliveries.
+fn entry_to_v8_object<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    entry: &PerformanceEntry,
+) -> v8::Local<'a, v8::Object> {
+    let obj = v8::Object::new(scope);
+
+    let name_key = v8::String::new(scope, "name").unwrap();
+    let name_val = v8::String::new(scope, &entry.name).unwrap();
+    obj.set(scope, name_key.into(), name_val.into());
+
+    let type_key = v8::String::new(scope, "entryType").unwrap();
+    let type_val = v8::String::new(scope, entry.entry_type.as_str()).unwrap();
+    obj.set(scope, type_key.into(), type_val.into());
+
+    let start_key = v8::String::new(scope, "startTime").unwrap();
+    let start_val = v8::Number::new(scope, entry.start_time);
+    obj.set(scope, start_key.into(), start_val.into());
+
+    let dur_key = v8::String::new(scope, "duration").unwrap();
+    let dur_val = v8::Number::new(scope, entry.duration);
+    obj.set(scope, dur_key.into(), dur_val.into());
+
+    obj
+}
+
+/// Push a freshly-recorded entry into every observing `PerformanceObserver`'s
+/// `_records` buffer and schedule the JS-side flush (`__perf_observer_flush`)
+/// through `queueMicrotask`. The class and flush live in
+/// [`perf_hooks::PERF_OBSERVER_JS`](crate::nodejs_core::perf_hooks) so the
+/// observer slice stays honest wherever entries are recorded.
+fn notify_perf_observers(scope: &mut v8::PinScope, entry: &PerformanceEntry) {
+    let context = scope.get_current_context();
+    let global = context.global(scope);
+
+    let observers_key = v8::String::new(scope, "__perf_observers").unwrap();
+    let observers_val = match global.get(scope, observers_key.into()) {
+        Some(v) if v.is_array() => v8::Local::<v8::Array>::try_from(v).unwrap(),
+        _ => return,
+    };
+
+    let entry_type_str = entry.entry_type.as_str();
+    let types_key = v8::String::new(scope, "_types").unwrap();
+    let records_key = v8::String::new(scope, "_records").unwrap();
+    let scheduled_key = v8::String::new(scope, "_scheduled").unwrap();
+
+    let mut needs_flush = false;
+    for i in 0..observers_val.length() {
+        let Some(obs_val) = observers_val.get_index(scope, i) else {
+            continue;
+        };
+        let Ok(obs) = v8::Local::<v8::Object>::try_from(obs_val) else {
+            continue;
+        };
+        let Some(types_val) = obs.get(scope, types_key.into()) else {
+            continue;
+        };
+        if !types_val.is_array() {
+            continue;
+        }
+        let Ok(types_arr) = v8::Local::<v8::Array>::try_from(types_val) else {
+            continue;
+        };
+        let mut matched = false;
+        for j in 0..types_arr.length() {
+            if let Some(t) = types_arr.get_index(scope, j) {
+                if let Some(t_str) = t.to_string(scope) {
+                    if t_str.to_rust_string_lossy(scope) == entry_type_str {
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if !matched {
+            continue;
+        }
+        let Some(records_val) = obs.get(scope, records_key.into()) else {
+            continue;
+        };
+        let Ok(records_arr) = v8::Local::<v8::Array>::try_from(records_val) else {
+            continue;
+        };
+        let already_scheduled = obs
+            .get(scope, scheduled_key.into())
+            .map(|v| v.boolean_value(scope))
+            .unwrap_or(false);
+        let entry_obj = entry_to_v8_object(scope, entry);
+        let next_idx = records_arr.length();
+        records_arr.set_index(scope, next_idx, entry_obj.into());
+        obs.set(
+            scope,
+            scheduled_key.into(),
+            v8::Boolean::new(scope, true).into(),
+        );
+        // A new flush is only needed when this record newly schedules the
+        // observer — an already-queued flush splices `_records` at run time
+        // and picks this record up without another microtask.
+        if !already_scheduled {
+            needs_flush = true;
+        }
+    }
+
+    if needs_flush {
+        let flush_key = v8::String::new(scope, "__perf_observer_flush").unwrap();
+        let qmt_key = v8::String::new(scope, "queueMicrotask").unwrap();
+        if let (Some(flush_val), Some(qmt_val)) = (
+            global.get(scope, flush_key.into()),
+            global.get(scope, qmt_key.into()),
+        ) {
+            if let (Ok(flush_fn), Ok(qmt_fn)) = (
+                v8::Local::<v8::Function>::try_from(flush_val),
+                v8::Local::<v8::Function>::try_from(qmt_val),
+            ) {
+                let recv: v8::Local<v8::Value> = global.into();
+                qmt_fn.call(scope, recv, &[flush_fn.into()]);
+            }
+        }
+    }
 }
 
 /// Clear all performance entries (for testing)

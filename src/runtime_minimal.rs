@@ -8262,7 +8262,9 @@ impl MinimalRuntime {
         crate::nodejs_core::tty::setup_tty_api(scope, context)?;
         crate::nodejs_core::diagnostics_channel::setup_diagnostics_channel_api(scope, context)?;
         crate::nodejs_core::async_hooks::setup_async_hooks_api(scope, context)?;
-        // Alias perf_hooks -> performance for Node module name compatibility.
+        // perf_hooks module bag: real `performance` identity + the shared
+        // PerformanceObserver class installed by `setup_performance_api`'s
+        // snippet (`PERF_OBSERVER_JS`). G74 contract surface.
         {
             let global = context.global(scope);
             let perf_key = v8::String::new(scope, "performance").unwrap();
@@ -8270,6 +8272,11 @@ impl MinimalRuntime {
                 let hooks = v8::Object::new(scope);
                 let perf_hooks_key = v8::String::new(scope, "performance").unwrap();
                 hooks.set(scope, perf_hooks_key.into(), perf_val);
+                let obs_key = v8::String::new(scope, "__PerfObserver").unwrap();
+                if let Some(obs_val) = global.get(scope, obs_key.into()) {
+                    let po_key = v8::String::new(scope, "PerformanceObserver").unwrap();
+                    hooks.set(scope, po_key.into(), obs_val);
+                }
                 let alias_key = v8::String::new(scope, "perf_hooks").unwrap();
                 global.set(scope, alias_key.into(), hooks.into());
             }
