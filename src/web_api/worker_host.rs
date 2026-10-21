@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -43,6 +43,11 @@ pub struct WorkerHandle {
     pub is_terminated: bool,
     tx: Sender<WorkerMessage>,
     join: Option<JoinHandle<()>>,
+    /// Thread-safe handle used to preempt scripts that never yield to the
+    /// message queue — `worker.terminate()` must still work while the worker
+    /// runs uninterruptible synchronous code. Empty until the worker's
+    /// isolate registers it at thread start.
+    isolate_handle: Arc<Mutex<Option<v8::IsolateHandle>>>,
 }
 
 pub struct WorkerHost {
@@ -78,6 +83,8 @@ impl WorkerHost {
             host.parent_tx.clone()
         };
 
+        let isolate_handle = Arc::new(Mutex::new(None));
+        let isolate_handle_slot = isolate_handle.clone();
         let join = thread::Builder::new()
             .name(format!("amber-worker-{}", id))
             .spawn(move || {
@@ -87,6 +94,7 @@ impl WorkerHost {
                     worker_data_json,
                     parent_tx_clone,
                     rx,
+                    isolate_handle_slot,
                 ) {
                     eprintln!("[WorkerHost {}] fatal: {}", worker_id, err);
                 }
@@ -103,6 +111,7 @@ impl WorkerHost {
                 is_terminated: false,
                 tx,
                 join: Some(join),
+                isolate_handle,
             },
         );
         Ok(id)
@@ -125,12 +134,33 @@ impl WorkerHost {
 
     pub fn terminate(id: u32) -> Result<()> {
         let mut handle_to_join = None;
+        let mut isolate_slot = None;
         {
             let mut host = HOST.lock().unwrap();
             if let Some(worker) = host.workers.get_mut(&id) {
                 worker.is_terminated = true;
                 let _ = worker.tx.send(WorkerMessage::Terminate);
                 handle_to_join = worker.join.take();
+                isolate_slot = Some(worker.isolate_handle.clone());
+            }
+        }
+        if let Some(slot) = isolate_slot {
+            // The worker registers its isolate handle right after V8 init;
+            // wait briefly for it so `terminate()` also preempts synchronous
+            // scripts that never read the message channel (Node parity).
+            for _ in 0..20 {
+                if let Some(handle) = slot.lock().unwrap().take() {
+                    handle.terminate_execution();
+                    break;
+                }
+                let finished = handle_to_join
+                    .as_ref()
+                    .map(|j| j.is_finished())
+                    .unwrap_or(false);
+                if finished {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(10));
             }
         }
         if let Some(join) = handle_to_join {
@@ -243,10 +273,12 @@ fn run_worker_thread(
     worker_data_json: Option<String>,
     parent_tx: Sender<ParentMessage>,
     rx: Receiver<WorkerMessage>,
+    isolate_handle_slot: Arc<Mutex<Option<v8::IsolateHandle>>>,
 ) -> Result<()> {
     // Independent isolate lifetime for this OS thread.
     crate::initialize_v8()?;
     let mut isolate = v8::Isolate::new(Default::default());
+    *isolate_handle_slot.lock().unwrap() = Some(isolate.thread_safe_handle());
 
     WORKER_THREAD_CHANNEL.with(|cell| {
         *cell.borrow_mut() = Some((id, parent_tx.clone()));
@@ -361,7 +393,11 @@ fn run_worker_thread(
 
                 const parentPort = new WorkerEventEmitter();
                 parentPort.postMessage = function(data) {{
-                    __amber_worker_post_message(typeof data === 'string' ? JSON.stringify(data) : JSON.stringify(data));
+                    const payload = JSON.stringify(data);
+                    if (payload === undefined) {{
+                        throw new TypeError('The message could not be cloned');
+                    }}
+                    __amber_worker_post_message(payload);
                 }};
                 parentPort.close = function() {{
                     globalThis.__amber_worker_listening = false;
@@ -516,57 +552,58 @@ fn run_worker_thread(
             return Ok(());
         }
 
-        // Check if worker registered message listeners
-        let is_listening = {
-            let key = v8::String::new(scope, "__amber_worker_listening").unwrap();
-            global
-                .get(scope, key.into())
-                .map(|v| v.to_boolean(scope).is_true())
-                .unwrap_or(false)
-        };
-
-        if is_listening {
-            loop {
-                let next_delay_ms = worker_next_timer_delay_ms(scope, global);
-                let msg: WorkerMessage = if next_delay_ms < 0 {
-                    match rx.recv() {
-                        Ok(m) => m,
-                        Err(_) => break,
-                    }
-                } else {
-                    match rx.recv_timeout(Duration::from_millis(next_delay_ms as u64)) {
-                        Ok(m) => m,
-                        Err(RecvTimeoutError::Timeout) => {
-                            worker_run_due_timers(scope, global);
-                            scope.perform_microtask_checkpoint();
-                            continue;
-                        }
-                        Err(RecvTimeoutError::Disconnected) => break,
-                    }
-                };
-
-                match msg {
-                    WorkerMessage::PostMessage(payload) => {
-                        let dispatch_key =
-                            v8::String::new(scope, "__amber_dispatch_message").unwrap();
-                        if let Some(handler) = global.get(scope, dispatch_key.into()) {
-                            if let Ok(func) = v8::Local::<v8::Function>::try_from(handler) {
-                                let arg = v8::String::new(scope, &payload).unwrap();
-                                let _ = func.call(scope, global.into(), &[arg.into()]);
-                            }
-                        }
-                        // Drain microtasks (waitUntil Promise.all) and due timers.
-                        scope.perform_microtask_checkpoint();
-                        loop {
-                            let ran = worker_run_due_timers(scope, global);
-                            scope.perform_microtask_checkpoint();
-                            if ran == 0 {
-                                break;
-                            }
-                        }
-                    }
-                    WorkerMessage::Terminate => break,
+        // A worker stays alive while it has a 'message' listener or a
+        // pending timer (Node parity: timers alone keep the worker running).
+        // It exits once both are drained.
+        loop {
+            let is_listening = {
+                let key = v8::String::new(scope, "__amber_worker_listening").unwrap();
+                global
+                    .get(scope, key.into())
+                    .map(|v| v.to_boolean(scope).is_true())
+                    .unwrap_or(false)
+            };
+            let next_delay_ms = worker_next_timer_delay_ms(scope, global);
+            if !is_listening && next_delay_ms < 0 {
+                break;
+            }
+            let msg: WorkerMessage = if next_delay_ms < 0 {
+                match rx.recv() {
+                    Ok(m) => m,
+                    Err(_) => break,
                 }
+            } else {
+                match rx.recv_timeout(Duration::from_millis(next_delay_ms as u64)) {
+                    Ok(m) => m,
+                    Err(RecvTimeoutError::Timeout) => {
+                        worker_run_due_timers(scope, global);
+                        scope.perform_microtask_checkpoint();
+                        continue;
+                    }
+                    Err(RecvTimeoutError::Disconnected) => break,
+                }
+            };
+
+            match msg {
+                WorkerMessage::PostMessage(payload) => {
+                    let dispatch_key = v8::String::new(scope, "__amber_dispatch_message").unwrap();
+                    if let Some(handler) = global.get(scope, dispatch_key.into()) {
+                        if let Ok(func) = v8::Local::<v8::Function>::try_from(handler) {
+                            let arg = v8::String::new(scope, &payload).unwrap();
+                            let _ = func.call(scope, global.into(), &[arg.into()]);
+                        }
+                    }
+                    // Drain microtasks (waitUntil Promise.all) and due timers.
+                    scope.perform_microtask_checkpoint();
+                    loop {
+                        let ran = worker_run_due_timers(scope, global);
+                        scope.perform_microtask_checkpoint();
+                        if ran == 0 {
+                            break;
+                        }
+                    }
+                }
+                WorkerMessage::Terminate => break,
             }
         }
 
@@ -889,6 +926,9 @@ pub fn setup_worker_host_api(
                     throw new Error("Cannot postMessage to a terminated worker");
                 }
                 const payload = JSON.stringify(data);
+                if (payload === undefined) {
+                    throw new TypeError('The message could not be cloned');
+                }
                 __amber_worker_post(this._workerId, payload);
             }
 
