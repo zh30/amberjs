@@ -1,6 +1,6 @@
 # Node `worker_threads` contract
 
-This is the user-facing contract for the Stable `worker_threads` module slice in Amber (**tentative G75**). It is derived from `src/nodejs_core/worker_threads.rs` (module shim), `src/web_api/worker_host.rs` (`WorkerHost` — real OS thread + fresh V8 isolate per worker, main-side `Worker` class, and the worker-isolate bootstrap), and `tests/worker_threads_contract_tests.rs`. The web-side `globalThis.Worker` / service-worker registration surface stays on [`docs/WORKERS_CONTRACT.md`](WORKERS_CONTRACT.md) (**G16**); this page owns the Node module bag.
+This is the user-facing contract for the Stable `worker_threads` module slice in Amber (**G75**). It is derived from `src/nodejs_core/worker_threads.rs` (module shim), `src/web_api/worker_host.rs` (`WorkerHost` — real OS thread + fresh V8 isolate per worker, main-side `Worker` class, and the worker-isolate bootstrap), and `tests/worker_threads_contract_tests.rs`. The web-side `globalThis.Worker` / service-worker registration surface stays on [`docs/WORKERS_CONTRACT.md`](WORKERS_CONTRACT.md) (**G16**); this page owns the Node module bag.
 
 **Honesty:** `require('worker_threads')` returns the real bag `globalThis.worker_threads` — not a shape-only object. Workers are real OS threads running fresh V8 isolates (not a same-isolate simulation), and messages really cross between them.
 
