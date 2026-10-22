@@ -358,7 +358,12 @@ fn fetch_listener_without_respond_with_falls_through_to_network() {
 }
 
 #[test]
+#[serial]
 fn amber_run_respond_with_intercepts_fetch() {
+    // CLI settle pin: wait for ready before fetch (same race class as #294),
+    // safety-timer unregister so a stuck intercept cannot wedge amber run,
+    // and exit after SUCCESS so WorkerHost teardown cannot keep the child
+    // past the 15s kill (CI Format flake on tip without this harden).
     let script = r#"
         const source = [
           "self.addEventListener('install', () => { self.skipWaiting(); });",
@@ -368,15 +373,39 @@ fn amber_run_respond_with_intercepts_fetch() {
           "});"
         ].join('\n');
         const swUrl = 'data:text/javascript,' + encodeURIComponent(source);
+        let registration = null;
+        let done = false;
+        const finish = (line) => {
+          if (done) return;
+          done = true;
+          console.log(line);
+          const exit = () => {
+            if (typeof process !== 'undefined' && typeof process.exit === 'function') {
+              process.exit(line.indexOf('SUCCESS') === 0 ? 0 : 1);
+            }
+          };
+          const unreg = registration && typeof registration.unregister === 'function'
+            ? Promise.resolve(registration.unregister())
+            : Promise.resolve();
+          unreg.then(exit, exit);
+        };
+        const timer = setTimeout(() => {
+          finish('ERROR:timeout');
+        }, 2000);
         navigator.serviceWorker.register(swUrl).then((reg) => {
-          return Promise.resolve(fetch('https://example.test/cli-sw')).then((response) => {
-            const body = typeof response.text === 'function' ? response.text() : String(response);
-            const text = typeof body === 'string' ? body : String(body);
-            console.log(text === 'cli-sw' ? 'SUCCESS' : 'ERROR:' + text);
-            return reg.unregister();
-          });
+          registration = reg;
+          return navigator.serviceWorker.ready;
+        }).then((reg) => {
+          registration = reg;
+          return Promise.resolve(fetch('https://example.test/cli-sw'));
+        }).then((response) => {
+          const body = typeof response.text === 'function' ? response.text() : String(response);
+          const text = typeof body === 'string' ? body : String(body);
+          clearTimeout(timer);
+          finish(text === 'cli-sw' ? 'SUCCESS' : 'ERROR:' + text);
         }).catch((err) => {
-          console.log('ERROR:' + String(err && err.message || err));
+          clearTimeout(timer);
+          finish('ERROR:' + String(err && err.message || err));
         });
     "#;
     let output = run_script(script);

@@ -4242,6 +4242,69 @@ impl std::fmt::Display for RuntimeError {
 
 impl std::error::Error for RuntimeError {}
 
+/// True when `s` is a usable JS error / constructor name (not empty / undefined).
+fn usable_exception_name(s: &str) -> bool {
+    let t = s.trim();
+    !t.is_empty() && t != "undefined" && t != "null"
+}
+
+/// Resolve a display name for a thrown value.
+///
+/// test262's `Test262Error` (harness/sta.js) does **not** set `.name` and is not
+/// an `Error` subclass — only `constructor.name` / `toString()` carry "Test262Error".
+/// Negative tests match that token in stderr; mapping everything unknown to
+/// `UNKNOWN_ERROR` with an empty message fails those cases.
+fn resolve_exception_name(
+    scope: &mut v8::PinScope,
+    exception: v8::Local<v8::Value>,
+    error_obj: v8::Local<v8::Object>,
+) -> String {
+    let name_key = v8::String::new(scope, "name").unwrap();
+    if let Some(name_val) = error_obj.get(scope, name_key.into()) {
+        if !name_val.is_undefined() && !name_val.is_null() {
+            let name_str = name_val.to_rust_string_lossy(scope);
+            if usable_exception_name(&name_str) {
+                return name_str;
+            }
+        }
+    }
+
+    let ctor_key = v8::String::new(scope, "constructor").unwrap();
+    if let Some(ctor_val) = error_obj.get(scope, ctor_key.into()) {
+        if let Some(ctor_obj) = ctor_val.to_object(scope) {
+            if let Some(ctor_name_val) = ctor_obj.get(scope, name_key.into()) {
+                if !ctor_name_val.is_undefined() && !ctor_name_val.is_null() {
+                    let ctor_name = ctor_name_val.to_rust_string_lossy(scope);
+                    // Skip generic Object; prefer a real constructor name.
+                    if usable_exception_name(&ctor_name) && ctor_name != "Object" {
+                        return ctor_name;
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(full) = exception.to_string(scope) {
+        let full = full.to_rust_string_lossy(scope);
+        if let Some(prefix) = full.split(':').next() {
+            let prefix = prefix.trim();
+            if usable_exception_name(prefix)
+                && prefix
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_')
+            {
+                return prefix.to_string();
+            }
+        }
+    }
+
+    String::new()
+}
+
+fn leak_error_code(name: String) -> &'static str {
+    Box::leak(name.into_boxed_str())
+}
+
 /// Convert V8 exception to RuntimeError
 /// v0.3.235: Extract structured error information from V8 exceptions
 pub fn v8_exception_to_runtime_error(
@@ -4250,18 +4313,10 @@ pub fn v8_exception_to_runtime_error(
 ) -> RuntimeError {
     // Try to extract error type from the exception
     if let Some(error_obj) = exception.to_object(scope) {
-        // Check if it's an Error object by checking the constructor
-        // In V8, Error objects have a specific structure
         let message_key = v8::String::new(scope, "message").unwrap();
-        let name_key = v8::String::new(scope, "name").unwrap();
+        let name_str = resolve_exception_name(scope, exception, error_obj);
 
-        // Get the name property to determine error type
-        let name_val = error_obj.get(scope, name_key.into());
-        let name_str = name_val
-            .map(|n| n.to_rust_string_lossy(scope))
-            .unwrap_or_default();
-
-        // Determine error type from name property
+        // Determine error type from resolved name (`.name` or constructor).
         let error_type = match name_str.as_str() {
             "SyntaxError" => RuntimeErrorType::SyntaxError,
             "ReferenceError" => RuntimeErrorType::ReferenceError,
@@ -4271,22 +4326,33 @@ pub fn v8_exception_to_runtime_error(
             _ => RuntimeErrorType::Unknown,
         };
 
-        // Extract message
-        let message = if let Some(msg_val) = error_obj.get(scope, message_key.into()) {
-            msg_val.to_rust_string_lossy(scope)
-        } else {
-            exception
-                .to_string(scope)
-                .unwrap_or_else(|| v8::String::new(scope, "<unknown error>").unwrap())
-                .to_rust_string_lossy(scope)
+        // Extract message. Prefer own `.message` when it is a real string;
+        // otherwise fall back to `ToString` (e.g. Test262Error.toString).
+        let message = {
+            let from_prop = error_obj
+                .get(scope, message_key.into())
+                .filter(|v| v.is_string() || v.is_number() || v.is_boolean())
+                .map(|v| v.to_rust_string_lossy(scope));
+            match from_prop {
+                Some(m) if !m.is_empty() => m,
+                Some(m) => m, // keep empty own-message (Test262Error())
+                None => exception
+                    .to_string(scope)
+                    .unwrap_or_else(|| v8::String::new(scope, "<unknown error>").unwrap())
+                    .to_rust_string_lossy(scope),
+            }
         };
 
         // Extract stack trace
         let stack_key = v8::String::new(scope, "stack").unwrap();
         let stack_trace = if let Some(stack_val) = error_obj.get(scope, stack_key.into()) {
-            Some(apply_active_source_map(
-                &stack_val.to_rust_string_lossy(scope),
-            ))
+            if !stack_val.is_undefined() && !stack_val.is_null() {
+                Some(apply_active_source_map(
+                    &stack_val.to_rust_string_lossy(scope),
+                ))
+            } else {
+                None
+            }
         } else {
             None
         };
@@ -4301,23 +4367,31 @@ pub fn v8_exception_to_runtime_error(
                 .map(ToString::to_string)
         });
 
+        // Prefer ECMAScript constructor names for built-ins (#271) so negative
+        // `type: ReferenceError` matches stderr. For Unknown, surface the real
+        // constructor name (Test262Error from sta.js has no `.name`).
+        // Keep SCREAMING_SNAKE only for Amber-internal non-ECMAScript categories.
+        let code = match error_type {
+            RuntimeErrorType::SyntaxError => "SyntaxError",
+            RuntimeErrorType::ReferenceError => "ReferenceError",
+            RuntimeErrorType::TypeError => "TypeError",
+            RuntimeErrorType::RangeError => "RangeError",
+            RuntimeErrorType::EvalError => "EvalError",
+            RuntimeErrorType::InternalError => "InternalError",
+            RuntimeErrorType::ResourceLimit => "RESOURCE_LIMIT",
+            RuntimeErrorType::Unknown => {
+                if usable_exception_name(&name_str) && name_str != "Error" {
+                    leak_error_code(name_str)
+                } else {
+                    "UNKNOWN_ERROR"
+                }
+            }
+        };
+
         RuntimeError {
             error_type,
             message,
-            // Prefer ECMAScript error constructor names so harnesses (test262
-            // negative `type: ReferenceError` etc.) and user-facing messages
-            // match the thrown exception. Keep SCREAMING_SNAKE only for
-            // Amber-internal categories that are not ECMAScript Error types.
-            code: match error_type {
-                RuntimeErrorType::SyntaxError => "SyntaxError",
-                RuntimeErrorType::ReferenceError => "ReferenceError",
-                RuntimeErrorType::TypeError => "TypeError",
-                RuntimeErrorType::RangeError => "RangeError",
-                RuntimeErrorType::EvalError => "EvalError",
-                RuntimeErrorType::InternalError => "InternalError",
-                RuntimeErrorType::ResourceLimit => "RESOURCE_LIMIT",
-                RuntimeErrorType::Unknown => "UNKNOWN_ERROR",
-            },
+            code,
             location,
             context: stack_trace,
         }
@@ -9139,10 +9213,20 @@ impl MinimalRuntime {
                     || sw_has_pending_intercepted_fetches(scope)
                 {
                     timer_manager.wait_timeout(std::time::Duration::from_millis(10));
-                    // Do not starve timers (e.g. test safety setTimeout) or
-                    // WorkerHost/child completions while a ref'd worker / SW
-                    // intercept is in flight.
+                    // Do not starve timers (e.g. unregister setTimeout(0) /
+                    // test safety setTimeout) or WorkerHost/child completions
+                    // while a ref'd worker / SW intercept is in flight.
+                    // Re-check zero-delay timers after the wait — otherwise
+                    // SW unregister teardown can starve and `amber run` hangs
+                    // until the CI 15s child kill.
+                    let has_zero_delay_after_wait = {
+                        let scheduled = timer_manager.has_scheduled_timers();
+                        scheduled && crate::nodejs_core::timers::has_pending_zero_delay_timers()
+                    };
                     if timer_manager.has_fired_timers()
+                        || has_zero_delay_after_wait
+                        || has_pending_next_ticks()
+                        || has_pending_immediates()
                         || crate::web_api::worker_host::WorkerHost::has_parent_messages()
                         || crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope)
                             > 0

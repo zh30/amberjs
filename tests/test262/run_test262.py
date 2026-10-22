@@ -745,6 +745,17 @@ def self_test() -> None:
         m4, 1, "Error: [Amber Error] REFERENCE_ERROR: x is not defined\n", ""
     )
     assert st4 == "PASS"
+    # Runtime must surface constructor name for harness/sta.js Test262Error
+    # (no .name property) — empty UNKNOWN_ERROR must not pass.
+    m5 = parse_frontmatter(
+        "/*---\nnegative:\n  phase: runtime\n  type: Test262Error\nflags: [module]\n---*/"
+    )
+    st5, reason5 = classify_result(
+        m5, 1, "Error: [Amber Error] Test262Error: \n", ""
+    )
+    assert st5 == "PASS", reason5
+    st6, _ = classify_result(m5, 1, "Error: [Amber Error] UNKNOWN_ERROR: \n\n", "")
+    assert st6 == "FAIL"
 
     # Engine allowlist matching (prefix + exact); remapping FAIL → ENGINE_ALLOW
     pats = [
