@@ -319,23 +319,38 @@ def classify_result(
     return "FAIL", err_text[:400].strip() or f"exit {returncode}"
 
 
+def _strip_test262_frontmatter(source: str) -> str:
+    return FRONTMATTER_RE.sub("", source, count=1)
+
+
 def prepare_module_run_path(
     tmp_dir: Path,
     test_path: Path,
     source: str,
     attempt: int,
+    test262: Optional[Path] = None,
 ) -> Path:
     """Place wrapped ESM source so relative/self-imports match test262 layout.
 
     Amber resolves ESM from the entry file path. Running from a random tempfile
     breaks `import * as ns from './this-file.js'` and sibling/fixture imports.
-    Use original basename + {"type":"module"} + sibling links in a per-attempt dir.
+    Use original basename + {"type":"module"} + sibling copies in a per-attempt dir.
+
+    Non-fixture sibling `.js` tests that are imported as modules often call
+    `assert.*` without a harness. Prepend assert.js+sta.js (module-local) so
+    those deps evaluate; fixtures are copied raw.
     """
     attempt_dir = tmp_dir / f"a{attempt}"
     if attempt_dir.exists():
         shutil.rmtree(attempt_dir)
     attempt_dir.mkdir(parents=True, exist_ok=True)
     (attempt_dir / "package.json").write_text('{"type":"module"}\n', encoding="utf-8")
+    harness_preamble = ""
+    if test262 is not None:
+        try:
+            harness_preamble = read_includes(test262, [])
+        except FileNotFoundError:
+            harness_preamble = ""
     # Copy siblings (fixtures and other modules) into the attempt dir.
     # Symlinks are unsafe: Amber realpath() would escape this package.json
     # {"type":"module"} boundary and load siblings as CommonJS.
@@ -346,7 +361,18 @@ def prepare_module_run_path(
             continue
         if sibling.name == test_path.name:
             continue
-        shutil.copy2(sibling, attempt_dir / sibling.name)
+        dest = attempt_dir / sibling.name
+        if (
+            harness_preamble
+            and sibling.suffix == ".js"
+            and not is_test262_fixture(sibling)
+        ):
+            body = _strip_test262_frontmatter(
+                sibling.read_text(encoding="utf-8", errors="replace")
+            )
+            dest.write_text(harness_preamble + "\n" + body, encoding="utf-8")
+        else:
+            shutil.copy2(sibling, dest)
     out = attempt_dir / test_path.name
     out.write_text(source, encoding="utf-8")
     return out
@@ -394,18 +420,20 @@ def run_one(
     max_attempts = 3
     for attempt in range(max_attempts):
         if mode == "module":
-            tmp = prepare_module_run_path(tmp_dir, test_path, source, attempt)
+            tmp = prepare_module_run_path(
+                tmp_dir, test_path, source, attempt, test262=test262
+            )
         else:
-            # Keep fixtures beside the entry so import('./x_FIXTURE.js') resolves.
-            # Pin type=commonjs so a parent package.json (e.g. /tmp) cannot force ESM
-            # and break script-only forms like `var x; function x(){}`.
+            # Fixtures may be ESM (export / top-level await) loaded via import().
+            # Use package.json type=module for those, but run the harness wrap as
+            # entry.cjs so script semantics (var/function dual) stay CommonJS.
             attempt_dir = tmp_dir / f"a{attempt}"
             attempt_dir.mkdir(parents=True, exist_ok=True)
             (attempt_dir / "package.json").write_text(
-                '{"type":"commonjs"}\n', encoding="utf-8"
+                '{"type":"module"}\n', encoding="utf-8"
             )
             copy_fixtures_into(attempt_dir, test_path)
-            tmp = attempt_dir / f"entry{suffix}"
+            tmp = attempt_dir / "entry.cjs"
             tmp.write_text(source, encoding="utf-8")
         try:
             proc = subprocess.run(
