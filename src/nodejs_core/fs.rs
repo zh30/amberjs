@@ -1269,6 +1269,13 @@ struct DirEntryInfo {
 
 fn read_directory(path: &str, with_file_types: bool) -> std::io::Result<Vec<DirEntryInfo>> {
     if crate::sandbox::virtual_fs::is_enabled() {
+        // vfs_read_dir reports a non-directory file as missing (ENOENT); a
+        // directory listing call must distinguish ENOTDIR.
+        if let Ok(meta) = crate::sandbox::virtual_fs::vfs_metadata(Path::new(path)) {
+            if !meta.is_dir {
+                return Err(std::io::Error::from_raw_os_error(libc::ENOTDIR));
+            }
+        }
         let names = crate::sandbox::virtual_fs::vfs_read_dir(Path::new(path))?;
         let mut entries = Vec::with_capacity(names.len());
         for name in names {
@@ -1332,6 +1339,59 @@ fn dirent_is_symbolic_link_callback(
     retval.set(v8::Boolean::new(scope, is_link).into());
 }
 
+fn dirent_entry_to_js<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    entry: &DirEntryInfo,
+) -> v8::Local<'a, v8::Value> {
+    let obj = v8::Object::new(scope);
+    let name_key = v8::String::new(scope, "name").unwrap();
+    let name_val = v8::String::new(scope, &entry.name).unwrap();
+    obj.set(scope, name_key.into(), name_val.into());
+    let file_key = v8::String::new(scope, "__isFile").unwrap();
+    obj.set(
+        scope,
+        file_key.into(),
+        v8::Boolean::new(scope, entry.is_file).into(),
+    );
+    let dir_key = v8::String::new(scope, "__isDirectory").unwrap();
+    obj.set(
+        scope,
+        dir_key.into(),
+        v8::Boolean::new(scope, entry.is_dir).into(),
+    );
+    let link_key = v8::String::new(scope, "__isSymbolicLink").unwrap();
+    obj.set(
+        scope,
+        link_key.into(),
+        v8::Boolean::new(scope, entry.is_symlink).into(),
+    );
+    let is_file = v8::FunctionTemplate::new(scope, dirent_is_file_callback)
+        .get_function(scope)
+        .unwrap();
+    let is_dir = v8::FunctionTemplate::new(scope, dirent_is_directory_callback)
+        .get_function(scope)
+        .unwrap();
+    let is_link = v8::FunctionTemplate::new(scope, dirent_is_symbolic_link_callback)
+        .get_function(scope)
+        .unwrap();
+    obj.set(
+        scope,
+        v8::String::new(scope, "isFile").unwrap().into(),
+        is_file.into(),
+    );
+    obj.set(
+        scope,
+        v8::String::new(scope, "isDirectory").unwrap().into(),
+        is_dir.into(),
+    );
+    obj.set(
+        scope,
+        v8::String::new(scope, "isSymbolicLink").unwrap().into(),
+        is_link.into(),
+    );
+    obj.into()
+}
+
 fn directory_entries_to_js<'a>(
     scope: &mut v8::PinScope<'a, '_>,
     entries: &[DirEntryInfo],
@@ -1340,53 +1400,7 @@ fn directory_entries_to_js<'a>(
     let array = v8::Array::new(scope, entries.len() as i32);
     for (i, entry) in entries.iter().enumerate() {
         let value = if with_file_types {
-            let obj = v8::Object::new(scope);
-            let name_key = v8::String::new(scope, "name").unwrap();
-            let name_val = v8::String::new(scope, &entry.name).unwrap();
-            obj.set(scope, name_key.into(), name_val.into());
-            let file_key = v8::String::new(scope, "__isFile").unwrap();
-            obj.set(
-                scope,
-                file_key.into(),
-                v8::Boolean::new(scope, entry.is_file).into(),
-            );
-            let dir_key = v8::String::new(scope, "__isDirectory").unwrap();
-            obj.set(
-                scope,
-                dir_key.into(),
-                v8::Boolean::new(scope, entry.is_dir).into(),
-            );
-            let link_key = v8::String::new(scope, "__isSymbolicLink").unwrap();
-            obj.set(
-                scope,
-                link_key.into(),
-                v8::Boolean::new(scope, entry.is_symlink).into(),
-            );
-            let is_file = v8::FunctionTemplate::new(scope, dirent_is_file_callback)
-                .get_function(scope)
-                .unwrap();
-            let is_dir = v8::FunctionTemplate::new(scope, dirent_is_directory_callback)
-                .get_function(scope)
-                .unwrap();
-            let is_link = v8::FunctionTemplate::new(scope, dirent_is_symbolic_link_callback)
-                .get_function(scope)
-                .unwrap();
-            obj.set(
-                scope,
-                v8::String::new(scope, "isFile").unwrap().into(),
-                is_file.into(),
-            );
-            obj.set(
-                scope,
-                v8::String::new(scope, "isDirectory").unwrap().into(),
-                is_dir.into(),
-            );
-            obj.set(
-                scope,
-                v8::String::new(scope, "isSymbolicLink").unwrap().into(),
-                is_link.into(),
-            );
-            obj.into()
+            dirent_entry_to_js(scope, entry)
         } else {
             v8::String::new(scope, &entry.name).unwrap().into()
         };
@@ -1800,6 +1814,25 @@ enum FsWork {
     Close {
         fd: i32,
     },
+    Cp {
+        from: String,
+        to: String,
+        recursive: bool,
+        force: bool,
+        error_on_exist: bool,
+    },
+    Opendir {
+        path: String,
+    },
+    Statfs {
+        path: String,
+    },
+    DirRead {
+        dir: i32,
+    },
+    DirClose {
+        dir: i32,
+    },
 }
 
 enum JobFail {
@@ -1942,6 +1975,12 @@ fn work_denial<'a>(
             .or_else(|| broker_denial(scope, PermissionAction::Write, to)),
         FsWork::CopyFile { from, to, .. } => broker_denial(scope, PermissionAction::Read, from)
             .or_else(|| broker_denial(scope, PermissionAction::Write, to)),
+        FsWork::Cp { from, to, .. } => broker_denial(scope, PermissionAction::Read, from)
+            .or_else(|| broker_denial(scope, PermissionAction::Write, to)),
+        FsWork::Opendir { path } | FsWork::Statfs { path } => {
+            broker_denial(scope, PermissionAction::Read, path)
+        }
+        FsWork::DirRead { .. } | FsWork::DirClose { .. } => None,
         FsWork::Open { path, mode, .. } => {
             if mode.read {
                 if let Some(err) = broker_denial(scope, PermissionAction::Read, path) {
@@ -2197,6 +2236,62 @@ fn execute_work<'a>(
             close_fd(*fd).map_err(|err| JobFail::Io {
                 syscall: "close",
                 path: fd.to_string(),
+                err,
+            })?;
+            Ok(v8::undefined(scope).into())
+        }
+        FsWork::Cp {
+            from,
+            to,
+            recursive,
+            force,
+            error_on_exist,
+        } => {
+            cp_path(from, to, *recursive, *force, *error_on_exist).map_err(|err| JobFail::Io {
+                syscall: "cp",
+                path: from.clone(),
+                err,
+            })?;
+            Ok(v8::undefined(scope).into())
+        }
+        FsWork::Opendir { path } => {
+            let entries = read_directory(path, true).map_err(|err| JobFail::Io {
+                syscall: "opendir",
+                path: path.clone(),
+                err,
+            })?;
+            // Snapshot semantics: the entries are captured at opendir time —
+            // read() replays this list, it does not see later changes.
+            let id = dir_register(path.clone(), entries).map_err(|err| JobFail::Io {
+                syscall: "opendir",
+                path: path.clone(),
+                err,
+            })?;
+            Ok(dir_to_js(scope, id, path))
+        }
+        FsWork::Statfs { path } => {
+            let info = statfs_info(path).map_err(|err| JobFail::Io {
+                syscall: "statfs",
+                path: path.clone(),
+                err,
+            })?;
+            Ok(statfs_to_js(scope, &info))
+        }
+        FsWork::DirRead { dir } => match dir_read_next(*dir) {
+            Ok(entry) => match entry {
+                Some(entry) => Ok(dirent_entry_to_js(scope, &entry)),
+                None => Ok(v8::null(scope).into()),
+            },
+            Err(err) => Err(JobFail::Io {
+                syscall: "readdir",
+                path: dir.to_string(),
+                err,
+            }),
+        },
+        FsWork::DirClose { dir } => {
+            dir_close(*dir).map_err(|err| JobFail::Io {
+                syscall: "close",
+                path: dir.to_string(),
                 err,
             })?;
             Ok(v8::undefined(scope).into())
@@ -3377,6 +3472,13 @@ fn install_stable_fs_methods(scope: &mut v8::PinScope, fs_obj: v8::Local<v8::Obj
     bind_fn!(fs_obj, "closeSync", fs_close_sync_callback);
     bind_fn!(fs_obj, "close", fs_close_callback);
     bind_fn!(fs_obj, "mkdir", fs_mkdir_callback);
+    // G76 carve: recursive copy, Dir iteration, statvfs.
+    bind_fn!(fs_obj, "cp", fs_cp_callback);
+    bind_fn!(fs_obj, "cpSync", fs_cp_sync_callback);
+    bind_fn!(fs_obj, "opendir", fs_opendir_callback);
+    bind_fn!(fs_obj, "opendirSync", fs_opendir_sync_callback);
+    bind_fn!(fs_obj, "statfs", fs_statfs_callback);
+    bind_fn!(fs_obj, "statfsSync", fs_statfs_sync_callback);
 
     let constants = v8::Object::new(scope);
     set_constant(scope, constants, "F_OK", F_OK);
@@ -3407,6 +3509,667 @@ fn install_stable_fs_methods(scope: &mut v8::PinScope, fs_obj: v8::Local<v8::Obj
             bind_fn!(promises, "read", fs_promises_read_callback);
             bind_fn!(promises, "write", fs_promises_write_callback);
             bind_fn!(promises, "close", fs_promises_close_callback);
+            bind_fn!(promises, "cp", fs_promises_cp_callback);
+            bind_fn!(promises, "opendir", fs_promises_opendir_callback);
+            bind_fn!(promises, "statfs", fs_promises_statfs_callback);
         }
     }
+}
+
+// --- G76 additive carve: fs.cp / fs.opendir / fs.statfs -------------------
+//
+// Narrow surface (see docs/FS_CONTRACT.md "G76 carve"):
+//   cp(src, dest, {recursive, force, errorOnExist}) — recursive copy; dir
+//     without `recursive` is EISDIR; dest inside src is EINVAL.
+//   opendir(path) -> Dir — snapshot directory listing; Dir exposes
+//     path, read(cb)/readSync(), close(cb)/closeSync(). No async iterator.
+//   statfs(path) -> {bsize, frsize, blocks, bfree, bavail, files, ffree,
+//     favail, namemax} — libc::statvfs on the real host path (VFS overlay
+//     is not consulted). Unix only; other platforms fail ENOSYS-flavoured.
+
+struct DirHandle {
+    entries: Vec<DirEntryInfo>,
+    index: usize,
+}
+
+struct StatfsInfo {
+    bsize: u64,
+    frsize: u64,
+    blocks: u64,
+    bfree: u64,
+    bavail: u64,
+    files: u64,
+    ffree: u64,
+    favail: u64,
+    namemax: u64,
+}
+
+thread_local! {
+    static DIR_TABLE: RefCell<HashMap<i32, DirHandle>> = RefCell::new(HashMap::new());
+    static NEXT_DIR_ID: Cell<i32> = const { Cell::new(1) };
+}
+
+/// Live `Dir` snapshots are retained until `close` — the VM has no GC
+/// finalizer for them, so the table is capped to bound the leak.
+const MAX_OPEN_DIRS: usize = 256;
+
+fn dir_register(_path: String, entries: Vec<DirEntryInfo>) -> std::io::Result<i32> {
+    let id = NEXT_DIR_ID.with(|next| {
+        let id = next.get();
+        next.set(id.saturating_add(1));
+        id
+    });
+    DIR_TABLE.with(|table| {
+        let mut table = table.borrow_mut();
+        if table.len() >= MAX_OPEN_DIRS {
+            return Err(std::io::Error::from_raw_os_error(libc::EMFILE));
+        }
+        table.insert(id, DirHandle { entries, index: 0 });
+        Ok(id)
+    })
+}
+
+fn dir_read_next(id: i32) -> std::io::Result<Option<DirEntryInfo>> {
+    DIR_TABLE.with(|table| {
+        let mut table = table.borrow_mut();
+        let handle = table
+            .get_mut(&id)
+            .ok_or_else(|| std::io::Error::from_raw_os_error(libc::EBADF))?;
+        if handle.index >= handle.entries.len() {
+            return Ok(None);
+        }
+        let entry = DirEntryInfo {
+            name: handle.entries[handle.index].name.clone(),
+            is_file: handle.entries[handle.index].is_file,
+            is_dir: handle.entries[handle.index].is_dir,
+            is_symlink: handle.entries[handle.index].is_symlink,
+        };
+        handle.index += 1;
+        Ok(Some(entry))
+    })
+}
+
+fn dir_close(id: i32) -> std::io::Result<()> {
+    let removed = DIR_TABLE.with(|table| table.borrow_mut().remove(&id));
+    if removed.is_some() {
+        Ok(())
+    } else {
+        Err(std::io::Error::from_raw_os_error(libc::EBADF))
+    }
+}
+
+fn dir_id_of(scope: &mut v8::PinScope, this: v8::Local<v8::Object>) -> i32 {
+    let key = v8::String::new(scope, "__dirId").unwrap();
+    this.get(scope, key.into())
+        .map(|v| v.int32_value(scope).unwrap_or(-1))
+        .unwrap_or(-1)
+}
+
+fn dir_to_js<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    id: i32,
+    path: &str,
+) -> v8::Local<'a, v8::Value> {
+    let obj = v8::Object::new(scope);
+    let path_key = v8::String::new(scope, "path").unwrap();
+    let path_val = v8::String::new(scope, path).unwrap();
+    obj.set(scope, path_key.into(), path_val.into());
+    let id_key = v8::String::new(scope, "__dirId").unwrap();
+    obj.set(scope, id_key.into(), v8::Integer::new(scope, id).into());
+    macro_rules! bind_dir_fn {
+        ($name:expr, $cb:path) => {{
+            let func = v8::FunctionTemplate::new(scope, $cb)
+                .get_function(scope)
+                .unwrap();
+            let key = v8::String::new(scope, $name).unwrap();
+            obj.set(scope, key.into(), func.into());
+        }};
+    }
+    bind_dir_fn!("read", dir_read_callback);
+    bind_dir_fn!("readSync", dir_read_sync_callback);
+    bind_dir_fn!("close", dir_close_callback);
+    bind_dir_fn!("closeSync", dir_close_sync_callback);
+    obj.into()
+}
+
+fn dir_read_sync_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let id = dir_id_of(scope, args.this());
+    match dir_read_next(id) {
+        Ok(Some(entry)) => retval.set(dirent_entry_to_js(scope, &entry)),
+        Ok(None) => retval.set(v8::null(scope).into()),
+        Err(err) => throw_fs_io_error(scope, "readdir", &id.to_string(), &err),
+    }
+}
+
+fn dir_read_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let Some(callback) = require_callback(scope, &args, "dir.read") else {
+        return;
+    };
+    let id = dir_id_of(scope, args.this());
+    enqueue_fs_job(
+        scope,
+        FsDelivery::Callback {
+            callback,
+            shape: FsCallbackShape::Value,
+        },
+        FsWork::DirRead { dir: id },
+    );
+    retval.set(v8::undefined(scope).into());
+}
+
+fn dir_close_sync_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let id = dir_id_of(scope, args.this());
+    match dir_close(id) {
+        Ok(()) => retval.set(v8::undefined(scope).into()),
+        Err(err) => throw_fs_io_error(scope, "close", &id.to_string(), &err),
+    }
+}
+
+fn dir_close_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let Some(callback) = require_callback(scope, &args, "dir.close") else {
+        return;
+    };
+    let id = dir_id_of(scope, args.this());
+    enqueue_fs_job(
+        scope,
+        FsDelivery::Callback {
+            callback,
+            shape: FsCallbackShape::Void,
+        },
+        FsWork::DirClose { dir: id },
+    );
+    retval.set(v8::undefined(scope).into());
+}
+
+/// Lexically normalize an absolute-ish path (resolve `.` / `..`) for the
+/// dest-inside-src guard; never touches the filesystem.
+fn normalize_lexical(path: &str) -> std::path::PathBuf {
+    use std::path::Component;
+    let mut out = std::path::PathBuf::new();
+    for component in Path::new(path).components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+fn absolutize(path: &str) -> std::path::PathBuf {
+    let p = Path::new(path);
+    if p.is_absolute() {
+        normalize_lexical(path)
+    } else {
+        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        normalize_lexical(&cwd.join(path).to_string_lossy())
+    }
+}
+
+fn cp_path(
+    from: &str,
+    to: &str,
+    recursive: bool,
+    force: bool,
+    error_on_exist: bool,
+) -> std::io::Result<()> {
+    // ERR_FS_CP_EINVAL equivalent: cannot copy into a subdirectory of self.
+    let src_abs = absolutize(from);
+    let dest_abs = absolutize(to);
+    if dest_abs == src_abs || dest_abs.starts_with(&src_abs) {
+        return Err(std::io::Error::from_raw_os_error(libc::EINVAL));
+    }
+    if crate::sandbox::virtual_fs::is_enabled() {
+        let meta = crate::sandbox::virtual_fs::vfs_metadata(Path::new(from))?;
+        if meta.is_dir {
+            if !recursive {
+                return Err(std::io::Error::from_raw_os_error(libc::EISDIR));
+            }
+            cp_dir_vfs(from, to, force, error_on_exist)
+        } else {
+            cp_file_vfs(from, to, force, error_on_exist)
+        }
+    } else {
+        // metadata() follows symlinks: cp dereferences them (verbatimSymlinks
+        // is out of this carve).
+        let meta = std::fs::metadata(from)?;
+        // Lexical containment misses symlinked paths: `cp link-to-src
+        // real-src/dst` must also fail EINVAL. Resolve the deepest existing
+        // ancestor of dest so a not-yet-created tail still compares real.
+        let src_real = realpath_deepest(from)?;
+        let dst_real = realpath_deepest(to)?;
+        if dst_real == src_real || dst_real.starts_with(&src_real) {
+            return Err(std::io::Error::from_raw_os_error(libc::EINVAL));
+        }
+        if meta.is_dir() {
+            if !recursive {
+                return Err(std::io::Error::from_raw_os_error(libc::EISDIR));
+            }
+            cp_dir_real(from, to, force, error_on_exist)
+        } else {
+            cp_file_real(from, to, force, error_on_exist)
+        }
+    }
+}
+
+/// Canonicalize the deepest existing ancestor of `path`, then re-attach the
+/// missing tail. Lets the containment guard see through symlinks even when
+/// the destination itself does not exist yet.
+fn realpath_deepest(path: &str) -> std::io::Result<std::path::PathBuf> {
+    let mut cursor = std::path::PathBuf::from(path);
+    loop {
+        match std::fs::canonicalize(&cursor) {
+            Ok(real) => {
+                let tail = Path::new(path)
+                    .strip_prefix(&cursor)
+                    .unwrap_or_else(|_| Path::new(""));
+                return Ok(real.join(tail));
+            }
+            Err(err) => {
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    if !cursor.pop() {
+                        return Err(err);
+                    }
+                } else {
+                    return Err(err);
+                }
+            }
+        }
+    }
+}
+
+/// Recursive `cp` expands child paths under a root grant; the broker may
+/// deny paths beneath an allowed root, so every copied entry is checked.
+fn cp_entry_allowed(action: PermissionAction, path: &Path) -> std::io::Result<()> {
+    check_global_permission(
+        PermissionKind::FileSystem,
+        action,
+        ResourceId::Path(path.to_path_buf()),
+    )
+    .map_err(|_| std::io::Error::from_raw_os_error(libc::EACCES))
+}
+
+fn cp_file_real(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::io::Result<()> {
+    cp_entry_allowed(PermissionAction::Read, Path::new(from))?;
+    cp_entry_allowed(PermissionAction::Write, Path::new(to))?;
+    if let Ok(dest) = std::fs::symlink_metadata(to) {
+        if dest.is_dir() {
+            return Err(std::io::Error::from_raw_os_error(libc::EISDIR));
+        }
+        if !force {
+            if error_on_exist {
+                return Err(std::io::Error::from_raw_os_error(libc::EEXIST));
+            }
+            return Ok(());
+        }
+    }
+    std::fs::copy(from, to)?;
+    Ok(())
+}
+
+fn cp_dir_real(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::io::Result<()> {
+    cp_entry_allowed(PermissionAction::Read, Path::new(from))?;
+    cp_entry_allowed(PermissionAction::Write, Path::new(to))?;
+    if let Ok(dest) = std::fs::symlink_metadata(to) {
+        if !dest.is_dir() {
+            // Node: copying a dir onto a non-dir is always an error —
+            // `force` only governs same-type overwrites.
+            return Err(std::io::Error::from_raw_os_error(libc::ENOTDIR));
+        }
+    } else {
+        std::fs::create_dir_all(to)?;
+    }
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let child_src = entry.path();
+        let child_dst = Path::new(to).join(&name);
+        let child_src_str = child_src.to_string_lossy();
+        let child_dst_str = child_dst.to_string_lossy();
+        // metadata() follows links → symlinked dirs recurse as real dirs.
+        let meta = std::fs::metadata(&child_src)?;
+        if meta.is_dir() {
+            cp_dir_real(&child_src_str, &child_dst_str, force, error_on_exist)?;
+        } else {
+            cp_file_real(&child_src_str, &child_dst_str, force, error_on_exist)?;
+        }
+    }
+    Ok(())
+}
+
+fn cp_file_vfs(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::io::Result<()> {
+    cp_entry_allowed(PermissionAction::Read, Path::new(from))?;
+    cp_entry_allowed(PermissionAction::Write, Path::new(to))?;
+    debug_assert!(crate::sandbox::virtual_fs::is_enabled());
+    if let Ok(dest) = crate::sandbox::virtual_fs::vfs_metadata(Path::new(to)) {
+        if dest.is_dir {
+            return Err(std::io::Error::from_raw_os_error(libc::EISDIR));
+        }
+        if !force {
+            if error_on_exist {
+                return Err(std::io::Error::from_raw_os_error(libc::EEXIST));
+            }
+            return Ok(());
+        }
+    }
+    let bytes = crate::sandbox::virtual_fs::vfs_read(Path::new(from))?;
+    crate::sandbox::virtual_fs::vfs_write(Path::new(to), &bytes)
+}
+
+fn cp_dir_vfs(from: &str, to: &str, force: bool, error_on_exist: bool) -> std::io::Result<()> {
+    cp_entry_allowed(PermissionAction::Read, Path::new(from))?;
+    cp_entry_allowed(PermissionAction::Write, Path::new(to))?;
+    if let Ok(dest) = crate::sandbox::virtual_fs::vfs_metadata(Path::new(to)) {
+        if !dest.is_dir {
+            // Same as the real path: dir onto non-dir is ENOTDIR regardless
+            // of `force`.
+            return Err(std::io::Error::from_raw_os_error(libc::ENOTDIR));
+        }
+    } else {
+        crate::sandbox::virtual_fs::vfs_create_dir_all(Path::new(to))?;
+    }
+    for name in crate::sandbox::virtual_fs::vfs_read_dir(Path::new(from))? {
+        let child_src = Path::new(from).join(&name);
+        let child_dst = Path::new(to).join(&name);
+        let meta = crate::sandbox::virtual_fs::vfs_metadata(&child_src)?;
+        if meta.is_dir {
+            cp_dir_vfs(
+                &child_src.to_string_lossy(),
+                &child_dst.to_string_lossy(),
+                force,
+                error_on_exist,
+            )?;
+        } else {
+            cp_file_vfs(
+                &child_src.to_string_lossy(),
+                &child_dst.to_string_lossy(),
+                force,
+                error_on_exist,
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn statfs_info(path: &str) -> std::io::Result<StatfsInfo> {
+    // statvfs runs against the real host filesystem. Under the sandbox VFS
+    // there is no host mapping and answering would leak host stats — fail
+    // closed instead.
+    if crate::sandbox::virtual_fs::is_enabled() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "statfs is unavailable under the sandbox VFS",
+        ));
+    }
+    #[cfg(unix)]
+    {
+        let c_path = std::ffi::CString::new(path)
+            .map_err(|_| std::io::Error::from_raw_os_error(libc::EINVAL))?;
+        let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
+        if unsafe { libc::statvfs(c_path.as_ptr(), &mut stat) } != 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        Ok(StatfsInfo {
+            bsize: stat.f_bsize as u64,
+            frsize: stat.f_frsize as u64,
+            blocks: stat.f_blocks as u64,
+            bfree: stat.f_bfree as u64,
+            bavail: stat.f_bavail as u64,
+            files: stat.f_files as u64,
+            ffree: stat.f_ffree as u64,
+            favail: stat.f_favail as u64,
+            namemax: stat.f_namemax as u64,
+        })
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "statfs is unix-only",
+        ))
+    }
+}
+
+fn statfs_to_js<'a>(
+    scope: &mut v8::PinScope<'a, '_>,
+    info: &StatfsInfo,
+) -> v8::Local<'a, v8::Value> {
+    let obj = v8::Object::new(scope);
+    macro_rules! set_num {
+        ($name:expr, $val:expr) => {{
+            let key = v8::String::new(scope, $name).unwrap();
+            let val = v8::Number::new(scope, $val as f64);
+            obj.set(scope, key.into(), val.into());
+        }};
+    }
+    set_num!("bsize", info.bsize);
+    set_num!("frsize", info.frsize);
+    set_num!("blocks", info.blocks);
+    set_num!("bfree", info.bfree);
+    set_num!("bavail", info.bavail);
+    set_num!("files", info.files);
+    set_num!("ffree", info.ffree);
+    set_num!("favail", info.favail);
+    set_num!("namemax", info.namemax);
+    obj.into()
+}
+
+/// `{recursive, force, errorOnExist}` option bag for fs.cp. Anything else
+/// (filter, dereference, verbatimSymlinks, preserveTimestamps) is out of the
+/// G76 carve.
+fn cp_options(scope: &mut v8::PinScope, value: v8::Local<v8::Value>) -> (bool, bool, bool) {
+    let get_bool = |name: &str, default: bool| -> bool {
+        v8::Local::<v8::Object>::try_from(value)
+            .ok()
+            .and_then(|obj| {
+                let key = v8::String::new(scope, name).unwrap();
+                obj.get(scope, key.into())
+            })
+            .map(|v| v.to_boolean(scope).boolean_value(scope))
+            .unwrap_or(default)
+    };
+    (
+        get_bool("recursive", false),
+        get_bool("force", true),
+        get_bool("errorOnExist", false),
+    )
+}
+
+fn fs_cp_sync_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let from = arg_text(scope, args.get(0));
+    let to = arg_text(scope, args.get(1));
+    let (recursive, force, error_on_exist) = cp_options(scope, args.get(2));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &from)
+        || !ensure_fs_permission(scope, PermissionAction::Write, &to)
+    {
+        return;
+    }
+    match cp_path(&from, &to, recursive, force, error_on_exist) {
+        Ok(()) => retval.set(v8::undefined(scope).into()),
+        Err(err) => throw_fs_io_error(scope, "cp", &from, &err),
+    }
+}
+
+fn fs_opendir_sync_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let path = arg_text(scope, args.get(0));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &path) {
+        return;
+    }
+    match read_directory(&path, true).and_then(|entries| dir_register(path.clone(), entries)) {
+        Ok(id) => {
+            retval.set(dir_to_js(scope, id, &path));
+        }
+        Err(err) => throw_fs_io_error(scope, "opendir", &path, &err),
+    }
+}
+
+fn fs_statfs_sync_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let path = arg_text(scope, args.get(0));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &path) {
+        return;
+    }
+    match statfs_info(&path) {
+        Ok(info) => retval.set(statfs_to_js(scope, &info)),
+        Err(err) => throw_fs_io_error(scope, "statfs", &path, &err),
+    }
+}
+
+fn fs_cp_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let Some(callback) = require_callback(scope, &args, "cp") else {
+        return;
+    };
+    let from = arg_text(scope, args.get(0));
+    let to = arg_text(scope, args.get(1));
+    let (recursive, force, error_on_exist) = cp_options(scope, args.get(2));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &from)
+        || !ensure_fs_permission(scope, PermissionAction::Write, &to)
+    {
+        return;
+    }
+    enqueue_fs_job(
+        scope,
+        FsDelivery::Callback {
+            callback,
+            shape: FsCallbackShape::Void,
+        },
+        FsWork::Cp {
+            from,
+            to,
+            recursive,
+            force,
+            error_on_exist,
+        },
+    );
+    retval.set(v8::undefined(scope).into());
+}
+
+fn fs_opendir_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let Some(callback) = require_callback(scope, &args, "opendir") else {
+        return;
+    };
+    let path = arg_text(scope, args.get(0));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &path) {
+        return;
+    }
+    enqueue_fs_job(
+        scope,
+        FsDelivery::Callback {
+            callback,
+            shape: FsCallbackShape::Value,
+        },
+        FsWork::Opendir { path },
+    );
+    retval.set(v8::undefined(scope).into());
+}
+
+fn fs_statfs_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    mut retval: v8::ReturnValue,
+) {
+    let Some(callback) = require_callback(scope, &args, "statfs") else {
+        return;
+    };
+    let path = arg_text(scope, args.get(0));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &path) {
+        return;
+    }
+    enqueue_fs_job(
+        scope,
+        FsDelivery::Callback {
+            callback,
+            shape: FsCallbackShape::Value,
+        },
+        FsWork::Statfs { path },
+    );
+    retval.set(v8::undefined(scope).into());
+}
+
+fn fs_promises_cp_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    retval: v8::ReturnValue,
+) {
+    let from = arg_text(scope, args.get(0));
+    let to = arg_text(scope, args.get(1));
+    let (recursive, force, error_on_exist) = cp_options(scope, args.get(2));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &from)
+        || !ensure_fs_permission(scope, PermissionAction::Write, &to)
+    {
+        return;
+    }
+    promise_method(
+        scope,
+        retval,
+        FsWork::Cp {
+            from,
+            to,
+            recursive,
+            force,
+            error_on_exist,
+        },
+    );
+}
+
+fn fs_promises_opendir_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    retval: v8::ReturnValue,
+) {
+    let path = arg_text(scope, args.get(0));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &path) {
+        return;
+    }
+    promise_method(scope, retval, FsWork::Opendir { path });
+}
+
+fn fs_promises_statfs_callback(
+    scope: &mut v8::PinScope,
+    args: v8::FunctionCallbackArguments,
+    retval: v8::ReturnValue,
+) {
+    let path = arg_text(scope, args.get(0));
+    if !ensure_fs_permission(scope, PermissionAction::Read, &path) {
+        return;
+    }
+    promise_method(scope, retval, FsWork::Statfs { path });
 }
