@@ -1405,13 +1405,26 @@ fn value_to_string_after_microtasks<'s>(
     scope: &mut v8::PinScope<'s, '_>,
     mut value: v8::Local<'s, v8::Value>,
 ) -> Result<String> {
-    for _ in 0..64 {
+    // Completion values are often Promises that settle only after WorkerHost
+    // messages (Service Worker fetchPass / respondWith) or HTTP. Microtask
+    // checkpoints alone are not enough — pump host work while waiting.
+    let started = std::time::Instant::now();
+    const LIMIT: std::time::Duration = std::time::Duration::from_secs(5);
+    while started.elapsed() < LIMIT {
         if !value.is_promise() {
             break;
         }
 
         let promise = v8::Local::<v8::Promise>::try_from(value)
             .map_err(|_| anyhow::anyhow!("Failed to inspect promise result"))?;
+        let context = scope.get_current_context();
+        execute_next_tick_callbacks(scope);
+        scope.perform_microtask_checkpoint();
+        crate::web_api::worker_host::WorkerHost::pump_parent_messages(scope);
+        let _ = crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope);
+        crate::nodejs_core::http::pump_pending_http_requests_in_scope(scope, &context);
+        crate::nodejs_core::net::pump_pending_net_connections_in_scope(scope, &context);
+        crate::nodejs_core::net::pump_pending_socket_events_in_scope(scope, &context);
         execute_next_tick_callbacks(scope);
         scope.perform_microtask_checkpoint();
 
@@ -1431,7 +1444,16 @@ fn value_to_string_after_microtasks<'s>(
                 ));
             }
             v8::PromiseState::Pending => {
-                std::thread::sleep(std::time::Duration::from_millis(2));
+                let wait_ms = if crate::web_api::worker_host::WorkerHost::has_active_workers()
+                    || crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                    || crate::nodejs_core::http::has_pending_http_requests()
+                    || crate::nodejs_core::net::has_pending_net_connections()
+                {
+                    5
+                } else {
+                    2
+                };
+                std::thread::sleep(std::time::Duration::from_millis(wait_ms));
             }
         }
     }
@@ -9013,7 +9035,10 @@ impl MinimalRuntime {
                     || crate::nodejs_core::child_process::has_pending_child_process_work()
                 {
                     timer_manager.wait_timeout(std::time::Duration::from_millis(10));
-                    if crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                    // Do not starve timers (e.g. test safety setTimeout) or
+                    // WorkerHost/child completions while a ref'd worker is alive.
+                    if timer_manager.has_fired_timers()
+                        || crate::web_api::worker_host::WorkerHost::has_parent_messages()
                         || crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope)
                             > 0
                     {

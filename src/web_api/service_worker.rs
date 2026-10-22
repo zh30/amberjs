@@ -449,6 +449,18 @@ parentPort.postMessage({
     }}
   }}
 
+  function rejectAllPendingFetches(message) {{
+    const ids = Object.keys(pendingFetches);
+    for (let i = 0; i < ids.length; i++) {{
+      const pending = pendingFetches[ids[i]];
+      delete pendingFetches[ids[i]];
+      if (!pending) continue;
+      try {{
+        pending.reject(new Error(message || 'ServiceWorker fetch aborted'));
+      }} catch (_) {{}}
+    }}
+  }}
+
   function defaultScope(scriptUrl) {{
     if (typeof scriptUrl === 'string' && scriptUrl.indexOf('data:') === 0) return '/';
     const path = String(scriptUrl || '').split('?')[0];
@@ -515,6 +527,7 @@ parentPort.postMessage({
       registration.__amberHasFetch = false;
       try {{ __amber_worker_terminate(id); }} catch (_) {{}}
       applyFetchIntercept();
+      rejectAllPendingFetches('ServiceWorker stopped before fetch completed');
       const error = (err instanceof Error) ? err : new Error(String(err && err.message || err));
       rejectReg(error);
     }}
@@ -546,6 +559,9 @@ parentPort.postMessage({
       markRedundant();
       registration.__amberHasFetch = false;
       applyFetchIntercept();
+      // Intercepted page fetch() Promises must settle when the worker goes away;
+      // otherwise execute_code completion hangs on Pending Promise.
+      rejectAllPendingFetches('ServiceWorker was unregistered');
       if (pending) {{
         rejectReg(new Error('ServiceWorker was unregistered'));
       }}
