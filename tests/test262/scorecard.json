@@ -1,64 +1,17 @@
 {
-  "generated": "2026-10-22T02:40Z",
+  "generated": "2026-10-22T02:49Z",
   "pin": "d53ebc8b1931d9f1541e43d59650776e4b766248",
   "amber": [
-    "./target/release/amber"
+    "./target/debug/amber"
   ],
   "path_filter": "language/types",
-  "elapsed_s": 2.027034247000074,
-  "pass": 202,
-  "fail": 5,
-  "skip": 4,
+  "elapsed_s": 1.813686448999988,
+  "pass": 211,
+  "fail": 0,
+  "skip": 0,
   "total": 211,
   "unexpected_skip": 0,
-  "gate_ok": false,
-  "failures": [
-    {
-      "test": "language/types/reference/8.7.2-1-s.js",
-      "mode": "strict",
-      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a ReferenceError to be thrown but no exception was thrown at all"
-    },
-    {
-      "test": "language/types/reference/8.7.2-3-a-1gs.js",
-      "mode": "strict",
-      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a ReferenceError to be thrown but no exception was thrown at all"
-    },
-    {
-      "test": "language/types/reference/8.7.2-3-s.js",
-      "mode": "strict",
-      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a TypeError to be thrown but no exception was thrown at all"
-    },
-    {
-      "test": "language/types/reference/8.7.2-4-s.js",
-      "mode": "strict",
-      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a TypeError to be thrown but no exception was thrown at all"
-    },
-    {
-      "test": "language/types/reference/8.7.2-5-s.js",
-      "mode": "strict",
-      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a TypeError to be thrown but no exception was thrown at all"
-    }
-  ],
-  "skips": [
-    {
-      "test": "language/types/reference/get-value-prop-base-primitive-realm.js",
-      "mode": "non-strict",
-      "reason": "unsupported-feature:cross-realm"
-    },
-    {
-      "test": "language/types/reference/get-value-prop-base-primitive-realm.js",
-      "mode": "strict",
-      "reason": "unsupported-feature:cross-realm"
-    },
-    {
-      "test": "language/types/reference/put-value-prop-base-primitive-realm.js",
-      "mode": "non-strict",
-      "reason": "unsupported-feature:cross-realm"
-    },
-    {
-      "test": "language/types/reference/put-value-prop-base-primitive-realm.js",
-      "mode": "strict",
-      "reason": "unsupported-feature:cross-realm"
-    }
-  ]
+  "gate_ok": true,
+  "failures": [],
+  "skips": []
 }

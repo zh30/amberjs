@@ -38,7 +38,9 @@ AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --path lan
 AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --jobs 8
 ```
 
-Env: `AMBER_BIN`, `TEST262_ROOT`, `TEST262_TIMEOUT` (seconds per case, default 30).
+Env: `AMBER_BIN`, `TEST262_ROOT`, `TEST262_TIMEOUT` (seconds per case, default 30),
+`AMBER_TEST262=1` (set automatically by the runner — enables native `$262.createRealm`).
+
 
 ## Scorecard / gate
 

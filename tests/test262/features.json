@@ -25,6 +25,7 @@
     "coalesce-expression",
     "computed-property-names",
     "const",
+    "cross-realm",
     "DataView",
     "DataView.prototype.getFloat32",
     "DataView.prototype.getFloat64",
@@ -117,7 +118,6 @@
     "well-formed-unicode-strings"
   ],
   "always_skip_features": [
-    "cross-realm",
     "IsHTMLDDA",
     "callable-boundary-realms",
     "ShadowRealm",

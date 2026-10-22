@@ -183,9 +183,6 @@ def wrap_source(
 
     includes = read_includes(test262, meta.includes)
 
-    if mode == "strict":
-        body = '"use strict";\n' + body
-
     async_prologue = ""
     async_epilogue = ""
     if "async" in meta.flags:
@@ -207,7 +204,14 @@ if (__test262_async_err) {
 }
 """
 
-    combined = "\n".join([host_js, includes, async_prologue, body, async_epilogue])
+    # "use strict" must be the first statement in the whole script or it is
+    # ignored (Directive Prologue). Prefacing harness includes would break
+    # strict-only tests (PutValue / unresolvable refs, etc.).
+    parts: list[str] = []
+    if mode == "strict":
+        parts.append('"use strict";')
+    parts.extend([host_js, includes, async_prologue, body, async_epilogue])
+    combined = "\n".join(parts)
     if mode == "module":
         return combined, ".mjs"
     return combined, ".js"
@@ -272,6 +276,9 @@ def run_one(
     tmp.write_text(source, encoding="utf-8")
 
     cmd = [*amber, "run", str(tmp)]
+    env = os.environ.copy()
+    # Enable native __amber_createRealm for cross-realm tests.
+    env.setdefault("AMBER_TEST262", "1")
     try:
         proc = subprocess.run(
             cmd,
@@ -279,6 +286,7 @@ def run_one(
             text=True,
             timeout=timeout,
             cwd=str(ROOT),
+            env=env,
         )
         status, reason = classify_result(meta, proc.returncode, proc.stderr, proc.stdout)
     except subprocess.TimeoutExpired:

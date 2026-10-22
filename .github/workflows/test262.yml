@@ -62,23 +62,25 @@ jobs:
       - name: Build amber
         run: cargo build -q
 
-      - name: Smoke paths (fail-closed green subsets)
+      - name: Smoke paths (fail-closed)
+        env:
+          AMBER_BIN: ./target/debug/amber
+          AMBER_TEST262: "1"
         run: |
-          # Fail-closed on known-green subsets while the full suite is driven to 0 FAIL.
-          # Broader paths (e.g. language/types/reference) still have Amber host/runtime gaps.
+          # Fail-closed smoke. language/types is currently all-green (211/211) and
+          # is the gate; expand to full suite only when that path stays green.
           set -e
-          AMBER_BIN=./target/debug/amber
+          ./target/debug/amber --version
           for path in language/types/boolean language/types/null language/types/number \
-                      language/types/object language/types/string language/types/undefined; do
+                      language/types/object language/types/string language/types/undefined \
+                      language/types; do
             echo "::group::test262 --path $path"
-            "$AMBER_BIN" --version
             python3 tests/test262/run_test262.py --path "$path" --jobs 4
             echo "::endgroup::"
           done
-          # Record a wider baseline slice (may FAIL; uploaded as artifact, not gate).
-          python3 tests/test262/run_test262.py --path language/types --jobs 4 || true
-          echo "Scorecard (language/types baseline):"
+          echo "Scorecard (language/types):"
           cat tests/test262/scorecard.md
+
 
       - name: Upload scorecard
         if: always()
