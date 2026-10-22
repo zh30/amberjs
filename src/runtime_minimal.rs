@@ -9139,10 +9139,21 @@ impl MinimalRuntime {
                     || sw_has_pending_intercepted_fetches(scope)
                 {
                     timer_manager.wait_timeout(std::time::Duration::from_millis(10));
-                    // Do not starve timers (e.g. test safety setTimeout) or
-                    // WorkerHost/child completions while a ref'd worker / SW
-                    // intercept is in flight.
+                    // Do not starve timers (e.g. unregister setTimeout(0) /
+                    // test safety setTimeout) or WorkerHost/child completions
+                    // while a ref'd worker / SW intercept is in flight.
+                    // Re-check zero-delay timers after the wait — otherwise
+                    // SW unregister teardown can starve and `amber run` hangs
+                    // until the CI 15s child kill.
+                    let has_zero_delay_after_wait = {
+                        let scheduled = timer_manager.has_scheduled_timers();
+                        scheduled
+                            && crate::nodejs_core::timers::has_pending_zero_delay_timers()
+                    };
                     if timer_manager.has_fired_timers()
+                        || has_zero_delay_after_wait
+                        || has_pending_next_ticks()
+                        || has_pending_immediates()
                         || crate::web_api::worker_host::WorkerHost::has_parent_messages()
                         || crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope)
                             > 0

@@ -138,6 +138,10 @@ impl WorkerHost {
         {
             let mut host = HOST.lock().unwrap();
             if let Some(worker) = host.workers.get_mut(&id) {
+                // Drop the event-loop keep-alive immediately so `amber run`
+                // can exit after SW unregister even if the worker join is slow
+                // (CI: amber_run_respond_with_intercepts_fetch 15s hang).
+                worker.is_refed = false;
                 worker.is_terminated = true;
                 let _ = worker.tx.send(WorkerMessage::Terminate);
                 handle_to_join = worker.join.take();
@@ -164,7 +168,20 @@ impl WorkerHost {
             }
         }
         if let Some(join) = handle_to_join {
-            let _ = join.join();
+            // Never block the parent isolate forever on join: a stuck SW
+            // worker thread would wedge `amber run` past the CI child timeout.
+            // Prefer a short timed wait; otherwise detach so the event loop
+            // can settle (is_terminated already cleared has_active_workers).
+            if join.is_finished() {
+                let _ = join.join();
+            } else {
+                let (done_tx, done_rx) = mpsc::channel();
+                thread::spawn(move || {
+                    let _ = join.join();
+                    let _ = done_tx.send(());
+                });
+                let _ = done_rx.recv_timeout(Duration::from_millis(250));
+            }
         }
         Ok(())
     }
