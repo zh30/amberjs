@@ -1,5 +1,5 @@
 {
-  "$comment": "Feature flags Amber claims for test262. Tests requiring a feature not listed here are SKIP (expected) with reason unsupported-feature. Expand this allowlist as Amber/V8 support is verified — do not stub passes.",
+  "$comment": "Feature flags Amber claims for test262. Tests requiring a feature not listed here are SKIP (expected) with reason unsupported-feature. Expand this allowlist as Amber/V8 support is verified \u2014 do not stub passes.",
   "supported": [
     "AggregateError",
     "ArrayBuffer",
@@ -118,30 +118,31 @@
     "well-formed-unicode-strings"
   ],
   "always_skip_features": [
+    "ArrayBuffer.prototype.transfer",
+    "ArrayBuffer.prototype.transferToFixedLength",
+    "Atomics.pause",
+    "Atomics.waitAsync",
+    "Float16Array",
     "IsHTMLDDA",
-    "callable-boundary-realms",
+    "Math.sumPrecise",
+    "Promise.withResolvers",
     "ShadowRealm",
     "Temporal",
+    "array-grouping",
+    "arraybuffer-transfer",
+    "callable-boundary-realms",
     "decorators",
+    "explicit-resource-management",
+    "growable-sharedarraybuffer",
     "import-assertions",
     "import-attributes",
     "import-defer",
-    "regexp-v-flag",
-    "regexp-duplicate-named-groups",
     "iterator-helpers",
-    "set-methods",
-    "array-grouping",
-    "Float16Array",
-    "Math.sumPrecise",
-    "Promise.withResolvers",
-    "ArrayBuffer.prototype.transfer",
-    "ArrayBuffer.prototype.transferToFixedLength",
+    "regexp-duplicate-named-groups",
+    "regexp-v-flag",
     "resizable-arraybuffer",
-    "growable-sharedarraybuffer",
-    "arraybuffer-transfer",
-    "Atomics.waitAsync",
-    "Atomics.pause",
+    "set-methods",
     "source-phase-imports",
-    "explicit-resource-management"
+    "tail-call-optimization"
   ]
 }
