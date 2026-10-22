@@ -1465,6 +1465,7 @@ fn value_to_string_after_microtasks<'s>(
             v8::PromiseState::Pending => {
                 let wait_ms = if crate::web_api::worker_host::WorkerHost::has_active_workers()
                     || crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                    || sw_has_pending_intercepted_fetches(scope)
                     || crate::nodejs_core::http::has_pending_http_requests()
                     || crate::nodejs_core::net::has_pending_net_connections()
                 {
@@ -9121,6 +9122,17 @@ impl MinimalRuntime {
 
             // Deliver async child_process callbacks completed on host threads.
             if crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope) > 0 {
+                execute_next_tick_callbacks(scope);
+                scope.perform_microtask_checkpoint();
+            }
+
+            // Pump WorkerHost before fired timers when SW intercepts are pending.
+            // Otherwise a safety setTimeout → unregister can rejectAllPendingFetches
+            // before an already-queued fetchResponse/fetchPass is delivered.
+            if sw_has_pending_intercepted_fetches(scope)
+                || crate::web_api::worker_host::WorkerHost::has_parent_messages()
+            {
+                crate::web_api::worker_host::WorkerHost::pump_parent_messages(scope);
                 execute_next_tick_callbacks(scope);
                 scope.perform_microtask_checkpoint();
             }

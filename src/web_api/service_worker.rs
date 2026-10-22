@@ -568,17 +568,46 @@ parentPort.postMessage({
       __amber_worker_post(id, JSON.stringify({{ __amberSw: 'message', data: data }}));
     }};
 
-    registration.unregister = function() {{
-      const pending = !settled;
-      settled = true;
+    // Teardown after unregister: terminate worker + reject orphan fetches.
+    // Deferred when intercepts are in flight so a CI safety timer cannot
+    // beat an already-queued respondWith/fetchPass (WorkerHost pump).
+    let unregisterStarted = false;
+    let unregisterTeardownDone = false;
+    function finishUnregisterTeardown() {{
+      if (unregisterTeardownDone) return;
+      unregisterTeardownDone = true;
       try {{ __amber_worker_terminate(id); }} catch (_) {{}}
+      rejectAllPendingFetches('ServiceWorker was unregistered');
+    }}
+
+    registration.unregister = function() {{
+      const pendingReg = !settled;
+      settled = true;
       markRedundant();
       registration.__amberHasFetch = false;
       applyFetchIntercept();
-      // Intercepted page fetch() Promises must settle when the worker goes away;
-      // otherwise execute_code completion hangs on Pending Promise.
-      rejectAllPendingFetches('ServiceWorker was unregistered');
-      if (pending) {{
+      if (!unregisterStarted) {{
+        unregisterStarted = true;
+        // Keep the worker alive briefly while page-side intercepted fetch()
+        // Promises still await WorkerHost fetchResponse/fetchPass. Immediate
+        // terminate+reject races the test 2s timer against caches.match on CI
+        // ("ServiceWorker was unregistered" vs "cached-by-sw").
+        if (Object.keys(pendingFetches).length === 0) {{
+          finishUnregisterTeardown();
+        }} else {{
+          let tries = 0;
+          const maxTries = 100; // ~1s at 10ms; keep-alive holds the loop open
+          const poll = function() {{
+            if (Object.keys(pendingFetches).length === 0 || ++tries >= maxTries) {{
+              finishUnregisterTeardown();
+              return;
+            }}
+            setTimeout(poll, 10);
+          }};
+          setTimeout(poll, 0);
+        }}
+      }}
+      if (pendingReg) {{
         rejectReg(new Error('ServiceWorker was unregistered'));
       }}
       return Promise.resolve(true);
