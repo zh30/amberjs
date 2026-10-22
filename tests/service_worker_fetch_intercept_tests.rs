@@ -99,16 +99,47 @@ fn run_script(script: &str) -> std::process::Output {
         .unwrap();
     let temp_file = temp_dir.path().join("test.js");
     fs::write(&temp_file, script).unwrap();
-    let output = Command::new(amber_path())
+    // Hard child timeout: a stuck amber CLI (SW event-loop / active WorkerHost)
+    // must not wedge `cargo test` forever on CI.
+    const AMBER_CHILD_TIMEOUT: Duration = Duration::from_secs(15);
+    let mut child = Command::new(amber_path())
         .arg("run")
         .arg(&temp_file)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .output()
-        .expect("Failed to run amber");
+        .spawn()
+        .expect("Failed to spawn amber");
+    let deadline = Instant::now() + AMBER_CHILD_TIMEOUT;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!(
+                    "amber CLI exceeded {:?} timeout (likely SW WorkerHost event-loop hang)",
+                    AMBER_CHILD_TIMEOUT
+                );
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(25)),
+            Err(err) => panic!("amber wait failed: {err}"),
+        }
+    };
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    if let Some(mut out) = child.stdout.take() {
+        let _ = out.read_to_end(&mut stdout);
+    }
+    if let Some(mut err) = child.stderr.take() {
+        let _ = err.read_to_end(&mut stderr);
+    }
     drop(temp_dir);
-    output
+    std::process::Output {
+        status,
+        stdout,
+        stderr,
+    }
 }
 
 #[test]
