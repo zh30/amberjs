@@ -257,6 +257,25 @@ function $DONE(err) {
     return combined, ".js"
 
 
+def _negative_type_matched(ntype: str, err_text: str) -> bool:
+    """Match test262 negative `type` against Amber stderr (and legacy codes)."""
+    if not ntype:
+        return False
+    if ntype in err_text:
+        return True
+    # Legacy Amber codes used SCREAMING_SNAKE (REFERENCE_ERROR). Current runtime
+    # emits ECMAScript names; keep the alias so older binaries still score.
+    legacy = {
+        "ReferenceError": "REFERENCE_ERROR",
+        "TypeError": "TYPE_ERROR",
+        "RangeError": "RANGE_ERROR",
+        "SyntaxError": "SYNTAX_ERROR",
+        "EvalError": "EVAL_ERROR",
+        "URIError": "URI_ERROR",
+    }.get(ntype)
+    return bool(legacy and legacy in err_text)
+
+
 def classify_result(
     meta: Meta,
     returncode: int,
@@ -269,7 +288,7 @@ def classify_result(
         ntype = meta.negative.get("type") or ""
         # Negative tests expect a throw / early error.
         if returncode != 0:
-            if ntype and ntype in err_text:
+            if _negative_type_matched(ntype, err_text):
                 return "PASS", f"negative:{phase}:{ntype}"
             # Parser diagnostics may omit the exact `SyntaxError` token.
             # Amber tags syntax failures as SYNTAX_ERROR (not always "SyntaxError").
@@ -531,6 +550,17 @@ def self_test() -> None:
     assert st == "PASS"
     st2, _ = classify_result(Meta(), 0, "", "")
     assert st2 == "PASS"
+    m4 = parse_frontmatter(
+        "/*---\nnegative:\n  phase: runtime\n  type: ReferenceError\n---*/"
+    )
+    st3, _ = classify_result(
+        m4, 1, "Error: [Amber Error] ReferenceError: x is not defined\n", ""
+    )
+    assert st3 == "PASS"
+    st4, _ = classify_result(
+        m4, 1, "Error: [Amber Error] REFERENCE_ERROR: x is not defined\n", ""
+    )
+    assert st4 == "PASS"
     print("test262 harness self-test ok")
 
 

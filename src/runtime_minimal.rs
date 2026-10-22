@@ -4172,7 +4172,8 @@ impl RuntimeError {
         RuntimeError::new(
             RuntimeErrorType::SyntaxError,
             message,
-            "SYNTAX_ERROR",
+            // ECMAScript constructor name — test262 negative `type:` matches this token.
+            "SyntaxError",
             location,
             None,
         )
@@ -4183,7 +4184,7 @@ impl RuntimeError {
         RuntimeError::new(
             RuntimeErrorType::ReferenceError,
             message,
-            "REFERENCE_ERROR",
+            "ReferenceError",
             location,
             None,
         )
@@ -4194,7 +4195,7 @@ impl RuntimeError {
         RuntimeError::new(
             RuntimeErrorType::TypeError,
             message,
-            "TYPE_ERROR",
+            "TypeError",
             location,
             None,
         )
@@ -4205,7 +4206,7 @@ impl RuntimeError {
         RuntimeError::new(
             RuntimeErrorType::RangeError,
             message,
-            "RANGE_ERROR",
+            "RangeError",
             location,
             None,
         )
@@ -4302,13 +4303,17 @@ pub fn v8_exception_to_runtime_error(
         RuntimeError {
             error_type,
             message,
+            // Prefer ECMAScript error constructor names so harnesses (test262
+            // negative `type: ReferenceError` etc.) and user-facing messages
+            // match the thrown exception. Keep SCREAMING_SNAKE only for
+            // Amber-internal categories that are not ECMAScript Error types.
             code: match error_type {
-                RuntimeErrorType::SyntaxError => "SYNTAX_ERROR",
-                RuntimeErrorType::ReferenceError => "REFERENCE_ERROR",
-                RuntimeErrorType::TypeError => "TYPE_ERROR",
-                RuntimeErrorType::RangeError => "RANGE_ERROR",
-                RuntimeErrorType::EvalError => "EVAL_ERROR",
-                RuntimeErrorType::InternalError => "INTERNAL_ERROR",
+                RuntimeErrorType::SyntaxError => "SyntaxError",
+                RuntimeErrorType::ReferenceError => "ReferenceError",
+                RuntimeErrorType::TypeError => "TypeError",
+                RuntimeErrorType::RangeError => "RangeError",
+                RuntimeErrorType::EvalError => "EvalError",
+                RuntimeErrorType::InternalError => "InternalError",
                 RuntimeErrorType::ResourceLimit => "RESOURCE_LIMIT",
                 RuntimeErrorType::Unknown => "UNKNOWN_ERROR",
             },
