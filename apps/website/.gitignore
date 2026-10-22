@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# cf Build Output, generated types, and local account cache
+.cloudflare/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

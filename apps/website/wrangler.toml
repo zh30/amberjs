@@ -1,3 +1,6 @@
+# Kept for the Wrangler rollback workflow (workflow_dispatch only).
+# Production deploys read cloudflare.config.ts. Keep run_worker_first in sync
+# with worker.assets.runWorkerFirst there; prerender checks this file.
 name = "amberjs-website"
 compatibility_date = "2024-11-01"
 

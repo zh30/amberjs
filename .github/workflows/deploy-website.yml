@@ -1,13 +1,10 @@
-name: Deploy website
+# Wrangler rollback only. Do not re-enable push: deploy-website-cf.yml is the
+# production path, and both workflows would publish the same Worker.
+# Procedure: Actions → "Deploy website (Wrangler rollback)" → Run workflow
+# on main. This job still uses wrangler.toml (not cloudflare.config.ts).
+name: Deploy website (Wrangler rollback)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/website/**"
-      - "install.sh"
-      - "install.ps1"
-      - ".github/workflows/deploy-website.yml"
   workflow_dispatch:
 
 permissions:
@@ -56,7 +53,7 @@ jobs:
             echo "::error::Missing secret CLOUDFLARE_ACCOUNT_ID on Environment production"
             exit 1
           fi
-          if ! pnpm run deploy; then
+          if ! pnpm run deploy:wrangler; then
             echo "::error::wrangler deploy failed; Worker and static assets were not published"
             exit 1
           fi

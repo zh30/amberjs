@@ -5647,6 +5647,12 @@ impl MinimalRuntime {
                     v8::String::new(scope, "readSync").unwrap(),
                     v8::String::new(scope, "writeSync").unwrap(),
                     v8::String::new(scope, "closeSync").unwrap(),
+                    v8::String::new(scope, "cp").unwrap(),
+                    v8::String::new(scope, "cpSync").unwrap(),
+                    v8::String::new(scope, "opendir").unwrap(),
+                    v8::String::new(scope, "opendirSync").unwrap(),
+                    v8::String::new(scope, "statfs").unwrap(),
+                    v8::String::new(scope, "statfsSync").unwrap(),
                     v8::String::new(scope, "constants").unwrap(),
                 ];
                 let module_name = v8::String::new(scope, "node:fs").unwrap();
@@ -5943,6 +5949,12 @@ impl MinimalRuntime {
             "readSync",
             "writeSync",
             "closeSync",
+            "cp",
+            "cpSync",
+            "opendir",
+            "opendirSync",
+            "statfs",
+            "statfsSync",
             "constants",
         ] {
             let export_key = v8::String::new(scope, export_name).unwrap();
