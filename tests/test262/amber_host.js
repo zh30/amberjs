@@ -66,6 +66,24 @@ var $262 = (function () {
   }
 
   function evalScript(source) {
+    // test262 `$262.evalScript` must evaluate an ECMAScript *Script* in the
+    // current realm (GlobalDeclarationInstantiation: non-configurable global
+    // var/function bindings, persistent global lexical `let`/`const`/`class`,
+    // and lex/var collision SyntaxErrors). Indirect `eval` is Eval Code and
+    // fails those cases (configurable bindings; lexical names vanish).
+    // Prefer Amber's Node-compat `vm.runInThisContext` (Script semantics).
+    // Only catch require() failure — never swallow Script SyntaxError/TypeError.
+    var vm = null;
+    if (typeof require === "function") {
+      try {
+        vm = require("vm");
+      } catch (_err) {
+        vm = null;
+      }
+    }
+    if (vm && typeof vm.runInThisContext === "function") {
+      return vm.runInThisContext(String(source));
+    }
     return (0, eval)(source);
   }
 
