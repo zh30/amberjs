@@ -4784,16 +4784,20 @@ impl MinimalRuntime {
         let main_module_path = Path::new(main_module_filename);
         let module_format =
             crate::nodejs_core::commonjs_resolver::classify_commonjs_file(main_module_path)?;
-        // .mjs / type=module: native ESM only when *this* code has module signals.
+        // .mjs / type=module: native ESM when *this* code has module signals, OR when
+        // the code is the on-disk entry file (CLI `amber run` / test262 module cases
+        // with no import/export — e.g. `this === undefined`, module-scoped `var`).
         // Always-true broke follow-up execute_code("globalThis.X") while
-        // main_module_filename is still *.mjs (esm_module_tests, #270 Format).
+        // main_module_filename is still *.mjs (esm_module_tests, #270 Format):
+        // Module evaluation completion is undefined, so probes must stay Script.
         if module_format == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule {
             // has_esm_await_syntax is intentional here: `await import(...)` inside
             // try/catch is not top-level await but still requires Module context.
             return Ok(Self::has_esm_export_syntax(code)
                 || Self::has_esm_await_syntax(code)
                 || Self::has_import_meta_syntax(code)
-                || !Self::static_import_specifiers(code).is_empty());
+                || !Self::static_import_specifiers(code).is_empty()
+                || Self::code_matches_main_module_file(code, main_module_filename));
         }
         if matches!(
             module_format,
@@ -4809,6 +4813,21 @@ impl MinimalRuntime {
                 || !Self::static_import_specifiers(code).is_empty());
         }
         Ok(false)
+    }
+
+    /// True when `code` is exactly the contents of `main_module_filename`.
+    /// Used so type=module / .mjs entry files without import/export still run as
+    /// Modules, while follow-up `execute_code("globalThis.X")` probes (different
+    /// source) stay Script for completion values.
+    fn code_matches_main_module_file(code: &str, main_module_filename: &str) -> bool {
+        let path = Path::new(main_module_filename);
+        if !path.is_file() {
+            return false;
+        }
+        match std::fs::read_to_string(path) {
+            Ok(file_code) => file_code == code,
+            Err(_) => false,
+        }
     }
 
     /// True for real `import.meta`, not progressive `globalThis.import.meta`.
@@ -4830,13 +4849,19 @@ impl MinimalRuntime {
     }
 
     fn has_esm_export_syntax(code: &str) -> bool {
+        // `export function*` must be detected: `export function ` alone misses
+        // generators and leaves them compiled as Script → Unexpected token 'export'.
         code.contains("export let ")
             || code.contains("export const ")
             || code.contains("export var ")
+            || code.contains("export function*")
             || code.contains("export function ")
+            || code.contains("export async function*")
+            || code.contains("export async function ")
             || code.contains("export class ")
             || code.contains("export default")
             || code.contains("export {")
+            || code.contains("export *")
     }
 
     fn has_esm_await_syntax(code: &str) -> bool {
