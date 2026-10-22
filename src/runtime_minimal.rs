@@ -10200,8 +10200,12 @@ impl MinimalRuntime {
             .ok_or_else(|| anyhow::anyhow!("Failed to create global alias key"))?;
         global.set(scope, global_key.into(), global.into());
 
+        // Object.hasOwn (legacy) + Iterator.prototype.chunks/windows (iterator-chunking).
+        // Chunking is Stage-3 and not yet in V8; polyfill matches the TC39 algorithms
+        // using generators for %IteratorHelper%-like reentry/return semantics.
         let polyfill_script = r#"
         (function() {
+            'use strict';
             if (!Object.hasOwn) {
                 Object.hasOwn = function(obj, prop) {
                     if (obj === null || obj === undefined) {
@@ -10209,6 +10213,224 @@ impl MinimalRuntime {
                     }
                     return Object.prototype.hasOwnProperty.call(obj, prop);
                 };
+            }
+
+            if (typeof Iterator !== 'function' || !Iterator.prototype) {
+                return;
+            }
+
+            function isObject(v) {
+                return (v !== null && (typeof v === 'object' || typeof v === 'function'));
+            }
+
+            function isIntegralNumber(v) {
+                return typeof v === 'number' && Number.isInteger(v);
+            }
+
+            // IteratorClose that always rethrows `error` (validation / step failures).
+            function iteratorCloseThrow(iterator, error) {
+                var returnMethod;
+                try {
+                    returnMethod = iterator['return'];
+                } catch (_getReturn) {
+                    throw error;
+                }
+                if (returnMethod === undefined || returnMethod === null) {
+                    throw error;
+                }
+                if (typeof returnMethod !== 'function') {
+                    throw error;
+                }
+                try {
+                    returnMethod.call(iterator);
+                } catch (_callReturn) {
+                    // Prefer the original abrupt completion.
+                }
+                throw error;
+            }
+
+            // GetIteratorDirect: capture next without IsCallable (matches V8 helpers /
+            // test262 this-non-callable-next — Call throws on first next()).
+            function getIteratorDirect(obj) {
+                return { iterator: obj, nextMethod: obj.next, done: false };
+            }
+
+            function iteratorStepValue(iterated) {
+                var result = Function.prototype.call.call(
+                    iterated.nextMethod,
+                    iterated.iterator
+                );
+                if (!isObject(result)) {
+                    throw new TypeError('Iterator result is not an object');
+                }
+                if (result.done) {
+                    iterated.done = true;
+                    return undefined;
+                }
+                return { value: result.value };
+            }
+
+            function closeUnderlying(iterated) {
+                var returnMethod = iterated.iterator['return'];
+                if (returnMethod === undefined || returnMethod === null) {
+                    return;
+                }
+                if (typeof returnMethod !== 'function') {
+                    throw new TypeError('iterator.return is not callable');
+                }
+                returnMethod.call(iterated.iterator);
+            }
+
+            // Generators in suspendedStart ignore finally on .return(); Iterator
+            // Helpers still close [[UnderlyingIterators]]. Patch .return to match.
+            function wrapHelper(gen, iterated, state) {
+                var originalReturn = gen.return.bind(gen);
+                gen.return = function (value) {
+                    if (!state.closed && !iterated.done) {
+                        state.closed = true;
+                        closeUnderlying(iterated);
+                    }
+                    return originalReturn(value);
+                };
+                return gen;
+            }
+
+            function installNonConstructible(fn) {
+                return new Proxy(fn, {
+                    construct: function () {
+                        throw new TypeError(fn.name + ' is not a constructor');
+                    }
+                });
+            }
+
+            function defineIteratorMethod(name, fn) {
+                Object.defineProperty(Iterator.prototype, name, {
+                    value: installNonConstructible(fn),
+                    writable: true,
+                    enumerable: false,
+                    configurable: true
+                });
+            }
+
+            if (typeof Iterator.prototype.chunks !== 'function') {
+                defineIteratorMethod('chunks', function chunks(chunkSize) {
+                    var O = this;
+                    if (!isObject(O)) {
+                        throw new TypeError('Iterator.prototype.chunks called on non-object');
+                    }
+                    if (!isIntegralNumber(chunkSize)) {
+                        iteratorCloseThrow(O, new TypeError('chunkSize must be an integral Number'));
+                    }
+                    if (chunkSize < 1 || chunkSize > 0xffffffff) {
+                        iteratorCloseThrow(O, new RangeError('chunkSize out of range'));
+                    }
+                    var iterated = getIteratorDirect(O);
+                    var size = chunkSize;
+                    var state = { closed: false };
+                    return wrapHelper((function* () {
+                        var buffer = [];
+                        try {
+                            while (true) {
+                                var step;
+                                try {
+                                    step = iteratorStepValue(iterated);
+                                } catch (e) {
+                                    state.closed = true;
+                                    iteratorCloseThrow(iterated.iterator, e);
+                                }
+                                if (step === undefined) {
+                                    if (buffer.length > 0) {
+                                        var rem = buffer.slice();
+                                        buffer.length = 0;
+                                        yield rem;
+                                    }
+                                    state.closed = true;
+                                    return;
+                                }
+                                buffer.push(step.value);
+                                if (buffer.length === size) {
+                                    var chunk = buffer.slice();
+                                    buffer.length = 0;
+                                    try {
+                                        yield chunk;
+                                    } catch (e2) {
+                                        state.closed = true;
+                                        iteratorCloseThrow(iterated.iterator, e2);
+                                    }
+                                }
+                            }
+                        } finally {
+                            if (!state.closed && !iterated.done) {
+                                state.closed = true;
+                                closeUnderlying(iterated);
+                            }
+                        }
+                    })(), iterated, state);
+                });
+            }
+
+            if (typeof Iterator.prototype.windows !== 'function') {
+                defineIteratorMethod('windows', function windows(windowSize) {
+                    var undersized = arguments.length > 1 ? arguments[1] : undefined;
+                    var O = this;
+                    if (!isObject(O)) {
+                        throw new TypeError('Iterator.prototype.windows called on non-object');
+                    }
+                    if (!isIntegralNumber(windowSize)) {
+                        iteratorCloseThrow(O, new TypeError('windowSize must be an integral Number'));
+                    }
+                    if (windowSize < 1 || windowSize > 0xffffffff) {
+                        iteratorCloseThrow(O, new RangeError('windowSize out of range'));
+                    }
+                    if (undersized === undefined) {
+                        undersized = 'only-full';
+                    }
+                    if (undersized !== 'only-full' && undersized !== 'allow-partial') {
+                        iteratorCloseThrow(O, new TypeError('undersized must be "only-full" or "allow-partial"'));
+                    }
+                    var iterated = getIteratorDirect(O);
+                    var size = windowSize;
+                    var mode = undersized;
+                    var state = { closed: false };
+                    return wrapHelper((function* () {
+                        var buffer = [];
+                        try {
+                            while (true) {
+                                var step;
+                                try {
+                                    step = iteratorStepValue(iterated);
+                                } catch (e) {
+                                    state.closed = true;
+                                    iteratorCloseThrow(iterated.iterator, e);
+                                }
+                                if (step === undefined) {
+                                    if (mode === 'allow-partial' && buffer.length > 0 && buffer.length < size) {
+                                        yield buffer.slice();
+                                    }
+                                    state.closed = true;
+                                    return;
+                                }
+                                if (buffer.length === size) {
+                                    buffer.shift();
+                                }
+                                buffer.push(step.value);
+                                if (buffer.length === size) {
+                                    try {
+                                        yield buffer.slice();
+                                    } catch (e2) {
+                                        state.closed = true;
+                                        iteratorCloseThrow(iterated.iterator, e2);
+                                    }
+                                }
+                            }
+                        } finally {
+                            if (!state.closed && !iterated.done) {
+                                state.closed = true;
+                                closeUnderlying(iterated);
+                            }
+                        }
+                    })(), iterated, state);
+                });
             }
         })();
         "#;
