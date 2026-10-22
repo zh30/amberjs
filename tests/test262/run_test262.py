@@ -107,6 +107,17 @@ def verify_pin(test262: Path) -> str:
     return pin
 
 
+def is_test262_fixture(path: Path) -> bool:
+    """Fixture modules are imported by tests; they are not cases themselves."""
+    name = path.name
+    return (
+        name.endswith("_FIXTURE.js")
+        or name.endswith("_FIXTURE.mjs")
+        or name.endswith("_FIXTURE.cjs")
+        or name.endswith("_Fixture.js")
+    )
+
+
 def discover_tests(test262: Path, path_filter: Optional[str], limit: Optional[int]) -> list[Path]:
     base = test262 / "test"
     if path_filter:
@@ -114,7 +125,9 @@ def discover_tests(test262: Path, path_filter: Optional[str], limit: Optional[in
     if not base.exists():
         print(f"path not found: {base}", file=sys.stderr)
         sys.exit(2)
-    files = sorted(p for p in base.rglob("*.js") if p.is_file())
+    files = sorted(
+        p for p in base.rglob("*.js") if p.is_file() and not is_test262_fixture(p)
+    )
     if limit is not None:
         files = files[:limit]
     return files
