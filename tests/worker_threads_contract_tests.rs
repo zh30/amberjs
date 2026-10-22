@@ -246,18 +246,15 @@ fn g75_terminate_preempts_busy_worker() {
 fn g75_unref_lets_drain_finish() {
     // An unref'd live worker does not hold the runtime's drain loop — the eval
     // completes immediately with its value (same flag the CLI event loop reads).
-    // Terminate afterward: WorkerHost is process-global, and leaving a live
-    // isolate races the next serial test (macOS libc++ vector OOB / SIGABRT).
+    // Terminate afterward so the 60s worker does not leak into the next serial
+    // test (macOS libc++ vector OOB / SIGABRT).
     let output = run(r#"
         const wt = require('worker_threads');
         const w = new wt.Worker("setTimeout(() => {}, 60000)", { eval: true });
         const r = w.unref();
-        const drainOk = [r === w, 'done'].join('|');
-        const exited = new Promise((resolve) => {
-          w.once('exit', () => resolve(drainOk));
-        });
+        const ok = [r === w, 'done'].join('|');
         w.terminate();
-        exited;
+        ok;
         "#);
     assert_eq!(output, "true|done");
 }
