@@ -44,6 +44,10 @@ pub fn setup_test262_host(
     let detach = v8::Function::new(scope, detach_array_buffer_cb).unwrap();
     let d_key = v8::String::new(scope, "__amber_detachArrayBuffer").unwrap();
     global.set(scope, d_key.into(), detach.into());
+
+    // Concurrent `$262.agent` host for Atomics.wait / notify tests.
+    crate::test262_agent::setup_agent_host(scope, context);
+
     Ok(())
 }
 
