@@ -1,5 +1,5 @@
 {
-  "$comment": "Feature flags Amber claims for test262. Tests requiring a feature not listed here are SKIP (expected) with reason unsupported-feature. Expand this allowlist as Amber/V8 support is verified — do not stub passes.",
+  "$comment": "supported: informational claims only (unknown features are RUN for honest PASS/FAIL). always_skip_features: sole expected-SKIP policy — tests listing any of these get SKIP with reason unsupported-feature:<name>. Do not skip for engine gaps outside this list; do not stub passes.",
   "supported": [
     "AggregateError",
     "ArrayBuffer",

@@ -46,13 +46,16 @@ Env: `AMBER_BIN`, `TEST262_ROOT`, `TEST262_TIMEOUT` (seconds per case, default 3
 
 - **PASS** — behavior matches positive or negative metadata.
 - **FAIL** — wrong result, timeout, or harness/exec error (honest; no stubs).
-- **SKIP** — expected only when a `features:` entry is in `always_skip_features` or absent from `supported` in `features.json`.
+- **SKIP (expected)** — only when a `features:` entry is listed in `always_skip_features` (`features.json`); reason `unsupported-feature:<name>`.
+- **SKIP (unexpected)** — any other SKIP (wrong reason, or feature not in `always_skip_features`). Counted as `unexpected_skip`; gate fails.
 
-**Done** for this stream: full suite with **0 FAIL** and **0 unexpected SKIP**. Filtered runs are for iteration; they do not redefine done.
+`supported` in `features.json` is informational. Features not in that list are **run** (honest PASS/FAIL), not skipped.
+
+**Done** for this stream: full suite with **0 FAIL** and **0 unexpected SKIP**. The runner exits `1` if `FAIL>0` or `unexpected_skip>0`. Filtered runs are for iteration; they do not redefine done.
 
 Node conformance (`./tests/conformance/run_conformance.sh`) stays ≥55/55 and is unrelated.
 
 ## CI
 
-- Harness PRs: self-test + small path smoke fail-closed; full suite uploads scorecard artifact (may still have FAILs while we drive to green).
-- When the full suite is green, promote the full job to a required fail-closed gate.
+- Workflow `test262`: self-test + fail-closed smoke on a small `--path` under `language/types*` (not the full suite — cost).
+- Full-suite scorecard stays a local / on-demand run until promoted; do not treat CI smoke as the north-star gate.
