@@ -186,22 +186,35 @@ def wrap_source(
     async_prologue = ""
     async_epilogue = ""
     if "async" in meta.flags:
-        # test262 async: test calls $DONE() / $DONE(error)
+        # test262 async: test calls $DONE() / $DONE(error). Keep Amber's
+        # event loop alive via setTimeout until $DONE (sync check at EOF
+        # races microtasks / async generators and false-fails).
         async_prologue = """
 var __test262_async_done = false;
 var __test262_async_err = null;
 function $DONE(err) {
   __test262_async_done = true;
-  if (err) { __test262_async_err = err; }
+  if (arguments.length > 0 && err != null) {
+    __test262_async_err = err;
+  }
 }
 """
         async_epilogue = """
-if (!__test262_async_done) {
-  throw new Test262Error('Test262: async test did not call $DONE');
-}
-if (__test262_async_err) {
-  throw __test262_async_err;
-}
+(function __test262_waitForAsyncDone() {
+  if (__test262_async_done) {
+    if (__test262_async_err) {
+      var __e = __test262_async_err;
+      __test262_async_err = null;
+      throw __e;
+    }
+    return;
+  }
+  if (typeof setTimeout === 'function') {
+    setTimeout(__test262_waitForAsyncDone, 0);
+  } else {
+    throw new Test262Error('Test262: async test did not call $DONE (no setTimeout)');
+  }
+})();
 """
 
     # "use strict" must be the first statement in the whole script or it is

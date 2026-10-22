@@ -1,10 +1,10 @@
 # Amber test262 scorecard
 
-- Generated: 2026-10-22T02:49Z
+- Generated: 2026-10-22T02:53Z
 - test262 pin: `d53ebc8b1931d9f1541e43d59650776e4b766248`
 - Amber: `./target/debug/amber`
 - Filter: `language/types`
-- Elapsed: 1.8s
+- Elapsed: 5.1s
 
 | Status | Count |
 |--------|------:|

@@ -116,7 +116,10 @@ fn create_realm_record<'s>(
     Ok(record)
 }
 
-fn realm_id_from_value(scope: &mut v8::PinScope<'_, '_>, val: v8::Local<v8::Value>) -> Option<usize> {
+fn realm_id_from_value(
+    scope: &mut v8::PinScope<'_, '_>,
+    val: v8::Local<v8::Value>,
+) -> Option<usize> {
     let obj = val.to_object(scope)?;
     let key = v8::String::new(scope, "__amberRealmId")?;
     let id_val = obj.get(scope, key.into())?;
