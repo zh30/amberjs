@@ -202,11 +202,23 @@ struct EsmModuleLoadState {
     cjs_synthetic_exports_by_identity: HashMap<i32, v8::Global<v8::Value>>,
     cjs_synthetic_named_exports_by_identity: HashMap<i32, Vec<String>>,
     pending_error: Option<String>,
+    /// Dynamic `import()` of a module that is mid-evaluation (self-import).
+    /// Must not re-enter `Module::evaluate` / `get_module_namespace` until
+    /// status is `Evaluated` — V8 CHECK-fails otherwise.
+    pending_dynamic_imports: Vec<(PathBuf, v8::Global<v8::PromiseResolver>)>,
 }
 
 enum EsmDynamicImportError<'scope> {
     Message(String),
     Value(v8::Local<'scope, v8::Value>),
+}
+
+/// Outcome of preparing a dynamic import before settling its Promise.
+enum DynamicImportPrep<'scope> {
+    /// Module namespace ready now.
+    Ready(v8::Local<'scope, v8::Value>),
+    /// Module is mid-evaluation; Promise stays pending until flush.
+    Deferred(PathBuf),
 }
 
 thread_local! {
@@ -5390,6 +5402,13 @@ impl MinimalRuntime {
             ));
         }
 
+        // Already on the evaluation stack (e.g. `import('./self.js')` inside the
+        // module body). Re-entering evaluate() CHECK-fails in V8; caller must
+        // defer Promise resolution until Evaluated via pending_dynamic_imports.
+        if module.get_status() == v8::ModuleStatus::Evaluating {
+            return Ok(());
+        }
+
         if module.get_status() != v8::ModuleStatus::Evaluated {
             let evaluation = module.evaluate(scope).ok_or_else(|| {
                 EsmDynamicImportError::Message(Self::take_esm_pending_error().unwrap_or_else(
@@ -5406,6 +5425,66 @@ impl MinimalRuntime {
         }
 
         Ok(())
+    }
+
+    fn flush_pending_dynamic_imports(scope: &mut v8::PinScope) {
+        let pending = ESM_MODULE_LOAD_STATE.with(|state| {
+            state
+                .borrow_mut()
+                .as_mut()
+                .map(|s| std::mem::take(&mut s.pending_dynamic_imports))
+                .unwrap_or_default()
+        });
+        if pending.is_empty() {
+            return;
+        }
+        let mut still_pending = Vec::new();
+        for (module_path, resolver_global) in pending {
+            let resolver = v8::Local::new(scope, &resolver_global);
+            let module_opt = ESM_MODULE_LOAD_STATE.with(|state| {
+                state.borrow().as_ref().and_then(|s| {
+                    s.modules_by_path
+                        .get(&module_path)
+                        .map(|g| v8::Local::new(scope, g))
+                })
+            });
+            let Some(module) = module_opt else {
+                let msg = v8::String::new(
+                    scope,
+                    &format!(
+                        "Dynamic import of '{}' lost module record before settlement",
+                        module_path.display()
+                    ),
+                )
+                .unwrap_or_else(|| v8::String::new(scope, "Dynamic import failed").unwrap());
+                let err = v8::Exception::error(scope, msg);
+                resolver.reject(scope, err);
+                continue;
+            };
+            match module.get_status() {
+                v8::ModuleStatus::Evaluated => {
+                    let namespace = module.get_module_namespace();
+                    resolver.resolve(scope, namespace);
+                }
+                v8::ModuleStatus::Errored => {
+                    let exc = Self::esm_module_exception_value(scope, module);
+                    resolver.reject(scope, exc);
+                }
+                v8::ModuleStatus::Evaluating => {
+                    still_pending.push((module_path, resolver_global));
+                }
+                _ => {
+                    still_pending.push((module_path, resolver_global));
+                }
+            }
+        }
+        if !still_pending.is_empty() {
+            ESM_MODULE_LOAD_STATE.with(|state| {
+                if let Some(s) = state.borrow_mut().as_mut() {
+                    s.pending_dynamic_imports.extend(still_pending);
+                }
+            });
+        }
     }
 
     fn dynamic_import_referrer_path(
@@ -5509,16 +5588,27 @@ impl MinimalRuntime {
         scope: &mut v8::PinScope<'scope, '_>,
         referrer: v8::Local<v8::Value>,
         specifier: &str,
-    ) -> Result<v8::Local<'scope, v8::Value>, EsmDynamicImportError<'scope>> {
+    ) -> Result<DynamicImportPrep<'scope>, EsmDynamicImportError<'scope>> {
         let referrer_path = Self::dynamic_import_referrer_path(scope, referrer)
             .map_err(EsmDynamicImportError::Message)?;
         let (module, module_path) =
             Self::load_dynamic_import_module(scope, specifier, &referrer_path)
                 .map_err(EsmDynamicImportError::Message)?;
+        // Capture Evaluating *before* instantiate/evaluate — self-import hits here.
+        let was_evaluating = module.get_status() == v8::ModuleStatus::Evaluating;
         Self::instantiate_and_evaluate_esm_module_for_dynamic_import(scope, module, &module_path)?;
+        if was_evaluating || module.get_status() == v8::ModuleStatus::Evaluating {
+            return Ok(DynamicImportPrep::Deferred(module_path));
+        }
+        if module.get_status() != v8::ModuleStatus::Evaluated {
+            return Err(EsmDynamicImportError::Message(format!(
+                "ES module '{}' not evaluated after dynamic import (status={:?})",
+                module_path.display(),
+                module.get_status()
+            )));
+        }
         let namespace = module.get_module_namespace();
-        let namespace_global = v8::Global::new(scope, namespace);
-        Ok(v8::Local::new(scope, namespace_global))
+        Ok(DynamicImportPrep::Ready(namespace))
     }
 
     fn reject_dynamic_import(
@@ -5572,8 +5662,18 @@ impl MinimalRuntime {
                 resolver.reject(tc, exception);
             } else {
                 match import_result {
-                    Ok(namespace) => {
+                    Ok(DynamicImportPrep::Ready(namespace)) => {
                         resolver.resolve(tc, namespace);
+                    }
+                    Ok(DynamicImportPrep::Deferred(module_path)) => {
+                        // Resolve after outer Module::evaluate finishes (flush_pending).
+                        let resolver_global = v8::Global::new(tc, resolver);
+                        ESM_MODULE_LOAD_STATE.with(|state| {
+                            if let Some(s) = state.borrow_mut().as_mut() {
+                                s.pending_dynamic_imports
+                                    .push((module_path, resolver_global));
+                            }
+                        });
                     }
                     Err(error) => {
                         Self::reject_dynamic_import_error(tc, resolver, error);
@@ -6534,12 +6634,16 @@ impl MinimalRuntime {
                     )
                 })
             })?;
+            // Fulfill deferred self-`import()` promises now that evaluation left
+            // the Evaluating state (or after TLA settlement below).
+            Self::flush_pending_dynamic_imports(scope);
             Self::ensure_esm_evaluation_settled(
                 scope,
                 evaluation,
                 &main_module_path,
                 timer_drain_limit_ms,
             )?;
+            Self::flush_pending_dynamic_imports(scope);
             Ok(evaluation)
         })();
 
@@ -6607,12 +6711,14 @@ impl MinimalRuntime {
                     )
                 })
             })?;
+            Self::flush_pending_dynamic_imports(scope);
             Self::ensure_esm_evaluation_settled(
                 scope,
                 evaluation,
                 &main_module_path,
                 timer_drain_limit_ms,
             )?;
+            Self::flush_pending_dynamic_imports(scope);
             let namespace_global = v8::Global::new(scope, module.get_module_namespace());
             let source_fingerprints = ESM_MODULE_LOAD_STATE.with(|state| {
                 state
