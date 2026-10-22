@@ -133,6 +133,14 @@ fn create_realm_record<'s>(
     let g_key = v8::String::new(scope, "gc").unwrap();
     record.set(scope, g_key.into(), gc.into());
 
+    // INTERPRETING.md: createRealm defines the $262 API on the new realm's
+    // global and returns that property. staging/sm TypedArray cases call
+    // otherGlobal.$262.detachArrayBuffer — without this, $262 is undefined.
+    {
+        let dollar_key = v8::String::new(scope, "$262").unwrap();
+        global_local.set(scope, dollar_key.into(), record.into());
+    }
+
     Ok(record)
 }
 
