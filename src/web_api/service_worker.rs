@@ -609,6 +609,13 @@ parentPort.postMessage({
       applyFetchIntercept();
       if (!unregisterStarted) {{
         unregisterStarted = true;
+        // Drop event-loop keep-alive as soon as intercept is disarmed when
+        // no page-side fetch is in flight. Otherwise a deferred terminate
+        // join can keep `amber run` alive past the CI 15s child timeout
+        // (amber_run_respond_with_intercepts_fetch hang).
+        if (Object.keys(pendingFetches).length === 0 && typeof __amber_worker_ref === 'function') {{
+          try {{ __amber_worker_ref(id, false); }} catch (_) {{}}
+        }}
         // Keep the worker alive briefly while page-side intercepted fetch()
         // Promises still await WorkerHost fetchResponse/fetchPass. Immediate
         // terminate+reject races the test 2s timer against caches.match on CI
