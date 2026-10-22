@@ -1,0 +1,17 @@
+{
+  "generated": "2026-10-22T02:53Z",
+  "pin": "d53ebc8b1931d9f1541e43d59650776e4b766248",
+  "amber": [
+    "./target/debug/amber"
+  ],
+  "path_filter": "language/types",
+  "elapsed_s": 5.084496387999934,
+  "pass": 211,
+  "fail": 0,
+  "skip": 0,
+  "total": 211,
+  "unexpected_skip": 0,
+  "gate_ok": true,
+  "failures": [],
+  "skips": []
+}

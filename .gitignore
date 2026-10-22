@@ -45,3 +45,9 @@ wasm_cache/
 benchmark_reports/
 docs/archive/local-artifacts/
 .gstack/
+
+# Vendored ECMAScript test262 suite (fetch via scripts/fetch_test262.sh)
+third_party/test262/
+
+# test262 harness scratch
+tests/test262/.run-tmp/
