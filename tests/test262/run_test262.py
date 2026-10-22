@@ -378,8 +378,13 @@ def run_one(
             tmp = prepare_module_run_path(tmp_dir, test_path, source, attempt)
         else:
             # Keep fixtures beside the entry so import('./x_FIXTURE.js') resolves.
+            # Pin type=commonjs so a parent package.json (e.g. /tmp) cannot force ESM
+            # and break script-only forms like `var x; function x(){}`.
             attempt_dir = tmp_dir / f"a{attempt}"
             attempt_dir.mkdir(parents=True, exist_ok=True)
+            (attempt_dir / "package.json").write_text(
+                '{"type":"commonjs"}\n', encoding="utf-8"
+            )
             copy_fixtures_into(attempt_dir, test_path)
             tmp = attempt_dir / f"entry{suffix}"
             tmp.write_text(source, encoding="utf-8")

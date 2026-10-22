@@ -4725,34 +4725,28 @@ impl MinimalRuntime {
         let main_module_path = Path::new(main_module_filename);
         let module_format =
             crate::nodejs_core::commonjs_resolver::classify_commonjs_file(main_module_path)?;
-        if module_format != crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule {
-            if matches!(
-                module_format,
-                crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScript
-                    | crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScriptJsx
-            ) {
-                return Ok(Self::has_esm_export_syntax(code)
-                    || Self::has_top_level_await_syntax(code)
-                    || !Self::static_import_specifiers(code).is_empty());
-            }
-            return Ok(false);
+        // .mjs / package.json "type":"module" → always native ESM.
+        // Previously we also required static import/export/await, which false-failed
+        // `import.meta`-only modules (test262 dynamic-import assignment-expression).
+        if module_format == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule {
+            return Ok(true);
         }
-
-        let has_export_syntax = Self::has_esm_export_syntax(code);
-        let has_await_syntax = Self::has_esm_await_syntax(code);
-        let import_specifiers = Self::static_import_specifiers(code);
-        if main_module_path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            == Some("mjs")
-        {
-            // `amber eval` with `import`/`export` uses a virtual `eval.mjs` path.
-            // Treat any static import/export as native ESM so users get module
-            // errors instead of a Script SyntaxError.
-            return Ok(has_export_syntax || has_await_syntax || !import_specifiers.is_empty());
+        if matches!(
+            module_format,
+            crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScript
+                | crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScriptJsx
+        ) {
+            return Ok(Self::has_esm_export_syntax(code)
+                || Self::has_top_level_await_syntax(code)
+                || Self::has_esm_await_syntax(code)
+                || Self::has_import_meta_syntax(code)
+                || !Self::static_import_specifiers(code).is_empty());
         }
+        Ok(false)
+    }
 
-        Ok(has_export_syntax || has_await_syntax || !import_specifiers.is_empty())
+    fn has_import_meta_syntax(code: &str) -> bool {
+        code.contains("import.meta")
     }
 
     fn has_esm_export_syntax(code: &str) -> bool {
