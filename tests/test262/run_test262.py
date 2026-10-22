@@ -167,6 +167,14 @@ def modes_for(meta: Meta) -> list[str]:
         return ["strict"]
     if "noStrict" in flags:
         return ["non-strict"]
+    # SpiderMonkey staging shell `sm/non262-strict-shell.js` defines
+    # `testLenientAndStrict`, which drives both lenient and strict via direct
+    # `eval`. Prefacing the whole file with `"use strict"` (our strict mode
+    # wrap) makes those direct evals inherit strictness, so the lenient arm
+    # false-fails (`SameValue(false, true)`). Run once without the outer
+    # strict wrapper — the shell still exercises both modes. Not a SKIP.
+    if "sm/non262-strict-shell.js" in meta.includes:
+        return ["non-strict"]
     return ["non-strict", "strict"]
 
 
@@ -628,6 +636,12 @@ def self_test() -> None:
     assert modes_for(m) == ["strict"]
     m2 = parse_frontmatter("/*---\nflags: [module]\n---*/")
     assert modes_for(m2) == ["module"]
+    m_sm_strict = parse_frontmatter(
+        "/*---\nincludes: [sm/non262-strict-shell.js]\n---*/\nok"
+    )
+    assert modes_for(m_sm_strict) == ["non-strict"]
+    m_both = parse_frontmatter("/*---\nincludes: [assert.js]\n---*/\nok")
+    assert modes_for(m_both) == ["non-strict", "strict"]
     m3 = parse_frontmatter("/*---\nnegative:\n  phase: parse\n  type: SyntaxError\n---*/")
     assert m3.negative and m3.negative["type"] == "SyntaxError"
     st, _ = classify_result(m3, 1, "SyntaxError: Unexpected token", "")
