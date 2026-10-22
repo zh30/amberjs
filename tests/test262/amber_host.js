@@ -45,18 +45,20 @@ var $262 = (function () {
   function createRealm() {
     if (typeof __amber_createRealm === "function") {
       var record = __amber_createRealm();
-      // Ensure nested createRealm stays on the returned $262-shaped record.
-      if (record && typeof record.createRealm !== "function") {
+      // Always wrap so nested createRealm also installs $262 on the new global.
+      // Native create_realm_cb alone returns a record but leaves global.$262 unset;
+      // staging/sm TypedArray tests call otherGlobal.$262.detachArrayBuffer(...).
+      if (record) {
         record.createRealm = createRealm;
-      }
-      // Prefer native detach on the realm record; fall back to host helper.
-      if (record && typeof record.detachArrayBuffer !== "function") {
-        record.detachArrayBuffer = detachArrayBuffer;
-      }
-      // INTERPRETING.md: createRealm defines the host API (incl. print) on the
-      // new realm's global object.
-      if (record && record.global) {
-        installPrintOnRealmGlobal(record.global);
+        if (typeof record.detachArrayBuffer !== "function") {
+          record.detachArrayBuffer = detachArrayBuffer;
+        }
+        // INTERPRETING.md: define this API on the new realm's global object and
+        // return the $262 property of that global.
+        if (record.global) {
+          installPrintOnRealmGlobal(record.global);
+          record.global.$262 = record;
+        }
       }
       return record;
     }
