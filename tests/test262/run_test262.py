@@ -718,21 +718,22 @@ def write_scorecard(
         "engine_allowlist_enabled": engine_allowlist_enabled,
         "engine_allowlist_patterns": len(engine_allowlist_patterns or []),
         "gate_ok": fail_n == 0 and unexpected_skip == 0,
+        # Full lists for Option B/A evidence clustering (MD samples stay capped above).
         "failures": [
             {"test": r.rel, "mode": r.mode, "reason": r.reason[:500]}
             for r in results
             if r.status == "FAIL"
-        ][:200],
+        ],
         "engine_allows": [
             {"test": r.rel, "mode": r.mode, "reason": r.reason[:500]}
             for r in results
             if r.status == "ENGINE_ALLOW"
-        ][:200],
+        ],
         "skips": [
             {"test": r.rel, "mode": r.mode, "reason": r.reason}
             for r in results
             if r.status == "SKIP"
-        ][:200],
+        ],
     }
     SCORECARD_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {SCORECARD_MD}")
@@ -868,6 +869,63 @@ def self_test() -> None:
     assert ASYNC_EPILOGUE.lstrip().startswith(";(function __test262_waitForAsyncDone")
     m_block = parse_frontmatter("/*---\nflags: [CanBlockIsFalse]\n---*/\nok")
     assert "CanBlockIsFalse" in m_block.flags
+
+    # scorecard.json must keep complete failures / engine_allows (no [:200] cap);
+    # markdown samples stay short for humans.
+    global SCORECARD_MD, SCORECARD_JSON
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        prev_md, prev_json = SCORECARD_MD, SCORECARD_JSON
+        SCORECARD_MD = td_path / "scorecard.md"
+        SCORECARD_JSON = td_path / "scorecard.json"
+        try:
+            n = 210
+            big = (
+                [
+                    CaseResult(f"fail/{i:04d}.js", "strict", "FAIL", f"boom-{i}")
+                    for i in range(n)
+                ]
+                + [
+                    CaseResult(
+                        f"allow/{i:04d}.js",
+                        "non-strict",
+                        "ENGINE_ALLOW",
+                        f"engine-allowlist:allow/{i:04d}.js",
+                    )
+                    for i in range(n)
+                ]
+                + [
+                    CaseResult(f"skip/{i:04d}.js", "strict", "SKIP", "unsupported-feature:Temporal")
+                    for i in range(n)
+                ]
+            )
+            write_scorecard(
+                pin="self-test",
+                amber=["amber"],
+                path_filter="self-test",
+                results=big,
+                elapsed_s=0.0,
+                always_skip={"Temporal"},
+                engine_allowlist_enabled=True,
+                engine_allowlist_patterns=["allow/"],
+            )
+            payload = json.loads(SCORECARD_JSON.read_text(encoding="utf-8"))
+            assert payload["fail"] == n
+            assert payload["engine_allow"] == n
+            assert payload["skip"] == n
+            assert len(payload["failures"]) == n, len(payload["failures"])
+            assert len(payload["engine_allows"]) == n, len(payload["engine_allows"])
+            assert len(payload["skips"]) == n, len(payload["skips"])
+            assert payload["failures"][-1]["test"] == f"fail/{n - 1:04d}.js"
+            assert payload["engine_allows"][-1]["test"] == f"allow/{n - 1:04d}.js"
+            md = SCORECARD_MD.read_text(encoding="utf-8")
+            # MD sample tables stay capped (25 FAIL / 25 ENGINE_ALLOW / 15 SKIP).
+            assert md.count("`fail/") == 25
+            assert md.count("`allow/") == 25
+            assert md.count("`skip/") == 15
+        finally:
+            SCORECARD_MD, SCORECARD_JSON = prev_md, prev_json
+
     print("test262 harness self-test ok")
 
 
