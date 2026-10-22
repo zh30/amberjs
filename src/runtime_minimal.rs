@@ -5536,7 +5536,6 @@ impl MinimalRuntime {
         });
     }
 
-
     fn flush_pending_dynamic_imports(scope: &mut v8::PinScope) {
         let pending = ESM_MODULE_LOAD_STATE.with(|state| {
             state
