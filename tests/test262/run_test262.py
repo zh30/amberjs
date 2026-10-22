@@ -220,8 +220,12 @@ function $DONE(err) {
   }
 }
 """
+        # Leading `;` is required ASI: many async bodies end in `})` /
+        # `.then(...)` without a trailing semicolon. Without it, V8 parses
+        # `asyncTest(...)(function wait...)` / `promiseThenResult(function wait...)`
+        # and false-fails (~48 built-ins cases: "is not a function").
         async_epilogue = """
-(function __test262_waitForAsyncDone() {
+;(function __test262_waitForAsyncDone() {
   if (__test262_async_done) {
     if (__test262_async_err) {
       var __e = __test262_async_err;
