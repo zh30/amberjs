@@ -1,5 +1,5 @@
 {
-  "$comment": "Feature flags Amber claims for test262. Tests requiring a feature not listed here are SKIP (expected) with reason unsupported-feature. Expand this allowlist as Amber/V8 support is verified \u2014 do not stub passes.",
+  "$comment": "Feature flags Amber claims for test262. Tests requiring a feature not listed here are SKIP (expected) with reason unsupported-feature. Expand this allowlist as Amber/V8 support is verified — do not stub passes.",
   "supported": [
     "AggregateError",
     "ArrayBuffer",
@@ -144,5 +144,8 @@
     "set-methods",
     "source-phase-imports",
     "tail-call-optimization"
-  ]
+  ],
+  "always_skip_feature_notes": {
+    "tail-call-optimization": "V8 (and thus Amber) does not implement ES6 proper tail calls; tco-* cases would FAIL stack-overflow / call-count assertions. Honest expected SKIP, not a stubbed PASS."
+  }
 }
