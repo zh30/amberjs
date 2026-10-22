@@ -20,16 +20,20 @@
 #   Blank lines and # comments ignored.
 #   Prefixes only remap FAIL→ENGINE_ALLOW; PASS under a prefix stays PASS.
 #
-# STATUS — SEED toward projected engine floor ≈477 (allowlist OFF ⇒ FAIL unchanged)
-#   After remaining open Amber drafts (#274/#276/#279/#278/#281/#282
-#   + known engine floor; #272/#273/#275/#288/#289/#290/#286/#287 landed;
-#   store projected-residual — #286/−6 + #287/−154 already in floor arithmetic):
-#     language ≈233 before open #274/#276  |  built-ins ≈94  |  other ≈150  |  Σ ≈477
+# STATUS — SEED toward projected engine floor ≈462 (allowlist OFF ⇒ FAIL unchanged)
+#   Measured on origin/main cb3c0005 (post-#290/#286/#287/…; store
+#   test262-main-scorecard-post-290.md): language FAIL=248, built-ins=828,
+#   other=224, Σ=1300, unexpected_skip=0.
+#   After remaining open Amber drafts (#274/#276/#279/#278/#281/#282):
+#     language ≈218  |  built-ins ≈94  |  other ≈150  |  Σ ≈462
+#   (#272/#273/#275/#283/#284/#286/#287/#288/#289/#290 already on main.)
 #   This seed lists *proven / projected engine* clusters so flip can cover that
 #   floor. Coarse prefixes are provisional — trim to Amber↔Node intersect after
-#   the Amber stack lands. Do NOT treat as product policy yet.
+#   the Amber stack lands. Do NOT treat as product policy yet. Do not broaden
+#   beyond measured engine gaps.
 #
 # Refs (store, not in-repo):
+#   internal/test262-main-scorecard-post-290.md
 #   internal/test262-projected-residual-after-open-prs.md
 #   internal/test262-fail-inventory.md
 #   internal/test262-v8-upgrade-0fail-path.md
@@ -40,8 +44,8 @@
 #   internal/test262-atomics-residual-progress.md
 
 # =============================================================================
-# language/ — ≈233 before open #274/#276 (hard wall ≥189 + indirect/long-tail;
-# #290 −6 already on main). After those open cuts, engine floor stays in this band.
+# language/ — measured 248 on cb3c0005; ≈218 after open #274/#276
+# (hard wall + indirect/long-tail; long-tail Amber TBD ~−9 may shrink further)
 # =============================================================================
 
 # --- hard Node-shared wall ---
@@ -85,10 +89,10 @@ language/module-code/parse-err-semi-name-space-export.js
 language/global-code/script-decl-func-err-non-configurable.js
 language/global-code/script-decl-var-collision.js
 
-# --- indirect + long-tail (of language ≈233 before open #274/#276; triage after stack) ---
+# --- indirect + long-tail (part of measured language 248 → projected ≈218) ---
 # Inventory: mixed/untriaged but counted in engine floor for allowlist flip prep.
 # Coarse prefixes — measure Amber↔Node and trim before product ON.
-# (#290 enum/implements TS sniff −6 landed `8450c1dc`; long-tail Amber TBD may shrink further.)
+# (#290 enum/implements −6 already in measured 248; long-tail Amber TBD ~−9.)
 
 language/eval-code/indirect/
 
@@ -142,7 +146,7 @@ built-ins/Uint8Array/prototype/setFromBase64/trailing-garbage-empty.js
 built-ins/Array/prototype/concat/arg-length-near-integer-limit.js
 built-ins/Array/prototype/concat/arg-length-exceeding-integer-limit.js
 
-# Landed polyfills (already off ≈477 floor — do not seed):
+# Landed polyfills (already off measured/projected floor — do not seed):
 #   #288 iterator-chunking → windows/ | chunks/
 #   #287 await-dictionary → allKeyed/ | allSettledKeyed/
 #   #286 Iterator.includes → includes/
