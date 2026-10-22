@@ -2,9 +2,15 @@
 """Amber test262 harness — discover, run, scorecard.
 
 Exit codes:
-  0 — gate green (FAIL=0 and unexpected SKIP=0; for filtered runs, same)
+  0 — gate green (FAIL=0 and unexpected SKIP=0; for filtered runs, same).
+       When --engine-allowlist / AMBER_TEST262_ENGINE_ALLOWLIST=1 is on,
+       ENGINE_ALLOW does not count as FAIL.
   1 — gate red (failures or unexpected skips)
   2 — harness / environment error
+
+Engine allowlist (optional, OFF by default):
+  Catalog honest V8/Node FAILs without SKIP abuse. Default CI/smoke must not
+  enable this — product gate stays FAIL-closed until explicitly flipped.
 """
 from __future__ import annotations
 
@@ -33,11 +39,13 @@ HARNESS_DIR = Path(__file__).resolve().parent
 DEFAULT_TEST262 = ROOT / "third_party" / "test262"
 PIN_FILE = HARNESS_DIR / "PIN"
 FEATURES_FILE = HARNESS_DIR / "features.json"
+ENGINE_ALLOWLIST_FILE = HARNESS_DIR / "engine_fail_allowlist.txt"
 HOST_JS = HARNESS_DIR / "amber_host.js"
 SCORECARD_MD = HARNESS_DIR / "scorecard.md"
 SCORECARD_JSON = HARNESS_DIR / "scorecard.json"
 
 FRONTMATTER_RE = re.compile(r"/\*---\s*(.*?)\s*---\*/", re.DOTALL)
+
 
 
 def read_text_preserve_newlines(path: Path, *, errors: Optional[str] = None) -> str:
@@ -73,9 +81,62 @@ class Meta:
 class CaseResult:
     rel: str
     mode: str
-    status: str  # PASS | FAIL | SKIP
+    status: str  # PASS | FAIL | SKIP | ENGINE_ALLOW
     reason: str = ""
     ms: float = 0.0
+
+
+def env_flag_true(name: str) -> bool:
+    raw = (os.environ.get(name) or "").strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
+def load_engine_allowlist(path: Path) -> list[str]:
+    """Load exact paths and directory prefixes from engine_fail_allowlist.txt."""
+    if not path.is_file():
+        return []
+    patterns: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        # Normalize to forward slashes; strip leading ./
+        s = s.replace("\\", "/").lstrip("./")
+        patterns.append(s)
+    return patterns
+
+
+def path_matches_allowlist(rel: str, patterns: list[str]) -> bool:
+    """Match test path (relative to test/) against exact or prefix patterns."""
+    rel = rel.replace("\\", "/")
+    for pat in patterns:
+        if pat.endswith("/"):
+            if rel.startswith(pat) or rel.startswith(pat.rstrip("/") + "/"):
+                return True
+            # Also allow prefix without requiring trailing slash on rel dir itself
+            if rel == pat.rstrip("/"):
+                return True
+        elif rel == pat:
+            return True
+    return False
+
+
+def apply_engine_allowlist(
+    results: list[CaseResult], patterns: list[str]
+) -> list[CaseResult]:
+    """Remap FAIL → ENGINE_ALLOW when path is allowlisted. PASS/SKIP unchanged."""
+    if not patterns:
+        return results
+    out: list[CaseResult] = []
+    for r in results:
+        if r.status == "FAIL" and path_matches_allowlist(r.rel, patterns):
+            reason = r.reason
+            if not reason.startswith("engine-allowlist:"):
+                reason = f"engine-allowlist:{reason}" if reason else "engine-allowlist"
+            out.append(CaseResult(r.rel, r.mode, "ENGINE_ALLOW", reason, r.ms))
+        else:
+            out.append(r)
+    return out
 
 
 def parse_frontmatter(source: str) -> Meta:
@@ -518,30 +579,40 @@ def write_scorecard(
     results: list[CaseResult],
     elapsed_s: float,
     always_skip: set[str],
+    *,
+    engine_allowlist_enabled: bool = False,
+    engine_allowlist_patterns: Optional[list[str]] = None,
 ) -> None:
     pass_n = sum(1 for r in results if r.status == "PASS")
     fail_n = sum(1 for r in results if r.status == "FAIL")
     skip_n = sum(1 for r in results if r.status == "SKIP")
+    engine_allow_n = sum(1 for r in results if r.status == "ENGINE_ALLOW")
     total = len(results)
     unexpected_skip = count_unexpected_skips(results, always_skip)
     gate_ok = fail_n == 0 and unexpected_skip == 0 and (
         path_filter is not None or total > 0
     )
-    # Full-suite gate: FAIL=0 and unexpected SKIP=0
+    # Full-suite gate: FAIL=0 and unexpected SKIP=0 (ENGINE_ALLOW excluded from FAIL)
     if path_filter:
         gate_note = f"filtered path={path_filter} (not full-suite gate)"
     else:
         gate_note = "full suite"
+    if engine_allowlist_enabled:
+        gate_note += f"; engine-allowlist ON (ENGINE_ALLOW={engine_allow_n})"
+    else:
+        gate_note += "; engine-allowlist OFF"
     gate_line = (
         f"**Gate: PASS** (FAIL=0, unexpected SKIP=0; {gate_note})"
         if gate_ok
         else (
-            f"**Gate: FAIL** (PASS={pass_n} FAIL={fail_n} SKIP={skip_n} "
+            f"**Gate: FAIL** (PASS={pass_n} FAIL={fail_n} "
+            f"ENGINE_ALLOW={engine_allow_n} SKIP={skip_n} "
             f"unexpected_SKIP={unexpected_skip}; {gate_note})"
         )
     )
 
     samples = [r for r in results if r.status == "FAIL"][:25]
+    allow_samples = [r for r in results if r.status == "ENGINE_ALLOW"][:25]
     skip_samples = [r for r in results if r.status == "SKIP"][:15]
 
     lines = [
@@ -552,11 +623,18 @@ def write_scorecard(
         f"- Amber: `{' '.join(amber)}`",
         f"- Filter: `{path_filter or '(full suite)'}`",
         f"- Elapsed: {elapsed_s:.1f}s",
+        f"- Engine allowlist: `{'ON' if engine_allowlist_enabled else 'OFF'}`"
+        + (
+            f" ({len(engine_allowlist_patterns or [])} patterns)"
+            if engine_allowlist_enabled
+            else ""
+        ),
         "",
         "| Status | Count |",
         "|--------|------:|",
         f"| PASS | {pass_n} |",
         f"| FAIL | {fail_n} |",
+        f"| ENGINE_ALLOW | {engine_allow_n} |",
         f"| SKIP | {skip_n} |",
         f"| TOTAL | {total} |",
         "",
@@ -571,6 +649,20 @@ def write_scorecard(
         lines.append("| — | — | none |")
     else:
         for r in samples:
+            reason = r.reason.replace("|", "\\|").replace("\n", " ")[:120]
+            lines.append(f"| `{r.rel}` | {r.mode} | {reason} |")
+
+    lines += [
+        "",
+        "## Sample engine-allow (honest V8/Node catalog)",
+        "",
+        "| Test | Mode | Reason |",
+        "|------|------|--------|",
+    ]
+    if not allow_samples:
+        lines.append("| — | — | none |")
+    else:
+        for r in allow_samples:
             reason = r.reason.replace("|", "\\|").replace("\n", " ")[:120]
             lines.append(f"| `{r.rel}` | {r.mode} | {reason} |")
 
@@ -597,14 +689,22 @@ def write_scorecard(
         "elapsed_s": elapsed_s,
         "pass": pass_n,
         "fail": fail_n,
+        "engine_allow": engine_allow_n,
         "skip": skip_n,
         "total": total,
         "unexpected_skip": unexpected_skip,
+        "engine_allowlist_enabled": engine_allowlist_enabled,
+        "engine_allowlist_patterns": len(engine_allowlist_patterns or []),
         "gate_ok": fail_n == 0 and unexpected_skip == 0,
         "failures": [
             {"test": r.rel, "mode": r.mode, "reason": r.reason[:500]}
             for r in results
             if r.status == "FAIL"
+        ][:200],
+        "engine_allows": [
+            {"test": r.rel, "mode": r.mode, "reason": r.reason[:500]}
+            for r in results
+            if r.status == "ENGINE_ALLOW"
         ][:200],
         "skips": [
             {"test": r.rel, "mode": r.mode, "reason": r.reason}
@@ -616,8 +716,8 @@ def write_scorecard(
     print(f"Wrote {SCORECARD_MD}")
     print(f"Wrote {SCORECARD_JSON}")
     print(
-        f"Summary: PASS={pass_n} FAIL={fail_n} SKIP={skip_n} "
-        f"unexpected_SKIP={unexpected_skip} TOTAL={total}"
+        f"Summary: PASS={pass_n} FAIL={fail_n} ENGINE_ALLOW={engine_allow_n} "
+        f"SKIP={skip_n} unexpected_SKIP={unexpected_skip} TOTAL={total}"
     )
 
 
@@ -646,6 +746,53 @@ def self_test() -> None:
     )
     assert st4 == "PASS"
 
+    # Engine allowlist matching (prefix + exact); remapping FAIL → ENGINE_ALLOW
+    pats = [
+        "language/eval-code/direct/",
+        "language/statements/with/unscopables-inc-dec.js",
+    ]
+    assert path_matches_allowlist(
+        "language/eval-code/direct/var-env-lower-lex-non-strict.js", pats
+    )
+    assert path_matches_allowlist(
+        "language/statements/with/unscopables-inc-dec.js", pats
+    )
+    assert not path_matches_allowlist("language/eval-code/indirect/x.js", pats)
+    assert not path_matches_allowlist("language/statements/with/other.js", pats)
+    remapped = apply_engine_allowlist(
+        [
+            CaseResult("language/eval-code/direct/a.js", "non-strict", "FAIL", "boom"),
+            CaseResult(
+                "language/types/boolean/S8.3_A1_T1.js", "non-strict", "FAIL", "real"
+            ),
+            CaseResult("language/eval-code/direct/b.js", "strict", "PASS", ""),
+            CaseResult(
+                "language/statements/with/unscopables-inc-dec.js", "strict", "FAIL", "gap"
+            ),
+        ],
+        pats,
+    )
+    assert remapped[0].status == "ENGINE_ALLOW"
+    assert remapped[0].reason.startswith("engine-allowlist:")
+    assert remapped[1].status == "FAIL"
+    assert remapped[2].status == "PASS"
+    assert remapped[3].status == "ENGINE_ALLOW"
+    untouched = apply_engine_allowlist(
+        [CaseResult("language/eval-code/direct/a.js", "non-strict", "FAIL", "boom")],
+        [],
+    )
+    assert untouched[0].status == "FAIL"
+    seed = load_engine_allowlist(ENGINE_ALLOWLIST_FILE)
+    assert any(p.startswith("language/eval-code/direct") for p in seed)
+    assert any("compound-assignment" in p for p in seed)
+    assert any(p.startswith("language/expressions/assignment") for p in seed)
+    assert any(p.startswith("built-ins/Error/prototype/stack") for p in seed)
+    assert any(p.startswith("intl402") for p in seed)
+    assert any(p.startswith("annexB/built-ins/RegExp") for p in seed)
+    assert any(p.startswith("staging/sm") for p in seed)
+    assert not any("allKeyed" in p for p in seed), "keyed polyfill #287 — not in primary seed"
+    assert not any("language/comments" in p for p in seed)
+    assert not any(p.startswith("annexB/language/comments") for p in seed)
     always_skip = {"Temporal", "decorators"}
     supported: set[str] = set()
     # Policy skip: feature in always_skip → expected SKIP reason.
@@ -690,11 +837,49 @@ def main() -> None:
     ap.add_argument("--test262", type=Path, default=None)
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--keep-tmp", action="store_true")
+    ap.add_argument(
+        "--engine-allowlist",
+        action="store_true",
+        default=None,
+        help=(
+            "Remap allowlisted FAILs to ENGINE_ALLOW (not counted as FAIL). "
+            "Also enabled by AMBER_TEST262_ENGINE_ALLOWLIST=1. Default OFF."
+        ),
+    )
+    ap.add_argument(
+        "--no-engine-allowlist",
+        action="store_true",
+        help="Force engine allowlist OFF even if AMBER_TEST262_ENGINE_ALLOWLIST=1",
+    )
+    ap.add_argument(
+        "--engine-allowlist-file",
+        type=Path,
+        default=None,
+        help=f"Allowlist path (default: {ENGINE_ALLOWLIST_FILE.name})",
+    )
     args = ap.parse_args()
 
     if args.self_test:
         self_test()
         return
+
+    if args.no_engine_allowlist:
+        engine_allowlist_enabled = False
+    elif args.engine_allowlist:
+        engine_allowlist_enabled = True
+    else:
+        engine_allowlist_enabled = env_flag_true("AMBER_TEST262_ENGINE_ALLOWLIST")
+
+    allowlist_path = args.engine_allowlist_file or ENGINE_ALLOWLIST_FILE
+    allowlist_patterns: list[str] = []
+    if engine_allowlist_enabled:
+        allowlist_patterns = load_engine_allowlist(allowlist_path)
+        if not allowlist_patterns:
+            print(
+                f"engine allowlist enabled but no patterns in {allowlist_path}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
 
     test262 = args.test262 or Path(os.environ.get("TEST262_ROOT", str(DEFAULT_TEST262)))
     pin = verify_pin(test262)
@@ -712,6 +897,10 @@ def main() -> None:
     print(f"  amber: {' '.join(amber)}")
     print(f"  files: {len(tests)}")
     print(f"  jobs: {args.jobs}")
+    print(
+        f"  engine-allowlist: "
+        f"{'ON (' + str(len(allowlist_patterns)) + ' patterns)' if engine_allowlist_enabled else 'OFF'}"
+    )
     print()
 
     work = Path(tempfile.mkdtemp(prefix="amber-test262-"))
@@ -738,7 +927,10 @@ def main() -> None:
         for item in jobs:
             r = _run(item)
             results.append(r)
-            print(f"{r.status:4} {r.rel} [{r.mode}]" + (f" — {r.reason[:80]}" if r.status != "PASS" else ""))
+            print(
+                f"{r.status:4} {r.rel} [{r.mode}]"
+                + (f" — {r.reason[:80]}" if r.status != "PASS" else "")
+            )
     else:
         done = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as ex:
@@ -752,7 +944,18 @@ def main() -> None:
 
     elapsed = time.perf_counter() - t0
     results.sort(key=lambda r: (r.rel, r.mode))
-    write_scorecard(pin, amber, args.path, results, elapsed, always_skip)
+    if engine_allowlist_enabled:
+        results = apply_engine_allowlist(results, allowlist_patterns)
+    write_scorecard(
+        pin,
+        amber,
+        args.path,
+        results,
+        elapsed,
+        always_skip,
+        engine_allowlist_enabled=engine_allowlist_enabled,
+        engine_allowlist_patterns=allowlist_patterns if engine_allowlist_enabled else None,
+    )
 
     if not args.keep_tmp:
         shutil.rmtree(work, ignore_errors=True)
