@@ -10557,6 +10557,10 @@ impl MinimalRuntime {
             }
         }
 
+        // TC39 await-dictionary (Stage 3): Promise.allKeyed / allSettledKeyed.
+        // Not in V8/Node yet — Amber host polyfill (also installed on createRealm).
+        crate::promise_await_dictionary::install(scope)?;
+
         Ok(())
     }
 
