@@ -134,11 +134,15 @@ def modes_for(meta: Meta) -> list[str]:
 
 
 def skip_reason(meta: Meta, supported: set[str], always_skip: set[str]) -> Optional[str]:
+    """Skip only features Amber explicitly cannot claim (`always_skip`).
+
+    Features listed in `supported` are informational. Unknown features are
+    *run* (honest PASS/FAIL) rather than silently skipped — avoids SKIP abuse
+    and false skips for V8 builtins (TypedArray names, etc.).
+    """
+    _ = supported  # retained for scorecard / future allowlist reporting
     for feat in meta.features:
         if feat in always_skip:
-            return f"unsupported-feature:{feat}"
-        if supported and feat not in supported and feat not in always_skip:
-            # Unknown/new stage-3+ feature not in allowlist → expected SKIP
             return f"unsupported-feature:{feat}"
     return None
 
