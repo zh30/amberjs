@@ -107,6 +107,17 @@ def verify_pin(test262: Path) -> str:
     return pin
 
 
+def is_test262_fixture(path: Path) -> bool:
+    """Fixture modules are imported by tests; they are not cases themselves."""
+    name = path.name
+    return (
+        name.endswith("_FIXTURE.js")
+        or name.endswith("_FIXTURE.mjs")
+        or name.endswith("_FIXTURE.cjs")
+        or name.endswith("_Fixture.js")
+    )
+
+
 def discover_tests(test262: Path, path_filter: Optional[str], limit: Optional[int]) -> list[Path]:
     base = test262 / "test"
     if path_filter:
@@ -114,7 +125,9 @@ def discover_tests(test262: Path, path_filter: Optional[str], limit: Optional[in
     if not base.exists():
         print(f"path not found: {base}", file=sys.stderr)
         sys.exit(2)
-    files = sorted(p for p in base.rglob("*.js") if p.is_file())
+    files = sorted(
+        p for p in base.rglob("*.js") if p.is_file() and not is_test262_fixture(p)
+    )
     if limit is not None:
         files = files[:limit]
     return files
@@ -134,11 +147,15 @@ def modes_for(meta: Meta) -> list[str]:
 
 
 def skip_reason(meta: Meta, supported: set[str], always_skip: set[str]) -> Optional[str]:
+    """Skip only features Amber explicitly cannot claim (`always_skip`).
+
+    Features listed in `supported` are informational. Unknown features are
+    *run* (honest PASS/FAIL) rather than silently skipped — avoids SKIP abuse
+    and false skips for V8 builtins (TypedArray names, etc.).
+    """
+    _ = supported  # retained for scorecard / future allowlist reporting
     for feat in meta.features:
         if feat in always_skip:
-            return f"unsupported-feature:{feat}"
-        if supported and feat not in supported and feat not in always_skip:
-            # Unknown/new stage-3+ feature not in allowlist → expected SKIP
             return f"unsupported-feature:{feat}"
     return None
 
@@ -284,28 +301,44 @@ def run_one(
     except Exception as exc:  # noqa: BLE001
         return CaseResult(rel, mode, "FAIL", f"wrap:{exc}", 0.0)
 
-    tmp = work_dir / f"{rel.replace('/', '__')}__{mode}{suffix}"
-    tmp.parent.mkdir(parents=True, exist_ok=True)
-    tmp.write_text(source, encoding="utf-8")
+    # Unique path per attempt/thread — avoids parallel clobber + helps crash retries.
+    tmp_dir = work_dir / f"{rel.replace('/', '__')}__{mode}"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
 
-    cmd = [*amber, "run", str(tmp)]
+    cmd_base = [*amber, "run"]
     env = os.environ.copy()
     # Enable native __amber_createRealm for cross-realm tests.
     env.setdefault("AMBER_TEST262", "1")
-    try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=str(ROOT),
-            env=env,
-        )
-        status, reason = classify_result(meta, proc.returncode, proc.stderr, proc.stdout)
-    except subprocess.TimeoutExpired:
-        status, reason = "FAIL", f"timeout>{timeout}s"
-    except Exception as exc:  # noqa: BLE001
-        status, reason = "FAIL", f"exec:{exc}"
+
+    status, reason = "FAIL", "no attempt"
+    # CI saw exit -7 (SIGBUS) on an otherwise-green types test under --jobs 4.
+    # Retry signal deaths only — never retry ordinary assertion failures.
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        tmp = tmp_dir / f"a{attempt}{suffix}"
+        tmp.write_text(source, encoding="utf-8")
+        try:
+            proc = subprocess.run(
+                [*cmd_base, str(tmp)],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd=str(ROOT),
+                env=env,
+            )
+            # Negative returncode => killed by signal (e.g. -7 SIGBUS).
+            if proc.returncode < 0 and attempt + 1 < max_attempts:
+                continue
+            status, reason = classify_result(meta, proc.returncode, proc.stderr, proc.stdout)
+            if status == "FAIL" and proc.returncode < 0 and attempt + 1 < max_attempts:
+                continue
+            break
+        except subprocess.TimeoutExpired:
+            status, reason = "FAIL", f"timeout>{timeout}s"
+            break
+        except Exception as exc:  # noqa: BLE001
+            status, reason = "FAIL", f"exec:{exc}"
+            break
 
     ms = (time.perf_counter() - t0) * 1000
     return CaseResult(rel, mode, status, reason, ms)

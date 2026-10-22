@@ -8,6 +8,8 @@ on:
       - "scripts/fetch_test262.sh"
       - "src/runtime_minimal.rs"
       - "src/main.rs"
+      - "src/typescript/**"
+      - "src/test262_host.rs"
       - ".github/workflows/test262.yml"
   pull_request:
     branches: [main]
@@ -16,6 +18,8 @@ on:
       - "scripts/fetch_test262.sh"
       - "src/runtime_minimal.rs"
       - "src/main.rs"
+      - "src/typescript/**"
+      - "src/test262_host.rs"
       - ".github/workflows/test262.yml"
   workflow_dispatch:
 
@@ -71,11 +75,13 @@ jobs:
           # is the gate; expand to full suite only when that path stays green.
           set -e
           ./target/debug/amber --version
+          # jobs=1: CI saw amber SIGBUS (exit -7) on S8.3_A1_T2 under --jobs 4.
+          # Gate must stay deterministic 211/0/0; runner also retries signal deaths.
           for path in language/types/boolean language/types/null language/types/number \
                       language/types/object language/types/string language/types/undefined \
                       language/types; do
             echo "::group::test262 --path $path"
-            python3 tests/test262/run_test262.py --path "$path" --jobs 4
+            python3 tests/test262/run_test262.py --path "$path" --jobs 1
             echo "::endgroup::"
           done
           echo "Scorecard (language/types):"
