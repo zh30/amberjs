@@ -8,8 +8,10 @@
     "prebuild": "cp ../../install.sh public/install.sh && cp ../../install.ps1 public/install.ps1",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "wrangler deploy",
-    "deploy:dry-run": "wrangler deploy --dry-run"
+    "deploy": "mkdir -p dist && cf deploy --mode production",
+    "deploy:dry-run": "mkdir -p dist && cf build --mode production && cf deploy --prebuilt --mode production --dry-run",
+    "deploy:wrangler": "wrangler deploy --config wrangler.toml",
+    "deploy:wrangler:dry-run": "wrangler deploy --dry-run --config wrangler.toml"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
@@ -30,6 +32,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
+    "cf": "1.0.0-beta.20",
     "clsx": "^2.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -46,6 +49,6 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.3.0",
     "vite-tsconfig-paths": "^6.0.2",
-    "wrangler": "^4.55.0"
+    "wrangler": "^4.151.3"
   }
 }

@@ -1,0 +1,113 @@
+# Production website deploy via the Cloudflare CLI (`cf`).
+# Pull requests build once and dry-run the same output. Only a push to main
+# publishes. `cf deploy --dry-run` does not call the API and needs no token,
+# so fork PRs (which do not receive Actions secrets) can still run this job.
+# https://developers.cloudflare.com/cf/ci/
+name: Deploy website (cf)
+
+on:
+  pull_request:
+    paths:
+      - "apps/website/**"
+      - "install.sh"
+      - "install.ps1"
+      - ".github/workflows/deploy-website-cf.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/website/**"
+      - "install.sh"
+      - "install.ps1"
+      - ".github/workflows/deploy-website-cf.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-website-cf-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    env:
+      CF_SEND_TELEMETRY: "false"
+    defaults:
+      run:
+        working-directory: apps/website
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          # cf requires Node.js 22.18 or newer. The 22 line is past that floor.
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/website/pnpm-lock.yaml
+
+      - name: Require Node.js 22.18 or newer
+        run: |
+          node -e 'const [maj, min] = process.versions.node.split(".").map(Number); if (maj < 22 || (maj === 22 && min < 18)) { console.error("Node >=22.18 required, got " + process.versions.node); process.exit(1); }'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: |
+          # The Wrangler bundler checks assets.directory before it runs
+          # wrangler.config.ts build.command (the command that creates dist/).
+          # An empty directory is enough for that check; the custom build fills it.
+          # --mode production is required: this bundler records no mode unless
+          # one is passed, and the deploy below rejects a modeless Build Output.
+          mkdir -p dist
+          pnpm exec cf build --mode production
+
+      - name: Dry-run deploy
+        run: pnpm exec cf deploy --prebuilt --mode production --dry-run
+
+      # Secrets stay on this step only. Do not copy them onto the build or
+      # dry-run steps: fork pull requests do not have repository secrets.
+      # Account id is a Secret (secrets.CLOUDFLARE_ACCOUNT_ID), not a variable.
+      - name: Deploy to Cloudflare
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo "::error::Missing secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "::error::Missing secret CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+          if ! pnpm exec cf deploy --prebuilt --mode production; then
+            echo "::error::cf deploy failed; Worker and static assets were not published"
+            exit 1
+          fi
+          # R2 objects shadow the static installers on get.amberjs.com.
+          # Upload with the same credentials, in this step only.
+          if ! pnpm exec cf r2 objects put install.sh \
+            --bucket-name amber-dist \
+            --file ../../install.sh \
+            --content-type "text/plain; charset=utf-8"; then
+            echo "::error::Failed to upload install.sh to R2 bucket amber-dist"
+            exit 1
+          fi
+          if ! pnpm exec cf r2 objects put install.ps1 \
+            --bucket-name amber-dist \
+            --file ../../install.ps1 \
+            --content-type "text/plain; charset=utf-8"; then
+            echo "::error::Failed to upload install.ps1 to R2 bucket amber-dist"
+            exit 1
+          fi

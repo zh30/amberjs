@@ -1,6 +1,6 @@
 # Amber Website
 
-Official Amber website built with React, Vite, and Tailwind CSS. The site is deployed to Cloudflare Workers static assets through Wrangler.
+Official Amber website built with React, Vite, and Tailwind CSS. The site is deployed to Cloudflare Workers static assets with the Cloudflare CLI (`cf`).
 
 ## Development
 
@@ -19,24 +19,29 @@ The production bundle is written to `dist/`. The `prebuild` step copies repo-roo
 
 ## Cloudflare Deploy
 
-`get.amberjs.com` is a custom domain on the same Worker as `amberjs.com` (`apps/website/wrangler.toml`).
+`get.amberjs.com` is a custom domain on the same Worker as `amberjs.com` (`apps/website/cloudflare.config.ts`). `wrangler.toml` is kept for rollback and is not read by `cf`.
 
-Production deploys run through GitHub Actions on the **`production`** Environment (secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`). The workflow publishes on push to `main` when `apps/website/**`, `install.sh`, `install.ps1`, or the workflow file change. Tokens are not stored in the YAML.
+Production deploys run through `.github/workflows/deploy-website-cf.yml`. Pull requests run `cf build` and `cf deploy --prebuilt --mode production --dry-run` with no credentials. A push to `main` deploys that same build when `apps/website/**`, `install.sh`, `install.ps1`, or the workflow file change. The only step that receives repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` is the real deploy. `cf` is in beta.
 
-To publish manually: **Actions → Deploy website → Run workflow**.
-
-Local Wrangler is still available for dry-run and development (needs a Cloudflare account with access to this Worker):
+Local dry-run (no Cloudflare login):
 
 ```bash
 pnpm run deploy:dry-run
-pnpm run deploy
 ```
 
-`wrangler.toml` serves `dist/` as static assets and uses `single-page-application` fallback so direct links such as `/docs/installation` work on Cloudflare.
+That creates `dist/` if needed, runs `cf build --mode production`, then `cf deploy --prebuilt --mode production --dry-run`. `pnpm run deploy` needs an API token. The Wrangler bundler records no mode unless `--mode` is passed, so build and deploy both use `production`.
 
-`src/worker.ts` serves `/install.sh` and `/install.ps1` from the R2 bucket `amber-dist` **when that object exists**, otherwise from the Worker static assets. If R2 has `install.sh` / `install.ps1`, it shadows the Worker assets. The production workflow also uploads both scripts to `amber-dist` after deploy so `get.amberjs.com` stays in sync. Local equivalent (wrangler 4.x uses `{bucket}/{key}`):
+### Rollback to Wrangler
+
+1. In GitHub, open **Actions → Deploy website (Wrangler rollback) → Run workflow** on `main`.
+2. That workflow is `workflow_dispatch` only, so it will not deploy on push while the `cf` workflow is active.
+3. It publishes with `pnpm run deploy:wrangler` (`wrangler deploy --config wrangler.toml`) and uploads the installers with Wrangler. Do not turn its `push` trigger back on while `deploy-website-cf.yml` also deploys.
+
+`cloudflare.config.ts` serves the Vite `dist/` directory as static assets (`assetsDirectory` in `wrangler.config.ts`) and uses `single-page-application` fallback so direct links such as `/docs/installation` work on Cloudflare.
+
+`src/worker.ts` serves `/install.sh` and `/install.ps1` from the R2 bucket `amber-dist` **when that object exists**, otherwise from the Worker static assets. If R2 has `install.sh` / `install.ps1`, it shadows the Worker assets. The production workflow uploads both scripts to `amber-dist` after `cf deploy` so `get.amberjs.com` stays in sync:
 
 ```bash
-npx wrangler r2 object put amber-dist/install.sh --file=../../install.sh --remote --content-type "text/plain; charset=utf-8"
-npx wrangler r2 object put amber-dist/install.ps1 --file=../../install.ps1 --remote --content-type "text/plain; charset=utf-8"
+pnpm exec cf r2 objects put install.sh --bucket-name amber-dist --file ../../install.sh --content-type "text/plain; charset=utf-8"
+pnpm exec cf r2 objects put install.ps1 --bucket-name amber-dist --file ../../install.ps1 --content-type "text/plain; charset=utf-8"
 ```

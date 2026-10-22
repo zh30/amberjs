@@ -33,9 +33,12 @@ The rest of `src/nodejs_core/` (`http`, `net`, streams, `child_process`, and the
 | `chmod` / `chmodSync` | Sets the permission bits. Syscall `chmod`. |
 | `access` / `accessSync` | Unix `access(2)`. `constants.F_OK` is `0`. A missing path is `ENOENT`. Syscall `access`. |
 | `existsSync` | Synchronous boolean. An existing file or directory is `true`. A missing path is `false` (it does not throw). Follows symlinks: a link to an existing target is `true`; a broken link is `false`. Named ESM export. Under the permission broker, a denied read throws `TypeError` whose message contains `permission denied` before the path is checked. |
+| `cp` / `cpSync` | Recursive copy. `{ recursive: true }` copies a directory tree; a directory without `recursive` is `EISDIR`. A destination inside the source is `EINVAL` (checked through symlinks — copying a linked source into its real target fails too). An existing file destination is overwritten by default; `{ force: false }` skips it, and `{ force: false, errorOnExist: true }` fails with `EEXIST`. A file copied onto a directory is `EISDIR`; a directory copied onto a file is `ENOTDIR`. Symlinks are dereferenced. Merging into an existing directory is per-entry. Syscall `cp`. |
+| `opendir` / `opendirSync` | Returns a `Dir` with `path`, `read(cb)` / `readSync()`, and `close(cb)` / `closeSync()`. The listing is a snapshot taken at `opendir` time; entries created afterwards are not seen. `read` yields dirents in OS order then `null`. Reading or closing a closed `Dir` is `EBADF`. Syscall `opendir` (`read` reports `readdir`, `close` reports `close`). A `Dir` dropped without `close` keeps its snapshot (no GC finalizer); at most 256 live `Dir`s per runtime, further `opendir` calls fail `EMFILE`. |
+| `statfs` / `statfsSync` | `statvfs(3)` on the real host path: `{ bsize, frsize, blocks, bfree, bavail, files, ffree, favail, namemax }` as numbers. Missing path is `ENOENT`. Syscall `statfs`. Unix only — non-Unix platforms fail with `EIO` (`Unsupported`); the same failure under the sandbox VFS (no host mapping — answering would leak host stats). |
 | `fs.constants` | `F_OK`, `R_OK`, `W_OK`, `X_OK`, `O_RDONLY`, `O_WRONLY`, `O_RDWR`, `O_APPEND`, `O_CREAT`, `O_EXCL`, `O_TRUNC`, `COPYFILE_EXCL`. |
 
-`fs.promises` has the same methods without the `Sync` suffix, except there is no `promises.exists`. `promises.open` / `read` / `write` / `close` use the same numeric fds. They do not return a Node `FileHandle`.
+`fs.promises` has the same methods without the `Sync` suffix, except there is no `promises.exists`. `promises.open` / `read` / `write` / `close` use the same numeric fds. They do not return a Node `FileHandle`. `promises.cp` / `opendir` / `statfs` resolve the same values as their `Sync` counterparts (a `Dir` from `promises.opendir` supports the same sync and callback methods).
 
 ## Write flags
 
@@ -65,11 +68,14 @@ Failures from `mkdir`, `stat`, `lstat`, `unlink`, `rename`, and `rmdir` throw or
 | `path` | The path passed to the call |
 | `errno` | A number less than 0 |
 
-`readFile`, `writeFile`, `copyFile`, `rm`, `realpath`, `chmod`, `access`, `open`, `read`, `write`, and `close` use the same error shape with their own syscall names.
+`readFile`, `writeFile`, `copyFile`, `rm`, `realpath`, `chmod`, `access`, `open`, `read`, `write`, `close`, `cp`, `opendir`, and `statfs` use the same error shape with their own syscall names.
 
 ## Non-goals
 
-- `fs.glob`, `fs.cp`, `fs.opendir`, and `fs.statfs` (not implemented on this page).
+- `fs.glob` (not implemented on this page).
+- `cp` options `filter`, `dereference`, `verbatimSymlinks`, and `preserveTimestamps` — the carve is `{ recursive, force, errorOnExist }` only.
+- `Dir` async-iterator (`for await`) and `dir.readSync` options. `Dir` is the four-method object above, not the full Node class.
+- `statfs` `{ bigint: true }` form and the `type` field (Node reports `statfs(2)` `f_type`; the implementation uses `statvfs(3)` which has no `f_type`).
 - `fs.watch` / `fs.watchFile` / `fs.unwatchFile` — Stable under **G64** ([`docs/FS_WATCH_CONTRACT.md`](FS_WATCH_CONTRACT.md)), not this G8 page.
 - `fs.exists` (callback) and `fs.promises.exists` (not installed).
 - Node `FileHandle` (`fd.close()` as a method, `readableWebStream`, and the rest of that class).
