@@ -105,18 +105,36 @@ fn service_worker_scope_claim_and_message_do_not_wrap_fetch() {
         navigator.serviceWorker.onmessage = (event) => {
           clearTimeout(timer);
           const active = registration && registration.active;
+          // Prefer live state from registration.active; fall back to
+          // controller when a race briefly clears the active slot.
+          const state =
+            (active && active.state) ||
+            (navigator.serviceWorker.controller &&
+              navigator.serviceWorker.controller.state) ||
+            '';
           globalThis.__amberWorkerContract = [
             event.data.reply,
             registration.scope,
-            active && active.state,
+            state,
             navigator.serviceWorker.controller === active,
             fetch === fetchBefore
           ].join('|');
           registration.unregister();
         };
+        // Wait for ready/activated before messaging — register()'s resolve
+        // can race claim vs activated delivery on slow CI (empty state flake).
         navigator.serviceWorker.register(url, { scope: '/app/' }).then((reg) => {
           registration = reg;
-          reg.active.postMessage({ msg: 'hello worker' });
+          return navigator.serviceWorker.ready;
+        }).then((reg) => {
+          registration = reg;
+          const active = reg.active;
+          if (!active || active.state !== 'activated') {
+            globalThis.__amberWorkerContract =
+              'not-activated:' + (active && active.state);
+            return;
+          }
+          active.postMessage({ msg: 'hello worker' });
         }, (err) => {
           clearTimeout(timer);
           globalThis.__amberWorkerContract = 'reject:' + (err && err.message || err);

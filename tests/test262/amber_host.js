@@ -1,6 +1,6 @@
 // Amber $262 host object for test262.
-// Prefer native __amber_createRealm / __amber_detachArrayBuffer (AMBER_TEST262=1).
-// Agent stays an honest throw-stub until multi-agent host lands.
+// Prefer native __amber_createRealm / __amber_detachArrayBuffer / __amber_agent_*
+// (AMBER_TEST262=1).
 /* eslint-disable no-var */
 
 // test262 INTERPRETING.md: `print` must be a writable/configurable/non-enumerable
@@ -108,6 +108,16 @@ var $262 = (function () {
     // Best-effort no-op; Amber does not expose V8 gc() to scripts by default.
   }
 
+  function requireAgentNative(name) {
+    if (typeof globalThis[name] !== "function") {
+      throw new Test262Error(
+        "$262.agent requires AMBER_TEST262=1 (native agent host: missing " +
+          name +
+          ")"
+      );
+    }
+  }
+
   return {
     createRealm: createRealm,
     detachArrayBuffer: detachArrayBuffer,
@@ -115,19 +125,30 @@ var $262 = (function () {
     gc: gc,
     global: globalThis,
     agent: {
-      start: function () {
-        throw new Test262Error("$262.agent is not implemented on Amber yet");
+      start: function (script) {
+        requireAgentNative("__amber_agent_start");
+        __amber_agent_start(String(script));
       },
-      broadcast: function () {
-        throw new Test262Error("$262.agent is not implemented on Amber yet");
+      broadcast: function (sab, id) {
+        requireAgentNative("__amber_agent_broadcast");
+        if (arguments.length < 2) {
+          __amber_agent_broadcast(sab);
+        } else {
+          __amber_agent_broadcast(sab, id);
+        }
       },
       getReport: function () {
-        throw new Test262Error("$262.agent is not implemented on Amber yet");
+        requireAgentNative("__amber_agent_getReport");
+        return __amber_agent_getReport();
       },
-      sleep: function () {
-        throw new Test262Error("$262.agent is not implemented on Amber yet");
+      sleep: function (ms) {
+        requireAgentNative("__amber_agent_sleep");
+        __amber_agent_sleep(ms);
       },
       monotonicNow: function () {
+        if (typeof __amber_agent_monotonicNow === "function") {
+          return __amber_agent_monotonicNow();
+        }
         return Date.now();
       },
     },
