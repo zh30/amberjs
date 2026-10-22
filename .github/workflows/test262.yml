@@ -1,0 +1,80 @@
+name: test262
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tests/test262/**"
+      - "scripts/fetch_test262.sh"
+      - "src/runtime_minimal.rs"
+      - "src/main.rs"
+      - ".github/workflows/test262.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "tests/test262/**"
+      - "scripts/fetch_test262.sh"
+      - "src/runtime_minimal.rs"
+      - "src/main.rs"
+      - ".github/workflows/test262.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test262-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: test262 smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+
+      - name: Install OpenSSL
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libssl-dev pkg-config
+
+      - name: Cache Rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-test262-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-test262-
+            ${{ runner.os }}-cargo-
+
+      - name: Harness self-test
+        run: python3 tests/test262/run_test262.py --self-test
+
+      - name: Fetch test262 pin
+        run: ./scripts/fetch_test262.sh
+
+      - name: Build amber
+        run: cargo build -q
+
+      - name: Smoke path language/types
+        run: |
+          # Fail-closed on this smoke path while the full suite is still driven to green.
+          AMBER_BIN=./target/debug/amber python3 tests/test262/run_test262.py \
+            --path language/types --jobs 4
+          echo "Scorecard:"
+          cat tests/test262/scorecard.md
+
+      - name: Upload scorecard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test262-scorecard
+          path: |
+            tests/test262/scorecard.md
+            tests/test262/scorecard.json

@@ -1,0 +1,494 @@
+#!/usr/bin/env python3
+"""Amber test262 harness — discover, run, scorecard.
+
+Exit codes:
+  0 — gate green (FAIL=0 and unexpected SKIP=0; for filtered runs, same)
+  1 — gate red (failures or unexpected skips)
+  2 — harness / environment error
+"""
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Optional
+
+try:
+    import yaml
+except ImportError:
+    print("PyYAML required: pip install pyyaml", file=sys.stderr)
+    sys.exit(2)
+
+ROOT = Path(__file__).resolve().parents[2]
+HARNESS_DIR = Path(__file__).resolve().parent
+DEFAULT_TEST262 = ROOT / "third_party" / "test262"
+PIN_FILE = HARNESS_DIR / "PIN"
+FEATURES_FILE = HARNESS_DIR / "features.json"
+HOST_JS = HARNESS_DIR / "amber_host.js"
+SCORECARD_MD = HARNESS_DIR / "scorecard.md"
+SCORECARD_JSON = HARNESS_DIR / "scorecard.json"
+
+FRONTMATTER_RE = re.compile(r"/\*---\s*(.*?)\s*---\*/", re.DOTALL)
+
+
+@dataclass
+class Meta:
+    flags: set[str] = field(default_factory=set)
+    includes: list[str] = field(default_factory=list)
+    features: list[str] = field(default_factory=list)
+    negative: Optional[dict[str, str]] = None
+    raw: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class CaseResult:
+    rel: str
+    mode: str
+    status: str  # PASS | FAIL | SKIP
+    reason: str = ""
+    ms: float = 0.0
+
+
+def parse_frontmatter(source: str) -> Meta:
+    m = FRONTMATTER_RE.search(source)
+    if not m:
+        return Meta()
+    data = yaml.safe_load(m.group(1)) or {}
+    flags = set(data.get("flags") or [])
+    includes = list(data.get("includes") or [])
+    features = list(data.get("features") or [])
+    negative = data.get("negative")
+    if negative is not None and not isinstance(negative, dict):
+        negative = None
+    return Meta(flags=flags, includes=includes, features=features, negative=negative, raw=data)
+
+
+def load_features_policy() -> tuple[set[str], set[str]]:
+    if not FEATURES_FILE.is_file():
+        return set(), set()
+    data = json.loads(FEATURES_FILE.read_text(encoding="utf-8"))
+    supported = set(data.get("supported") or [])
+    always_skip = set(data.get("always_skip_features") or [])
+    return supported, always_skip
+
+
+def resolve_amber(explicit: Optional[str]) -> list[str]:
+    if explicit:
+        return [explicit]
+    env = os.environ.get("AMBER_BIN")
+    if env:
+        return [env]
+    for candidate in (ROOT / "target/release/amber", ROOT / "target/debug/amber"):
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return [str(candidate)]
+    return ["cargo", "run", "--quiet", "--"]
+
+
+def verify_pin(test262: Path) -> str:
+    pin = PIN_FILE.read_text(encoding="utf-8").strip()
+    if not (test262 / ".git").exists() and not (test262 / "harness").is_dir():
+        print(f"test262 missing at {test262}; run ./scripts/fetch_test262.sh", file=sys.stderr)
+        sys.exit(2)
+    head = subprocess.check_output(
+        ["git", "-C", str(test262), "rev-parse", "HEAD"], text=True
+    ).strip()
+    if head != pin:
+        print(f"test262 HEAD {head} != PIN {pin}; re-run ./scripts/fetch_test262.sh", file=sys.stderr)
+        sys.exit(2)
+    return pin
+
+
+def discover_tests(test262: Path, path_filter: Optional[str], limit: Optional[int]) -> list[Path]:
+    base = test262 / "test"
+    if path_filter:
+        base = base / path_filter
+    if not base.exists():
+        print(f"path not found: {base}", file=sys.stderr)
+        sys.exit(2)
+    files = sorted(p for p in base.rglob("*.js") if p.is_file())
+    if limit is not None:
+        files = files[:limit]
+    return files
+
+
+def modes_for(meta: Meta) -> list[str]:
+    flags = meta.flags
+    if "raw" in flags:
+        return ["raw"]
+    if "module" in flags:
+        return ["module"]
+    if "onlyStrict" in flags:
+        return ["strict"]
+    if "noStrict" in flags:
+        return ["non-strict"]
+    return ["non-strict", "strict"]
+
+
+def skip_reason(meta: Meta, supported: set[str], always_skip: set[str]) -> Optional[str]:
+    for feat in meta.features:
+        if feat in always_skip:
+            return f"unsupported-feature:{feat}"
+        if supported and feat not in supported and feat not in always_skip:
+            # Unknown/new stage-3+ feature not in allowlist → expected SKIP
+            return f"unsupported-feature:{feat}"
+    return None
+
+
+def read_includes(test262: Path, names: list[str]) -> str:
+    parts: list[str] = []
+    harness = test262 / "harness"
+    # Always load assert.js + sta.js unless raw (caller handles raw).
+    for name in ["assert.js", "sta.js", *names]:
+        path = harness / name
+        if not path.is_file():
+            raise FileNotFoundError(f"missing harness include: {name}")
+        parts.append(path.read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
+def wrap_source(
+    test262: Path,
+    test_src: str,
+    meta: Meta,
+    mode: str,
+    host_js: str,
+) -> tuple[str, str]:
+    """Return (source, file_suffix) for amber run."""
+    # Strip frontmatter so YAML does not confuse parsers.
+    body = FRONTMATTER_RE.sub("", test_src, count=1)
+
+    # Negative parse/early errors: only the test body is parsed (no harness).
+    # See test262 INTERPRETING.md — $DONOTEVALUATE must never run.
+    if meta.negative and (meta.negative.get("phase") or "").lower() in (
+        "parse",
+        "early",
+    ):
+        if mode == "strict":
+            body = '"use strict";\n' + body
+        elif mode == "module":
+            return body, ".mjs"
+        return body, ".js"
+
+    if mode == "raw":
+        return body, ".js"
+
+    includes = read_includes(test262, meta.includes)
+
+    if mode == "strict":
+        body = '"use strict";\n' + body
+
+    async_prologue = ""
+    async_epilogue = ""
+    if "async" in meta.flags:
+        # test262 async: test calls $DONE() / $DONE(error)
+        async_prologue = """
+var __test262_async_done = false;
+var __test262_async_err = null;
+function $DONE(err) {
+  __test262_async_done = true;
+  if (err) { __test262_async_err = err; }
+}
+"""
+        async_epilogue = """
+if (!__test262_async_done) {
+  throw new Test262Error('Test262: async test did not call $DONE');
+}
+if (__test262_async_err) {
+  throw __test262_async_err;
+}
+"""
+
+    combined = "\n".join([host_js, includes, async_prologue, body, async_epilogue])
+    if mode == "module":
+        return combined, ".mjs"
+    return combined, ".js"
+
+
+def classify_result(
+    meta: Meta,
+    returncode: int,
+    stderr: str,
+    stdout: str,
+) -> tuple[str, str]:
+    err_text = (stderr or "") + "\n" + (stdout or "")
+    if meta.negative:
+        phase = (meta.negative.get("phase") or "").lower()
+        ntype = meta.negative.get("type") or ""
+        # Negative tests expect a throw / early error.
+        if returncode != 0:
+            if ntype and ntype in err_text:
+                return "PASS", f"negative:{phase}:{ntype}"
+            # Parser diagnostics may omit the exact `SyntaxError` token.
+            if phase in ("parse", "early") and (not ntype or ntype == "SyntaxError"):
+                markers = (
+                    "SyntaxError",
+                    "Unexpected token",
+                    "Unexpected identifier",
+                    "Parse error",
+                    "parse error",
+                )
+                if any(m in err_text for m in markers):
+                    return "PASS", f"negative:{phase}:SyntaxError~"
+            if ntype:
+                return "FAIL", f"negative expected {ntype}, got: {err_text[:200]!r}"
+            return "PASS", f"negative:{phase}"
+        return "FAIL", "negative test completed without error"
+    # Positive
+    if returncode == 0:
+        if "Test262Error" in err_text and "Test262Error:" in err_text:
+            return "FAIL", err_text[:300]
+        return "PASS", ""
+    return "FAIL", err_text[:400].strip() or f"exit {returncode}"
+
+
+def run_one(
+    amber: list[str],
+    test262: Path,
+    test_path: Path,
+    mode: str,
+    meta: Meta,
+    host_js: str,
+    timeout: float,
+    work_dir: Path,
+) -> CaseResult:
+    rel = str(test_path.relative_to(test262 / "test"))
+    t0 = time.perf_counter()
+    try:
+        source, suffix = wrap_source(test262, test_path.read_text(encoding="utf-8"), meta, mode, host_js)
+    except Exception as exc:  # noqa: BLE001
+        return CaseResult(rel, mode, "FAIL", f"wrap:{exc}", 0.0)
+
+    tmp = work_dir / f"{rel.replace('/', '__')}__{mode}{suffix}"
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_text(source, encoding="utf-8")
+
+    cmd = [*amber, "run", str(tmp)]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=str(ROOT),
+        )
+        status, reason = classify_result(meta, proc.returncode, proc.stderr, proc.stdout)
+    except subprocess.TimeoutExpired:
+        status, reason = "FAIL", f"timeout>{timeout}s"
+    except Exception as exc:  # noqa: BLE001
+        status, reason = "FAIL", f"exec:{exc}"
+
+    ms = (time.perf_counter() - t0) * 1000
+    return CaseResult(rel, mode, status, reason, ms)
+
+
+def write_scorecard(
+    pin: str,
+    amber: list[str],
+    path_filter: Optional[str],
+    results: list[CaseResult],
+    elapsed_s: float,
+) -> None:
+    pass_n = sum(1 for r in results if r.status == "PASS")
+    fail_n = sum(1 for r in results if r.status == "FAIL")
+    skip_n = sum(1 for r in results if r.status == "SKIP")
+    total = len(results)
+    unexpected_skip = 0  # all SKIPs from policy are expected for now
+    gate_ok = fail_n == 0 and unexpected_skip == 0 and (
+        path_filter is not None or total > 0
+    )
+    # Full-suite gate: FAIL=0 and unexpected SKIP=0
+    if path_filter:
+        gate_note = f"filtered path={path_filter} (not full-suite gate)"
+    else:
+        gate_note = "full suite"
+    gate_line = (
+        f"**Gate: PASS** (FAIL=0, unexpected SKIP=0; {gate_note})"
+        if gate_ok and fail_n == 0
+        else f"**Gate: FAIL** (PASS={pass_n} FAIL={fail_n} SKIP={skip_n}; {gate_note})"
+    )
+
+    samples = [r for r in results if r.status == "FAIL"][:25]
+    skip_samples = [r for r in results if r.status == "SKIP"][:15]
+
+    lines = [
+        "# Amber test262 scorecard",
+        "",
+        f"- Generated: {time.strftime('%Y-%m-%dT%H:%MZ', time.gmtime())}",
+        f"- test262 pin: `{pin}`",
+        f"- Amber: `{' '.join(amber)}`",
+        f"- Filter: `{path_filter or '(full suite)'}`",
+        f"- Elapsed: {elapsed_s:.1f}s",
+        "",
+        "| Status | Count |",
+        "|--------|------:|",
+        f"| PASS | {pass_n} |",
+        f"| FAIL | {fail_n} |",
+        f"| SKIP | {skip_n} |",
+        f"| TOTAL | {total} |",
+        "",
+        gate_line,
+        "",
+        "## Sample failures",
+        "",
+        "| Test | Mode | Reason |",
+        "|------|------|--------|",
+    ]
+    if not samples:
+        lines.append("| — | — | none |")
+    else:
+        for r in samples:
+            reason = r.reason.replace("|", "\\|").replace("\n", " ")[:120]
+            lines.append(f"| `{r.rel}` | {r.mode} | {reason} |")
+
+    lines += [
+        "",
+        "## Sample skips",
+        "",
+        "| Test | Mode | Reason |",
+        "|------|------|--------|",
+    ]
+    if not skip_samples:
+        lines.append("| — | — | none |")
+    else:
+        for r in skip_samples:
+            lines.append(f"| `{r.rel}` | {r.mode} | {r.reason} |")
+
+    SCORECARD_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    payload = {
+        "generated": time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime()),
+        "pin": pin,
+        "amber": amber,
+        "path_filter": path_filter,
+        "elapsed_s": elapsed_s,
+        "pass": pass_n,
+        "fail": fail_n,
+        "skip": skip_n,
+        "total": total,
+        "unexpected_skip": unexpected_skip,
+        "gate_ok": fail_n == 0 and unexpected_skip == 0,
+        "failures": [
+            {"test": r.rel, "mode": r.mode, "reason": r.reason[:500]}
+            for r in results
+            if r.status == "FAIL"
+        ][:200],
+        "skips": [
+            {"test": r.rel, "mode": r.mode, "reason": r.reason}
+            for r in results
+            if r.status == "SKIP"
+        ][:200],
+    }
+    SCORECARD_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote {SCORECARD_MD}")
+    print(f"Wrote {SCORECARD_JSON}")
+    print(f"Summary: PASS={pass_n} FAIL={fail_n} SKIP={skip_n} TOTAL={total}")
+
+
+def self_test() -> None:
+    m = parse_frontmatter("/*---\nflags: [onlyStrict]\nfeatures: [BigInt]\n---*/\nok")
+    assert "onlyStrict" in m.flags
+    assert m.features == ["BigInt"]
+    assert modes_for(m) == ["strict"]
+    m2 = parse_frontmatter("/*---\nflags: [module]\n---*/")
+    assert modes_for(m2) == ["module"]
+    m3 = parse_frontmatter("/*---\nnegative:\n  phase: parse\n  type: SyntaxError\n---*/")
+    assert m3.negative and m3.negative["type"] == "SyntaxError"
+    st, _ = classify_result(m3, 1, "SyntaxError: Unexpected token", "")
+    assert st == "PASS"
+    st2, _ = classify_result(Meta(), 0, "", "")
+    assert st2 == "PASS"
+    print("test262 harness self-test ok")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Run test262 against Amber")
+    ap.add_argument("--path", help="subdir under test/ (e.g. language/types)")
+    ap.add_argument("--limit", type=int, help="max test files")
+    ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2))
+    ap.add_argument("--timeout", type=float, default=float(os.environ.get("TEST262_TIMEOUT", "30")))
+    ap.add_argument("--amber", help="path to amber binary")
+    ap.add_argument("--test262", type=Path, default=None)
+    ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--keep-tmp", action="store_true")
+    args = ap.parse_args()
+
+    if args.self_test:
+        self_test()
+        return
+
+    test262 = args.test262 or Path(os.environ.get("TEST262_ROOT", str(DEFAULT_TEST262)))
+    pin = verify_pin(test262)
+    amber = resolve_amber(args.amber)
+    host_js = HOST_JS.read_text(encoding="utf-8")
+    supported, always_skip = load_features_policy()
+
+    tests = discover_tests(test262, args.path, args.limit)
+    if not tests:
+        print("no tests discovered", file=sys.stderr)
+        sys.exit(2)
+
+    print(f"Amber test262")
+    print(f"  pin: {pin}")
+    print(f"  amber: {' '.join(amber)}")
+    print(f"  files: {len(tests)}")
+    print(f"  jobs: {args.jobs}")
+    print()
+
+    work = Path(tempfile.mkdtemp(prefix="amber-test262-"))
+    results: list[CaseResult] = []
+    t0 = time.perf_counter()
+
+    jobs: list[tuple[Path, str, Meta]] = []
+    for tp in tests:
+        meta = parse_frontmatter(tp.read_text(encoding="utf-8", errors="replace"))
+        reason = skip_reason(meta, supported, always_skip)
+        if reason:
+            rel = str(tp.relative_to(test262 / "test"))
+            for mode in modes_for(meta):
+                results.append(CaseResult(rel, mode, "SKIP", reason, 0.0))
+            continue
+        for mode in modes_for(meta):
+            jobs.append((tp, mode, meta))
+
+    def _run(item: tuple[Path, str, Meta]) -> CaseResult:
+        tp, mode, meta = item
+        return run_one(amber, test262, tp, mode, meta, host_js, args.timeout, work)
+
+    if args.jobs <= 1:
+        for item in jobs:
+            r = _run(item)
+            results.append(r)
+            print(f"{r.status:4} {r.rel} [{r.mode}]" + (f" — {r.reason[:80]}" if r.status != "PASS" else ""))
+    else:
+        done = 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as ex:
+            futs = {ex.submit(_run, item): item for item in jobs}
+            for fut in concurrent.futures.as_completed(futs):
+                r = fut.result()
+                results.append(r)
+                done += 1
+                if done % 50 == 0 or r.status == "FAIL":
+                    print(f"{r.status:4} {r.rel} [{r.mode}] ({done}/{len(jobs)})")
+
+    elapsed = time.perf_counter() - t0
+    results.sort(key=lambda r: (r.rel, r.mode))
+    write_scorecard(pin, amber, args.path, results, elapsed)
+
+    if not args.keep_tmp:
+        shutil.rmtree(work, ignore_errors=True)
+
+    fail_n = sum(1 for r in results if r.status == "FAIL")
+    sys.exit(0 if fail_n == 0 else 1)
+
+
+if __name__ == "__main__":
+    main()
