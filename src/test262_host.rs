@@ -39,6 +39,11 @@ pub fn setup_test262_host(
     let create = v8::Function::new(scope, create_realm_cb).unwrap();
     let key = v8::String::new(scope, "__amber_createRealm").unwrap();
     global.set(scope, key.into(), create.into());
+
+    // Host `$262.detachArrayBuffer` — V8 ArrayBuffer::detach (test262 INTERPRETING.md).
+    let detach = v8::Function::new(scope, detach_array_buffer_cb).unwrap();
+    let d_key = v8::String::new(scope, "__amber_detachArrayBuffer").unwrap();
+    global.set(scope, d_key.into(), detach.into());
     Ok(())
 }
 
@@ -116,7 +121,7 @@ fn create_realm_record<'s>(
     let cr_key = v8::String::new(scope, "createRealm").unwrap();
     record.set(scope, cr_key.into(), create.into());
 
-    let detach = v8::Function::new(scope, detach_not_impl).unwrap();
+    let detach = v8::Function::new(scope, detach_array_buffer_cb).unwrap();
     let d_key = v8::String::new(scope, "detachArrayBuffer").unwrap();
     record.set(scope, d_key.into(), detach.into());
 
@@ -226,18 +231,49 @@ fn realm_eval_script_cb(
     }
 }
 
-fn detach_not_impl(
+/// `$262.detachArrayBuffer(arrayBuffer [, key])` — detach via V8.
+///
+/// Matches test262 host API: TypeError if not an ArrayBuffer; optional
+/// `key` forwarded to `ArrayBuffer::detach` when provided.
+fn detach_array_buffer_cb(
     scope: &mut v8::PinScope<'_, '_>,
-    _args: v8::FunctionCallbackArguments,
-    _rv: v8::ReturnValue,
+    args: v8::FunctionCallbackArguments,
+    mut rv: v8::ReturnValue,
 ) {
-    let s = v8::String::new(
-        scope,
-        "$262.detachArrayBuffer is not implemented on Amber yet",
-    )
-    .unwrap();
-    let exc = v8::Exception::error(scope, s);
-    scope.throw_exception(exc);
+    let buffer_val = args.get(0);
+    if !buffer_val.is_array_buffer() {
+        let s = v8::String::new(
+            scope,
+            "$262.detachArrayBuffer called with an argument that is not an ArrayBuffer",
+        )
+        .unwrap();
+        let exc = v8::Exception::type_error(scope, s);
+        scope.throw_exception(exc);
+        return;
+    }
+
+    let Ok(buffer) = v8::Local::<v8::ArrayBuffer>::try_from(buffer_val) else {
+        let s = v8::String::new(scope, "$262.detachArrayBuffer: invalid ArrayBuffer").unwrap();
+        let exc = v8::Exception::type_error(scope, s);
+        scope.throw_exception(exc);
+        return;
+    };
+
+    // Optional detach key (arg 1). Do not treat missing/undefined as a key.
+    let key = if args.length() >= 2 {
+        let k = args.get(1);
+        if k.is_undefined() || k.is_null() {
+            None
+        } else {
+            Some(k)
+        }
+    } else {
+        None
+    };
+
+    // Always call detach — a zero-length buffer may still be attached.
+    let _ok = buffer.detach(key);
+    rv.set(v8::undefined(scope).into());
 }
 
 fn gc_noop(

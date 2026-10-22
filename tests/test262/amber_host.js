@@ -1,6 +1,6 @@
 // Amber $262 host object for test262.
-// Prefer native __amber_createRealm (AMBER_TEST262=1) for real cross-realm
-// builtins. Agent / detachArrayBuffer stay honest throw-stubs.
+// Prefer native __amber_createRealm / __amber_detachArrayBuffer (AMBER_TEST262=1).
+// Agent stays an honest throw-stub until multi-agent host lands.
 /* eslint-disable no-var */
 
 // test262 INTERPRETING.md: `print` must be a writable/configurable/non-enumerable
@@ -49,6 +49,10 @@ var $262 = (function () {
       if (record && typeof record.createRealm !== "function") {
         record.createRealm = createRealm;
       }
+      // Prefer native detach on the realm record; fall back to host helper.
+      if (record && typeof record.detachArrayBuffer !== "function") {
+        record.detachArrayBuffer = detachArrayBuffer;
+      }
       // INTERPRETING.md: createRealm defines the host API (incl. print) on the
       // new realm's global object.
       if (record && record.global) {
@@ -61,8 +65,21 @@ var $262 = (function () {
     );
   }
 
-  function detachArrayBuffer(_buffer) {
-    throw new Test262Error("$262.detachArrayBuffer is not implemented on Amber yet");
+  function detachArrayBuffer(buffer, key) {
+    if (typeof __amber_detachArrayBuffer === "function") {
+      if (arguments.length >= 2) {
+        return __amber_detachArrayBuffer(buffer, key);
+      }
+      return __amber_detachArrayBuffer(buffer);
+    }
+    // Fallback when AMBER_TEST262 is unset: global web_api detach (no key).
+    var native = globalThis.detachArrayBuffer;
+    if (typeof native === "function" && native !== detachArrayBuffer) {
+      return native(buffer);
+    }
+    throw new Test262Error(
+      "$262.detachArrayBuffer requires AMBER_TEST262=1 (native detach host)"
+    );
   }
 
   function evalScript(source) {

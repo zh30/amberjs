@@ -1,17 +1,2019 @@
 {
-  "generated": "2026-10-22T02:53Z",
+  "generated": "2026-10-22T07:54Z",
   "pin": "d53ebc8b1931d9f1541e43d59650776e4b766248",
   "amber": [
-    "./target/debug/amber"
+    "./target/release/amber"
   ],
-  "path_filter": "language/types",
-  "elapsed_s": 5.084496387999934,
-  "pass": 211,
-  "fail": 0,
-  "skip": 0,
-  "total": 211,
+  "path_filter": "built-ins",
+  "elapsed_s": 197.707695705,
+  "pass": 34030,
+  "fail": 524,
+  "skip": 12787,
+  "total": 47341,
   "unexpected_skip": 0,
-  "gate_ok": true,
-  "failures": [],
-  "skips": []
+  "gate_ok": false,
+  "failures": [
+    {
+      "test": "built-ins/Array/prototype/concat/arg-length-near-integer-limit.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: [].concat(spreadableHasPoisonedIndex) throws a Test262Error exception Expected a Test262Error to be thrown but no exception was thrown at all"
+    },
+    {
+      "test": "built-ins/Array/prototype/concat/arg-length-near-integer-limit.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: [].concat(spreadableHasPoisonedIndex) throws a Test262Error exception Expected a Test262Error to be thrown but no exception was thrown at all"
+    },
+    {
+      "test": "built-ins/Atomics/notify/bigint/notify-all-on-loc.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/bigint/notify-all-on-loc.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/count-defaults-to-infinity-missing.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/count-defaults-to-infinity-missing.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/count-defaults-to-infinity-undefined.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/count-defaults-to-infinity-undefined.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/negative-count.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/negative-count.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-all-on-loc.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-all-on-loc.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-all.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-all.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-in-order-one-time.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-in-order-one-time.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-in-order.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-in-order.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-nan.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-nan.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-one.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-one.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-renotify-noop.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-renotify-noop.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-two.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-two.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-with-no-agents-waiting.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-with-no-agents-waiting.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-with-no-matching-agents-waiting.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-with-no-matching-agents-waiting.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-zero.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/notify-zero.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/retrieve-length-before-index-coercion-non-shared-detached.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] RANGE_ERROR: Invalid atomic access index\nLocation: at Atomics.notify (<anonymous>)\nHint: Check array bounds or numeric ranges."
+    },
+    {
+      "test": "built-ins/Atomics/notify/retrieve-length-before-index-coercion-non-shared-detached.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] RANGE_ERROR: Invalid atomic access index\nLocation: at Atomics.notify (<anonymous>)\nHint: Check array bounds or numeric ranges."
+    },
+    {
+      "test": "built-ins/Atomics/notify/undefined-index-defaults-to-zero.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/notify/undefined-index-defaults-to-zero.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/cannot-suspend-throws.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a TypeError to be thrown but no exception was thrown at all"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/cannot-suspend-throws.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a TypeError to be thrown but no exception was thrown at all"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/false-for-timeout-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/false-for-timeout-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/nan-for-timeout.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/nan-for-timeout.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/negative-timeout-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/negative-timeout-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-no-operation.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-no-operation.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-add.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-add.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-and.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-and.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-compareExchange.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-compareExchange.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-exchange.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-exchange.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-or.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-or.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-store.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-store.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-sub.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-sub.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-xor.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/no-spurious-wakeup-on-xor.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/value-not-equal.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/value-not-equal.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/waiterlist-block-indexedposition-wake.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/waiterlist-block-indexedposition-wake.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/waiterlist-order-of-operations-is-fifo.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/waiterlist-order-of-operations-is-fifo.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/was-woken-before-timeout.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/bigint/was-woken-before-timeout.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/cannot-suspend-throws.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a TypeError to be thrown but no exception was thrown at all"
+    },
+    {
+      "test": "built-ins/Atomics/wait/cannot-suspend-throws.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a TypeError to be thrown but no exception was thrown at all"
+    },
+    {
+      "test": "built-ins/Atomics/wait/false-for-timeout-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/false-for-timeout-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/good-views.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/good-views.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/nan-for-timeout.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/nan-for-timeout.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/negative-timeout-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/negative-timeout-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-no-operation.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-no-operation.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-add.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-add.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-and.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-and.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-compareExchange.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-compareExchange.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-exchange.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-exchange.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-or.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-or.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-store.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-store.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-sub.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-sub.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-xor.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/no-spurious-wakeup-on-xor.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/null-for-timeout-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/null-for-timeout-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/object-for-timeout-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/object-for-timeout-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/poisoned-object-for-timeout-throws-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/poisoned-object-for-timeout-throws-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/symbol-for-index-throws-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/symbol-for-index-throws-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/symbol-for-timeout-throws-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/symbol-for-timeout-throws-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/symbol-for-value-throws-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/symbol-for-value-throws-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/true-for-timeout-agent.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/true-for-timeout-agent.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/undefined-for-timeout.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/undefined-for-timeout.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/undefined-index-defaults-to-zero.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/undefined-index-defaults-to-zero.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/value-not-equal.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/value-not-equal.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/wait-index-value-not-equal.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/wait-index-value-not-equal.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/waiterlist-block-indexedposition-wake.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/waiterlist-block-indexedposition-wake.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/waiterlist-order-of-operations-is-fifo.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/waiterlist-order-of-operations-is-fifo.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/was-woken-before-timeout.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Atomics/wait/was-woken-before-timeout.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: $262.agent is not implemented on Amber yet"
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-cross-realm.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-cross-realm.js__non-strict/a0/entry.js:297:69\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-cross-realm.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-cross-realm.js__strict/a0/entry.js:298:69\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-data-property-shadows.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-data-property-shadows.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-data-property-shadows.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-data-property-shadows.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-error-as-prototype.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-error-as-prototype.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-error-as-prototype.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-error-as-prototype.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-error-instance.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-error-instance.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-error-instance.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-error-instance.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-error-prototype.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-error-prototype.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-error-prototype.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-error-prototype.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-foreign-new-target.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-foreign-new-target.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-foreign-new-target.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-foreign-new-target.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-no-error-data.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-no-error-data.js__non-strict/a0/entry.js:297:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-no-error-data.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-no-error-data.js__strict/a0/entry.js:298:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-not-a-constructor.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-not-a-constructor.js__non-strict/a0/entry.js:320:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-not-a-constructor.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-not-a-constructor.js__strict/a0/entry.js:321:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-receiver-is-proxy.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-receiver-is-proxy.js__non-strict/a0/entry.js:330:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-receiver-is-proxy.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-receiver-is-proxy.js__strict/a0/entry.js:331:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-subclass.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-subclass.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-subclass.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-subclass.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-this-not-object.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-this-not-object.js__non-strict/a0/entry.js:297:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/getter-this-not-object.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__getter-this-not-object.js__strict/a0/entry.js:298:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/instance-no-own-stack.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Error: hasOwnProperty(\"stack\") is false Expected SameValue(\u00abtrue\u00bb, \u00abfalse\u00bb) to be true"
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/instance-no-own-stack.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Error: hasOwnProperty(\"stack\") is false Expected SameValue(\u00abtrue\u00bb, \u00abfalse\u00bb) to be true"
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/instance-not-enumerable.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Error: getOwnPropertyNames does not include \"stack\" Expected SameValue(\u00ab0\u00bb, \u00ab-1\u00bb) to be true"
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/instance-not-enumerable.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Error: getOwnPropertyNames does not include \"stack\" Expected SameValue(\u00ab0\u00bb, \u00ab-1\u00bb) to be true"
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/prop-desc.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Error.prototype.stack getter should be a function Expected SameValue(\u00ab\"undefined\"\u00bb, \u00ab\"function\"\u00bb) to be true"
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/prop-desc.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Error.prototype.stack getter should be a function Expected SameValue(\u00ab\"undefined\"\u00bb, \u00ab\"function\"\u00bb) to be true"
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-creates-own-property.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-creates-own-property.js__non-strict/a0/entry.js:861:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-creates-own-property.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-creates-own-property.js__strict/a0/entry.js:862:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-cross-realm.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-cross-realm.js__non-strict/a0/entry.js:808:69\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-cross-realm.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-cross-realm.js__strict/a0/entry.js:809:69\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-delete-round-trip.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-delete-round-trip.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-delete-round-trip.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-delete-round-trip.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-empty-string.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-empty-string.js__non-strict/a0/entry.js:861:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-empty-string.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-empty-string.js__strict/a0/entry.js:862:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-existing-own-property.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-existing-own-property.js__non-strict/a0/entry.js:861:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-existing-own-property.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-existing-own-property.js__strict/a0/entry.js:862:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-no-argument.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-no-argument.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-no-argument.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-no-argument.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-non-error-receiver.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-non-error-receiver.js__non-strict/a0/entry.js:808:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-non-error-receiver.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-non-error-receiver.js__strict/a0/entry.js:809:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-non-extensible-receiver.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-non-extensible-receiver.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-non-extensible-receiver.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-non-extensible-receiver.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-non-string-value.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-non-string-value.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-non-string-value.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-non-string-value.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-non-writable-stack.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-non-writable-stack.js__non-strict/a0/entry.js:861:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-non-writable-stack.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-non-writable-stack.js__strict/a0/entry.js:862:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-not-a-constructor.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-not-a-constructor.js__non-strict/a0/entry.js:320:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-not-a-constructor.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-not-a-constructor.js__strict/a0/entry.js:321:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-own-accessor.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-own-accessor.js__non-strict/a0/entry.js:350:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-own-accessor.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-own-accessor.js__strict/a0/entry.js:351:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-proxy-trap-rejects.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-proxy-trap-rejects.js__non-strict/a0/entry.js:297:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-proxy-trap-rejects.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-proxy-trap-rejects.js__strict/a0/entry.js:298:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-proxy-trap-throws.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-proxy-trap-throws.js__non-strict/a0/entry.js:297:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-proxy-trap-throws.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-proxy-trap-throws.js__strict/a0/entry.js:298:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-proxy-wrapping-prototype.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-proxy-wrapping-prototype.js__non-strict/a0/entry.js:330:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-proxy-wrapping-prototype.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-proxy-wrapping-prototype.js__strict/a0/entry.js:331:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-receiver-is-null-proto.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-receiver-is-null-proto.js__non-strict/a0/entry.js:808:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-receiver-is-null-proto.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-receiver-is-null-proto.js__strict/a0/entry.js:809:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-receiver-is-other-prototype.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-receiver-is-other-prototype.js__non-strict/a0/entry.js:861:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-receiver-is-other-prototype.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-receiver-is-other-prototype.js__strict/a0/entry.js:862:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-receiver-is-prototype.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-receiver-is-prototype.js__non-strict/a0/entry.js:297:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-receiver-is-prototype.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-receiver-is-prototype.js__strict/a0/entry.js:298:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-receiver-is-proxy.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-receiver-is-proxy.js__non-strict/a0/entry.js:330:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-receiver-is-proxy.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-receiver-is-proxy.js__strict/a0/entry.js:331:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-this-not-object.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-this-not-object.js__non-strict/a0/entry.js:297:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-this-not-object.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'set')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-this-not-object.js__strict/a0/entry.js:298:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-via-assignment.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-via-assignment.js__non-strict/a0/eval.ts:802:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Error/prototype/stack/setter-via-assignment.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] TYPE_ERROR: Cannot read properties of undefined (reading 'get')\nLocation: at /tmp/amber-test262-rmyg4fni/built-ins__Error__prototype__stack__setter-via-assignment.js__strict/a0/eval.ts:803:68\nHint: Check the types of values and ensure operations are valid (e.g., calling a function on null/undefined)."
+    },
+    {
+      "test": "built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a ReferenceError but got a different error constructor with the same name"
+    },
+    {
+      "test": "built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Expected a ReferenceError but got a different error constructor with the same name"
+    },
+    {
+      "test": "built-ins/Function/prototype/arguments/prop-desc.js",
+      "mode": "non-strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Function.prototype.arguments property getter/setter are the same function Expected SameValue(\u00abfunction get arguments() { [native code] }\u00bb, \u00abfunction set arguments() { [native code] }\u00bb) to be true"
+    },
+    {
+      "test": "built-ins/Function/prototype/arguments/prop-desc.js",
+      "mode": "strict",
+      "reason": "Error: [Amber Error] UNKNOWN_ERROR: Function.prototype.arguments property getter/setter are the same function Expected SameValue(\u00abfunction get arguments() { [native code] }\u00bb, \u00abfunction set arguments() { [native code] }\u00bb) to be true"
+    }
+  ],
+  "skips": [
+    {
+      "test": "built-ins/AbstractModuleSource/length.js",
+      "mode": "module",
+      "reason": "unsupported-feature:source-phase-imports"
+    },
+    {
+      "test": "built-ins/AbstractModuleSource/name.js",
+      "mode": "module",
+      "reason": "unsupported-feature:source-phase-imports"
+    },
+    {
+      "test": "built-ins/AbstractModuleSource/proto.js",
+      "mode": "module",
+      "reason": "unsupported-feature:source-phase-imports"
+    },
+    {
+      "test": "built-ins/AbstractModuleSource/prototype.js",
+      "mode": "module",
+      "reason": "unsupported-feature:source-phase-imports"
+    },
+    {
+      "test": "built-ins/AbstractModuleSource/prototype/Symbol.toStringTag.js",
+      "mode": "module",
+      "reason": "unsupported-feature:source-phase-imports"
+    },
+    {
+      "test": "built-ins/AbstractModuleSource/prototype/constructor.js",
+      "mode": "module",
+      "reason": "unsupported-feature:source-phase-imports"
+    },
+    {
+      "test": "built-ins/AbstractModuleSource/prototype/proto.js",
+      "mode": "module",
+      "reason": "unsupported-feature:source-phase-imports"
+    },
+    {
+      "test": "built-ins/AbstractModuleSource/throw-from-constructor.js",
+      "mode": "module",
+      "reason": "unsupported-feature:source-phase-imports"
+    },
+    {
+      "test": "built-ins/Array/prototype/at/coerced-index-resize.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/at/coerced-index-resize.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/at/typed-array-resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/at/typed-array-resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/copyWithin/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/copyWithin/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/entries/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/entries/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/entries/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/entries/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/entries/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/entries/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/every/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/every/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/every/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/every/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/every/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/every/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/every/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/every/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/fill/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/fill/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/fill/typed-array-resize.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/fill/typed-array-resize.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/filter/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/filter/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/filter/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/filter/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/filter/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/filter/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/filter/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/filter/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/find/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/find/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/find/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/find/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/find/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/find/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/find/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/find/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findIndex/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findIndex/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findIndex/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findIndex/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findIndex/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findIndex/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findIndex/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findIndex/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLast/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLast/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLast/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLast/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLast/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLast/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLast/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLast/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLastIndex/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLastIndex/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLastIndex/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLastIndex/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLastIndex/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLastIndex/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLastIndex/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/findLastIndex/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/forEach/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/forEach/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/forEach/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/forEach/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/forEach/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/forEach/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/forEach/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/forEach/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/includes/coerced-searchelement-fromindex-resize.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/includes/coerced-searchelement-fromindex-resize.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/includes/resizable-buffer-special-float-values.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/includes/resizable-buffer-special-float-values.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/includes/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/includes/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/indexOf/coerced-searchelement-fromindex-grow.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/indexOf/coerced-searchelement-fromindex-grow.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/indexOf/coerced-searchelement-fromindex-shrink.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/indexOf/coerced-searchelement-fromindex-shrink.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/indexOf/resizable-buffer-special-float-values.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/indexOf/resizable-buffer-special-float-values.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/indexOf/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/indexOf/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/join/coerced-separator-grow.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/join/coerced-separator-grow.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/join/coerced-separator-shrink.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/join/coerced-separator-shrink.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/join/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/join/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/keys/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/keys/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/keys/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/keys/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/keys/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/keys/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/lastIndexOf/coerced-position-grow.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/lastIndexOf/coerced-position-grow.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/lastIndexOf/coerced-position-shrink.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/lastIndexOf/coerced-position-shrink.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/lastIndexOf/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/lastIndexOf/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/map/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/map/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/map/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/map/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/map/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/map/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/map/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/map/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduce/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduce/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduce/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduce/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduce/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduce/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduce/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduce/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduceRight/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduceRight/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduceRight/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduceRight/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduceRight/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduceRight/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduceRight/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reduceRight/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reverse/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/reverse/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/slice/coerced-start-end-grow.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/slice/coerced-start-end-grow.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/slice/coerced-start-end-shrink.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/slice/coerced-start-end-shrink.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/slice/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/slice/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/some/callbackfn-resize-arraybuffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/some/callbackfn-resize-arraybuffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/some/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/some/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/some/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/some/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/some/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/some/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/sort/comparefn-grow.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/sort/comparefn-grow.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/sort/comparefn-resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/sort/comparefn-resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/sort/comparefn-shrink.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/sort/comparefn-shrink.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/sort/resizable-buffer-default-comparator.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/sort/resizable-buffer-default-comparator.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/toLocaleString/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/toLocaleString/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/toLocaleString/user-provided-tolocalestring-grow.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/toLocaleString/user-provided-tolocalestring-grow.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/toLocaleString/user-provided-tolocalestring-shrink.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/toLocaleString/user-provided-tolocalestring-shrink.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/values/resizable-buffer-grow-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/values/resizable-buffer-grow-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/values/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/values/resizable-buffer-shrink-mid-iteration.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/values/resizable-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/Array/prototype/values/resizable-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-allocation-limit.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-allocation-limit.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-compared-before-object-creation.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-compared-before-object-creation.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-data-allocation-after-object-creation.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-data-allocation-after-object-creation.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-diminuitive.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-diminuitive.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-excessive.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-excessive.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-negative.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-negative.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-object.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-object.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-poisoned.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-poisoned.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-undefined.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-maxbytelength-undefined.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-non-object.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/options-non-object.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:resizable-arraybuffer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/prototype/detached/detached-buffer-resizable.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:arraybuffer-transfer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/prototype/detached/detached-buffer-resizable.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:arraybuffer-transfer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/prototype/detached/detached-buffer.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:arraybuffer-transfer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/prototype/detached/detached-buffer.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:arraybuffer-transfer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/prototype/detached/invoked-as-accessor.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:arraybuffer-transfer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/prototype/detached/invoked-as-accessor.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:arraybuffer-transfer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/prototype/detached/invoked-as-func.js",
+      "mode": "non-strict",
+      "reason": "unsupported-feature:arraybuffer-transfer"
+    },
+    {
+      "test": "built-ins/ArrayBuffer/prototype/detached/invoked-as-func.js",
+      "mode": "strict",
+      "reason": "unsupported-feature:arraybuffer-transfer"
+    }
+  ]
 }

@@ -10,7 +10,7 @@ Default discovery (no `--path`) walks the full `test/` tree: **language**, **bui
 |------|------|
 | `PIN` | Exact `tc39/test262` git commit |
 | `run_test262.py` | Discover → run → scorecard |
-| `amber_host.js` | Minimal `$262` host object |
+| `amber_host.js` | Minimal `$262` host (`detachArrayBuffer` → native `__amber_detachArrayBuffer`) |
 | `features.json` | Supported / always-skip feature flags |
 | `engine_fail_allowlist.txt` | Optional V8/Node FAIL catalog (seed draft; **OFF by default**) |
 | `scorecard.md` / `scorecard.json` | Latest run summary |
@@ -44,7 +44,7 @@ AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --jobs 8
 ```
 
 Env: `AMBER_BIN`, `TEST262_ROOT`, `TEST262_TIMEOUT` (seconds per case, default 30),
-`AMBER_TEST262=1` (set automatically by the runner — enables native `$262.createRealm`).
+`AMBER_TEST262=1` (set automatically by the runner — enables native `$262.createRealm` / `$262.detachArrayBuffer`).
 
 ### Optional engine FAIL allowlist (OFF by default)
 
