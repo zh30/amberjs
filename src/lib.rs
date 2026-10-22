@@ -47,9 +47,9 @@ pub mod mcp; // Official Model Context Protocol (MCP) Server & Client
 pub mod nodejs_core; // Core Node.js compatible modules (fs, path, crypto, http, net, timers)
 pub mod package_manager; // Package manager
 pub mod permissions;
+pub mod promise_await_dictionary; // Promise.allKeyed / allSettledKeyed (await-dictionary)
 pub mod runtime; // Split runtime surface (re-exports MinimalRuntime)
 pub mod runtime_minimal; // Minimal runtime for basic JavaScript execution
-pub mod promise_await_dictionary; // Promise.allKeyed / allSettledKeyed (await-dictionary)
 pub mod test262_host; // Optional $262 createRealm host (AMBER_TEST262=1)
 pub mod v8_snapshot; // V8 snapshot and warmup system
 pub mod watcher; // File watcher for hot reload
