@@ -4737,22 +4737,25 @@ impl MinimalRuntime {
         let main_module_path = Path::new(main_module_filename);
         let module_format =
             crate::nodejs_core::commonjs_resolver::classify_commonjs_file(main_module_path)?;
-        // .mjs / package.json "type":"module" → always native ESM.
-        // Previously we also required static import/export/await, which false-failed
-        // `import.meta`-only modules (test262 dynamic-import assignment-expression).
+        // .mjs / type=module: native ESM only when *this* code has module signals.
+        // Always-true broke follow-up execute_code("globalThis.X") while
+        // main_module_filename is still *.mjs (esm_module_tests, #270 Format).
         if module_format == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule {
-            return Ok(true);
+            // has_esm_await_syntax is intentional here: `await import(...)` inside
+            // try/catch is not top-level await but still requires Module context.
+            return Ok(Self::has_esm_export_syntax(code)
+                || Self::has_esm_await_syntax(code)
+                || Self::has_import_meta_syntax(code)
+                || !Self::static_import_specifiers(code).is_empty());
         }
         if matches!(
             module_format,
             crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScript
                 | crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScriptJsx
         ) {
-            // Do NOT use has_esm_await_syntax here: session/mcp `call_named_export`
+            // Do NOT use has_esm_await_syntax: session/mcp `call_named_export`
             // reuses main_module_filename (e.g. echo_tool.ts) for an `(async () => {
-            // await fn(args) })()` snippet. Any `\bawait\b` would force native ESM
-            // and yield undefined completion → JSON-RPC result:null (#270 CI).
-            // Top-level await is covered by has_top_level_await_syntax.
+            // await fn(args) })()` snippet → ESM undefined → JSON-RPC result:null.
             return Ok(Self::has_esm_export_syntax(code)
                 || Self::has_top_level_await_syntax(code)
                 || Self::has_import_meta_syntax(code)
@@ -4761,8 +4764,22 @@ impl MinimalRuntime {
         Ok(false)
     }
 
+    /// True for real `import.meta`, not progressive `globalThis.import.meta`.
     fn has_import_meta_syntax(code: &str) -> bool {
-        code.contains("import.meta")
+        let bytes = code.as_bytes();
+        let mut start = 0;
+        while let Some(rel) = code[start..].find("import.meta") {
+            let abs = start + rel;
+            let prev_ok = abs == 0 || {
+                let prev = bytes[abs - 1];
+                !prev.is_ascii_alphanumeric() && prev != b'_' && prev != b'$' && prev != b'.'
+            };
+            if prev_ok {
+                return true;
+            }
+            start = abs + "import.meta".len();
+        }
+        false
     }
 
     fn has_esm_export_syntax(code: &str) -> bool {
@@ -4773,6 +4790,13 @@ impl MinimalRuntime {
             || code.contains("export class ")
             || code.contains("export default")
             || code.contains("export {")
+    }
+
+    fn has_esm_await_syntax(code: &str) -> bool {
+        static AWAIT_TOKEN_RE: OnceLock<regex::Regex> = OnceLock::new();
+        AWAIT_TOKEN_RE
+            .get_or_init(|| regex::Regex::new(r"\bawait\b").expect("valid await token regex"))
+            .is_match(code)
     }
 
     fn has_top_level_await_syntax(code: &str) -> bool {
