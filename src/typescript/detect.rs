@@ -49,9 +49,8 @@ static ENUM_DECLARATION: Lazy<Regex> = Lazy::new(|| {
 });
 
 // Class heritage `implements Type` — not JS identifier `implements` / `var implements = 1`.
-static IMPLEMENTS_CLAUSE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?m)\bimplements\s+[A-Za-z_$]").expect("implements clause regex")
-});
+static IMPLEMENTS_CLAUSE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?m)\bimplements\s+[A-Za-z_$]").expect("implements clause regex"));
 
 /// Strip `//` and `/* */` comments so JSDoc / harness prose cannot trip TS sniff.
 fn strip_comments(code: &str) -> String {
