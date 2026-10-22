@@ -289,6 +289,25 @@ fn remaining_timer_drain_ms(start: std::time::Instant, limit_ms: u64) -> u64 {
     limit_ms.saturating_sub(start.elapsed().as_millis() as u64)
 }
 
+/// True while page-side intercepted `fetch()` awaits WorkerHost fetchPass/respondWith.
+fn sw_has_pending_intercepted_fetches(scope: &mut v8::PinScope) -> bool {
+    let context = scope.get_current_context();
+    let global = context.global(scope);
+    let Some(key) = v8::String::new(scope, "__amber_sw_pending_fetch_count") else {
+        return false;
+    };
+    let Some(val) = global.get(scope, key.into()) else {
+        return false;
+    };
+    let Ok(func) = v8::Local::<v8::Function>::try_from(val) else {
+        return false;
+    };
+    let Some(result) = func.call(scope, global.into(), &[]) else {
+        return false;
+    };
+    result.number_value(scope).map(|n| n > 0.0).unwrap_or(false)
+}
+
 /// How long a quiet HTTP/net keep-alive turn may sleep.
 ///
 /// Accept and request paths call `wake_http_dispatch_thread`, so a listener with
@@ -8983,6 +9002,7 @@ impl MinimalRuntime {
                     || has_pending_next_ticks()
                     || has_pending_immediates()
                     || crate::web_api::worker_host::WorkerHost::has_active_workers()
+                    || sw_has_pending_intercepted_fetches(scope)
                     || crate::web_api::websocket::has_pending_websocket_work()
                     || crate::nodejs_core::child_process::has_pending_child_process_work()
                     || crate::nodejs_core::process::has_pending_stdin_work()
@@ -9033,10 +9053,12 @@ impl MinimalRuntime {
 
                 if crate::web_api::worker_host::WorkerHost::has_active_workers()
                     || crate::nodejs_core::child_process::has_pending_child_process_work()
+                    || sw_has_pending_intercepted_fetches(scope)
                 {
                     timer_manager.wait_timeout(std::time::Duration::from_millis(10));
                     // Do not starve timers (e.g. test safety setTimeout) or
-                    // WorkerHost/child completions while a ref'd worker is alive.
+                    // WorkerHost/child completions while a ref'd worker / SW
+                    // intercept is in flight.
                     if timer_manager.has_fired_timers()
                         || crate::web_api::worker_host::WorkerHost::has_parent_messages()
                         || crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope)
@@ -9162,11 +9184,13 @@ impl MinimalRuntime {
                 crate::nodejs_core::child_process::has_pending_child_process_work();
             // v0.3.339: Don't include has_pending_work in break condition since it's a stored value
             // that may be stale. Instead, check the actual state of timers and nextTicks.
+            let has_pending_sw_fetches = sw_has_pending_intercepted_fetches(scope);
             if !has_pending_next_ticks_now
                 && !has_new_timers
                 && !has_scheduled_timers
                 && !has_pending_immediates()
                 && !has_active_workers
+                && !has_pending_sw_fetches
                 && !crate::web_api::websocket::has_pending_websocket_work()
                 && !has_pending_child
                 && !crate::nodejs_core::process::has_pending_stdin_work()
