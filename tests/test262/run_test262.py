@@ -40,6 +40,26 @@ SCORECARD_JSON = HARNESS_DIR / "scorecard.json"
 FRONTMATTER_RE = re.compile(r"/\*---\s*(.*?)\s*---\*/", re.DOTALL)
 
 
+def read_text_preserve_newlines(path: Path, *, errors: Optional[str] = None) -> str:
+    """Read text without universal-newline translation.
+
+    test262 includes Function.prototype.toString cases that use bare CR (\\r)
+    as line terminators. Python's default text mode rewrites those to \\n and
+    false-fails the suite; Node's harness does not.
+    """
+    kwargs: dict[str, Any] = {"encoding": "utf-8", "newline": ""}
+    if errors is not None:
+        kwargs["errors"] = errors
+    with path.open(**kwargs) as fh:
+        return fh.read()
+
+
+def write_text_preserve_newlines(path: Path, text: str) -> None:
+    """Write text without translating embedded \\r / \\n sequences."""
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        fh.write(text)
+
+
 @dataclass
 class Meta:
     flags: set[str] = field(default_factory=set)
@@ -399,7 +419,7 @@ def prepare_module_run_path(
         else:
             shutil.copy2(sibling, dest)
     out = attempt_dir / test_path.name
-    out.write_text(source, encoding="utf-8")
+    write_text_preserve_newlines(out, source)
     return out
 
 
@@ -426,7 +446,9 @@ def run_one(
     rel = str(test_path.relative_to(test262 / "test"))
     t0 = time.perf_counter()
     try:
-        source, suffix = wrap_source(test262, test_path.read_text(encoding="utf-8"), meta, mode, host_js)
+        source, suffix = wrap_source(
+            test262, read_text_preserve_newlines(test_path), meta, mode, host_js
+        )
     except Exception as exc:  # noqa: BLE001
         return CaseResult(rel, mode, "FAIL", f"wrap:{exc}", 0.0)
 
@@ -458,8 +480,10 @@ def run_one(
                 '{"type":"module"}\n', encoding="utf-8"
             )
             copy_fixtures_into(attempt_dir, test_path)
+            # entry.cjs: keep script dual-binding under type=module package.json (#272).
+            # newline="" write: bare CR must survive for Function.prototype.toString LT (#284).
             tmp = attempt_dir / "entry.cjs"
-            tmp.write_text(source, encoding="utf-8")
+            write_text_preserve_newlines(tmp, source)
         try:
             proc = subprocess.run(
                 [*cmd_base, str(tmp)],
@@ -645,6 +669,14 @@ def self_test() -> None:
     assert gate_exit_code(1, 0) == 1
     assert gate_exit_code(0, 1) == 1
     assert gate_exit_code(2, 3) == 1
+    # Bare CR must survive round-trip (Function.prototype.toString LT tests).
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "cr.js"
+        write_text_preserve_newlines(p, "function\rf\r(\rx\r)\r{\r;\r}")
+        got = read_text_preserve_newlines(p)
+        assert "\r" in got and "\n" not in got, repr(got)
+        uni = p.read_text(encoding="utf-8")
+        assert "\n" in uni and "\r" not in uni
     print("test262 harness self-test ok")
 
 
