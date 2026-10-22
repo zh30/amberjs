@@ -4748,9 +4748,13 @@ impl MinimalRuntime {
             crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScript
                 | crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScriptJsx
         ) {
+            // Do NOT use has_esm_await_syntax here: session/mcp `call_named_export`
+            // reuses main_module_filename (e.g. echo_tool.ts) for an `(async () => {
+            // await fn(args) })()` snippet. Any `\bawait\b` would force native ESM
+            // and yield undefined completion → JSON-RPC result:null (#270 CI).
+            // Top-level await is covered by has_top_level_await_syntax.
             return Ok(Self::has_esm_export_syntax(code)
                 || Self::has_top_level_await_syntax(code)
-                || Self::has_esm_await_syntax(code)
                 || Self::has_import_meta_syntax(code)
                 || !Self::static_import_specifiers(code).is_empty());
         }
@@ -4769,13 +4773,6 @@ impl MinimalRuntime {
             || code.contains("export class ")
             || code.contains("export default")
             || code.contains("export {")
-    }
-
-    fn has_esm_await_syntax(code: &str) -> bool {
-        static AWAIT_TOKEN_RE: OnceLock<regex::Regex> = OnceLock::new();
-        AWAIT_TOKEN_RE
-            .get_or_init(|| regex::Regex::new(r"\bawait\b").expect("valid await token regex"))
-            .is_match(code)
     }
 
     fn has_top_level_await_syntax(code: &str) -> bool {
