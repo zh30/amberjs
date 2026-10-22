@@ -95,6 +95,59 @@ fn drain_until_quiet(rx: &mpsc::Receiver<FileChange>, quiet: Duration) {
     }
 }
 
+/// Wait for an event on `expected`, skipping other paths.
+///
+/// On macOS, FSEvents may replay creates from before `watch`, or re-surface a
+/// sibling like `nested/keep.ts` when ignored paths under the same tree are
+/// touched. Those must not steal the quiet-period event for `app.js`.
+fn recv_change_for_path(
+    rx: &mpsc::Receiver<FileChange>,
+    expected: &Path,
+    timeout: Duration,
+) -> FileChange {
+    let deadline = Instant::now() + timeout;
+    let expected = canonical_path(expected);
+    let mut skipped = Vec::new();
+    while Instant::now() < deadline {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        match rx.recv_timeout(remaining.min(Duration::from_millis(200))) {
+            Ok(change) => {
+                if canonical_path(&change.path) == expected {
+                    return change;
+                }
+                skipped.push(change.path);
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => continue,
+            Err(mpsc::RecvTimeoutError::Disconnected) => panic!("watcher disconnected"),
+        }
+    }
+    panic!(
+        "timed out waiting for {}; skipped noise: {:?}",
+        expected.display(),
+        skipped
+    );
+}
+
+/// Assert no further event for `path` within `wait`. Other paths (FSEvents
+/// noise) are drained and ignored so they do not fail the quiet-period check.
+fn assert_no_further_event_for(rx: &mpsc::Receiver<FileChange>, path: &Path, wait: Duration) {
+    let deadline = Instant::now() + wait;
+    let expected = canonical_path(path);
+    while Instant::now() < deadline {
+        match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+            Err(mpsc::RecvTimeoutError::Timeout) => return,
+            Ok(change) if canonical_path(&change.path) == expected => {
+                panic!("unexpected further event for {}", change.path.display());
+            }
+            Ok(_) => {}
+            Err(mpsc::RecvTimeoutError::Disconnected) => panic!("watcher disconnected"),
+        }
+    }
+}
+
 #[test]
 #[serial]
 fn watch_emits_one_event_per_quiet_period_and_ignores_unwatched_paths() {
@@ -102,7 +155,10 @@ fn watch_emits_one_event_per_quiet_period_and_ignores_unwatched_paths() {
     let dir = TempDir::new().expect("tempdir");
     let app = dir.path().join("app.js");
     let nested = dir.path().join("nested");
-    std::fs::create_dir_all(nested.join("node_modules")).expect("dirs");
+    // Put ignored dirs at the watch root so writes do not stir FSEvents for
+    // `nested/keep.ts` (sibling noise under the same directory tree).
+    std::fs::create_dir_all(&nested).expect("nested");
+    std::fs::create_dir_all(dir.path().join("node_modules")).expect("node_modules");
     std::fs::create_dir_all(dir.path().join("target")).expect("target");
     std::fs::write(nested.join("keep.ts"), "export {}\n").expect("nested ts");
     std::fs::write(dir.path().join("notes.txt"), "nope").expect("txt");
@@ -114,15 +170,17 @@ fn watch_emits_one_event_per_quiet_period_and_ignores_unwatched_paths() {
     drain_until_quiet(&rx, Duration::from_millis(500));
 
     std::fs::write(dir.path().join("target").join("built.js"), "nope").expect("target js");
-    std::fs::write(nested.join("node_modules").join("dep.js"), "nope").expect("dep");
+    std::fs::write(dir.path().join("node_modules").join("dep.js"), "nope").expect("dep");
     std::fs::write(dir.path().join("notes.txt"), "still nope").expect("txt write");
-    std::thread::sleep(Duration::from_millis(200));
+    // Ignored-path writes can still wake the notify backend; drain again so a
+    // late `keep.ts` replay is not the first event after we create `app.js`.
+    drain_until_quiet(&rx, Duration::from_millis(500));
 
     std::fs::write(&app, "console.log('one');\n").expect("create");
     std::thread::sleep(Duration::from_millis(30));
     std::fs::write(&app, "console.log('two');\n").expect("rewrite");
 
-    let change = recv_change(&rx, Duration::from_secs(3));
+    let change = recv_change_for_path(&rx, &app, Duration::from_secs(3));
     assert_same_path(&change.path, &app);
     assert!(
         matches!(
@@ -132,10 +190,10 @@ fn watch_emits_one_event_per_quiet_period_and_ignores_unwatched_paths() {
         "create/write should reload, got {:?}",
         change.change_type
     );
-    assert_no_event(&rx, Duration::from_millis(250));
+    assert_no_further_event_for(&rx, &app, Duration::from_millis(250));
 
     std::fs::remove_file(&app).expect("remove");
-    let removed = recv_change(&rx, Duration::from_secs(3));
+    let removed = recv_change_for_path(&rx, &app, Duration::from_secs(3));
     assert_same_path(&removed.path, &app);
     assert!(
         matches!(
