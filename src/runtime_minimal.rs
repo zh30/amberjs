@@ -5482,7 +5482,28 @@ impl MinimalRuntime {
                     || format!("Failed to evaluate ES module '{}'", module_path.display()),
                 ))
             })?;
-            Self::ensure_dynamic_import_evaluation_settled(scope, evaluation, module_path)?;
+            // ContinueDynamicImport: do NOT block the host callback on TLA.
+            // A pending evaluation Promise must leave import() pending so the
+            // importer can resume (e.g. resolve the awaited value) — spinning
+            // here deadlocks tests like dynamic-import-of-waiting-module.
+            // Reject only if evaluation already rejected; otherwise defer.
+            if evaluation.is_promise() {
+                if let Ok(promise) = v8::Local::<v8::Promise>::try_from(evaluation) {
+                    match promise.state() {
+                        v8::PromiseState::Rejected => {
+                            return Err(EsmDynamicImportError::Value(promise.result(scope)));
+                        }
+                        v8::PromiseState::Pending => {
+                            // Leave Deferred to flush_pending_dynamic_imports.
+                            return Ok(());
+                        }
+                        v8::PromiseState::Fulfilled => {}
+                    }
+                }
+            } else {
+                // Sync completion path (no TLA): legacy settle for safety.
+                Self::ensure_dynamic_import_evaluation_settled(scope, evaluation, module_path)?;
+            }
         }
 
         if module.get_status() == v8::ModuleStatus::Errored {
@@ -5492,6 +5513,27 @@ impl MinimalRuntime {
         }
 
         Ok(())
+    }
+
+    fn has_pending_dynamic_imports() -> bool {
+        ESM_MODULE_LOAD_STATE.with(|state| {
+            state
+                .borrow()
+                .as_ref()
+                .map(|s| !s.pending_dynamic_imports.is_empty())
+                .unwrap_or(false)
+        })
+    }
+
+    /// Script-mode `import()` also needs module graph + deferred-import state.
+    /// `execute_esm_module` installs this; script runs must as well.
+    fn ensure_esm_module_load_state() {
+        ESM_MODULE_LOAD_STATE.with(|state| {
+            let mut slot = state.borrow_mut();
+            if slot.is_none() {
+                *slot = Some(EsmModuleLoadState::default());
+            }
+        });
     }
 
     fn flush_pending_dynamic_imports(scope: &mut v8::PinScope) {
@@ -5664,15 +5706,17 @@ impl MinimalRuntime {
         // Capture Evaluating *before* instantiate/evaluate — self-import hits here.
         let was_evaluating = module.get_status() == v8::ModuleStatus::Evaluating;
         Self::instantiate_and_evaluate_esm_module_for_dynamic_import(scope, module, &module_path)?;
-        if was_evaluating || module.get_status() == v8::ModuleStatus::Evaluating {
-            return Ok(DynamicImportPrep::Deferred(module_path));
+        if module.get_status() == v8::ModuleStatus::Errored {
+            return Err(EsmDynamicImportError::Value(
+                Self::esm_module_exception_value(scope, module),
+            ));
         }
-        if module.get_status() != v8::ModuleStatus::Evaluated {
-            return Err(EsmDynamicImportError::Message(format!(
-                "ES module '{}' not evaluated after dynamic import (status={:?})",
-                module_path.display(),
-                module.get_status()
-            )));
+        // Mid-evaluation or pending TLA: leave import() pending until flush.
+        if was_evaluating
+            || module.get_status() == v8::ModuleStatus::Evaluating
+            || module.get_status() != v8::ModuleStatus::Evaluated
+        {
+            return Ok(DynamicImportPrep::Deferred(module_path));
         }
         let namespace = module.get_module_namespace();
         Ok(DynamicImportPrep::Ready(namespace))
@@ -5712,6 +5756,9 @@ impl MinimalRuntime {
         specifier: v8::Local<'s, v8::String>,
         _import_assertions: v8::Local<'s, v8::FixedArray>,
     ) -> Option<v8::Local<'s, v8::Promise>> {
+        // Script-mode entry points never call execute_esm_module; still need
+        // load-state so remember_esm_module / deferred import flush work.
+        Self::ensure_esm_module_load_state();
         let resolver = v8::PromiseResolver::new(scope)?;
         let promise = resolver.get_promise(scope);
         let specifier_str = specifier.to_rust_string_lossy(scope);
@@ -8972,6 +9019,10 @@ impl MinimalRuntime {
             // needed; otherwise plain synchronous execution pays the timer wait.
             execute_next_tick_callbacks(scope);
             scope.perform_microtask_checkpoint();
+            // Resolve dynamic import() promises deferred while a module was
+            // Evaluating / mid-TLA (script-mode hosts never hit execute_esm_module).
+            Self::flush_pending_dynamic_imports(scope);
+            scope.perform_microtask_checkpoint();
             crate::nodejs_core::http::pump_pending_http_requests_in_scope(scope, &context);
             crate::nodejs_core::net::pump_pending_net_connections_in_scope(scope, &context);
             crate::nodejs_core::net::pump_pending_socket_events_in_scope(scope, &context);
@@ -9006,6 +9057,7 @@ impl MinimalRuntime {
                     || has_wait_until
                     || has_pending_next_ticks()
                     || has_pending_immediates()
+                    || Self::has_pending_dynamic_imports()
                     || crate::web_api::worker_host::WorkerHost::has_active_workers()
                     || sw_has_pending_intercepted_fetches(scope)
                     || crate::web_api::websocket::has_pending_websocket_work()
@@ -9118,6 +9170,8 @@ impl MinimalRuntime {
             // Process microtasks (Promises, queueMicrotask callbacks)
             // nextTick callbacks were already executed, now process Promises
             scope.perform_microtask_checkpoint();
+            Self::flush_pending_dynamic_imports(scope);
+            scope.perform_microtask_checkpoint();
 
             // Deliver async child_process callbacks completed on host threads.
             if crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope) > 0 {
@@ -9199,9 +9253,11 @@ impl MinimalRuntime {
                 && !crate::web_api::websocket::has_pending_websocket_work()
                 && !has_pending_child
                 && !crate::nodejs_core::process::has_pending_stdin_work()
+                && !Self::has_pending_dynamic_imports()
             {
                 // Run any remaining microtasks before exiting
                 scope.perform_microtask_checkpoint();
+                Self::flush_pending_dynamic_imports(scope);
                 break;
             }
 
