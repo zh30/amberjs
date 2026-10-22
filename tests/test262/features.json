@@ -125,6 +125,7 @@
     "decorators",
     "import-assertions",
     "import-attributes",
+    "import-defer",
     "regexp-v-flag",
     "regexp-duplicate-named-groups",
     "iterator-helpers",
