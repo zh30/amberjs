@@ -20,10 +20,11 @@
 #   Blank lines and # comments ignored.
 #   Prefixes only remap FAIL→ENGINE_ALLOW; PASS under a prefix stays PASS.
 #
-# STATUS — SEED toward projected engine floor ≈477 (allowlist OFF ⇒ FAIL unchanged)
-#   After remaining open Amber drafts (#274/#276/#279/#278/#281/#282/#286/#287/#290
-#   + known engine floor; #272/#273/#275/#288/#289 landed; store projected-residual):
-#     language ≈233  |  built-ins ≈94  |  other ≈150  |  Σ ≈477
+# STATUS — SEED toward projected engine floor ≈471 (allowlist OFF ⇒ FAIL unchanged)
+#   After remaining open Amber drafts (#274/#276/#279/#278/#281/#282/#286/#287
+#   + known engine floor; #272/#273/#275/#288/#289/#290 landed; store projected-residual):
+#     language ≈233 before open #274/#276  |  built-ins ≈94  |  other ≈150  |  Σ ≈471
+#   (#290 enum/implements −6 folded into baseline; was ≈477 pre-fold.)
 #   This seed lists *proven / projected engine* clusters so flip can cover that
 #   floor. Coarse prefixes are provisional — trim to Amber↔Node intersect after
 #   the Amber stack lands. Do NOT treat as product policy yet.
@@ -39,7 +40,8 @@
 #   internal/test262-atomics-residual-progress.md
 
 # =============================================================================
-# language/ — projected ≈233 (hard wall ≥189 + indirect/long-tail ~50)
+# language/ — ≈233 before open #274/#276 (hard wall ≥189 + indirect/long-tail;
+# #290 −6 already on main). After those open cuts, engine floor stays in this band.
 # =============================================================================
 
 # --- hard Node-shared wall ---
@@ -83,10 +85,10 @@ language/module-code/parse-err-semi-name-space-export.js
 language/global-code/script-decl-func-err-non-configurable.js
 language/global-code/script-decl-var-collision.js
 
-# --- indirect + long-tail (projected ~50 of language ≈233; triage after stack) ---
+# --- indirect + long-tail (of language ≈233 before open #274/#276; triage after stack) ---
 # Inventory: mixed/untriaged but counted in engine floor for allowlist flip prep.
 # Coarse prefixes — measure Amber↔Node and trim before product ON.
-# (#290 enum/implements TS sniff −6 + long-tail Amber TBD may shrink further.)
+# (#290 enum/implements TS sniff −6 landed `8450c1dc`; long-tail Amber TBD may shrink further.)
 
 language/eval-code/indirect/
 
@@ -107,8 +109,9 @@ language/future-reserved-words/
 language/identifiers/
 
 # NOT seeded (Amber-owned until remaining open drafts land):
-#   line-terminators (#274 classify), global-code bulk (#276), enum/implements (#290)
-# Landed Amber (do not seed as engine): TLA/ambiguous (#272), module-bindings (#273)
+#   line-terminators (#274 classify), global-code bulk (#276)
+# Landed Amber (do not seed as engine): TLA/ambiguous (#272), module-bindings (#273),
+#   enum/implements TS sniff (#290)
 
 # =============================================================================
 # built-ins/ — projected residual ≈94 after #278–#288 (+ #283/#284 landed)
@@ -138,7 +141,7 @@ built-ins/Uint8Array/prototype/setFromBase64/trailing-garbage-empty.js
 built-ins/Array/prototype/concat/arg-length-near-integer-limit.js
 built-ins/Array/prototype/concat/arg-length-exceeding-integer-limit.js
 
-# NOT in primary seed (open polyfills clear from ≈477 floor; re-add if flip
+# NOT in primary seed (open polyfills clear from ≈471 floor; re-add if flip
 # precedes those merges):
 #   #287 await-dictionary → built-ins/Promise/allKeyed/ | allSettledKeyed/
 #   #286 Iterator.includes → built-ins/Iterator/prototype/includes/
