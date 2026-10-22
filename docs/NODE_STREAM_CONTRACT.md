@@ -1,6 +1,6 @@
 # Node `stream` contract
 
-This is the user-facing contract for the Stable subset of Node `stream` in Amber. It is derived from `src/nodejs_core/stream.rs`, `src/runtime_minimal.rs` (`require('stream')` / `require('node:stream')` return `globalThis.stream` installed by `setup_stream_api`), `tests/node_stream_contract_tests.rs`, and `tests/stream_transform_contract_tests.rs` (**tentative G71** rows). Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable subset of Node `stream` in Amber. It is derived from `src/nodejs_core/stream.rs`, `src/runtime_minimal.rs` (`require('stream')` / `require('node:stream')` return `globalThis.stream` installed by `setup_stream_api`), `tests/node_stream_contract_tests.rs`, and `tests/stream_transform_contract_tests.rs` (**G71** rows). Historical `docs/STAGE_*` reports are not part of this contract.
 
 This is **not** the Stable Web streams surface in [`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md) (G13). G13 does not graduate `require('stream')`. This page is an independent Node module contract (**G24**; path G17 through crypto G23 and additive G8 `existsSync` are Stable on `main`).
 
@@ -14,10 +14,10 @@ Methods, constructors, and helpers that are not listed in the Stable surface tab
 | `Readable` | `new stream.Readable({ read })` or `{ _read }`. In flowing mode (`on('data')` or `pipe`), `push(chunk)` delivers that chunk to the `data` listener. `push(null)` ends the readable side and, when piped, ends the destination. |
 | `Readable.prototype.pipe(dest)` | Pipes flowing `data` into `dest.write`. Returns `dest`. When the source ends, calls `dest.end()` when present. |
 | `Writable` | `new stream.Writable({ write })` or `{ _write }`. `write(chunk[, encoding][, callback])` invokes the user `_write` / `write` with `(chunk, encoding, callback)` and returns a boolean. `end()` marks the writable finished and fires `finish` after the write path settles. |
-| `PassThrough` / `passThrough` | Same constructor under both names. `write(chunk)` emits `data` with that chunk and, when `pipe(dest)` was called, also calls `dest.write(chunk)`. `pipe(dest)` stores the destination and returns `dest`. `end()` fires `finish` then `end` listeners and cascades `dest.end()` down the pipe chain (**tentative G71**). |
-| `Transform` (**tentative G71**) | `new stream.Transform({ transform })` or `{ _transform }`, and `{ flush }` / `{ _flush }` (both spellings accepted). Writes enter `_transform(chunk, encoding, callback)`; `callback(err)` fires the write-side callback, `callback(err, output)` additionally pushes `output` to the readable side. `push(chunk)` emits `data` when flowing; `push(null)` ends the readable side and fires the `end` listener. `end([chunk][, enc][, cb])` writes the final chunk, runs `flush(flushCb)` when defined (`flushCb(out)` pushes `out` then finishes), then fires `finish`. Without a user `transform`, the stream is identity (chunk passes through). |
-| `Transform.prototype.pipe` / `unpipe` (**tentative G71**) | `pipe(dest)` registers `data`/`end` forwarders (`data` → `dest.write(chunk)`; `end` → `dest.end()`), sets flowing, and returns `dest`. `unpipe()` clears the forwarders and `_pipeDest`. Works into another `Transform` (transform→transform chains) or a `Writable`. |
-| `stream.pipeline(src, ...throughs, dest[, cb])` (**tentative G71**) | Chains `pipe` across the arguments and attaches a completion listener to the last stream's `finish` (`_events.finish` for Transform/PassThrough-shaped streams, the Writable `finish` slot for Writables). The callback runs once after the destination finishes. |
+| `PassThrough` / `passThrough` | Same constructor under both names. `write(chunk)` emits `data` with that chunk and, when `pipe(dest)` was called, also calls `dest.write(chunk)`. `pipe(dest)` stores the destination and returns `dest`. `end()` fires `finish` then `end` listeners and cascades `dest.end()` down the pipe chain (**G71**). |
+| `Transform` (**G71**) | `new stream.Transform({ transform })` or `{ _transform }`, and `{ flush }` / `{ _flush }` (both spellings accepted). Writes enter `_transform(chunk, encoding, callback)`; `callback(err)` fires the write-side callback, `callback(err, output)` additionally pushes `output` to the readable side. `push(chunk)` emits `data` when flowing; `push(null)` ends the readable side and fires the `end` listener. `end([chunk][, enc][, cb])` writes the final chunk, runs `flush(flushCb)` when defined (`flushCb(out)` pushes `out` then finishes), then fires `finish`. Without a user `transform`, the stream is identity (chunk passes through). |
+| `Transform.prototype.pipe` / `unpipe` (**G71**) | `pipe(dest)` registers `data`/`end` forwarders (`data` → `dest.write(chunk)`; `end` → `dest.end()`), sets flowing, and returns `dest`. `unpipe()` clears the forwarders and `_pipeDest`. Works into another `Transform` (transform→transform chains) or a `Writable`. |
+| `stream.pipeline(src, ...throughs, dest[, cb])` (**G71**) | Chains `pipe` across the arguments and attaches a completion listener to the last stream's `finish` (`_events.finish` for Transform/PassThrough-shaped streams, the Writable `finish` slot for Writables). The callback runs once after the destination finishes. |
 
 ## Limits
 
@@ -54,4 +54,4 @@ cargo test --test node_stream_contract_tests -- --test-threads=1
 cargo test --test stream_transform_contract_tests -- --test-threads=1
 ```
 
-CI runs those commands as `node stream Stable contract` and `node stream transform Stable contract` (**tentative G71**).
+CI runs those commands as `node stream Stable contract` and `node stream transform Stable contract` (**G71**).

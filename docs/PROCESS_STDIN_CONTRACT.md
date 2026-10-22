@@ -1,6 +1,6 @@
 # Node `process.stdin` contract
 
-This is the user-facing contract for the Stable `process.stdin` slice in Amber (**tentative G70**). It is derived from `src/nodejs_core/process.rs` (stdin reader thread + pump), `src/runtime_minimal.rs` (stdin pump wiring), and `tests/process_stdin_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable `process.stdin` slice in Amber (**G70**). It is derived from `src/nodejs_core/process.rs` (stdin reader thread + pump), `src/runtime_minimal.rs` (stdin pump wiring), and `tests/process_stdin_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 The broader `process` surface stays covered by [`docs/PROCESS_CONTRACT.md`](PROCESS_CONTRACT.md); this page owns only the `process.stdin` readable-stream slice. `readline.createInterface({ input: process.stdin })` stays governed by [`docs/READLINE_CONTRACT.md`](READLINE_CONTRACT.md) — G70 is what makes that contract's host stdin reads real.
 

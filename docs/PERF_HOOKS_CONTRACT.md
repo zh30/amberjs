@@ -1,6 +1,6 @@
 # Node `perf_hooks` contract
 
-This is the user-facing contract for the Stable `perf_hooks` module slice in Amber (**tentative G74**). It is derived from `src/nodejs_core/performance.rs` (entry store + observer notification), `src/nodejs_core/perf_hooks.rs` (`PERF_OBSERVER_JS` shared snippet), `src/runtime_minimal.rs` (module bag wiring), and `tests/perf_hooks_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
+This is the user-facing contract for the Stable `perf_hooks` module slice in Amber (**G74**). It is derived from `src/nodejs_core/performance.rs` (entry store + observer notification), `src/nodejs_core/perf_hooks.rs` (`PERF_OBSERVER_JS` shared snippet), `src/runtime_minimal.rs` (module bag wiring), and `tests/perf_hooks_contract_tests.rs`. Historical `docs/STAGE_*` reports are not part of this contract.
 
 The `performance` **object** (its `now` / `mark` / `measure` / `getEntries*` semantics) stays governed by [`docs/STREAMS_TIMERS_CONTRACT.md`](STREAMS_TIMERS_CONTRACT.md) (**G13**); this page owns only the `require('perf_hooks')` module surface layered on top — like G42 `require('timers')` layered over G13's global timers.
 
