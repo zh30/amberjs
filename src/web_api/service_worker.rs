@@ -528,18 +528,34 @@ parentPort.postMessage({
     registration.__amberHasFetch = false;
     registration.__amberWorkerId = 0;
 
-    function markRedundant() {{
-      worker.state = 'redundant';
+    // Hard clear: fail paths. Soft clear (unregister): drop installing/waiting
+    // only — keep active/controller + state until teardown so an already-queued
+    // WorkerHost `reply` is not observed as empty state after a CI safety timer
+    // races unregister ahead of message delivery (HELLO WORKER|/app/||true|true).
+    function markRedundant(hard) {{
       if (registration.installing === worker) registration.installing = null;
       if (registration.waiting === worker) registration.waiting = null;
-      if (registration.active === worker) registration.active = null;
-      if (controller === worker) controller = null;
+      if (hard) {{
+        worker.state = 'redundant';
+        if (registration.active === worker) registration.active = null;
+        if (controller === worker) controller = null;
+      }}
+    }}
+
+    function publishActivated() {{
+      // State must be visible before register()/ready resolve or postMessage
+      // observers run — claim may already have flipped `claimed`.
+      worker.state = 'activated';
+      registration.installing = null;
+      registration.waiting = null;
+      registration.active = worker;
+      if (claimed) controller = worker;
     }}
 
     function fail(err) {{
       if (settled) return;
       settled = true;
-      markRedundant();
+      markRedundant(true);
       registration.__amberHasFetch = false;
       try {{ __amber_worker_terminate(id); }} catch (_) {{}}
       applyFetchIntercept();
@@ -571,11 +587,16 @@ parentPort.postMessage({
     // Teardown after unregister: terminate worker + reject orphan fetches.
     // Deferred when intercepts are in flight so a CI safety timer cannot
     // beat an already-queued respondWith/fetchPass (WorkerHost pump).
+    // Also defer one macrotask when idle so queued `reply` frames are pumped
+    // before active/controller slots clear (pump runs before timers).
     let unregisterStarted = false;
     let unregisterTeardownDone = false;
     function finishUnregisterTeardown() {{
       if (unregisterTeardownDone) return;
       unregisterTeardownDone = true;
+      worker.state = 'redundant';
+      if (registration.active === worker) registration.active = null;
+      if (controller === worker) controller = null;
       try {{ __amber_worker_terminate(id); }} catch (_) {{}}
       rejectAllPendingFetches('ServiceWorker was unregistered');
     }}
@@ -583,7 +604,7 @@ parentPort.postMessage({
     registration.unregister = function() {{
       const pendingReg = !settled;
       settled = true;
-      markRedundant();
+      markRedundant(false);
       registration.__amberHasFetch = false;
       applyFetchIntercept();
       if (!unregisterStarted) {{
@@ -592,9 +613,11 @@ parentPort.postMessage({
         // Promises still await WorkerHost fetchResponse/fetchPass. Immediate
         // terminate+reject races the test 2s timer against caches.match on CI
         // ("ServiceWorker was unregistered" vs "cached-by-sw").
-        if (Object.keys(pendingFetches).length === 0) {{
-          finishUnregisterTeardown();
-        }} else {{
+        const scheduleTeardown = function() {{
+          if (Object.keys(pendingFetches).length === 0) {{
+            finishUnregisterTeardown();
+            return;
+          }}
           let tries = 0;
           const maxTries = 100; // ~1s at 10ms; keep-alive holds the loop open
           const poll = function() {{
@@ -604,8 +627,9 @@ parentPort.postMessage({
             }}
             setTimeout(poll, 10);
           }};
-          setTimeout(poll, 0);
-        }}
+          setTimeout(poll, 10);
+        }};
+        setTimeout(scheduleTeardown, 0);
       }}
       if (pendingReg) {{
         rejectReg(new Error('ServiceWorker was unregistered'));
@@ -641,6 +665,13 @@ parentPort.postMessage({
         }}
         if (data.__amberSw === 'claim') {{
           claimed = true;
+          // claim may arrive after activated/finishResolve on slow CI;
+          // still publish controller so page observes the claimed worker.
+          if (worker.state === 'activated') {{
+            controller = worker;
+            registration.active = worker;
+            applyFetchIntercept();
+          }}
           return;
         }}
         if (data.__amberSw === 'installed') {{
@@ -658,15 +689,18 @@ parentPort.postMessage({
           return;
         }}
         if (data.__amberSw === 'activated') {{
-          worker.state = 'activated';
-          registration.installing = null;
-          registration.waiting = null;
-          registration.active = worker;
+          publishActivated();
           finishResolve();
           applyFetchIntercept();
           return;
         }}
         if (data.__amberSw === 'reply') {{
+          // If unregister soft-cleared slots but teardown has not run yet,
+          // re-publish activated active/controller for in-flight replies.
+          if (worker.state === 'activated') {{
+            registration.active = worker;
+            if (claimed) controller = worker;
+          }}
           dispatchContainer({{ data: data.data }});
         }}
       }},

@@ -9205,11 +9205,13 @@ impl MinimalRuntime {
                 scope.perform_microtask_checkpoint();
             }
 
-            // Pump WorkerHost before fired timers when SW intercepts are pending.
+            // Pump WorkerHost before fired timers when SW work may be in flight.
             // Otherwise a safety setTimeout → unregister can rejectAllPendingFetches
-            // before an already-queued fetchResponse/fetchPass is delivered.
+            // or clear active/controller before an already-queued fetchResponse/
+            // fetchPass/reply is delivered (empty active.state contract flake).
             if sw_has_pending_intercepted_fetches(scope)
                 || crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                || crate::web_api::worker_host::WorkerHost::has_active_workers()
             {
                 crate::web_api::worker_host::WorkerHost::pump_parent_messages(scope);
                 execute_next_tick_callbacks(scope);
