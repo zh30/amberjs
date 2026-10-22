@@ -69,14 +69,6 @@ fn assert_same_path(actual: &Path, expected: &Path) {
     assert_eq!(actual, expected);
 }
 
-fn assert_no_event(rx: &mpsc::Receiver<FileChange>, wait: Duration) {
-    match rx.recv_timeout(wait) {
-        Err(mpsc::RecvTimeoutError::Timeout) => {}
-        Ok(change) => panic!("unexpected event {}", change.path.display()),
-        Err(mpsc::RecvTimeoutError::Disconnected) => panic!("watcher disconnected"),
-    }
-}
-
 /// macOS FSEvents can report a create that happened before `watch` only after
 /// the watcher is running. Drop those events, and restart the wait if another
 /// arrives, so a late `keep.ts` create is not counted as a later write.
