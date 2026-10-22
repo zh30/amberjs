@@ -5880,8 +5880,11 @@ impl MinimalRuntime {
         let (module, module_path) =
             Self::load_dynamic_import_module(scope, specifier, &referrer_path)
                 .map_err(EsmDynamicImportError::Message)?;
-        let eval_outcome =
-            Self::instantiate_and_evaluate_esm_module_for_dynamic_import(scope, module, &module_path)?;
+        let eval_outcome = Self::instantiate_and_evaluate_esm_module_for_dynamic_import(
+            scope,
+            module,
+            &module_path,
+        )?;
         if module.get_status() == v8::ModuleStatus::Errored {
             return Err(EsmDynamicImportError::Value(
                 Self::esm_module_exception_value(scope, module),
