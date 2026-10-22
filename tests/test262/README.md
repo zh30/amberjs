@@ -44,7 +44,8 @@ AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --jobs 8
 ```
 
 Env: `AMBER_BIN`, `TEST262_ROOT`, `TEST262_TIMEOUT` (seconds per case, default 30),
-`AMBER_TEST262=1` (set automatically by the runner — enables native `$262.createRealm` / `$262.detachArrayBuffer`).
+`AMBER_TEST262=1` (set automatically by the runner — enables native `$262.createRealm` / `$262.detachArrayBuffer` / `$262.agent`),
+`AMBER_TEST262_CAN_BLOCK=0|1` (set by the runner from `CanBlockIsFalse` / `CanBlockIsTrue` — V8 `AllowAtomicsWait` / AgentCanSuspend).
 
 ### Optional engine FAIL allowlist (OFF by default)
 

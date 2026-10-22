@@ -535,6 +535,14 @@ def run_one(
     env = os.environ.copy()
     # Enable native __amber_createRealm for cross-realm tests.
     env.setdefault("AMBER_TEST262", "1")
+    # test262 INTERPRETING.md: CanBlockIsFalse / CanBlockIsTrue select Agent [[CanBlock]].
+    # Amber maps this to V8 Isolate::SetAllowAtomicsWait (AgentCanSuspend).
+    if "CanBlockIsFalse" in meta.flags:
+        env["AMBER_TEST262_CAN_BLOCK"] = "0"
+    elif "CanBlockIsTrue" in meta.flags:
+        env["AMBER_TEST262_CAN_BLOCK"] = "1"
+    else:
+        env.pop("AMBER_TEST262_CAN_BLOCK", None)
 
     status, reason = "FAIL", "no attempt"
     # CI saw exit -7 (SIGBUS) on an otherwise-green types test under --jobs 4.
@@ -858,6 +866,8 @@ def self_test() -> None:
     # ASI guard: async epilogue must start with `;` so bodies ending in `})`
     # / `.then(...)` do not glue onto the wait IIFE.
     assert ASYNC_EPILOGUE.lstrip().startswith(";(function __test262_waitForAsyncDone")
+    m_block = parse_frontmatter("/*---\nflags: [CanBlockIsFalse]\n---*/\nok")
+    assert "CanBlockIsFalse" in m_block.flags
     print("test262 harness self-test ok")
 
 

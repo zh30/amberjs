@@ -56,6 +56,17 @@ fn apply_active_source_map(stack: &str) -> String {
     })
 }
 
+/// V8 `[[CanBlock]]` / `AgentCanSuspend` for test262.
+///
+/// Harness sets `AMBER_TEST262_CAN_BLOCK=0` when the case has `flags: [CanBlockIsFalse]`
+/// so `Atomics.wait` must throw TypeError. Default (unset / `1`) allows blocking wait.
+fn test262_allow_atomics_wait() -> bool {
+    match std::env::var("AMBER_TEST262_CAN_BLOCK").ok().as_deref() {
+        Some("0") | Some("false") | Some("no") => false,
+        _ => true,
+    }
+}
+
 fn remap_stack_with_source_map(stack: &str, map_json: &str) -> String {
     let Ok(map) = serde_json::from_str::<serde_json::Value>(map_json) else {
         return stack.to_string();
@@ -4487,7 +4498,12 @@ impl MinimalRuntime {
     /// v0.3.270: 设置显式微任务策略，确保 nextTick 在 Promise 之前执行
     ///
     fn isolate_create_params(initial: usize, maximum: usize) -> v8::CreateParams {
-        let params = v8::CreateParams::default().heap_limits(initial, maximum);
+        // test262 `CanBlockIsFalse` → AgentCanSuspend() false → Atomics.wait throws.
+        // Driven by AMBER_TEST262_CAN_BLOCK=0 from the harness (see run_test262.py).
+        let allow_wait = test262_allow_atomics_wait();
+        let params = v8::CreateParams::default()
+            .heap_limits(initial, maximum)
+            .allow_atomics_wait(allow_wait);
         match crate::v8_snapshot::cached_startup_blob() {
             Some(blob) => params.snapshot_blob(v8::StartupData::from(blob)),
             None => params,
@@ -4649,6 +4665,8 @@ impl MinimalRuntime {
         isolate.set_microtasks_policy(v8::MicrotasksPolicy::Explicit);
         isolate.set_host_import_module_dynamically_callback(Self::esm_dynamic_import_callback);
         isolate.set_promise_reject_callback(promise_reject_callback);
+        // Mirror CreateParams: V8 Agent [[CanBlock]] / AgentCanSuspend for test262.
+        isolate.set_allow_atomics_wait(test262_allow_atomics_wait());
     }
 
     pub fn set_main_module_path(&mut self, path: impl AsRef<std::path::Path>) {
