@@ -38,7 +38,9 @@ The rest of `src/nodejs_core/` (`http`, `net`, streams, `child_process`, and the
 | `statfs` / `statfsSync` | `statvfs(3)` on the real host path: `{ bsize, frsize, blocks, bfree, bavail, files, ffree, favail, namemax }` as numbers. Missing path is `ENOENT`. Syscall `statfs`. Unix only — non-Unix platforms fail with `EIO` (`Unsupported`); the same failure under the sandbox VFS (no host mapping — answering would leak host stats). |
 | `fs.constants` | `F_OK`, `R_OK`, `W_OK`, `X_OK`, `O_RDONLY`, `O_WRONLY`, `O_RDWR`, `O_APPEND`, `O_CREAT`, `O_EXCL`, `O_TRUNC`, `COPYFILE_EXCL`. |
 
-`fs.promises` has the same methods without the `Sync` suffix, except there is no `promises.exists`. `promises.open` / `read` / `write` / `close` use the same numeric fds. They do not return a Node `FileHandle`. `promises.cp` / `opendir` / `statfs` resolve the same values as their `Sync` counterparts (a `Dir` from `promises.opendir` supports the same sync and callback methods).
+`fs.promises` has the same methods without the `Sync` suffix, except there is no `promises.exists`. `promises.read` / `write` / `close` take and use the same numeric fds. `promises.cp` / `opendir` / `statfs` resolve the same values as their `Sync` counterparts (a `Dir` from `promises.opendir` supports the same sync and callback methods).
+
+| `promises.open` | Resolves a `FileHandle` object (**G77**). `fd` is the numeric fd. `read(buffer, offset, length, position)` → `{ bytesRead, buffer }`; `write(buffer-or-string, offset?, length?, position?)` → `{ bytesWritten, buffer }`; `readFile([options])` → `Buffer` (`'utf8'` / `{ encoding: 'utf8' }` → string); `writeFile(data)`; `stat()` → the same Stats shape as `fstat`; `truncate(len)`; `chmod(mode)` (Unix only — rejects `EIO`/`Unsupported` elsewhere); `close()`. Every method rejects `EBADF` once closed; `close()` on a closed handle resolves. The underscored `promises.__fstat` / `__ftruncate` / `__fchmod` / `__readFdAll` / `__writeFdAll` entries are internal plumbing for the wrapper, not contract surface. |
 
 ## Write flags
 
@@ -54,6 +56,8 @@ The rest of `src/nodejs_core/` (`http`, `net`, streams, `child_process`, and the
 ## Async
 
 Callback APIs and `fs.promises` validate arguments and the permission broker on the calling turn. Permission denial throws `TypeError` whose message contains `permission denied` before any job is queued. The path is the string captured at the call. Mutating a property on the returned promise does not retarget the operation.
+
+**Honesty Limits (not Non-goals fiction):** `read` / `write` with an explicit `position` move the fd's current offset (the implementation seeks; it is not `pread` / `pwrite`), so `readFile` after a positioned `read` starts at the moved offset. `readFile` / `writeFile` on a `FileHandle` operate at the current offset, not from 0. `FileHandle.stat` is `fstat` semantics on the open fd; under the sandbox VFS it follows the fd's underlying `File`, not a re-lookup of the path.
 
 The I/O itself runs on a later `process.nextTick` turn, on the isolate thread. It is not a libuv threadpool. The callback or the promise settlement therefore observes state that was assigned after the `fs` call returned. A promise from `fs.promises` is a real `Promise` (`instanceof Promise`).
 
@@ -78,7 +82,7 @@ Failures from `mkdir`, `stat`, `lstat`, `unlink`, `rename`, and `rmdir` throw or
 - `statfs` `{ bigint: true }` form and the `type` field (Node reports `statfs(2)` `f_type`; the implementation uses `statvfs(3)` which has no `f_type`).
 - `fs.watch` / `fs.watchFile` / `fs.unwatchFile` — Stable under **G64** ([`docs/FS_WATCH_CONTRACT.md`](FS_WATCH_CONTRACT.md)), not this G8 page.
 - `fs.exists` (callback) and `fs.promises.exists` (not installed).
-- Node `FileHandle` (`fd.close()` as a method, `readableWebStream`, and the rest of that class).
+- `FileHandle` extras: `readableWebStream`, `readLines`, `[Symbol.asyncDispose]`, `datasync` / `sync`, `stat` options, `read` / `write` with options objects, `createReadStream` / `createWriteStream`, xattr APIs, the `'close'` event emitter.
 - A worker threadpool. Async `fs` does not run concurrently with JavaScript on another thread.
 - Sorted `readdir` results.
 - Windows-specific flags and ACLs. This contract is the Unix behavior of the current host.

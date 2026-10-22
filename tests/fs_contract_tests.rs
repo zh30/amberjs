@@ -685,3 +685,73 @@ fn g76_esm_named_imports() {
         "data"
     );
 }
+
+#[test]
+#[serial]
+fn g77_filehandle_open_read_write_close() {
+    let dir = TempDir::new().expect("temp dir");
+    let root = js_path(dir.path());
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        (async () => {{
+            const out = [];
+            const fh = await fs.promises.open('{root}/fh.txt', 'w+');
+            out.push('fd=' + (typeof fh.fd === 'number'));
+            const wr = await fh.write('hello world');
+            out.push('w=' + wr.bytesWritten);
+            const buf = new Uint8Array(5);
+            const rd = await fh.read(buf, 0, 5, 0);
+            out.push('r=' + rd.bytesRead + ':' + new TextDecoder().decode(rd.buffer));
+            const st = await fh.stat();
+            out.push('size=' + st.size + ',file=' + st.isFile());
+            const text = await fh.readFile('utf8');
+            out.push('text=' + text);
+            await fh.writeFile('TAIL');
+            out.push('len=' + (await fh.stat()).size);
+            await fh.truncate(5);
+            out.push('len2=' + (await fh.stat()).size);
+            await fh.chmod(0o600);
+            out.push('mode=' + ((await fh.stat()).mode & 0o777).toString(8));
+            await fh.close();
+            await fh.close(); // double close resolves
+            try {{ await fh.read(buf); out.push('nobadf'); }}
+            catch (e) {{ out.push(e.code); }}
+            try {{ await fh.stat(); out.push('nobadf'); }}
+            catch (e) {{ out.push(e.code); }}
+            return out.join('|');
+        }})()
+        "#,
+    );
+    assert_eq!(
+        run(&code),
+        "fd=true|w=11|r=5:hello|size=11,file=true|text= world|len=15|len2=5|mode=600|EBADF|EBADF"
+    );
+}
+
+#[test]
+#[serial]
+fn g77_filehandle_readfile_buffer_and_positions() {
+    let dir = TempDir::new().expect("temp dir");
+    let root = js_path(dir.path());
+    let code = format!(
+        r#"
+        const fs = require('fs');
+        (async () => {{
+            const out = [];
+            fs.writeFileSync('{root}/src.txt', '0123456789abcdef');
+            const fh = await fs.promises.open('{root}/src.txt', 'r');
+            const buf = new Uint8Array(4);
+            const a = await fh.read(buf, 0, 4, 8);   // positional read at offset 8
+            out.push(a.bytesRead + ':' + new TextDecoder().decode(buf));
+            // positional read moved the offset to 12 — readFile reads the tail
+            const rest = await fh.readFile();          // Buffer payload
+            out.push('buf=' + (rest instanceof Uint8Array) + ':' + rest.byteLength);
+            await fh.close();
+            out.push('fd=' + (typeof fh.fd));
+            return out.join('|');
+        }})()
+        "#,
+    );
+    assert_eq!(run(&code), "4:89ab|buf=true:4|fd=number");
+}
