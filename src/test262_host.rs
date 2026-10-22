@@ -73,6 +73,7 @@ fn create_realm_record<'s>(
     });
 
     // Enter the new realm: stamp id + replace eval with realm-aware callback.
+    // Also install await-dictionary on this realm's Promise (bare V8 context).
     {
         let scope = &mut v8::ContextScope::new(scope, new_context);
         let global = new_context.global(scope);
@@ -84,6 +85,8 @@ fn create_realm_record<'s>(
         let eval_fn = v8::Function::new(scope, realm_eval_cb).unwrap();
         let eval_key = v8::String::new(scope, "eval").unwrap();
         global.set(scope, eval_key.into(), eval_fn.into());
+
+        crate::promise_await_dictionary::install(scope).map_err(|e| e.to_string())?;
     }
 
     let global_local = {

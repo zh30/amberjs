@@ -14,6 +14,7 @@
     "async-functions",
     "async-iteration",
     "Atomics",
+    "await-dictionary",
     "BigInt",
     "class",
     "class-fields-private",
