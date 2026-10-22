@@ -2,6 +2,14 @@
 //!
 //! Enabled when `AMBER_TEST262=1` (the harness sets this). Creates a persistent
 //! V8 Context per realm so builtins (`Number`, …) and `eval` honor that realm.
+//!
+//! Note on `%ThrowTypeError%` / `Function.prototype.{arguments,caller}`:
+//! V8 152 exposes distinct named prototype accessors (legacy `.caller` tracking)
+//! instead of the single per-realm `%ThrowTypeError%` Node still ships. Rebinding
+//! the prototype to the real `%ThrowTypeError%` intrinsic restores accessor
+//! identity but regresses `features: [caller]` poison-pill tests (no own
+//! `caller` data properties on function instances in this V8). Leave those
+//! FAILs honest until an engine-level fix can reinstall own restricted props.
 
 use std::cell::RefCell;
 

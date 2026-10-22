@@ -697,13 +697,22 @@ pub fn setup_wasm_api(
     let k_amber_wasm_native = v8::String::new(scope, "__amber_wasm_native").unwrap();
     global.set(scope, k_amber_wasm_native.into(), native_obj.into());
 
+    // test262 built-in toString walks intrinsic accessors; JS-defined `.ptr`
+    // getters on ArrayBuffer / TypedArray prototypes fail NativeFunction syntax.
+    // Keep the `wasm.*` module API; only skip prototype pollution under AMBER_TEST262.
+    if crate::test262_host::test262_host_enabled() {
+        let skip_key = v8::String::new(scope, "__AMBER_SKIP_BUILTIN_PROTO").unwrap();
+        global.set(scope, skip_key.into(), v8::Boolean::new(scope, true).into());
+    }
+
     // Inject high-level user-friendly JavaScript wrapper
     let js_code = r#"
     (function() {
         const native = globalThis.__amber_wasm_native;
+        const extendBuiltins = !globalThis.__AMBER_SKIP_BUILTIN_PROTO;
 
         // 1. Prototype extensions for WebAssembly.Memory, ArrayBuffer, TypedArrays
-        if (typeof WebAssembly !== 'undefined' && WebAssembly.Memory) {
+        if (extendBuiltins && typeof WebAssembly !== 'undefined' && WebAssembly.Memory) {
             Object.defineProperty(WebAssembly.Memory.prototype, 'ptr', {
                 get() {
                     return native.ptr(this);
@@ -755,7 +764,7 @@ pub fn setup_wasm_api(
             };
         }
 
-        if (typeof ArrayBuffer !== 'undefined') {
+        if (extendBuiltins && typeof ArrayBuffer !== 'undefined') {
             Object.defineProperty(ArrayBuffer.prototype, 'ptr', {
                 get() {
                     return native.ptr(this);
@@ -773,7 +782,7 @@ pub fn setup_wasm_api(
             };
         }
 
-        if (typeof SharedArrayBuffer !== 'undefined') {
+        if (extendBuiltins && typeof SharedArrayBuffer !== 'undefined') {
             Object.defineProperty(SharedArrayBuffer.prototype, 'ptr', {
                 get() {
                     return native.ptr(this);
@@ -792,7 +801,7 @@ pub fn setup_wasm_api(
         }
 
         const TypedArrayProto = Object.getPrototypeOf(Uint8Array.prototype);
-        if (TypedArrayProto) {
+        if (extendBuiltins && TypedArrayProto) {
             Object.defineProperty(TypedArrayProto, 'ptr', {
                 get() {
                     return native.ptr(this);
