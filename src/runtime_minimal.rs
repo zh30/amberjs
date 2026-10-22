@@ -202,10 +202,23 @@ struct EsmModuleLoadState {
     cjs_synthetic_exports_by_identity: HashMap<i32, v8::Global<v8::Value>>,
     cjs_synthetic_named_exports_by_identity: HashMap<i32, Vec<String>>,
     pending_error: Option<String>,
-    /// Dynamic `import()` of a module that is mid-evaluation (self-import).
-    /// Must not re-enter `Module::evaluate` / `get_module_namespace` until
-    /// status is `Evaluated` — V8 CHECK-fails otherwise.
-    pending_dynamic_imports: Vec<(PathBuf, v8::Global<v8::PromiseResolver>)>,
+    /// Dynamic `import()` deferred until the target module finishes evaluation.
+    ///
+    /// - Self-import / mid-stack: `evaluation` is `None`; flush waits on
+    ///   `ModuleStatus::{Evaluated,Errored}` (must not re-enter `evaluate`).
+    /// - Top-level await: `evaluation` is the Promise returned by
+    ///   `Module::evaluate`. V8 may report `Evaluated` before that Promise
+    ///   settles — resolving `import()` on status alone exposes TDZ bindings
+    ///   and swallows TLA rejections. Flush must follow the evaluation Promise.
+    pending_dynamic_imports: Vec<PendingDynamicImport>,
+}
+
+struct PendingDynamicImport {
+    module_path: PathBuf,
+    resolver: v8::Global<v8::PromiseResolver>,
+    /// TLA evaluation Promise when `import()` was deferred for pending async
+    /// evaluation; `None` for mid-stack Evaluating (self-import) deferrals.
+    evaluation: Option<v8::Global<v8::Promise>>,
 }
 
 enum EsmDynamicImportError<'scope> {
@@ -218,7 +231,20 @@ enum DynamicImportPrep<'scope> {
     /// Module namespace ready now.
     Ready(v8::Local<'scope, v8::Value>),
     /// Module is mid-evaluation; Promise stays pending until flush.
-    Deferred(PathBuf),
+    Deferred {
+        module_path: PathBuf,
+        evaluation: Option<v8::Local<'scope, v8::Promise>>,
+    },
+}
+
+/// Result of instantiate + evaluate for a dynamic-import target.
+enum DynamicImportEval<'scope> {
+    /// Sync evaluation finished (or already Evaluated).
+    Done,
+    /// Module is on the evaluation stack (self-import); status-only defer.
+    MidEvaluating,
+    /// `Module::evaluate` returned a pending TLA Promise — follow it on flush.
+    PendingTla(v8::Local<'scope, v8::Promise>),
 }
 
 thread_local! {
@@ -5432,6 +5458,12 @@ impl MinimalRuntime {
         loop {
             execute_next_tick_callbacks(scope);
             scope.perform_microtask_checkpoint();
+            // Settle deferred import() promises that follow a TLA evaluation
+            // Promise — without this, await import() of an async module never
+            // completes inside ensure_esm_evaluation_settled (flush only ran
+            // after this loop / in the main event loop).
+            Self::flush_pending_dynamic_imports(scope);
+            scope.perform_microtask_checkpoint();
             match promise.state() {
                 v8::PromiseState::Fulfilled => return Ok(()),
                 v8::PromiseState::Rejected => {
@@ -5546,7 +5578,7 @@ impl MinimalRuntime {
         scope: &mut v8::PinScope<'scope, '_>,
         module: v8::Local<'scope, v8::Module>,
         module_path: &Path,
-    ) -> Result<(), EsmDynamicImportError<'scope>> {
+    ) -> Result<DynamicImportEval<'scope>, EsmDynamicImportError<'scope>> {
         if module.get_status() == v8::ModuleStatus::Uninstantiated {
             match module.instantiate_module(scope, Self::esm_resolve_callback) {
                 Some(true) => {}
@@ -5573,7 +5605,7 @@ impl MinimalRuntime {
         // module body). Re-entering evaluate() CHECK-fails in V8; caller must
         // defer Promise resolution until Evaluated via pending_dynamic_imports.
         if module.get_status() == v8::ModuleStatus::Evaluating {
-            return Ok(());
+            return Ok(DynamicImportEval::MidEvaluating);
         }
 
         if module.get_status() != v8::ModuleStatus::Evaluated {
@@ -5586,7 +5618,9 @@ impl MinimalRuntime {
             // A pending evaluation Promise must leave import() pending so the
             // importer can resume (e.g. resolve the awaited value) — spinning
             // here deadlocks tests like dynamic-import-of-waiting-module.
-            // Reject only if evaluation already rejected; otherwise defer.
+            // Reject only if evaluation already rejected; otherwise defer and
+            // follow the evaluation Promise on flush (status alone is too early
+            // for async modules — V8 may report Evaluated before TLA settles).
             if evaluation.is_promise() {
                 if let Ok(promise) = v8::Local::<v8::Promise>::try_from(evaluation) {
                     match promise.state() {
@@ -5594,8 +5628,7 @@ impl MinimalRuntime {
                             return Err(EsmDynamicImportError::Value(promise.result(scope)));
                         }
                         v8::PromiseState::Pending => {
-                            // Leave Deferred to flush_pending_dynamic_imports.
-                            return Ok(());
+                            return Ok(DynamicImportEval::PendingTla(promise));
                         }
                         v8::PromiseState::Fulfilled => {}
                     }
@@ -5612,7 +5645,7 @@ impl MinimalRuntime {
             ));
         }
 
-        Ok(())
+        Ok(DynamicImportEval::Done)
     }
 
     fn has_pending_dynamic_imports() -> bool {
@@ -5648,7 +5681,12 @@ impl MinimalRuntime {
             return;
         }
         let mut still_pending = Vec::new();
-        for (module_path, resolver_global) in pending {
+        for pending_import in pending {
+            let PendingDynamicImport {
+                module_path,
+                resolver: resolver_global,
+                evaluation: evaluation_global,
+            } = pending_import;
             let resolver = v8::Local::new(scope, &resolver_global);
             let module_opt = ESM_MODULE_LOAD_STATE.with(|state| {
                 state.borrow().as_ref().and_then(|s| {
@@ -5670,6 +5708,37 @@ impl MinimalRuntime {
                 resolver.reject(scope, err);
                 continue;
             };
+
+            // TLA path: follow Module::evaluate's Promise, not ModuleStatus.
+            // Async modules can be Evaluated while the evaluation Promise is
+            // still pending — resolving import() then exposes TDZ / misses rejects.
+            if let Some(evaluation_global) = evaluation_global {
+                let evaluation = v8::Local::new(scope, &evaluation_global);
+                match evaluation.state() {
+                    v8::PromiseState::Pending => {
+                        still_pending.push(PendingDynamicImport {
+                            module_path,
+                            resolver: resolver_global,
+                            evaluation: Some(evaluation_global),
+                        });
+                    }
+                    v8::PromiseState::Rejected => {
+                        resolver.reject(scope, evaluation.result(scope));
+                    }
+                    v8::PromiseState::Fulfilled => {
+                        if module.get_status() == v8::ModuleStatus::Errored {
+                            let exc = Self::esm_module_exception_value(scope, module);
+                            resolver.reject(scope, exc);
+                        } else {
+                            let namespace = module.get_module_namespace();
+                            resolver.resolve(scope, namespace);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // Self-import / mid-stack: status-only (no evaluation Promise yet).
             match module.get_status() {
                 v8::ModuleStatus::Evaluated => {
                     let namespace = module.get_module_namespace();
@@ -5680,10 +5749,18 @@ impl MinimalRuntime {
                     resolver.reject(scope, exc);
                 }
                 v8::ModuleStatus::Evaluating => {
-                    still_pending.push((module_path, resolver_global));
+                    still_pending.push(PendingDynamicImport {
+                        module_path,
+                        resolver: resolver_global,
+                        evaluation: None,
+                    });
                 }
                 _ => {
-                    still_pending.push((module_path, resolver_global));
+                    still_pending.push(PendingDynamicImport {
+                        module_path,
+                        resolver: resolver_global,
+                        evaluation: None,
+                    });
                 }
             }
         }
@@ -5803,20 +5880,36 @@ impl MinimalRuntime {
         let (module, module_path) =
             Self::load_dynamic_import_module(scope, specifier, &referrer_path)
                 .map_err(EsmDynamicImportError::Message)?;
-        // Capture Evaluating *before* instantiate/evaluate — self-import hits here.
-        let was_evaluating = module.get_status() == v8::ModuleStatus::Evaluating;
-        Self::instantiate_and_evaluate_esm_module_for_dynamic_import(scope, module, &module_path)?;
+        let eval_outcome =
+            Self::instantiate_and_evaluate_esm_module_for_dynamic_import(scope, module, &module_path)?;
         if module.get_status() == v8::ModuleStatus::Errored {
             return Err(EsmDynamicImportError::Value(
                 Self::esm_module_exception_value(scope, module),
             ));
         }
-        // Mid-evaluation or pending TLA: leave import() pending until flush.
-        if was_evaluating
-            || module.get_status() == v8::ModuleStatus::Evaluating
-            || module.get_status() != v8::ModuleStatus::Evaluated
-        {
-            return Ok(DynamicImportPrep::Deferred(module_path));
+        match eval_outcome {
+            DynamicImportEval::PendingTla(evaluation) => {
+                // Follow evaluation Promise on flush — do not trust Evaluated yet.
+                return Ok(DynamicImportPrep::Deferred {
+                    module_path,
+                    evaluation: Some(evaluation),
+                });
+            }
+            DynamicImportEval::MidEvaluating => {
+                return Ok(DynamicImportPrep::Deferred {
+                    module_path,
+                    evaluation: None,
+                });
+            }
+            DynamicImportEval::Done => {}
+        }
+        // Sync / already-settled: namespace ready now.
+        if module.get_status() != v8::ModuleStatus::Evaluated {
+            // Defensive: unexpected non-Evaluated after Done — defer by status.
+            return Ok(DynamicImportPrep::Deferred {
+                module_path,
+                evaluation: None,
+            });
         }
         let namespace = module.get_module_namespace();
         Ok(DynamicImportPrep::Ready(namespace))
@@ -5879,13 +5972,21 @@ impl MinimalRuntime {
                     Ok(DynamicImportPrep::Ready(namespace)) => {
                         resolver.resolve(tc, namespace);
                     }
-                    Ok(DynamicImportPrep::Deferred(module_path)) => {
-                        // Resolve after outer Module::evaluate finishes (flush_pending).
+                    Ok(DynamicImportPrep::Deferred {
+                        module_path,
+                        evaluation,
+                    }) => {
+                        // Resolve/reject after evaluation settles (flush_pending).
                         let resolver_global = v8::Global::new(tc, resolver);
+                        let evaluation_global =
+                            evaluation.map(|promise| v8::Global::new(tc, promise));
                         ESM_MODULE_LOAD_STATE.with(|state| {
                             if let Some(s) = state.borrow_mut().as_mut() {
-                                s.pending_dynamic_imports
-                                    .push((module_path, resolver_global));
+                                s.pending_dynamic_imports.push(PendingDynamicImport {
+                                    module_path,
+                                    resolver: resolver_global,
+                                    evaluation: evaluation_global,
+                                });
                             }
                         });
                     }
