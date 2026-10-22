@@ -68,10 +68,12 @@ When enabled:
 - Override file with `--engine-allowlist-file`; force off with `--no-engine-allowlist`.
 
 **Do not** move these entries into `features.json` `always_skip_features`. The seed aims to
-cover the projected post-open-stack engine residual (**≈462** FAIL after #274/#276/#279/…
-on measured main FAIL Σ **1300** @ `cb3c0005`: language ≈218, built-ins ≈94, other ≈150)
-and remains a **draft until measured after remaining open drafts land**; do **not** flip
-CI smoke / the default gate ON without an explicit product decision (gate still pending Henry).
+cover the projected post-open-stack engine residual (**≈447** FAIL after
+#274/#276/#279/#278/#281/#282/#295/#296 on measured main FAIL Σ **1300** @ `cb3c0005`:
+language ≈216, built-ins ≈94, other ≈137) and remains a **draft until measured after
+remaining open drafts land**; do **not** flip CI smoke / the default gate ON without an
+explicit product decision (gate still pending Henry). Amber-owned open-stack paths are
+intentionally **absent** from the seed so they stay honest FAIL until those PRs land.
 
 
 ## Scorecard / gate
@@ -94,4 +96,8 @@ Node conformance (`./tests/conformance/run_conformance.sh`) stays ≥55/55 and i
 
 - `.github/workflows/test262.yml` runs a fail-closed **smoke** job (`--self-test` + `language/types*` paths) and uploads that run’s scorecard artifact (`test262-scorecard`). It does not run the full suite.
 - Full suite remains local/manual (`run_test262.py` without `--path`) until green; then promote a full-suite job to a required fail-closed gate.
-- Smoke / required gates must **not** set `AMBER_TEST262_ENGINE_ALLOWLIST` unless product explicitly flips the policy.
+- **CI smoke stays honest while allowlist stays OFF:** the workflow must **not** set
+  `AMBER_TEST262_ENGINE_ALLOWLIST` and must **not** pass `--engine-allowlist`. Smoke
+  therefore still counts matching seed paths as **FAIL** (same as local default). Enabling
+  the allowlist is a separate product flip (`AMBER_TEST262_ENGINE_ALLOWLIST=1` or
+  `--engine-allowlist`), not a CI silent path.

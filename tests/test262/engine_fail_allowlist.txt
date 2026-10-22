@@ -20,32 +20,44 @@
 #   Blank lines and # comments ignored.
 #   Prefixes only remap FAIL→ENGINE_ALLOW; PASS under a prefix stays PASS.
 #
-# STATUS — SEED toward projected engine floor ≈462 (allowlist OFF ⇒ FAIL unchanged)
+# STATUS — SEED toward projected engine floor ≈447 (allowlist OFF ⇒ FAIL unchanged)
 #   Measured on origin/main cb3c0005 (post-#290/#286/#287/…; store
 #   test262-main-scorecard-post-290.md): language FAIL=248, built-ins=828,
 #   other=224, Σ=1300, unexpected_skip=0.
-#   After remaining open Amber drafts (#274/#276/#279/#278/#281/#282):
-#     language ≈218  |  built-ins ≈94  |  other ≈150  |  Σ ≈462
+#   After remaining open Amber drafts
+#   (#274/#276/#279/#278/#281/#282/#295/#296):
+#     language ≈216  |  built-ins ≈94  |  other ≈137  |  Σ ≈447
 #   (#272/#273/#275/#283/#284/#286/#287/#288/#289/#290 already on main.)
-#   This seed lists *proven / projected engine* clusters so flip can cover that
-#   floor. Coarse prefixes are provisional — trim to Amber↔Node intersect after
-#   the Amber stack lands. Do NOT treat as product policy yet. Do not broaden
-#   beyond measured engine gaps.
+#   Seed lists *proven* V8/Node/ICU/SM clusters only (Node also FAIL and/or
+#   inventory class engine). Coarse language wall prefixes are provisional —
+#   trim to Amber↔Node intersect after the Amber stack lands.
+#   Do NOT treat as product policy yet. Do not broaden beyond measured engine gaps.
+#
+# EXCLUDED (Amber-owned open stack — do NOT seed; must stay honest FAIL until land):
+#   #274 negative-classify (language/line-terminators/, annexB/language/comments/, …)
+#   #276 global-code bulk (language/global-code/* except residual engine pair below)
+#   #279 detach + ASI (built-ins detach mass, harness async ASI, staging detach,
+#       language async-function/async-generator ASI false-FAIL)
+#   #278 $262.agent  |  #281 Atomics CanBlock  |  #282 host print
+#   #295 staging/sm/strict shell modes (−13)
+#   #296 TLA dynamic import() settle (−2 language)
 #
 # Refs (store, not in-repo):
+#   internal/test262-allowlist-seed-audit.md
 #   internal/test262-main-scorecard-post-290.md
 #   internal/test262-projected-residual-after-open-prs.md
-#   internal/test262-fail-inventory.md
-#   internal/test262-v8-upgrade-0fail-path.md
 #   internal/test262-built-ins-post-detach-inventory.md
 #   internal/test262-other-roots-baseline.md
 #   internal/test262-error-stack-scout.md
 #   internal/test262-function-throwtypeerror-progress.md
 #   internal/test262-atomics-residual-progress.md
+#   internal/test262-staging-residual-amber-scout.md
+#   internal/test262-language-longtail-triage.md
+#   internal/test262-language-amber-longtail-progress.md
 
 # =============================================================================
-# language/ — measured 248 on cb3c0005; ≈218 after open #274/#276
-# (hard wall + indirect/long-tail; long-tail Amber TBD ~−9 may shrink further)
+# language/ — measured 248 on cb3c0005; ≈216 after open #274/#276/#296
+# (hard Node-shared wall + proven engine long-tail)
 # =============================================================================
 
 # --- hard Node-shared wall ---
@@ -71,7 +83,7 @@ language/expressions/assignmenttargettype/
 
 # Module parse gaps — V8 accepts; $DONOTEVALUATE / HTML-close / early-dup (~11)
 # Do NOT prefix language/module-code/ (Amber TLA/bindings already landed #272/#273;
-# keep only engine-parse exact set from inventory):
+# #296 owns await-dynamic-import-*; keep only engine-parse exact set):
 language/module-code/comment-multi-line-html-close.js
 language/module-code/comment-single-line-html-close.js
 language/module-code/comment-single-line-html-open.js
@@ -89,10 +101,7 @@ language/module-code/parse-err-semi-name-space-export.js
 language/global-code/script-decl-func-err-non-configurable.js
 language/global-code/script-decl-var-collision.js
 
-# --- indirect + long-tail (part of measured language 248 → projected ≈218) ---
-# Inventory: mixed/untriaged but counted in engine floor for allowlist flip prep.
-# Coarse prefixes — measure Amber↔Node and trim before product ON.
-# (#290 enum/implements −6 already in measured 248; long-tail Amber TBD ~−9.)
+# --- indirect + PutValue family (Node-shared; inventory + long-tail re-verify) ---
 
 language/eval-code/indirect/
 
@@ -112,8 +121,21 @@ language/statements/for-in/
 language/future-reserved-words/
 language/identifiers/
 
+# --- proven engine long-tail (Node also FAIL; exact files) ---
+# Evidence: internal/test262-language-longtail-triage.md +
+#           internal/test262-language-amber-longtail-progress.md
+
+language/destructuring/binding/keyed-destructuring-property-reference-target-evaluation-order-with-bindings.js
+language/expressions/delete/super-property-uninitialized-this.js
+language/identifier-resolution/assign-to-global-undefined.js
+language/statements/class/elements/private-class-field-on-nonextensible-objects.js
+language/statements/class/subclass/private-class-field-on-nonextensible-return-override.js
+language/statements/variable/binding-resolution.js
+
 # NOT seeded (Amber-owned until remaining open drafts land):
-#   line-terminators (#274 classify), global-code bulk (#276)
+#   line-terminators (#274), global-code bulk (#276),
+#   async-function/syntax-declaration + async-generator/yield-star (#279 ASI),
+#   module-code/top-level-await/await-dynamic-import-* (#296)
 # Landed Amber (do not seed as engine): TLA/ambiguous (#272), module-bindings (#273),
 #   enum/implements TS sniff (#290), Iterator.includes (#286), allKeyed (#287)
 
@@ -123,9 +145,11 @@ language/identifiers/
 # =============================================================================
 
 # error-stack-accessor — Error.prototype.stack (70; Stage-3 / V8 own-stack)
+# Evidence: internal/test262-error-stack-scout.md (Node 22/24 also 0/70 PASS)
 built-ins/Error/prototype/stack/
 
 # Function + ThrowTypeError residual after #284 (≈12) — V8 152 / shared Node gaps
+# Evidence: internal/test262-function-throwtypeerror-progress.md
 built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js
 built-ins/Function/prototype/arguments/prop-desc.js
 built-ins/Function/prototype/caller/prop-desc.js
@@ -134,9 +158,11 @@ built-ins/Function/prototype/toString/built-in-function-object.js
 built-ins/ThrowTypeError/unique-per-realm-function-proto.js
 
 # Atomics notify RANGE after #281 (2 modes; V8/Node)
+# Evidence: internal/test262-atomics-residual-progress.md
 built-ins/Atomics/notify/retrieve-length-before-index-coercion-non-shared-detached.js
 
 # Small engine residue (class c) — 4+2+2+2 = 10
+# Evidence: internal/test262-built-ins-post-detach-inventory.md
 built-ins/TypedArrayConstructors/internals/GetOwnProperty/enumerate-detached-buffer.js
 built-ins/TypedArrayConstructors/internals/GetOwnProperty/BigInt/enumerate-detached-buffer.js
 built-ins/TypedArray/prototype/set/immutable-buffer.js
@@ -150,9 +176,12 @@ built-ins/Array/prototype/concat/arg-length-exceeding-integer-limit.js
 #   #288 iterator-chunking → windows/ | chunks/
 #   #287 await-dictionary → allKeyed/ | allSettledKeyed/
 #   #286 Iterator.includes → includes/
+# Open Amber host (do NOT seed): detach mass (#279), $262.agent (#278),
+#   CanBlock (#281), RegExp coerce-global print (#282)
 
 # =============================================================================
-# other roots — projected residual ≈150
+# other roots — projected residual ≈137 after #274/#279/#295
+#   annexB ≈55 | staging ≈14 | intl402 68 | harness 0
 # =============================================================================
 
 # annexB ≈55 after #274 clears HTML comments (−10). Engine: RegExp legacy +
@@ -168,9 +197,16 @@ annexB/language/literals/
 # intl402 — full root V8/ICU (68); no Amber host cut
 intl402/
 
-# staging SM residual ≈27 after #279 detach (~60+ Amber). Entire staging/sm/ is
-# listed so post-detach residual (strict/extensions/class/Function/TypedArray
-# integrity/…) is covered; detach cases become PASS after #279 and stay PASS
-# (allowlist only remaps FAIL). Do not flip ON before #279 if you need those
-# Amber detach FAILs visible as FAIL.
-staging/sm/
+# staging SM residual ≈14 after #279 detach + #295 SM-strict (−13).
+# Exact engine files only (Node also FAIL). Do NOT list staging/sm/ wholesale —
+# that would cover Amber detach (#279) and staging/sm/strict (#295) before land.
+# Evidence: internal/test262-staging-residual-amber-scout.md
+staging/sm/class/superCallOrder.js
+staging/sm/class/superPropOrdering.js
+staging/sm/expressions/short-circuit-compound-assignment-property-key-evaluation.js
+staging/sm/statements/property-reference-self-assignment.js
+staging/sm/TypedArray/test-integrity-level.js
+staging/sm/TypedArray/seal-and-freeze.js
+staging/sm/Function/function-caller-restrictions.js
+staging/sm/PrivateName/modify-non-extensible.js
+staging/sm/eval/redeclared-arguments-in-param-expression-eval.js
