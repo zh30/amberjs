@@ -68,10 +68,10 @@ When enabled:
 - Override file with `--engine-allowlist-file`; force off with `--no-engine-allowlist`.
 
 **Do not** move these entries into `features.json` `always_skip_features`. The seed aims to
-cover the full projected post-Amber-stack engine residual (~471 FAIL after #290: language
-≈233 before open #274/#276, built-ins ≈94, other ≈150) and remains a **draft until
-measured after remaining open drafts land**; do **not** flip CI smoke / the default gate
-ON without an explicit product decision (gate still pending Henry).
+cover the full projected post-Amber-stack engine residual (~477 FAIL: language ≈233 before
+open #274/#276, built-ins ≈94, other ≈150; #286/#287 folded into baseline) and remains a
+**draft until measured after remaining open drafts land**; do **not** flip CI smoke / the
+default gate ON without an explicit product decision (gate still pending Henry).
 
 
 ## Scorecard / gate
