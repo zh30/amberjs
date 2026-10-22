@@ -1,6 +1,8 @@
 # test262 conformance (ECMAScript)
 
-North-star suite for Amber’s **language** conformance (separate from Node fixtures in `tests/conformance/`).
+North-star suite for Amber’s **ECMAScript / test262** conformance (separate from Node fixtures in `tests/conformance/`).
+
+Default discovery (no `--path`) walks the full `test/` tree: **language**, **built-ins**, and other roots (`annexB`, `staging`, `intl402`, `harness`, …). Use `--path` only to filter a subset for iteration.
 
 ## Layout
 
@@ -33,8 +35,10 @@ python3 tests/test262/run_test262.py --self-test
 
 # subset (fast iteration)
 AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --path language/types --jobs 4
+AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --path built-ins --jobs 4
+AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --path annexB --jobs 4
 
-# full suite (large; expect long wall time)
+# full suite (language + built-ins + other roots; large; expect long wall time)
 AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --jobs 8
 ```
 
