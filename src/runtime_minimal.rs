@@ -9147,8 +9147,7 @@ impl MinimalRuntime {
                     // until the CI 15s child kill.
                     let has_zero_delay_after_wait = {
                         let scheduled = timer_manager.has_scheduled_timers();
-                        scheduled
-                            && crate::nodejs_core::timers::has_pending_zero_delay_timers()
+                        scheduled && crate::nodejs_core::timers::has_pending_zero_delay_timers()
                     };
                     if timer_manager.has_fired_timers()
                         || has_zero_delay_after_wait
