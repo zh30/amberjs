@@ -30,6 +30,20 @@ static CONST_TYPE_PARAM: Lazy<Regex> =
 static DECORATOR_LINE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(?m)^\s*@[A-Za-z_$]").expect("decorator regex"));
 
+// TypeScript `enum` / `const enum` / `export enum` declarations only.
+// Do not match JS identifiers named `enum` (test262 future-reserved-words /
+// identifiers/val-enum.js) — those must reach V8 as plain JS.
+static ENUM_DECLARATION: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?m)^\s*(?:export\s+)?(?:declare\s+)?(?:const\s+)?enum\s+[A-Za-z_$]")
+        .expect("enum declaration regex")
+});
+
+// TypeScript `implements` clause (`class C implements I`), not the strict-mode
+// reserved-word identifier `implements` used as a binding name.
+static IMPLEMENTS_CLAUSE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\bimplements\s+[A-Za-z_$]").expect("implements clause regex")
+});
+
 // Lowercase tags, self-closing components, or closing tags. Avoids `Foo<Bar>`.
 static JSX_ELEMENT: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"</[A-Za-z]|<[a-z][A-Za-z0-9]*[\s/>]|<[A-Z][A-Za-z0-9]*[\s/]").expect("jsx regex")
@@ -125,7 +139,7 @@ pub fn looks_like_typescript_source(code: &str) -> bool {
         || USING_BINDING.is_match(code)
         || CONST_TYPE_PARAM.is_match(code)
         || DECORATOR_LINE.is_match(code)
-        || code.contains("enum ")
+        || ENUM_DECLARATION.is_match(code)
         || code.contains(" satisfies ")
         || code.contains(" as const")
         || code.contains("declare global")
@@ -137,7 +151,7 @@ pub fn looks_like_typescript_source(code: &str) -> bool {
         || code.contains("export abstract")
         || code.contains("keyof ")
         || code.contains("infer ")
-        || code.contains("implements ")
+        || IMPLEMENTS_CLAUSE.is_match(code)
         || BINDING_TYPE_ANN.is_match(code)
 }
 
@@ -158,5 +172,23 @@ mod tests {
     fn real_using_and_annotations_still_match() {
         assert!(looks_like_typescript_source("using x = resource();\n"));
         assert!(looks_like_typescript_source("let x: string = 'a';\n"));
+    }
+
+    #[test]
+    fn js_enum_identifier_is_not_typescript() {
+        assert!(!looks_like_typescript_source("var enum = 1;\n"));
+        assert!(!looks_like_typescript_source("'use strict';\nvar implements = 1;\n"));
+        assert!(!looks_like_typescript_source(
+            "'use strict';\nvar o = { implements };\n"
+        ));
+    }
+
+    #[test]
+    fn real_enum_and_implements_still_match() {
+        assert!(looks_like_typescript_source("enum Color { Red }\n"));
+        assert!(looks_like_typescript_source("export const enum E { A }\n"));
+        assert!(looks_like_typescript_source(
+            "class C implements I { x = 1; }\n"
+        ));
     }
 }
