@@ -597,6 +597,11 @@ parentPort.postMessage({
       worker.state = 'redundant';
       if (registration.active === worker) registration.active = null;
       if (controller === worker) controller = null;
+      // Drop event-loop keep-alive at teardown (not at unregister start) so
+      // activate/fetch settle can still pump; terminate join is bounded.
+      if (typeof __amber_worker_ref === 'function') {{
+        try {{ __amber_worker_ref(id, false); }} catch (_) {{}}
+      }}
       try {{ __amber_worker_terminate(id); }} catch (_) {{}}
       rejectAllPendingFetches('ServiceWorker was unregistered');
     }}
@@ -609,17 +614,14 @@ parentPort.postMessage({
       applyFetchIntercept();
       if (!unregisterStarted) {{
         unregisterStarted = true;
-        // Drop event-loop keep-alive as soon as intercept is disarmed when
-        // no page-side fetch is in flight. Otherwise a deferred terminate
-        // join can keep `amber run` alive past the CI 15s child timeout
-        // (amber_run_respond_with_intercepts_fetch hang).
-        if (Object.keys(pendingFetches).length === 0 && typeof __amber_worker_ref === 'function') {{
-          try {{ __amber_worker_ref(id, false); }} catch (_) {{}}
-        }}
+        // Keep-alive through deferred teardown so WorkerHost reply/activate
+        // frames still pump under CI load. Drop the ref in
+        // finishUnregisterTeardown (not here) — early unref raced settle and
+        // contributed to amber_run ERROR:timeout on #296 Format merge tips.
         // Keep the worker alive briefly while page-side intercepted fetch()
         // Promises still await WorkerHost fetchResponse/fetchPass. Immediate
-        // terminate+reject races the test 2s timer against caches.match on CI
-        // ("ServiceWorker was unregistered" vs "cached-by-sw").
+        // terminate+reject races the test safety timer against caches.match
+        // on CI ("ServiceWorker was unregistered" vs "cached-by-sw").
         const scheduleTeardown = function() {{
           if (Object.keys(pendingFetches).length === 0) {{
             finishUnregisterTeardown();
@@ -659,6 +661,10 @@ parentPort.postMessage({
         }}
         if (data.__amberSw === 'ready') {{
           registration.__amberHasFetch = !!data.hasFetch;
+          // Reaffirm keep-alive through install→activate→first fetch settle.
+          if (typeof __amber_worker_ref === 'function') {{
+            try {{ __amber_worker_ref(id, true); }} catch (_) {{}}
+          }}
           __amber_worker_post(id, JSON.stringify({{ __amberSw: 'install' }}));
           return;
         }}

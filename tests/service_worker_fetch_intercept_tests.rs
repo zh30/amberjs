@@ -360,10 +360,12 @@ fn fetch_listener_without_respond_with_falls_through_to_network() {
 #[test]
 #[serial]
 fn amber_run_respond_with_intercepts_fetch() {
-    // CLI settle pin: wait for ready before fetch (same race class as #294),
-    // safety-timer unregister so a stuck intercept cannot wedge amber run,
-    // and exit after SUCCESS so WorkerHost teardown cannot keep the child
-    // past the 15s kill (CI Format flake on tip without this harden).
+    // CLI settle pin: wait for ready + activated before fetch (same race class
+    // as #294), safety-timer unregister so a stuck intercept cannot wedge amber
+    // run, and exit after SUCCESS so WorkerHost teardown cannot keep the child
+    // past the 15s kill. Timeout is 8s (under the 15s child kill): CI Format
+    // still hit ERROR:timeout at 2s on merge tips that already included the
+    // #274/#294 harden (#296 tip 54cbacea).
     let script = r#"
         const source = [
           "self.addEventListener('install', () => { self.skipWaiting(); });",
@@ -391,10 +393,28 @@ fn amber_run_respond_with_intercepts_fetch() {
         };
         const timer = setTimeout(() => {
           finish('ERROR:timeout');
-        }, 2000);
+        }, 8000);
+        const waitActivated = (reg) => new Promise((resolve) => {
+          const start = Date.now();
+          const tick = () => {
+            if (reg.active && reg.active.state === 'activated') {
+              resolve(reg);
+              return;
+            }
+            if (Date.now() - start >= 6000) {
+              resolve(reg);
+              return;
+            }
+            setTimeout(tick, 10);
+          };
+          tick();
+        });
         navigator.serviceWorker.register(swUrl).then((reg) => {
           registration = reg;
           return navigator.serviceWorker.ready;
+        }).then((reg) => {
+          registration = reg;
+          return waitActivated(reg);
         }).then((reg) => {
           registration = reg;
           return Promise.resolve(fetch('https://example.test/cli-sw'));
