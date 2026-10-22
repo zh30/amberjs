@@ -604,9 +604,17 @@ fn g76_statfs_fields_errors_and_promises() {
           try {{ fs.statfsSync(root + '/missing'); out.push('ok'); }}
           catch (e) {{ out.push(e.code + ':' + e.syscall); }}
           const cb = await new Promise((res, rej) => fs.statfs(root, (e, s) => e ? rej(e) : res(s)));
-          out.push(cb.blocks === st.blocks);
+          // Compare stable capacity fields only. `bavail`/`bfree` can drift between
+          // sync and async calls on Darwin CI runners (other jobs free/alloc blocks).
+          out.push(cb.blocks === st.blocks && cb.bsize === st.bsize && cb.namemax === st.namemax);
           const pst = await fsp.statfs(root);
-          out.push(pst.bavail === st.bavail);
+          out.push(
+            pst.blocks === st.blocks
+              && pst.bsize === st.bsize
+              && pst.namemax === st.namemax
+              && typeof pst.bavail === 'number'
+              && pst.bavail > 0
+          );
           try {{ await fsp.statfs(root + '/missing'); out.push('ok'); }}
           catch (e) {{ out.push(e.code); }}
           return out.join('|');
