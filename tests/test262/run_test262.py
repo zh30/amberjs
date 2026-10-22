@@ -39,6 +39,28 @@ SCORECARD_JSON = HARNESS_DIR / "scorecard.json"
 
 FRONTMATTER_RE = re.compile(r"/\*---\s*(.*?)\s*---\*/", re.DOTALL)
 
+# Leading `;` defeats ASI when the test body ends in `})` / `.then(...)`
+# without a trailing semicolon — otherwise V8 parses
+# `promise.then(...)(function wait...)` as a call and false-fails async cases.
+ASYNC_EPILOGUE = """
+;(function __test262_waitForAsyncDone() {
+  if (__test262_async_done) {
+    if (__test262_async_err) {
+      var __e = __test262_async_err;
+      __test262_async_err = null;
+      throw __e;
+    }
+    return;
+  }
+  if (typeof setTimeout === 'function') {
+    setTimeout(__test262_waitForAsyncDone, 0);
+  } else {
+    throw new Test262Error('Test262: async test did not call $DONE (no setTimeout)');
+  }
+})();
+"""
+
+
 
 def read_text_preserve_newlines(path: Path, *, errors: Optional[str] = None) -> str:
     """Read text without universal-newline translation.
@@ -265,23 +287,7 @@ function $DONE(err) {
   }
 }
 """
-        async_epilogue = """
-(function __test262_waitForAsyncDone() {
-  if (__test262_async_done) {
-    if (__test262_async_err) {
-      var __e = __test262_async_err;
-      __test262_async_err = null;
-      throw __e;
-    }
-    return;
-  }
-  if (typeof setTimeout === 'function') {
-    setTimeout(__test262_waitForAsyncDone, 0);
-  } else {
-    throw new Test262Error('Test262: async test did not call $DONE (no setTimeout)');
-  }
-})();
-"""
+        async_epilogue = ASYNC_EPILOGUE
 
     # "use strict" must be the first statement in the whole script or it is
     # ignored (Directive Prologue). Prefacing harness includes would break
@@ -677,6 +683,9 @@ def self_test() -> None:
         assert "\r" in got and "\n" not in got, repr(got)
         uni = p.read_text(encoding="utf-8")
         assert "\n" in uni and "\r" not in uni
+    # ASI guard: async epilogue must start with `;` so bodies ending in `})`
+    # / `.then(...)` do not glue onto the wait IIFE.
+    assert ASYNC_EPILOGUE.lstrip().startswith(";(function __test262_waitForAsyncDone")
     print("test262 harness self-test ok")
 
 
