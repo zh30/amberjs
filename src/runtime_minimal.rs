@@ -10268,9 +10268,11 @@ impl MinimalRuntime {
             .ok_or_else(|| anyhow::anyhow!("Failed to create global alias key"))?;
         global.set(scope, global_key.into(), global.into());
 
-        // Object.hasOwn (legacy) + Iterator.prototype.chunks/windows (iterator-chunking).
-        // Chunking is Stage-3 and not yet in V8; polyfill matches the TC39 algorithms
-        // using generators for %IteratorHelper%-like reentry/return semantics.
+        // Object.hasOwn (legacy) + Promise.try (ECMA-262 #3883 identity) +
+        // Iterator.prototype.chunks/windows (iterator-chunking Stage-3; not in V8 yet —
+        // generators for %IteratorHelper%-like reentry/return semantics).
+        // Promise.try: V8 still uses NewPromiseCapability+resolve (wraps); #3883 uses
+        // PromiseResolve on success so a same-constructor Promise is returned by identity.
         let polyfill_script = r#"
         (function() {
             'use strict';
@@ -10282,6 +10284,28 @@ impl MinimalRuntime {
                     return Object.prototype.hasOwnProperty.call(obj, prop);
                 };
             }
+            var promiseTry = {
+                try(callbackfn) {
+                    var C = this;
+                    if (C === null || (typeof C !== 'object' && typeof C !== 'function')) {
+                        throw new TypeError('Promise.try called on non-object');
+                    }
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    var result;
+                    try {
+                        result = callbackfn.apply(undefined, args);
+                    } catch (e) {
+                        return Promise.reject.call(C, e);
+                    }
+                    return Promise.resolve.call(C, result);
+                }
+            }.try;
+            Object.defineProperty(Promise, 'try', {
+                value: promiseTry,
+                writable: true,
+                enumerable: false,
+                configurable: true
+            });
 
             if (typeof Iterator !== 'function' || !Iterator.prototype) {
                 return;
