@@ -2,8 +2,8 @@ use amberjs::runtime_minimal::MinimalRuntime;
 use serial_test::serial;
 
 /// Workers are spawned against the process-global `WorkerHost`; every test
-/// that spawns one must `terminate()` (or `unref()`) it so the drain loop and
-/// later tests are not held alive by a ref'd handle.
+/// that spawns one must `terminate()` it (after any unref drain check) so the
+/// OS thread / isolate is not left alive into the next test.
 fn runtime() -> MinimalRuntime {
     MinimalRuntime::new().expect("MinimalRuntime::new")
 }
@@ -246,13 +246,18 @@ fn g75_terminate_preempts_busy_worker() {
 fn g75_unref_lets_drain_finish() {
     // An unref'd live worker does not hold the runtime's drain loop — the eval
     // completes immediately with its value (same flag the CLI event loop reads).
+    // Terminate afterward: WorkerHost is process-global, and leaving a live
+    // isolate races the next serial test (macOS libc++ vector OOB / SIGABRT).
     let output = run(r#"
         const wt = require('worker_threads');
         const w = new wt.Worker("setTimeout(() => {}, 60000)", { eval: true });
         const r = w.unref();
-        const ok = [r === w, 'done'].join('|');
+        const drainOk = [r === w, 'done'].join('|');
+        const exited = new Promise((resolve) => {
+          w.once('exit', () => resolve(drainOk));
+        });
         w.terminate();
-        ok;
+        exited;
         "#);
     assert_eq!(output, "true|done");
 }
