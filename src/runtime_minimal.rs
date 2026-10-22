@@ -8270,6 +8270,7 @@ impl MinimalRuntime {
         crate::nodejs_core::http2::setup_http2_api(scope, context)?;
         crate::nodejs_core::tls::setup_tls_api(scope, context)?;
         crate::nodejs_core::vm::setup_vm_api(scope, context)?;
+        crate::test262_host::setup_test262_host(scope, context)?;
         crate::nodejs_core::worker_threads::setup_worker_threads_api(scope, context)?;
         crate::nodejs_core::tty::setup_tty_api(scope, context)?;
         crate::nodejs_core::diagnostics_channel::setup_diagnostics_channel_api(scope, context)?;

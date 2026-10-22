@@ -49,6 +49,7 @@ pub mod package_manager; // Package manager
 pub mod permissions;
 pub mod runtime; // Split runtime surface (re-exports MinimalRuntime)
 pub mod runtime_minimal; // Minimal runtime for basic JavaScript execution
+pub mod test262_host; // Optional $262 createRealm host (AMBER_TEST262=1)
 pub mod v8_snapshot; // V8 snapshot and warmup system
 pub mod watcher; // File watcher for hot reload
 pub mod watcher_websocket; // WebSocket hot reload
