@@ -250,7 +250,9 @@ fn g75_unref_lets_drain_finish() {
         const wt = require('worker_threads');
         const w = new wt.Worker("setTimeout(() => {}, 60000)", { eval: true });
         const r = w.unref();
-        [r === w, 'done'].join('|');
+        const ok = [r === w, 'done'].join('|');
+        w.terminate();
+        ok;
         "#);
     assert_eq!(output, "true|done");
 }
