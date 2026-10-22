@@ -43,6 +43,15 @@ static BINDING_TYPE_ANN: Lazy<Regex> = Lazy::new(|| {
     .expect("binding type ann regex")
 });
 
+// TS `enum Name` / `const enum Name` — not JS `var enum = 1` (Future Reserved Word tests).
+static ENUM_DECLARATION: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?m)\b(?:const\s+)?enum\s+[A-Za-z_$]").expect("enum declaration regex")
+});
+
+// Class heritage `implements Type` — not JS identifier `implements` / `var implements = 1`.
+static IMPLEMENTS_CLAUSE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?m)\bimplements\s+[A-Za-z_$]").expect("implements clause regex"));
+
 /// Strip `//` and `/* */` comments so JSDoc / harness prose cannot trip TS sniff.
 fn strip_comments(code: &str) -> String {
     let mut out = String::with_capacity(code.len());
@@ -125,7 +134,7 @@ pub fn looks_like_typescript_source(code: &str) -> bool {
         || USING_BINDING.is_match(code)
         || CONST_TYPE_PARAM.is_match(code)
         || DECORATOR_LINE.is_match(code)
-        || code.contains("enum ")
+        || ENUM_DECLARATION.is_match(code)
         || code.contains(" satisfies ")
         || code.contains(" as const")
         || code.contains("declare global")
@@ -137,7 +146,7 @@ pub fn looks_like_typescript_source(code: &str) -> bool {
         || code.contains("export abstract")
         || code.contains("keyof ")
         || code.contains("infer ")
-        || code.contains("implements ")
+        || IMPLEMENTS_CLAUSE.is_match(code)
         || BINDING_TYPE_ANN.is_match(code)
 }
 
@@ -158,5 +167,24 @@ mod tests {
     fn real_using_and_annotations_still_match() {
         assert!(looks_like_typescript_source("using x = resource();\n"));
         assert!(looks_like_typescript_source("let x: string = 'a';\n"));
+    }
+
+    #[test]
+    fn future_reserved_word_idents_are_not_typescript() {
+        // test262 negative SyntaxError cases — must reach V8, not oxc eval.ts.
+        assert!(!looks_like_typescript_source("var enum = 1;\n"));
+        assert!(!looks_like_typescript_source("var implements = 1;\n"));
+        assert!(!looks_like_typescript_source(
+            "\"use strict\";\n({\n  implements\n});\n"
+        ));
+    }
+
+    #[test]
+    fn real_enum_and_implements_still_match() {
+        assert!(looks_like_typescript_source("enum Color { Red }\n"));
+        assert!(looks_like_typescript_source("const enum E { A }\n"));
+        assert!(looks_like_typescript_source(
+            "class C implements I { x: number }\n"
+        ));
     }
 }
