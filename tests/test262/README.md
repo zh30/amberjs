@@ -57,5 +57,5 @@ Node conformance (`./tests/conformance/run_conformance.sh`) stays ≥55/55 and i
 
 ## CI
 
-- Workflow `test262`: self-test + fail-closed smoke on a small `--path` under `language/types*` (not the full suite — cost).
-- Full-suite scorecard stays a local / on-demand run until promoted; do not treat CI smoke as the north-star gate.
+- `.github/workflows/test262.yml` runs a fail-closed **smoke** job (`--self-test` + `language/types*` paths) and uploads that run’s scorecard artifact (`test262-scorecard`). It does not run the full suite.
+- Full suite remains local/manual (`run_test262.py` without `--path`) until green; then promote a full-suite job to a required fail-closed gate.
