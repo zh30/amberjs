@@ -125,9 +125,13 @@ def discover_tests(test262: Path, path_filter: Optional[str], limit: Optional[in
     if not base.exists():
         print(f"path not found: {base}", file=sys.stderr)
         sys.exit(2)
-    files = sorted(
-        p for p in base.rglob("*.js") if p.is_file() and not is_test262_fixture(p)
-    )
+    # Single-file --path: Path.rglob on a file yields nothing.
+    if base.is_file():
+        files = [base] if base.suffix == ".js" and not is_test262_fixture(base) else []
+    else:
+        files = sorted(
+            p for p in base.rglob("*.js") if p.is_file() and not is_test262_fixture(p)
+        )
     if limit is not None:
         files = files[:limit]
     return files
@@ -241,9 +245,15 @@ function $DONE(err) {
     if mode == "strict":
         parts.append('"use strict";')
     parts.extend([host_js, includes, async_prologue, body, async_epilogue])
+    # dynamic-import syntax/valid tests end with `import(...)` ExpressionStatement.
+    # Amber treats a rejected completion promise as process failure; append void 0
+    # so completion is undefined while still exercising the ImportCall (no SKIP).
+    parts.append("void 0;")
     combined = "\n".join(parts)
+    # Module cases use package.json {"type":"module"} + original .js basename
+    # (see prepare_module_run_path) so relative/self-imports resolve.
     if mode == "module":
-        return combined, ".mjs"
+        return combined, ".js"
     return combined, ".js"
 
 
@@ -262,16 +272,22 @@ def classify_result(
             if ntype and ntype in err_text:
                 return "PASS", f"negative:{phase}:{ntype}"
             # Parser diagnostics may omit the exact `SyntaxError` token.
+            # Amber tags syntax failures as SYNTAX_ERROR (not always "SyntaxError").
             if phase in ("parse", "early") and (not ntype or ntype == "SyntaxError"):
                 markers = (
                     "SyntaxError",
+                    "SYNTAX_ERROR",
                     "Unexpected token",
                     "Unexpected identifier",
                     "Parse error",
                     "parse error",
+                    "Duplicate export",
+                    "has already been declared",
                 )
                 if any(m in err_text for m in markers):
                     return "PASS", f"negative:{phase}:SyntaxError~"
+            if ntype == "SyntaxError" and "SYNTAX_ERROR" in err_text:
+                return "PASS", f"negative:{phase}:SYNTAX_ERROR"
             if ntype:
                 return "FAIL", f"negative expected {ntype}, got: {err_text[:200]!r}"
             return "PASS", f"negative:{phase}"
@@ -282,6 +298,49 @@ def classify_result(
             return "FAIL", err_text[:300]
         return "PASS", ""
     return "FAIL", err_text[:400].strip() or f"exit {returncode}"
+
+
+def prepare_module_run_path(
+    tmp_dir: Path,
+    test_path: Path,
+    source: str,
+    attempt: int,
+) -> Path:
+    """Place wrapped ESM source so relative/self-imports match test262 layout.
+
+    Amber resolves ESM from the entry file path. Running from a random tempfile
+    breaks `import * as ns from './this-file.js'` and sibling/fixture imports.
+    Use original basename + {"type":"module"} + sibling links in a per-attempt dir.
+    """
+    attempt_dir = tmp_dir / f"a{attempt}"
+    if attempt_dir.exists():
+        shutil.rmtree(attempt_dir)
+    attempt_dir.mkdir(parents=True, exist_ok=True)
+    (attempt_dir / "package.json").write_text('{"type":"module"}\n', encoding="utf-8")
+    # Copy siblings (fixtures and other modules) into the attempt dir.
+    # Symlinks are unsafe: Amber realpath() would escape this package.json
+    # {"type":"module"} boundary and load siblings as CommonJS.
+    for sibling in test_path.parent.iterdir():
+        if not sibling.is_file():
+            continue
+        if sibling.suffix not in {".js", ".mjs", ".cjs", ".json"}:
+            continue
+        if sibling.name == test_path.name:
+            continue
+        shutil.copy2(sibling, attempt_dir / sibling.name)
+    out = attempt_dir / test_path.name
+    out.write_text(source, encoding="utf-8")
+    return out
+
+
+def copy_fixtures_into(dest_dir: Path, test_path: Path) -> None:
+    """Copy same-dir fixtures so script-mode dynamic import() can load them."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    for sibling in test_path.parent.iterdir():
+        if sibling.is_file() and is_test262_fixture(sibling):
+            target = dest_dir / sibling.name
+            if not target.exists():
+                shutil.copy2(sibling, target)
 
 
 def run_one(
@@ -315,8 +374,15 @@ def run_one(
     # Retry signal deaths only — never retry ordinary assertion failures.
     max_attempts = 3
     for attempt in range(max_attempts):
-        tmp = tmp_dir / f"a{attempt}{suffix}"
-        tmp.write_text(source, encoding="utf-8")
+        if mode == "module":
+            tmp = prepare_module_run_path(tmp_dir, test_path, source, attempt)
+        else:
+            # Keep fixtures beside the entry so import('./x_FIXTURE.js') resolves.
+            attempt_dir = tmp_dir / f"a{attempt}"
+            attempt_dir.mkdir(parents=True, exist_ok=True)
+            copy_fixtures_into(attempt_dir, test_path)
+            tmp = attempt_dir / f"entry{suffix}"
+            tmp.write_text(source, encoding="utf-8")
         try:
             proc = subprocess.run(
                 [*cmd_base, str(tmp)],
