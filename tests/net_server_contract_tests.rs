@@ -41,25 +41,28 @@ fn wait_for_port(port: u16) {
 
 /// Drain accepts left by `wait_for_port` probe connects so counters stay honest.
 fn drain_probe_connections(runtime: &mut MinimalRuntime) {
-    // Allow accept thread to enqueue the probe connection.
-    thread::sleep(Duration::from_millis(30));
-    for _ in 0..40 {
-        let n = runtime.pump_net_connections();
-        if n == 0 {
-            thread::sleep(Duration::from_millis(5));
-            if runtime.pump_net_connections() == 0 {
-                break;
+    // Two settle passes: a lagging probe after the first reset was inflating
+    // `_connCount` to 2 on CI (connection_event_and_socket_write_bytes flake).
+    for _pass in 0..2 {
+        thread::sleep(Duration::from_millis(30));
+        for _ in 0..40 {
+            let n = runtime.pump_net_connections();
+            if n == 0 {
+                thread::sleep(Duration::from_millis(5));
+                if runtime.pump_net_connections() == 0 {
+                    break;
+                }
             }
+            thread::sleep(Duration::from_millis(5));
         }
-        thread::sleep(Duration::from_millis(5));
+        let _ = runtime.execute_code(
+            r#"
+            globalThis._connCount = 0;
+            globalThis._onConn = 0;
+            globalThis._lastRemote = '';
+            "#,
+        );
     }
-    let _ = runtime.execute_code(
-        r#"
-        globalThis._connCount = 0;
-        globalThis._onConn = 0;
-        globalThis._lastRemote = '';
-        "#,
-    );
 }
 
 #[test]
@@ -180,7 +183,13 @@ fn connection_event_and_socket_write_bytes() {
     let code = r#"
         globalThis._connCount = 0;
         globalThis._lastRemote = '';
+        globalThis._armConn = false;
         const server = require('net').createServer((socket) => {
+            // Ignore wait_for_port / drain probes; only count after arm.
+            if (!globalThis._armConn) {
+                try { socket.destroy(); } catch (_) {}
+                return;
+            }
             globalThis._connCount += 1;
             globalThis._lastRemote = String(socket.remoteAddress || '');
             socket.write('amber-net-g45');
@@ -194,6 +203,9 @@ fn connection_event_and_socket_write_bytes() {
     assert_eq!(port_str, "3747");
     wait_for_port(3747);
     drain_probe_connections(&mut runtime);
+    let _ = runtime.execute_code(
+        "globalThis._connCount = 0; globalThis._lastRemote = ''; globalThis._armConn = true;",
+    );
 
     let mut stream = TcpStream::connect(("127.0.0.1", 3747)).expect("connect");
     stream.set_read_timeout(Some(Duration::from_secs(3))).ok();
@@ -256,8 +268,13 @@ fn server_on_connection_works() {
     let mut runtime = MinimalRuntime::new().expect("runtime");
     let code = r#"
         globalThis._onConn = 0;
+        globalThis._armConn = false;
         const server = require('net').createServer();
         server.on('connection', (socket) => {
+            if (!globalThis._armConn) {
+                try { socket.destroy(); } catch (_) {}
+                return;
+            }
             globalThis._onConn += 1;
             socket.write('via-on');
         });
@@ -268,6 +285,7 @@ fn server_on_connection_works() {
     assert_eq!(runtime.execute_code(code).expect("exec").trim(), "ready");
     wait_for_port(3748);
     drain_probe_connections(&mut runtime);
+    let _ = runtime.execute_code("globalThis._onConn = 0; globalThis._armConn = true;");
 
     let mut stream = TcpStream::connect(("127.0.0.1", 3748)).expect("connect");
     stream.set_read_timeout(Some(Duration::from_secs(3))).ok();

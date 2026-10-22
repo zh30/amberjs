@@ -63,7 +63,7 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
 
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test
 
       - name: Feature matrix (compile-only)
         run: |
@@ -291,7 +291,7 @@ jobs:
         run: cargo test --test cache_storage_tests -- --test-threads=1
 
       - name: web SW fetch Stable contract
-        run: cargo test --test service_worker_fetch_intercept_tests -- --test-threads=1
+        run: timeout 60 cargo test --test service_worker_fetch_intercept_tests -- --test-threads=1
 
       - name: TypeScript Stable contract
         run: cargo test --test typescript_contract_tests -- --test-threads=1

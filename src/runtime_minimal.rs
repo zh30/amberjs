@@ -202,11 +202,23 @@ struct EsmModuleLoadState {
     cjs_synthetic_exports_by_identity: HashMap<i32, v8::Global<v8::Value>>,
     cjs_synthetic_named_exports_by_identity: HashMap<i32, Vec<String>>,
     pending_error: Option<String>,
+    /// Dynamic `import()` of a module that is mid-evaluation (self-import).
+    /// Must not re-enter `Module::evaluate` / `get_module_namespace` until
+    /// status is `Evaluated` — V8 CHECK-fails otherwise.
+    pending_dynamic_imports: Vec<(PathBuf, v8::Global<v8::PromiseResolver>)>,
 }
 
 enum EsmDynamicImportError<'scope> {
     Message(String),
     Value(v8::Local<'scope, v8::Value>),
+}
+
+/// Outcome of preparing a dynamic import before settling its Promise.
+enum DynamicImportPrep<'scope> {
+    /// Module namespace ready now.
+    Ready(v8::Local<'scope, v8::Value>),
+    /// Module is mid-evaluation; Promise stays pending until flush.
+    Deferred(PathBuf),
 }
 
 thread_local! {
@@ -275,6 +287,25 @@ fn remaining_timer_drain_ms(start: std::time::Instant, limit_ms: u64) -> u64 {
         return u64::MAX;
     }
     limit_ms.saturating_sub(start.elapsed().as_millis() as u64)
+}
+
+/// True while page-side intercepted `fetch()` awaits WorkerHost fetchPass/respondWith.
+fn sw_has_pending_intercepted_fetches(scope: &mut v8::PinScope) -> bool {
+    let context = scope.get_current_context();
+    let global = context.global(scope);
+    let Some(key) = v8::String::new(scope, "__amber_sw_pending_fetch_count") else {
+        return false;
+    };
+    let Some(val) = global.get(scope, key.into()) else {
+        return false;
+    };
+    let Ok(func) = v8::Local::<v8::Function>::try_from(val) else {
+        return false;
+    };
+    let Some(result) = func.call(scope, global.into(), &[]) else {
+        return false;
+    };
+    result.number_value(scope).map(|n| n > 0.0).unwrap_or(false)
 }
 
 /// How long a quiet HTTP/net keep-alive turn may sleep.
@@ -1393,13 +1424,26 @@ fn value_to_string_after_microtasks<'s>(
     scope: &mut v8::PinScope<'s, '_>,
     mut value: v8::Local<'s, v8::Value>,
 ) -> Result<String> {
-    for _ in 0..64 {
+    // Completion values are often Promises that settle only after WorkerHost
+    // messages (Service Worker fetchPass / respondWith) or HTTP. Microtask
+    // checkpoints alone are not enough — pump host work while waiting.
+    let started = std::time::Instant::now();
+    const LIMIT: std::time::Duration = std::time::Duration::from_secs(5);
+    while started.elapsed() < LIMIT {
         if !value.is_promise() {
             break;
         }
 
         let promise = v8::Local::<v8::Promise>::try_from(value)
             .map_err(|_| anyhow::anyhow!("Failed to inspect promise result"))?;
+        let context = scope.get_current_context();
+        execute_next_tick_callbacks(scope);
+        scope.perform_microtask_checkpoint();
+        crate::web_api::worker_host::WorkerHost::pump_parent_messages(scope);
+        let _ = crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope);
+        crate::nodejs_core::http::pump_pending_http_requests_in_scope(scope, &context);
+        crate::nodejs_core::net::pump_pending_net_connections_in_scope(scope, &context);
+        crate::nodejs_core::net::pump_pending_socket_events_in_scope(scope, &context);
         execute_next_tick_callbacks(scope);
         scope.perform_microtask_checkpoint();
 
@@ -1419,7 +1463,16 @@ fn value_to_string_after_microtasks<'s>(
                 ));
             }
             v8::PromiseState::Pending => {
-                std::thread::sleep(std::time::Duration::from_millis(2));
+                let wait_ms = if crate::web_api::worker_host::WorkerHost::has_active_workers()
+                    || crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                    || crate::nodejs_core::http::has_pending_http_requests()
+                    || crate::nodejs_core::net::has_pending_net_connections()
+                {
+                    5
+                } else {
+                    2
+                };
+                std::thread::sleep(std::time::Duration::from_millis(wait_ms));
             }
         }
     }
@@ -4725,34 +4778,49 @@ impl MinimalRuntime {
         let main_module_path = Path::new(main_module_filename);
         let module_format =
             crate::nodejs_core::commonjs_resolver::classify_commonjs_file(main_module_path)?;
-        if module_format != crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule {
-            if matches!(
-                module_format,
-                crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScript
-                    | crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScriptJsx
-            ) {
-                return Ok(Self::has_esm_export_syntax(code)
-                    || Self::has_top_level_await_syntax(code)
-                    || !Self::static_import_specifiers(code).is_empty());
+        // .mjs / type=module: native ESM only when *this* code has module signals.
+        // Always-true broke follow-up execute_code("globalThis.X") while
+        // main_module_filename is still *.mjs (esm_module_tests, #270 Format).
+        if module_format == crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::EsModule {
+            // has_esm_await_syntax is intentional here: `await import(...)` inside
+            // try/catch is not top-level await but still requires Module context.
+            return Ok(Self::has_esm_export_syntax(code)
+                || Self::has_esm_await_syntax(code)
+                || Self::has_import_meta_syntax(code)
+                || !Self::static_import_specifiers(code).is_empty());
+        }
+        if matches!(
+            module_format,
+            crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScript
+                | crate::nodejs_core::commonjs_resolver::CommonJsModuleFormat::TypeScriptJsx
+        ) {
+            // Do NOT use has_esm_await_syntax: session/mcp `call_named_export`
+            // reuses main_module_filename (e.g. echo_tool.ts) for an `(async () => {
+            // await fn(args) })()` snippet → ESM undefined → JSON-RPC result:null.
+            return Ok(Self::has_esm_export_syntax(code)
+                || Self::has_top_level_await_syntax(code)
+                || Self::has_import_meta_syntax(code)
+                || !Self::static_import_specifiers(code).is_empty());
+        }
+        Ok(false)
+    }
+
+    /// True for real `import.meta`, not progressive `globalThis.import.meta`.
+    fn has_import_meta_syntax(code: &str) -> bool {
+        let bytes = code.as_bytes();
+        let mut start = 0;
+        while let Some(rel) = code[start..].find("import.meta") {
+            let abs = start + rel;
+            let prev_ok = abs == 0 || {
+                let prev = bytes[abs - 1];
+                !prev.is_ascii_alphanumeric() && prev != b'_' && prev != b'$' && prev != b'.'
+            };
+            if prev_ok {
+                return true;
             }
-            return Ok(false);
+            start = abs + "import.meta".len();
         }
-
-        let has_export_syntax = Self::has_esm_export_syntax(code);
-        let has_await_syntax = Self::has_esm_await_syntax(code);
-        let import_specifiers = Self::static_import_specifiers(code);
-        if main_module_path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            == Some("mjs")
-        {
-            // `amber eval` with `import`/`export` uses a virtual `eval.mjs` path.
-            // Treat any static import/export as native ESM so users get module
-            // errors instead of a Script SyntaxError.
-            return Ok(has_export_syntax || has_await_syntax || !import_specifiers.is_empty());
-        }
-
-        Ok(has_export_syntax || has_await_syntax || !import_specifiers.is_empty())
+        false
     }
 
     fn has_esm_export_syntax(code: &str) -> bool {
@@ -5396,6 +5464,13 @@ impl MinimalRuntime {
             ));
         }
 
+        // Already on the evaluation stack (e.g. `import('./self.js')` inside the
+        // module body). Re-entering evaluate() CHECK-fails in V8; caller must
+        // defer Promise resolution until Evaluated via pending_dynamic_imports.
+        if module.get_status() == v8::ModuleStatus::Evaluating {
+            return Ok(());
+        }
+
         if module.get_status() != v8::ModuleStatus::Evaluated {
             let evaluation = module.evaluate(scope).ok_or_else(|| {
                 EsmDynamicImportError::Message(Self::take_esm_pending_error().unwrap_or_else(
@@ -5412,6 +5487,66 @@ impl MinimalRuntime {
         }
 
         Ok(())
+    }
+
+    fn flush_pending_dynamic_imports(scope: &mut v8::PinScope) {
+        let pending = ESM_MODULE_LOAD_STATE.with(|state| {
+            state
+                .borrow_mut()
+                .as_mut()
+                .map(|s| std::mem::take(&mut s.pending_dynamic_imports))
+                .unwrap_or_default()
+        });
+        if pending.is_empty() {
+            return;
+        }
+        let mut still_pending = Vec::new();
+        for (module_path, resolver_global) in pending {
+            let resolver = v8::Local::new(scope, &resolver_global);
+            let module_opt = ESM_MODULE_LOAD_STATE.with(|state| {
+                state.borrow().as_ref().and_then(|s| {
+                    s.modules_by_path
+                        .get(&module_path)
+                        .map(|g| v8::Local::new(scope, g))
+                })
+            });
+            let Some(module) = module_opt else {
+                let msg = v8::String::new(
+                    scope,
+                    &format!(
+                        "Dynamic import of '{}' lost module record before settlement",
+                        module_path.display()
+                    ),
+                )
+                .unwrap_or_else(|| v8::String::new(scope, "Dynamic import failed").unwrap());
+                let err = v8::Exception::error(scope, msg);
+                resolver.reject(scope, err);
+                continue;
+            };
+            match module.get_status() {
+                v8::ModuleStatus::Evaluated => {
+                    let namespace = module.get_module_namespace();
+                    resolver.resolve(scope, namespace);
+                }
+                v8::ModuleStatus::Errored => {
+                    let exc = Self::esm_module_exception_value(scope, module);
+                    resolver.reject(scope, exc);
+                }
+                v8::ModuleStatus::Evaluating => {
+                    still_pending.push((module_path, resolver_global));
+                }
+                _ => {
+                    still_pending.push((module_path, resolver_global));
+                }
+            }
+        }
+        if !still_pending.is_empty() {
+            ESM_MODULE_LOAD_STATE.with(|state| {
+                if let Some(s) = state.borrow_mut().as_mut() {
+                    s.pending_dynamic_imports.extend(still_pending);
+                }
+            });
+        }
     }
 
     fn dynamic_import_referrer_path(
@@ -5515,16 +5650,27 @@ impl MinimalRuntime {
         scope: &mut v8::PinScope<'scope, '_>,
         referrer: v8::Local<v8::Value>,
         specifier: &str,
-    ) -> Result<v8::Local<'scope, v8::Value>, EsmDynamicImportError<'scope>> {
+    ) -> Result<DynamicImportPrep<'scope>, EsmDynamicImportError<'scope>> {
         let referrer_path = Self::dynamic_import_referrer_path(scope, referrer)
             .map_err(EsmDynamicImportError::Message)?;
         let (module, module_path) =
             Self::load_dynamic_import_module(scope, specifier, &referrer_path)
                 .map_err(EsmDynamicImportError::Message)?;
+        // Capture Evaluating *before* instantiate/evaluate — self-import hits here.
+        let was_evaluating = module.get_status() == v8::ModuleStatus::Evaluating;
         Self::instantiate_and_evaluate_esm_module_for_dynamic_import(scope, module, &module_path)?;
+        if was_evaluating || module.get_status() == v8::ModuleStatus::Evaluating {
+            return Ok(DynamicImportPrep::Deferred(module_path));
+        }
+        if module.get_status() != v8::ModuleStatus::Evaluated {
+            return Err(EsmDynamicImportError::Message(format!(
+                "ES module '{}' not evaluated after dynamic import (status={:?})",
+                module_path.display(),
+                module.get_status()
+            )));
+        }
         let namespace = module.get_module_namespace();
-        let namespace_global = v8::Global::new(scope, namespace);
-        Ok(v8::Local::new(scope, namespace_global))
+        Ok(DynamicImportPrep::Ready(namespace))
     }
 
     fn reject_dynamic_import(
@@ -5578,8 +5724,18 @@ impl MinimalRuntime {
                 resolver.reject(tc, exception);
             } else {
                 match import_result {
-                    Ok(namespace) => {
+                    Ok(DynamicImportPrep::Ready(namespace)) => {
                         resolver.resolve(tc, namespace);
+                    }
+                    Ok(DynamicImportPrep::Deferred(module_path)) => {
+                        // Resolve after outer Module::evaluate finishes (flush_pending).
+                        let resolver_global = v8::Global::new(tc, resolver);
+                        ESM_MODULE_LOAD_STATE.with(|state| {
+                            if let Some(s) = state.borrow_mut().as_mut() {
+                                s.pending_dynamic_imports
+                                    .push((module_path, resolver_global));
+                            }
+                        });
                     }
                     Err(error) => {
                         Self::reject_dynamic_import_error(tc, resolver, error);
@@ -6540,12 +6696,16 @@ impl MinimalRuntime {
                     )
                 })
             })?;
+            // Fulfill deferred self-`import()` promises now that evaluation left
+            // the Evaluating state (or after TLA settlement below).
+            Self::flush_pending_dynamic_imports(scope);
             Self::ensure_esm_evaluation_settled(
                 scope,
                 evaluation,
                 &main_module_path,
                 timer_drain_limit_ms,
             )?;
+            Self::flush_pending_dynamic_imports(scope);
             Ok(evaluation)
         })();
 
@@ -6613,12 +6773,14 @@ impl MinimalRuntime {
                     )
                 })
             })?;
+            Self::flush_pending_dynamic_imports(scope);
             Self::ensure_esm_evaluation_settled(
                 scope,
                 evaluation,
                 &main_module_path,
                 timer_drain_limit_ms,
             )?;
+            Self::flush_pending_dynamic_imports(scope);
             let namespace_global = v8::Global::new(scope, module.get_module_namespace());
             let source_fingerprints = ESM_MODULE_LOAD_STATE.with(|state| {
                 state
@@ -8840,6 +9002,7 @@ impl MinimalRuntime {
                     || has_pending_next_ticks()
                     || has_pending_immediates()
                     || crate::web_api::worker_host::WorkerHost::has_active_workers()
+                    || sw_has_pending_intercepted_fetches(scope)
                     || crate::web_api::websocket::has_pending_websocket_work()
                     || crate::nodejs_core::child_process::has_pending_child_process_work()
                     || crate::nodejs_core::process::has_pending_stdin_work()
@@ -8890,9 +9053,14 @@ impl MinimalRuntime {
 
                 if crate::web_api::worker_host::WorkerHost::has_active_workers()
                     || crate::nodejs_core::child_process::has_pending_child_process_work()
+                    || sw_has_pending_intercepted_fetches(scope)
                 {
                     timer_manager.wait_timeout(std::time::Duration::from_millis(10));
-                    if crate::web_api::worker_host::WorkerHost::has_parent_messages()
+                    // Do not starve timers (e.g. test safety setTimeout) or
+                    // WorkerHost/child completions while a ref'd worker / SW
+                    // intercept is in flight.
+                    if timer_manager.has_fired_timers()
+                        || crate::web_api::worker_host::WorkerHost::has_parent_messages()
                         || crate::nodejs_core::child_process::pump_pending_child_process_jobs(scope)
                             > 0
                     {
@@ -9016,11 +9184,13 @@ impl MinimalRuntime {
                 crate::nodejs_core::child_process::has_pending_child_process_work();
             // v0.3.339: Don't include has_pending_work in break condition since it's a stored value
             // that may be stale. Instead, check the actual state of timers and nextTicks.
+            let has_pending_sw_fetches = sw_has_pending_intercepted_fetches(scope);
             if !has_pending_next_ticks_now
                 && !has_new_timers
                 && !has_scheduled_timers
                 && !has_pending_immediates()
                 && !has_active_workers
+                && !has_pending_sw_fetches
                 && !crate::web_api::websocket::has_pending_websocket_work()
                 && !has_pending_child
                 && !crate::nodejs_core::process::has_pending_stdin_work()

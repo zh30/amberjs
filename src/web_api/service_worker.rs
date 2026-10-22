@@ -320,6 +320,12 @@ parentPort.postMessage({
   const pendingFetches = {{}};
   let fetchSeq = 1;
 
+  // Event-loop keep-alive: intercepted fetch() must not be treated as idle
+  // while waiting for WorkerHost fetchPass / respondWith.
+  globalThis.__amber_sw_pending_fetch_count = function() {{
+    return Object.keys(pendingFetches).length;
+  }};
+
   function rememberNativeFetch() {{
     const current = globalThis.fetch;
     if (typeof current === 'function' && !current.__amberSwIntercept) {{
@@ -431,8 +437,18 @@ parentPort.postMessage({
     if (!pending) return;
     delete pendingFetches[data.id];
     if (data.__amberSw === 'fetchPass') {{
+      // No respondWith → fall through to G9 native fetch and resolve the
+      // page-side intercepted Promise with that Response (or its rejection).
+      const native = nativeFetch;
+      if (typeof native !== 'function') {{
+        pending.reject(new TypeError('fetch is not available for SW fallthrough'));
+        return;
+      }}
       try {{
-        pending.resolve(nativeFetch(pending.input, pending.init));
+        Promise.resolve(native(pending.input, pending.init)).then(
+          pending.resolve,
+          pending.reject
+        );
       }} catch (err) {{
         pending.reject(err);
       }}
@@ -446,6 +462,18 @@ parentPort.postMessage({
       pending.resolve(reconstructResponse(data));
     }} catch (err) {{
       pending.reject(err);
+    }}
+  }}
+
+  function rejectAllPendingFetches(message) {{
+    const ids = Object.keys(pendingFetches);
+    for (let i = 0; i < ids.length; i++) {{
+      const pending = pendingFetches[ids[i]];
+      delete pendingFetches[ids[i]];
+      if (!pending) continue;
+      try {{
+        pending.reject(new Error(message || 'ServiceWorker fetch aborted'));
+      }} catch (_) {{}}
     }}
   }}
 
@@ -515,6 +543,7 @@ parentPort.postMessage({
       registration.__amberHasFetch = false;
       try {{ __amber_worker_terminate(id); }} catch (_) {{}}
       applyFetchIntercept();
+      rejectAllPendingFetches('ServiceWorker stopped before fetch completed');
       const error = (err instanceof Error) ? err : new Error(String(err && err.message || err));
       rejectReg(error);
     }}
@@ -546,6 +575,9 @@ parentPort.postMessage({
       markRedundant();
       registration.__amberHasFetch = false;
       applyFetchIntercept();
+      // Intercepted page fetch() Promises must settle when the worker goes away;
+      // otherwise execute_code completion hangs on Pending Promise.
+      rejectAllPendingFetches('ServiceWorker was unregistered');
       if (pending) {{
         rejectReg(new Error('ServiceWorker was unregistered'));
       }}
