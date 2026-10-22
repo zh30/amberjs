@@ -150,6 +150,9 @@ def modes_for(meta: Meta) -> list[str]:
     return ["non-strict", "strict"]
 
 
+EXPECTED_SKIP_PREFIX = "unsupported-feature:"
+
+
 def skip_reason(meta: Meta, supported: set[str], always_skip: set[str]) -> Optional[str]:
     """Skip only features Amber explicitly cannot claim (`always_skip`).
 
@@ -160,8 +163,30 @@ def skip_reason(meta: Meta, supported: set[str], always_skip: set[str]) -> Optio
     _ = supported  # retained for scorecard / future allowlist reporting
     for feat in meta.features:
         if feat in always_skip:
-            return f"unsupported-feature:{feat}"
+            return f"{EXPECTED_SKIP_PREFIX}{feat}"
     return None
+
+
+def is_expected_skip(reason: str, always_skip: set[str]) -> bool:
+    """True iff SKIP reason is the intentional always_skip policy."""
+    if not reason.startswith(EXPECTED_SKIP_PREFIX):
+        return False
+    feat = reason[len(EXPECTED_SKIP_PREFIX) :]
+    return feat in always_skip
+
+
+def count_unexpected_skips(results: list[CaseResult], always_skip: set[str]) -> int:
+    """Count SKIP rows not explained by `always_skip_features`."""
+    return sum(
+        1
+        for r in results
+        if r.status == "SKIP" and not is_expected_skip(r.reason, always_skip)
+    )
+
+
+def gate_exit_code(fail_n: int, unexpected_skip: int) -> int:
+    """Exit 1 when FAIL or unexpected SKIP; 0 when gate green."""
+    return 0 if fail_n == 0 and unexpected_skip == 0 else 1
 
 
 def read_includes(test262: Path, names: list[str]) -> str:
@@ -440,12 +465,13 @@ def write_scorecard(
     path_filter: Optional[str],
     results: list[CaseResult],
     elapsed_s: float,
+    always_skip: set[str],
 ) -> None:
     pass_n = sum(1 for r in results if r.status == "PASS")
     fail_n = sum(1 for r in results if r.status == "FAIL")
     skip_n = sum(1 for r in results if r.status == "SKIP")
     total = len(results)
-    unexpected_skip = 0  # all SKIPs from policy are expected for now
+    unexpected_skip = count_unexpected_skips(results, always_skip)
     gate_ok = fail_n == 0 and unexpected_skip == 0 and (
         path_filter is not None or total > 0
     )
@@ -456,8 +482,11 @@ def write_scorecard(
         gate_note = "full suite"
     gate_line = (
         f"**Gate: PASS** (FAIL=0, unexpected SKIP=0; {gate_note})"
-        if gate_ok and fail_n == 0
-        else f"**Gate: FAIL** (PASS={pass_n} FAIL={fail_n} SKIP={skip_n}; {gate_note})"
+        if gate_ok
+        else (
+            f"**Gate: FAIL** (PASS={pass_n} FAIL={fail_n} SKIP={skip_n} "
+            f"unexpected_SKIP={unexpected_skip}; {gate_note})"
+        )
     )
 
     samples = [r for r in results if r.status == "FAIL"][:25]
@@ -534,7 +563,10 @@ def write_scorecard(
     SCORECARD_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {SCORECARD_MD}")
     print(f"Wrote {SCORECARD_JSON}")
-    print(f"Summary: PASS={pass_n} FAIL={fail_n} SKIP={skip_n} TOTAL={total}")
+    print(
+        f"Summary: PASS={pass_n} FAIL={fail_n} SKIP={skip_n} "
+        f"unexpected_SKIP={unexpected_skip} TOTAL={total}"
+    )
 
 
 def self_test() -> None:
@@ -561,6 +593,30 @@ def self_test() -> None:
         m4, 1, "Error: [Amber Error] REFERENCE_ERROR: x is not defined\n", ""
     )
     assert st4 == "PASS"
+
+    always_skip = {"Temporal", "decorators"}
+    supported: set[str] = set()
+    # Policy skip: feature in always_skip → expected SKIP reason.
+    m_skip = parse_frontmatter("/*---\nfeatures: [Temporal]\n---*/")
+    reason = skip_reason(m_skip, supported, always_skip)
+    assert reason == "unsupported-feature:Temporal"
+    assert is_expected_skip(reason, always_skip)
+    # Unknown / supported-only features are not skipped (honest PASS/FAIL).
+    m_run = parse_frontmatter("/*---\nfeatures: [BigInt]\n---*/")
+    assert skip_reason(m_run, {"BigInt"}, always_skip) is None
+    assert skip_reason(m_run, set(), always_skip) is None
+
+    expected = CaseResult("a.js", "strict", "SKIP", "unsupported-feature:Temporal")
+    unexpected = CaseResult("b.js", "strict", "SKIP", "manual-skip-abuse")
+    orphan = CaseResult("c.js", "strict", "SKIP", "unsupported-feature:not-in-policy")
+    passed = CaseResult("d.js", "strict", "PASS", "")
+    failed = CaseResult("e.js", "strict", "FAIL", "boom")
+    assert count_unexpected_skips([expected, passed, failed], always_skip) == 0
+    assert count_unexpected_skips([expected, unexpected, orphan], always_skip) == 2
+    assert gate_exit_code(0, 0) == 0
+    assert gate_exit_code(1, 0) == 1
+    assert gate_exit_code(0, 1) == 1
+    assert gate_exit_code(2, 3) == 1
     print("test262 harness self-test ok")
 
 
@@ -636,13 +692,16 @@ def main() -> None:
 
     elapsed = time.perf_counter() - t0
     results.sort(key=lambda r: (r.rel, r.mode))
-    write_scorecard(pin, amber, args.path, results, elapsed)
+    write_scorecard(pin, amber, args.path, results, elapsed, always_skip)
 
     if not args.keep_tmp:
         shutil.rmtree(work, ignore_errors=True)
 
     fail_n = sum(1 for r in results if r.status == "FAIL")
-    sys.exit(0 if fail_n == 0 else 1)
+    unexpected_skip = count_unexpected_skips(results, always_skip)
+    if unexpected_skip:
+        print(f"unexpected SKIP={unexpected_skip} (not explained by always_skip_features)")
+    sys.exit(gate_exit_code(fail_n, unexpected_skip))
 
 
 if __name__ == "__main__":
