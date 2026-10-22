@@ -786,6 +786,66 @@ fn runtime_type_module_js_entry_supports_top_level_await_without_imports_or_expo
     assert_eq!(result.trim(), "amber:42");
 }
 
+/// type=module entry with no import/export still gets Module `this` / bindings when
+/// `execute_code` runs the on-disk file (CLI / test262). Follow-up probes stay Script.
+#[test]
+#[serial]
+fn runtime_type_module_js_entry_file_without_signals_is_native_module() {
+    let temp = tempfile::tempdir().unwrap();
+    let app_dir = temp.path().join("app");
+    fs::create_dir_all(&app_dir).unwrap();
+    fs::write(app_dir.join("package.json"), r#"{"type":"module"}"#).unwrap();
+    let main_path = app_dir.join("main.js");
+    let code = r#"
+globalThis.__moduleThisIsUndefined = this === undefined;
+var localVar = 1;
+globalThis.__moduleVarOnGlobal =
+  Object.getOwnPropertyDescriptor(globalThis, 'localVar') === undefined;
+"#;
+    fs::write(&main_path, code).unwrap();
+
+    let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+    runtime.set_main_module_path(&main_path);
+    runtime
+        .execute_code(code)
+        .expect("type=module entry without signals must run as Module");
+
+    let this_result = runtime
+        .execute_code("globalThis.__moduleThisIsUndefined")
+        .expect("follow-up probe must stay Script for completion");
+    assert_eq!(this_result.trim(), "true");
+
+    let var_result = runtime
+        .execute_code("globalThis.__moduleVarOnGlobal")
+        .expect("follow-up probe");
+    assert_eq!(var_result.trim(), "true");
+}
+
+/// `export function*` must be recognized as ESM syntax (not only `export function `).
+#[test]
+#[serial]
+fn runtime_export_generator_function_is_native_esm() {
+    let temp = tempfile::tempdir().unwrap();
+    let app_dir = temp.path().join("app");
+    fs::create_dir_all(&app_dir).unwrap();
+    fs::write(app_dir.join("package.json"), r#"{"type":"module"}"#).unwrap();
+    let main_path = app_dir.join("main.js");
+
+    let mut runtime = MinimalRuntime::new().expect("Failed to create runtime");
+    runtime.set_main_module_path(&main_path);
+    let code = r#"
+        export function* g() { yield 1; }
+        globalThis.__exportGenOk = g().next().value;
+    "#;
+    runtime
+        .execute_code(code)
+        .expect("export function* must compile as Module");
+    let result = runtime
+        .execute_code("globalThis.__exportGenOk")
+        .expect("follow-up probe");
+    assert_eq!(result.trim(), "1");
+}
+
 #[test]
 #[serial]
 fn runtime_static_import_esm_dependency_supports_top_level_await_export() {
