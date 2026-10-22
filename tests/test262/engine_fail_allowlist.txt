@@ -1,0 +1,169 @@
+# Amber test262 ENGINE FAIL allowlist — SEED DRAFT (incomplete until measured)
+#
+# PURPOSE
+#   Catalog honest V8/Node/ICU/SM (or proposal-not-in-V8) FAILs so an *optional*
+#   gate can treat Amber-owned residual as FAIL=0 while still listing engine debt.
+#
+# DEFAULT OFF
+#   Loaded only when AMBER_TEST262_ENGINE_ALLOWLIST=1 or --engine-allowlist.
+#   Default harness + CI smoke unchanged: allowlisted paths still FAIL the gate.
+#   Do NOT flip ON until Henry chooses allowlist and a post-stack matrix is measured.
+#
+# NOT SKIP
+#   NEVER move these into features.json always_skip_features.
+#   ENGINE_ALLOW ≠ SKIP. Cases still run; results are cataloged.
+#
+# FORMAT
+#   One pattern per line (relative to test262 test/):
+#     path/to/file.js   — exact file
+#     path/to/dir/      — prefix (any path under that directory)
+#   Blank lines and # comments ignored.
+#   Prefixes only remap FAIL→ENGINE_ALLOW; PASS under a prefix stays PASS.
+#
+# STATUS — SEED toward projected engine floor ≈477 (allowlist OFF ⇒ FAIL unchanged)
+#   After remaining open Amber drafts (#274/#276/#279/#278/#281/#282/#286/#287/#290
+#   + known engine floor; #272/#273/#275/#288/#289 landed; store projected-residual):
+#     language ≈233  |  built-ins ≈94  |  other ≈150  |  Σ ≈477
+#   This seed lists *proven / projected engine* clusters so flip can cover that
+#   floor. Coarse prefixes are provisional — trim to Amber↔Node intersect after
+#   the Amber stack lands. Do NOT treat as product policy yet.
+#
+# Refs (store, not in-repo):
+#   internal/test262-projected-residual-after-open-prs.md
+#   internal/test262-fail-inventory.md
+#   internal/test262-v8-upgrade-0fail-path.md
+#   internal/test262-built-ins-post-detach-inventory.md
+#   internal/test262-other-roots-baseline.md
+#   internal/test262-error-stack-scout.md
+#   internal/test262-function-throwtypeerror-progress.md
+#   internal/test262-atomics-residual-progress.md
+
+# =============================================================================
+# language/ — projected ≈233 (hard wall ≥189 + indirect/long-tail ~50)
+# =============================================================================
+
+# --- hard Node-shared wall ---
+
+# A. direct eval PerformEval / arguments binding (~92; Node-same)
+language/eval-code/direct/
+
+# B. compound-assignment PutValue / ToPropertyKey (~66 / 55 unique; Node-same)
+language/expressions/compound-assignment/
+
+# C. with residual proxy / @@unscopables / deleted binding (8/8 Node)
+language/statements/with/get-binding-value-call-with-proxy-env.js
+language/statements/with/get-binding-value-idref-with-proxy-env.js
+language/statements/with/get-mutable-binding-binding-deleted-in-get-unscopables-strict-mode.js
+language/statements/with/set-mutable-binding-binding-deleted-in-get-unscopables-strict-mode.js
+language/statements/with/set-mutable-binding-binding-deleted-with-typed-array-in-proto-chain-strict-mode.js
+language/statements/with/set-mutable-binding-idref-compound-assign-with-proxy-env.js
+language/statements/with/set-mutable-binding-idref-with-proxy-env.js
+language/statements/with/unscopables-inc-dec.js
+
+# CallExpression LHS AssignmentTargetType — V8 accepts; negative expects SyntaxError
+language/expressions/assignmenttargettype/
+
+# Module parse gaps — V8 accepts; $DONOTEVALUATE / HTML-close / early-dup (~11)
+# Do NOT prefix language/module-code/ (Amber TLA/bindings already landed #272/#273;
+# keep only engine-parse exact set from inventory):
+language/module-code/comment-multi-line-html-close.js
+language/module-code/comment-single-line-html-close.js
+language/module-code/comment-single-line-html-open.js
+language/module-code/early-dup-top-function.js
+language/module-code/early-dup-top-function-async.js
+language/module-code/early-dup-top-function-async-generator.js
+language/module-code/early-dup-top-function-generator.js
+language/module-code/early-strict-mode.js
+language/module-code/parse-err-export-dflt-const.js
+language/module-code/parse-err-export-dflt-expr.js
+language/module-code/parse-err-hoist-lex-gen.js
+language/module-code/parse-err-semi-name-space-export.js
+
+# global-code residual after #276 (2 files × modes = 4 FAIL; Node-same)
+language/global-code/script-decl-func-err-non-configurable.js
+language/global-code/script-decl-var-collision.js
+
+# --- indirect + long-tail (projected ~50 of language ≈233; triage after stack) ---
+# Inventory: mixed/untriaged but counted in engine floor for allowlist flip prep.
+# Coarse prefixes — measure Amber↔Node and trim before product ON.
+# (#290 enum/implements TS sniff −6 + long-tail Amber TBD may shrink further.)
+
+language/eval-code/indirect/
+
+language/expressions/assignment/
+language/expressions/postfix-increment/
+language/expressions/postfix-decrement/
+language/expressions/prefix-increment/
+language/expressions/prefix-decrement/
+
+language/statements/const/
+language/statements/let/
+language/statements/for/
+language/statements/for-of/
+language/statements/for-in/
+
+# Identifiers / future-reserved long-tail crumbs (inventory depth-2 ≤3 buckets)
+language/future-reserved-words/
+language/identifiers/
+
+# NOT seeded (Amber-owned until remaining open drafts land):
+#   line-terminators (#274 classify), global-code bulk (#276), enum/implements (#290)
+# Landed Amber (do not seed as engine): TLA/ambiguous (#272), module-bindings (#273)
+
+# =============================================================================
+# built-ins/ — projected residual ≈94 after #278–#288 (+ #283/#284 landed)
+# =============================================================================
+
+# error-stack-accessor — Error.prototype.stack (70; Stage-3 / V8 own-stack)
+built-ins/Error/prototype/stack/
+
+# Function + ThrowTypeError residual after #284 (≈12) — V8 152 / shared Node gaps
+built-ins/Function/internals/Construct/derived-this-uninitialized-realm.js
+built-ins/Function/prototype/arguments/prop-desc.js
+built-ins/Function/prototype/caller/prop-desc.js
+built-ins/Function/prototype/caller-arguments/accessor-properties.js
+built-ins/Function/prototype/toString/built-in-function-object.js
+built-ins/ThrowTypeError/unique-per-realm-function-proto.js
+
+# Atomics notify RANGE after #281 (2 modes; V8/Node)
+built-ins/Atomics/notify/retrieve-length-before-index-coercion-non-shared-detached.js
+
+# Small engine residue (class c) — 4+2+2+2 = 10
+built-ins/TypedArrayConstructors/internals/GetOwnProperty/enumerate-detached-buffer.js
+built-ins/TypedArrayConstructors/internals/GetOwnProperty/BigInt/enumerate-detached-buffer.js
+built-ins/TypedArray/prototype/set/immutable-buffer.js
+built-ins/TypedArray/prototype/sort/immutable-buffer.js
+built-ins/Uint8Array/prototype/setFromBase64/trailing-garbage.js
+built-ins/Uint8Array/prototype/setFromBase64/trailing-garbage-empty.js
+built-ins/Array/prototype/concat/arg-length-near-integer-limit.js
+built-ins/Array/prototype/concat/arg-length-exceeding-integer-limit.js
+
+# NOT in primary seed (open polyfills clear from ≈477 floor; re-add if flip
+# precedes those merges):
+#   #287 await-dictionary → built-ins/Promise/allKeyed/ | allSettledKeyed/
+#   #286 Iterator.includes → built-ins/Iterator/prototype/includes/
+# Landed polyfill (already off floor): #288 iterator-chunking windows/chunks
+
+# =============================================================================
+# other roots — projected residual ≈150
+# =============================================================================
+
+# annexB ≈55 after #274 clears HTML comments (−10). Engine: RegExp legacy +
+# language annex quirks. Do NOT list annexB/language/comments/ (Amber #274).
+annexB/built-ins/RegExp/
+annexB/language/eval-code/
+annexB/language/function-code/
+annexB/language/global-code/
+annexB/language/expressions/
+annexB/language/statements/
+annexB/language/literals/
+
+# intl402 — full root V8/ICU (68); no Amber host cut
+intl402/
+
+# staging SM residual ≈27 after #279 detach (~60+ Amber). Entire staging/sm/ is
+# listed so post-detach residual (strict/extensions/class/Function/TypedArray
+# integrity/…) is covered; detach cases become PASS after #279 and stay PASS
+# (allowlist only remaps FAIL). Do not flip ON before #279 if you need those
+# Amber detach FAILs visible as FAIL.
+staging/sm/

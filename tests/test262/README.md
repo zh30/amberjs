@@ -10,6 +10,7 @@ North-star suite for Amber’s **language** conformance (separate from Node fixt
 | `run_test262.py` | Discover → run → scorecard |
 | `amber_host.js` | Minimal `$262` host object |
 | `features.json` | Supported / always-skip feature flags |
+| `engine_fail_allowlist.txt` | Optional V8/Node FAIL catalog (seed draft; **OFF by default**) |
 | `scorecard.md` / `scorecard.json` | Latest run summary |
 | `../../third_party/test262/` | Fetched suite (gitignored) |
 | `../../scripts/fetch_test262.sh` | Clone/checkout `PIN` |
@@ -41,17 +42,51 @@ AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --jobs 8
 Env: `AMBER_BIN`, `TEST262_ROOT`, `TEST262_TIMEOUT` (seconds per case, default 30),
 `AMBER_TEST262=1` (set automatically by the runner — enables native `$262.createRealm`).
 
+### Optional engine FAIL allowlist (OFF by default)
+
+Literal **0 FAIL** is blocked by shared V8/Node (and proposal-not-in-V8) gaps. The
+allowlist catalogs those honest FAILs without SKIP abuse. **Default harness and CI
+behavior is unchanged** — allowlisted paths still count as FAIL until explicitly enabled.
+
+Enable (either form):
+
+```bash
+# env
+AMBER_TEST262_ENGINE_ALLOWLIST=1 AMBER_BIN=./target/release/amber \
+  python3 tests/test262/run_test262.py --path language/eval-code/direct --jobs 4
+
+# or flag
+AMBER_BIN=./target/release/amber \
+  python3 tests/test262/run_test262.py --engine-allowlist --path language/expressions/compound-assignment
+```
+
+When enabled:
+
+- Matching FAILs become **`ENGINE_ALLOW`** (still listed in the scorecard).
+- Exit **0** only if `FAIL=0` and `unexpected_skip=0` (`ENGINE_ALLOW` is not FAIL).
+- Patterns live in `engine_fail_allowlist.txt` (exact path or directory prefix ending `/`).
+- Override file with `--engine-allowlist-file`; force off with `--no-engine-allowlist`.
+
+**Do not** move these entries into `features.json` `always_skip_features`. The seed aims to
+cover the full projected post-Amber-stack engine residual (~477 FAIL: language hard wall
++ long-tail ≈233, built-ins ≈94, other ≈150) and remains a **draft until measured after
+remaining open drafts land**; do **not** flip CI smoke / the default gate ON without an
+explicit product decision (gate still pending Henry).
+
 
 ## Scorecard / gate
 
 - **PASS** — behavior matches positive or negative metadata.
 - **FAIL** — wrong result, timeout, or harness/exec error (honest; no stubs).
+- **ENGINE_ALLOW** — FAIL remapped only when the optional engine allowlist is ON; catalog only, not SKIP.
 - **SKIP (expected)** — only when a `features:` entry is listed in `always_skip_features` (`features.json`); reason `unsupported-feature:<name>`.
 - **SKIP (unexpected)** — any other SKIP (wrong reason, or feature not in `always_skip_features`). Counted as `unexpected_skip`; gate fails.
 
 `supported` in `features.json` is informational. Features not in that list are **run** (honest PASS/FAIL), not skipped.
 
-**Done** for this stream: full suite with **0 FAIL** and **0 unexpected SKIP**. The runner exits `1` if `FAIL>0` or `unexpected_skip>0`. Filtered runs are for iteration; they do not redefine done.
+**Done** for this stream (default gate): full suite with **0 FAIL** and **0 unexpected SKIP**. The runner exits `1` if `FAIL>0` or `unexpected_skip>0`.
+Optional allowlist mode reframes Amber-owned residual as **0 FAIL** + cataloged `ENGINE_ALLOW`,
+but is **not** the default CI gate. Filtered runs are for iteration; they do not redefine done.
 
 Node conformance (`./tests/conformance/run_conformance.sh`) stays ≥55/55 and is unrelated.
 
@@ -59,3 +94,4 @@ Node conformance (`./tests/conformance/run_conformance.sh`) stays ≥55/55 and i
 
 - `.github/workflows/test262.yml` runs a fail-closed **smoke** job (`--self-test` + `language/types*` paths) and uploads that run’s scorecard artifact (`test262-scorecard`). It does not run the full suite.
 - Full suite remains local/manual (`run_test262.py` without `--path`) until green; then promote a full-suite job to a required fail-closed gate.
+- Smoke / required gates must **not** set `AMBER_TEST262_ENGINE_ALLOWLIST` unless product explicitly flips the policy.
