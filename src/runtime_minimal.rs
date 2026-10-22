@@ -10295,7 +10295,10 @@ impl MinimalRuntime {
 
         // Object.hasOwn (legacy) + Promise.try (ECMA-262 #3883 identity) +
         // Iterator.prototype.chunks/windows (iterator-chunking Stage-3; not in V8 yet —
-        // generators for %IteratorHelper%-like reentry/return semantics).
+        // generators for %IteratorHelper%-like reentry/return semantics) +
+        // Iterator.prototype.includes RangeError for skippedElements >
+        // Number.MAX_SAFE_INTEGER (V8 --harmony omits step 8 /
+        // close-before-GetIteratorDirect; test262 iterator-includes).
         // Promise.try: V8 still uses NewPromiseCapability+resolve (wraps); #3883 uses
         // PromiseResolve on success so a same-constructor Promise is returned by identity.
         let polyfill_script = r#"
@@ -10547,6 +10550,82 @@ impl MinimalRuntime {
                             }
                         }
                     })(), iterated, state);
+                });
+            }
+
+            // V8 --harmony includes omits MSI+1 RangeError + close-before-GetIteratorDirect.
+            if (typeof Iterator.prototype.includes === 'function') {
+                var nativeIncludes = Iterator.prototype.includes;
+                var maxSafe = Number.MAX_SAFE_INTEGER;
+
+                function includesImpl(searchElement) {
+                    var skippedElements = arguments.length > 1 ? arguments[1] : undefined;
+                    if (typeof skippedElements === 'number' &&
+                        Number.isFinite(skippedElements) &&
+                        Number.isInteger(skippedElements) &&
+                        skippedElements > maxSafe) {
+                        var O = this;
+                        if (O === null || (typeof O !== 'object' && typeof O !== 'function')) {
+                            throw new TypeError(
+                                'Iterator.prototype.includes called on non-object'
+                            );
+                        }
+                        // IteratorClose before GetIteratorDirect (do not read next).
+                        var returnMethod;
+                        try {
+                            returnMethod = O['return'];
+                        } catch (e) {
+                            throw e;
+                        }
+                        if (returnMethod !== undefined && returnMethod !== null) {
+                            if (typeof returnMethod !== 'function') {
+                                throw new TypeError(
+                                    'Iterator return method is not callable'
+                                );
+                            }
+                            try {
+                                returnMethod.call(O);
+                            } catch (e) {
+                                throw e;
+                            }
+                        }
+                        throw new RangeError(
+                            'skippedElements greater than Number.MAX_SAFE_INTEGER'
+                        );
+                    }
+                    return nativeIncludes.apply(this, arguments);
+                }
+
+                Object.defineProperty(includesImpl, 'length', {
+                    value: 1,
+                    writable: false,
+                    enumerable: false,
+                    configurable: true,
+                });
+                Object.defineProperty(includesImpl, 'name', {
+                    value: 'includes',
+                    writable: false,
+                    enumerable: false,
+                    configurable: true,
+                });
+                try {
+                    delete includesImpl.prototype;
+                } catch (_) {}
+
+                // Proxy so `new includes(...)` stays non-constructible like a builtin.
+                var includes = new Proxy(includesImpl, {
+                    construct: function() {
+                        throw new TypeError(
+                            'Iterator.prototype.includes is not a constructor'
+                        );
+                    },
+                });
+
+                Object.defineProperty(Iterator.prototype, 'includes', {
+                    value: includes,
+                    writable: true,
+                    enumerable: false,
+                    configurable: true,
                 });
             }
         })();
