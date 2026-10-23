@@ -81,21 +81,9 @@ language/statements/with/unscopables-inc-dec.js
 # CallExpression LHS AssignmentTargetType — V8 accepts; negative expects SyntaxError
 language/expressions/assignmenttargettype/
 
-# Module parse gaps — V8 accepts; $DONOTEVALUATE / HTML-close / early-dup (~11)
-# Do NOT prefix language/module-code/ (Amber TLA/bindings already landed #272/#273;
-# #296 owns await-dynamic-import-*; keep only engine-parse exact set):
-language/module-code/comment-multi-line-html-close.js
-language/module-code/comment-single-line-html-close.js
-language/module-code/comment-single-line-html-open.js
-language/module-code/early-dup-top-function.js
-language/module-code/early-dup-top-function-async.js
-language/module-code/early-dup-top-function-async-generator.js
-language/module-code/early-dup-top-function-generator.js
-language/module-code/early-strict-mode.js
-language/module-code/parse-err-export-dflt-const.js
-language/module-code/parse-err-export-dflt-expr.js
-language/module-code/parse-err-hoist-lex-gen.js
-language/module-code/parse-err-semi-name-space-export.js
+# Module parse exacts pruned (unused vs ENGINE_ALLOW 437 dump; do NOT re-add
+# language/module-code/ wholesale — Amber TLA/bindings #272/#273; #296 owns
+# await-dynamic-import-*).
 
 # global-code residual after #276 (2 files × modes = 4 FAIL; Node-same)
 language/global-code/script-decl-func-err-non-configurable.js
@@ -111,15 +99,8 @@ language/expressions/postfix-decrement/
 language/expressions/prefix-increment/
 language/expressions/prefix-decrement/
 
-language/statements/const/
-language/statements/let/
-language/statements/for/
-language/statements/for-of/
-language/statements/for-in/
-
-# Identifiers / future-reserved long-tail crumbs (inventory depth-2 ≤3 buckets)
-language/future-reserved-words/
-language/identifiers/
+# Pruned unused prefixes (no ENGINE_ALLOW hit): statements/{const,let,for,
+# for-of,for-in}/, future-reserved-words/, identifiers/.
 
 # --- proven engine long-tail (Node also FAIL; exact files) ---
 # Evidence: internal/test262-language-longtail-triage.md +
@@ -161,16 +142,14 @@ built-ins/ThrowTypeError/unique-per-realm-function-proto.js
 # Evidence: internal/test262-atomics-residual-progress.md
 built-ins/Atomics/notify/retrieve-length-before-index-coercion-non-shared-detached.js
 
-# Small engine residue (class c) — 4+2+2+2 = 10
+# Small engine residue (class c) — proven ENGINE_ALLOW hits only
 # Evidence: internal/test262-built-ins-post-detach-inventory.md
-built-ins/TypedArrayConstructors/internals/GetOwnProperty/enumerate-detached-buffer.js
-built-ins/TypedArrayConstructors/internals/GetOwnProperty/BigInt/enumerate-detached-buffer.js
+# Pruned unused: TypedArray GetOwnProperty enumerate-detached-buffer(+BigInt),
+# sort/immutable-buffer, setFromBase64/trailing-garbage-empty,
+# concat/arg-length-exceeding-integer-limit.
 built-ins/TypedArray/prototype/set/immutable-buffer.js
-built-ins/TypedArray/prototype/sort/immutable-buffer.js
 built-ins/Uint8Array/prototype/setFromBase64/trailing-garbage.js
-built-ins/Uint8Array/prototype/setFromBase64/trailing-garbage-empty.js
 built-ins/Array/prototype/concat/arg-length-near-integer-limit.js
-built-ins/Array/prototype/concat/arg-length-exceeding-integer-limit.js
 
 # Landed polyfills (already off measured/projected floor — do not seed):
 #   #288 iterator-chunking → windows/ | chunks/
@@ -184,15 +163,11 @@ built-ins/Array/prototype/concat/arg-length-exceeding-integer-limit.js
 #   annexB ≈55 | staging ≈14 | intl402 68 | harness 0
 # =============================================================================
 
-# annexB ≈55 after #274 clears HTML comments (−10). Engine: RegExp legacy +
-# language annex quirks. Do NOT list annexB/language/comments/ (Amber #274).
+# annexB — RegExp legacy + function-code (proven ENGINE_ALLOW).
+# Do NOT list annexB/language/comments/ (Amber #274).
+# Pruned unused: eval-code/, global-code/, expressions/, statements/, literals/.
 annexB/built-ins/RegExp/
-annexB/language/eval-code/
 annexB/language/function-code/
-annexB/language/global-code/
-annexB/language/expressions/
-annexB/language/statements/
-annexB/language/literals/
 
 # intl402 — full root V8/ICU (68); no Amber host cut
 intl402/
