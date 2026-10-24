@@ -74,7 +74,7 @@ wasm-bindgen-futures = "0.4"
 
 # WebAssembly binary format
 wasm-encoder = "0.244"
-wasmparser = "0.217"
+wasmparser = "0.261"
 
 # Cryptography for module hashing
 blake3 = "1.5"
