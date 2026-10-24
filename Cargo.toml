@@ -203,7 +203,7 @@ tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
 # not CI-gated; src/ai_inference (the only caller) is not compiled.
 
 # Stage 88: Multi-language support
-pyo3 = { version = "0.29", features = ["auto-initialize"], optional = true }  # Python integration
+pyo3 = { version = "0.30", features = ["auto-initialize"], optional = true }  # Python integration
 # go-vm = "0.5"  # Go VM integration (placeholder, not published yet)
 
 # Stage 89: V8 API 兼容性修复 - 启用前向兼容性
