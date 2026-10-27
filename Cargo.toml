@@ -74,7 +74,7 @@ wasm-bindgen-futures = "0.4"
 
 # WebAssembly binary format
 wasm-encoder = "0.244"
-wasmparser = "0.217"
+wasmparser = "0.261"
 
 # Cryptography for module hashing
 blake3 = "1.5"
@@ -148,7 +148,7 @@ fastrand = "2.0"
 # Stage 41.0: Quantum computing
 num-complex = "0.4"
 url = "2.0"
-dirs = "5.0"
+dirs = "7.0"
 wat = "1.0"
 
 # Stage 27.1: Embedded builtins dependencies
@@ -164,7 +164,7 @@ filetime = "0.2"
 prometheus = { version = "0.14", optional = true }
 opentelemetry = { version = "0.21", optional = true }
 opentelemetry_sdk = { version = "0.21", optional = true }
-opentelemetry-prometheus = { version = "0.14", optional = true }
+opentelemetry-prometheus = { version = "0.33", optional = true }
 opentelemetry-jaeger = { version = "0.22", optional = true }
 opentelemetry-http = { version = "0.10", optional = true }
 tracing-appender = "0.2"
@@ -195,7 +195,7 @@ roxmltree = "0.20"
 candle-core = { version = "0.11.0", default-features = false }
 candle-transformers = { version = "0.11.0", default-features = false }
 candle-nn = { version = "0.11.0", default-features = false }
-tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
+tokenizers = { version = "0.22", default-features = false, features = ["onig"] }
 
 # tch / torch-sys were removed from the graph. crates.io tch 0.11 through 0.26
 # (and torch-sys) require zip ^0.6. RUSTSEC-2026-0367/0368/0369 are fixed only
@@ -203,11 +203,13 @@ tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
 # not CI-gated; src/ai_inference (the only caller) is not compiled.
 
 # Stage 88: Multi-language support
-pyo3 = { version = "0.29", features = ["auto-initialize"], optional = true }  # Python integration
+pyo3 = { version = "0.30", features = ["auto-initialize"], optional = true }  # Python integration
 # go-vm = "0.5"  # Go VM integration (placeholder, not published yet)
 
 # Stage 89: V8 API 兼容性修复 - 启用前向兼容性
-pyo3-build-config = { version = "0.24", features = ["resolve-config"], optional = true }  # 支持前向兼容构建
+# Matches pyo3 0.30. The previous direct pin was 0.24 while pyo3 already
+# pulled a newer pyo3-build-config; nothing in-tree calls this crate.
+pyo3-build-config = { version = "0.30", features = ["resolve-config"], optional = true }
 
 # Stage 91 Phase 4.2: Enhanced REPL dependencies
 rustyline = "14.0"  # Enhanced readline with tab completion and history
@@ -221,6 +223,9 @@ colored = "2.0"     # Terminal colors and formatting
 kube = { version = "0.87", default-features = false, features = ["client", "openssl-tls", "runtime", "derive"], optional = true }
 k8s-openapi = { version = "0.24", default-features = false, features = ["schemars", "v1_28"], optional = true }
 kube-runtime = { version = "4.2", optional = true }
+# Stay on 0.8: kube-derive 0.87 emits schemars 0.8 paths
+# (`gen::SchemaSettings::openapi3`). schemars 1.x needs kube 2.0.
+# Dependabot #266 is deferred for that reason.
 schemars = { version = "0.8", features = ["derive"], optional = true }
 elasticsearch = { version = "9.1.0-alpha.1", default-features = false, optional = true }
 git2 = { version = "0.21", optional = true }
