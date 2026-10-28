@@ -10,7 +10,7 @@ Amber labels every capability. The labels come from [`docs/CURRENT_SCOPE.md`](ht
 
 ## The four levels
 
-**Stable.** The capability is reachable from the `amber` binary, has a contract document in `docs/`, and has an executable test in `tests/` that runs in CI. The contract lists its limits next to the API. As of v1.17.0, 69 contracts are numbered G1 to G69.
+**Stable.** The capability is reachable from the `amber` binary, has a contract document in `docs/`, and has an executable test in `tests/` that runs in CI. The contract lists its limits next to the API. As of v1.17.0, 77 contracts are numbered G1 to G77.
 
 Some Stable rows are marked **tentative** or **provisional**. They passed the graduation rule, but their id or edges may still be adjusted. Read the contract before relying on an edge case.
 

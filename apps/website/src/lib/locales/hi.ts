@@ -91,7 +91,7 @@ export const hi: TranslationSchema = {
       source: "सोर्स से",
     },
     stats: {
-      contracts: "Stable अनुबंध (G1–G69)",
+      contracts: "Stable अनुबंध (G1–G77)",
       conformance: "Node कन्फ़ॉर्मेंस टेस्ट",
       binary: "बाइनरी — run, test, serve, bundle, compile",
       version: "वर्तमान रिलीज़",
@@ -146,7 +146,7 @@ export const hi: TranslationSchema = {
     compatNode: "Node.js मॉड्यूल",
     compatWeb: "वेब प्लेटफ़ॉर्म",
     compatRuntime: "रनटाइम और एजेंट",
-    compatLink: "सभी 69 अनुबंध देखें",
+    compatLink: "सभी 77 अनुबंध देखें",
     conformanceTitle: "56 / 56 कन्फ़ॉर्मेंस टेस्ट पास",
     conformanceBody:
       "tests/conformance/ हर बदलाव पर Node-शैली की छोटी स्क्रिप्ट चलाता है — fs, streams, crypto, child_process, Express, Fastify, Hono आदि। कोई टेस्ट फ़ेल या स्किप हो तो CI फ़ेल होता है। यह रिग्रेशन से बचाव है, Node का पूर्ण विकल्प होने का दावा नहीं।",
