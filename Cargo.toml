@@ -122,7 +122,7 @@ memmap2 = "0.9"
 tiny_http = "0.12"
 
 # Embedded SQLite for amber:db
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.41", features = ["bundled"] }
 
 # System calls for zero-copy network I/O
 libc = "0.2"
