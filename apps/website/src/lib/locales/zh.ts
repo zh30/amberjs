@@ -6,7 +6,7 @@ export const zh: TranslationSchema = {
     docs: "文档",
     scope: "兼容性",
     blog: "博客",
-    play: "在线体验",
+    play: "游乐场",
     github: "GitHub",
     menu: "菜单",
   },
@@ -31,15 +31,15 @@ export const zh: TranslationSchema = {
   },
   levels: {
     stable: {
-      label: "Stable",
+      label: "稳定",
       desc: "有书面契约和 CI 中的可执行测试保障，已知限制就写在 API 旁边。",
     },
     preview: {
-      label: "Preview",
+      label: "预览",
       desc: "已在默认构建中可用，但契约、诊断信息或边界情况仍在完善。",
     },
     experimental: {
-      label: "Experimental",
+      label: "实验",
       desc: "代码已存在，但在重新验证并毕业之前，不构成产品承诺。",
     },
     nongoal: {
@@ -55,7 +55,7 @@ export const zh: TranslationSchema = {
     docs: "文档",
     scope: "兼容性",
     blog: "博客",
-    play: "在线体验",
+    play: "游乐场",
     conformance: "一致性测试记分卡",
     githubRepo: "GitHub",
     issues: "问题反馈",

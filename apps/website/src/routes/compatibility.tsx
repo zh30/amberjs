@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { ExternalLink, Search, X } from "lucide-react";
 import { useLang } from "../lib/i18n";
+import { landingCopy } from "../lib/landing-copy";
 import { LevelBadge } from "../components/LevelBadge";
 import {
   CONFORMANCE,
   CONFORMANCE_URL,
   EXPERIMENTAL,
-  GRADUATED_CONTRACTS,
   NON_GOALS,
   PREVIEW,
   SCOPE_DOC_URL,
@@ -31,7 +31,7 @@ function ItemList({
   lang: string;
 }) {
   return (
-    <ul className="mt-6 divide-y divide-[var(--line)] rounded-lg border border-[var(--line)]">
+    <ul className="mt-6 divide-y divide-[var(--line)] border border-[var(--line)]">
       {items.map((item) => (
         <li
           key={item.name}
@@ -108,39 +108,63 @@ export default function Compatibility() {
     { id: "graduation", label: t.graduationTitle },
   ];
 
+  const text = landingCopy[lang];
+
   return (
+    <>
+      <div className="sheet">
+        <div className="lead">
+          <h1>{text.compatTitle}</h1>
+          <p className="sub">
+            {text.compatBefore}
+            <a href={SCOPE_DOC_URL}>docs/CURRENT_SCOPE.md</a>
+            {text.compatAfter}
+          </p>
+        </div>
+        <div className="install">
+          <table className="level-table">
+            <thead>
+              <tr>
+                <th>{text.levelHead}</th>
+                <th>{text.meaningHead}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {text.levels.map((row) => (
+                <tr key={row.title}>
+                  <td>{row.title}</td>
+                  <td>{row.body}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="session">
+            {text.scoreLine}
+            {"\n"}
+            <b>
+              {CONFORMANCE.pass} / {CONFORMANCE.total}
+            </b>
+          </p>
+        </div>
+      </div>
     <div className="page">
-      <div className="site-shell">
-        <header className="max-w-[72ch]">
-          <p className="font-mono text-xs text-[var(--text-muted)]">
-            docs/CURRENT_SCOPE.md · G1–G{GRADUATED_CONTRACTS} ·{" "}
-            {CONFORMANCE.pass}/{CONFORMANCE.total} conformance
-          </p>
-          <h1 className="mt-3 text-[clamp(2rem,4.5vw,3rem)] font-bold tracking-tight">
-            {t.title}
-          </h1>
-          <p className="mt-4 text-lg leading-relaxed text-[var(--text-secondary)]">
-            {t.subtitle}
-          </p>
-          <p className="mt-4 text-sm text-[var(--text-muted)]">
-            {t.sourceNote}{" "}
-            <a
-              href={SCOPE_DOC_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-[var(--text-primary)] underline underline-offset-2"
-            >
-              CURRENT_SCOPE.md <ExternalLink className="h-3 w-3" />
-            </a>
-          </p>
-        </header>
+        <p className="max-w-[70ch] text-base text-[var(--muted)]">
+          {t.sourceNote}{" "}
+          <a href={SCOPE_DOC_URL} className="font-semibold text-[var(--on-paper)] underline">
+            CURRENT_SCOPE.md
+          </a>
+          . {copy.home.conformanceBody}{" "}
+          <a href={CONFORMANCE_URL} className="font-semibold text-[var(--on-paper)] underline">
+            {copy.home.conformanceLink}
+          </a>
+        </p>
 
         <nav className="mt-8 flex flex-wrap gap-2 text-sm">
           {toc.map((item) => (
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="rounded-md border border-[var(--line)] px-3 py-1.5 text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className="inline-flex min-h-12 items-center border border-[var(--line)] px-3 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               {item.label}
             </a>
@@ -168,14 +192,14 @@ export default function Compatibility() {
                   role="tab"
                   aria-selected={area === a}
                   onClick={() => setArea(a)}
-                  className={`rounded-md border px-3 py-1.5 text-sm ${
+                  className={`inline-flex min-h-12 items-center border px-3 text-sm ${
                     area === a
-                      ? "border-[var(--text-primary)] bg-[var(--fill)] text-[var(--fill-fg)]"
+                      ? "border-[var(--on-paper)] bg-[var(--honey)] text-[var(--honey-ink)]"
                       : "border-[var(--line)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   {a === "all" ? t.filterAll : t.areas[a]}
-                  <span className="ml-1.5 font-mono text-[11px] opacity-60">
+                  <span className="ml-1.5 font-mono text-xs">
                     {counts[a]}
                   </span>
                 </button>
@@ -192,7 +216,7 @@ export default function Compatibility() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.searchPlaceholder}
-                className="w-full rounded-md border border-[var(--line)] bg-[var(--bg-page)] py-2 pl-9 pr-8 text-sm placeholder:text-[var(--text-muted)]"
+                className="min-h-12 w-full border border-[var(--line)] bg-[var(--paper)] py-2 pl-9 pr-8 text-sm placeholder:text-[var(--text-muted)]"
               />
               {query ? (
                 <button
@@ -207,7 +231,7 @@ export default function Compatibility() {
             </label>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-lg border border-[var(--line)]">
+          <div className="mt-4 overflow-hidden border border-[var(--line)]">
             <div className="hidden grid-cols-[minmax(0,15rem)_minmax(0,6.5rem)_1fr] gap-6 border-b border-[var(--line)] bg-[var(--bg-raised)] px-4 py-2.5 text-xs font-medium text-[var(--text-muted)] md:grid">
               <span>{t.colSurface}</span>
               <span>{t.colId}</span>
@@ -235,7 +259,7 @@ export default function Compatibility() {
                         {s.g ?? t.baseScope}
                       </span>
                       {s.qualifier ? (
-                        <span className="mt-0.5 block text-[11px] text-[var(--text-muted)]">
+                        <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
                           {s.qualifier}
                         </span>
                       ) : null}
@@ -247,7 +271,7 @@ export default function Compatibility() {
                           href={contractUrl(s.doc)}
                           target="_blank"
                           rel="noreferrer"
-                          className="ml-2 inline-flex items-center gap-1 whitespace-nowrap font-mono text-[11px] text-[var(--text-primary)] underline underline-offset-2"
+                          className="ml-2 inline-flex items-center gap-1 whitespace-nowrap font-mono text-xs text-[var(--text-primary)] underline underline-offset-2"
                         >
                           {t.contract} <ExternalLink className="h-3 w-3" />
                         </a>
@@ -290,7 +314,7 @@ export default function Compatibility() {
             {UNCLASSIFIED.map((name) => (
               <li
                 key={name}
-                className="rounded border border-dashed border-[var(--line-strong)] px-2 py-1 font-mono text-[12px] text-[var(--text-secondary)]"
+                className="border border-[var(--line-strong)] px-2 py-1 font-mono text-xs text-[var(--text-secondary)]"
               >
                 {name}
               </li>
@@ -308,43 +332,20 @@ export default function Compatibility() {
           <ItemList items={NON_GOALS} level="nongoal" lang={lang} />
         </section>
 
-        <section className="mt-20 grid gap-8 rounded-xl border border-[var(--line)] bg-[var(--bg-raised)] p-6 sm:p-10 lg:grid-cols-[1fr_1fr]">
-          <div id="graduation" className="scroll-mt-24">
-            <h2 className="text-2xl font-bold tracking-tight">
-              {t.graduationTitle}
-            </h2>
-            <ol className="mt-5 space-y-3">
-              {t.graduationRules.map((rule, i) => (
-                <li key={rule} className="flex gap-3 text-sm leading-relaxed">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--honey)] font-mono text-xs font-semibold text-[var(--honey-ink)]">
-                    {i + 1}
-                  </span>
-                  <span className="pt-0.5 text-[var(--text-secondary)]">
-                    {rule}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div className="flex flex-col justify-center rounded-lg bg-[var(--code-bg)] p-6 text-[var(--code-fg)]">
-            <div className="font-mono text-5xl font-bold text-[var(--honey)]">
-              {CONFORMANCE.pass}/{CONFORMANCE.total}
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-              {copy.home.conformanceBody}
-            </p>
-            <a
-              href={CONFORMANCE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-white hover:underline"
-            >
-              {copy.home.conformanceLink}{" "}
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
+        <section className="mt-20 border-t border-[var(--on-paper)] pt-10" id="graduation">
+          <h2 className="scroll-mt-24 text-2xl font-bold tracking-tight">
+            {t.graduationTitle}
+          </h2>
+          <ol className="mt-5 max-w-[70ch] space-y-4">
+            {t.graduationRules.map((rule, i) => (
+              <li key={rule} className="grid grid-cols-[2rem_1fr] gap-3 text-base leading-relaxed">
+                <span className="font-mono text-sm text-[var(--muted)]">{i + 1}</span>
+                <span className="text-[var(--text-secondary)]">{rule}</span>
+              </li>
+            ))}
+          </ol>
         </section>
-      </div>
     </div>
+    </>
   );
 }
