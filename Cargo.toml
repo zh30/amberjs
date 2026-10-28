@@ -243,7 +243,7 @@ pyo3-build-config = { version = "0.30", features = ["resolve-config"], optional 
 # Stage 91 Phase 4.2: Enhanced REPL dependencies
 rustyline = "14.0"  # Enhanced readline with tab completion and history
 syntect = "5.0"     # Syntax highlighting for code display
-colored = "2.0"     # Terminal colors and formatting
+colored = "3.1"     # Terminal colors and formatting
 
 # Stage 83: Enterprise Kubernetes & DevOps dependencies
 # kube 0.87's default rustls-tls feature pins rustls 0.21, which has no release
