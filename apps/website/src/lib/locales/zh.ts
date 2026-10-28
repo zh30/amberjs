@@ -90,7 +90,7 @@ export const zh: TranslationSchema = {
       source: "源码构建",
     },
     stats: {
-      contracts: "项 Stable 契约（G1–G69）",
+      contracts: "项 Stable 契约（G1–G77）",
       conformance: "Node 一致性用例通过",
       binary: "个二进制：run、test、serve、bundle、compile",
       version: "当前版本",
@@ -141,7 +141,7 @@ export const zh: TranslationSchema = {
     compatNode: "Node.js 模块",
     compatWeb: "Web 平台",
     compatRuntime: "运行时与 Agent",
-    compatLink: "浏览全部 69 项契约",
+    compatLink: "浏览全部 77 项契约",
     conformanceTitle: "56 / 56 一致性用例全部通过",
     conformanceBody:
       "tests/conformance/ 在每次变更时运行一组 Node 风格的小脚本——fs、stream、crypto、child_process、Express、Fastify、Hono 等。任何用例失败或跳过，CI 都会失败。通过这些用例是回归门禁，不代表可以无缝替换 Node。",

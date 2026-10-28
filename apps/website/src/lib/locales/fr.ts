@@ -91,7 +91,7 @@ export const fr: TranslationSchema = {
       source: "Depuis les sources",
     },
     stats: {
-      contracts: "contrats Stable (G1–G69)",
+      contracts: "contrats Stable (G1–G77)",
       conformance: "tests de conformité Node",
       binary: "binaire : run, test, serve, bundle, compile",
       version: "version actuelle",
@@ -146,7 +146,7 @@ export const fr: TranslationSchema = {
     compatNode: "Modules Node.js",
     compatWeb: "Plateforme web",
     compatRuntime: "Runtime et agents",
-    compatLink: "Parcourir les 69 contrats",
+    compatLink: "Parcourir les 77 contrats",
     conformanceTitle: "56 / 56 tests de conformité réussis",
     conformanceBody:
       "tests/conformance/ exécute de petits scripts façon Node (fs, streams, crypto, child_process, Express, Fastify, Hono…) à chaque changement. La CI échoue si un test échoue ou est ignoré. C’est un garde-fou contre les régressions, pas une promesse de compatibilité totale avec Node.",

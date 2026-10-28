@@ -56,7 +56,36 @@ oxc = { version = "0.147", default-features = false, features = [
 # and 49.0.2 (which also includes 0325, 0326, and 0327). RUSTSEC-2026-0352
 # through 0362 are fixed in 49.0.3 (also 48.0.6 and 36.0.18).
 # RUSTSEC-2026-0378 and 0379 are fixed in 49.0.4 (also 48.0.7).
-wasmtime = "49.0.4"
+# `cache` is the only feature that pulls zstd 0.13 / zstd-safe 7.2.4
+# (RUSTSEC-2026-0396 through 0406). No crates.io wasmtime through 50.0.0
+# has moved to zstd 0.14, and Amber does not use wasmtime's module cache.
+wasmtime = { version = "49.0.4", default-features = false, features = [
+    "anyhow",
+    "async",
+    "backtrace",
+    "gc",
+    "gc-copying",
+    "gc-drc",
+    "gc-null",
+    "wat",
+    "profiling",
+    "parallel-compilation",
+    "cranelift",
+    "pooling-allocator",
+    "demangle",
+    "addr2line",
+    "coredump",
+    "debug-builtins",
+    "runtime",
+    "component-model",
+    "component-model-async",
+    "threads",
+    "stack-switching",
+    "std",
+    "debug",
+    "compile-time-builtins",
+    "wit-parser",
+] }
 wasmtime-wasi = "49.0.4"
 
 # JavaScript to WebAssembly compiler (unused, disabled to eliminate swc serde constraint)
