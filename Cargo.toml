@@ -216,7 +216,7 @@ encoding_rs = "0.8"
 
 # DOMParser: HTML5 parse + CSS query (scraper/html5ever); XML via roxmltree
 scraper = "0.27"
-roxmltree = "0.20"
+roxmltree = "0.21"
 
 # Stage 54.2 & Task 1.1: Native Local AI Inference (Candle / GGUF / SafeTensors)
 # Keep candle-core, candle-nn, and candle-transformers on the same minor.
