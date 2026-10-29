@@ -86,7 +86,7 @@ wasmtime = { version = "49.0.4", default-features = false, features = [
     "compile-time-builtins",
     "wit-parser",
 ] }
-wasmtime-wasi = "49.0.4"
+wasmtime-wasi = "50.0.0"
 
 # JavaScript to WebAssembly compiler (unused, disabled to eliminate swc serde constraint)
 # javy-codegen = "1.0"
