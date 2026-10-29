@@ -30,6 +30,8 @@
   --fill: var(--ink);
   --fill-fg: var(--on-ink);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
   color-scheme: light;
 }
 
@@ -135,6 +137,15 @@
   grid-template-columns: 1fr 1fr;
 }
 
+.site-mast > *,
+.hero > *,
+.sheet > *,
+.play-split > *,
+.pair > *,
+.end > * {
+  min-width: 0;
+}
+
 .hero {
   grid-template-areas:
     "mastL mastR"
@@ -214,6 +225,23 @@
   height: 36px;
 }
 
+/* Locked brand colours. --ink flips in dark mode and must not drive the mark. */
+.amber-mark .field {
+  fill: #14120b;
+}
+
+.amber-mark .dot {
+  fill: #f0c000;
+}
+
+.dark .amber-mark .field {
+  fill: #f0c000;
+}
+
+.dark .amber-mark .dot {
+  fill: #14120b;
+}
+
 .mast-end {
   display: flex;
   align-items: center;
@@ -277,6 +305,12 @@ nav.desk a[aria-current="page"],
   color: var(--muted-ink);
 }
 
+.ver-inline {
+  display: none;
+  margin-left: auto;
+  color: var(--muted);
+}
+
 .lead {
   background: var(--paper);
   color: var(--on-paper);
@@ -306,10 +340,17 @@ nav.desk a[aria-current="page"],
   line-height: 1;
 }
 
+.sheet .lead,
+.play-split .lead {
+  container-type: inline-size;
+}
+
 .sheet h1,
 .play-split h1 {
-  font-size: 60px;
+  max-width: 100%;
+  font-size: clamp(30px, 10cqi, 60px);
   line-height: 1;
+  overflow-wrap: break-word;
 }
 
 .deck {
@@ -684,6 +725,12 @@ details.faq p {
   border-collapse: collapse;
 }
 
+.level-table th:first-child,
+.level-table td:first-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .level-table th,
 .level-table td {
   border: 1px solid var(--rule);
@@ -692,6 +739,7 @@ details.faq p {
   vertical-align: top;
   font-size: 16px;
   line-height: 24px;
+  overflow-wrap: break-word;
 }
 
 .level-table th {
@@ -708,6 +756,7 @@ details.faq p {
 }
 
 .page {
+  min-width: 0;
   padding: 48px 48px 80px;
   background: var(--paper);
 }
@@ -810,11 +859,13 @@ details.faq p {
   flex: 1;
   min-height: 0;
   align-items: stretch;
+  overflow: hidden;
 }
 
 .play-split .lead,
 .play-split .install {
   min-height: 0;
+  overflow: hidden;
   padding: 32px 48px;
 }
 
@@ -842,9 +893,10 @@ details.faq p {
 
 .play-editor {
   flex: 1;
-  min-height: 160px;
+  min-height: 0;
   margin-top: 24px;
   border: 1px solid var(--rule);
+  overflow: hidden;
 }
 
 .play-split pre {
@@ -906,9 +958,17 @@ details.faq p {
   --tw-prose-quotes: var(--text-secondary);
   --tw-prose-th-borders: var(--line);
   --tw-prose-td-borders: var(--line);
+  min-width: 0;
 }
 
-@media (min-width: 801px) {
+.prose-amber pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Side-by-side masts stay on one line from 1400px up. Narrower than that,
+   the install tabs and the nav wrap and stretch the row. */
+@media (min-width: 1400px) {
   .hero .mast {
     position: sticky;
     top: 0;
@@ -916,14 +976,30 @@ details.faq p {
   }
 }
 
+@media (max-width: 1399px) {
+  .site-mast {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    grid-template-areas:
+      "mastL mastL"
+      "mastR mastR"
+      "lead install"
+      "floor floor";
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .page aside,
+  .page .sticky {
+    top: 168px;
+  }
+}
+
 @media (max-width: 1100px) {
   .hero h1 {
     font-size: 72px;
-  }
-
-  .sheet h1,
-  .play-split h1 {
-    font-size: 48px;
   }
 
   .deck {
@@ -958,10 +1034,6 @@ details.faq p {
     grid-template-areas: "lead" "install";
   }
 
-  .play-split {
-    grid-template-rows: minmax(280px, 1fr) minmax(180px, 0.7fr);
-  }
-
   .floor,
   .steps {
     grid-template-columns: 1fr 1fr;
@@ -986,14 +1058,23 @@ details.faq p {
   }
 
   .lead,
-  .install {
+  .install,
+  .play-split .lead,
+  .play-split .install {
     padding-top: 32px;
     padding-bottom: 32px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   nav.desk,
-  .mast-tools {
+  .mast-tools,
+  .site-mast .mast.right {
     display: none;
+  }
+
+  .site-mast .ver-inline {
+    display: block;
   }
 
   .burger {
@@ -1001,14 +1082,17 @@ details.faq p {
     align-items: center;
   }
 
-  .hero h1,
-  .sheet h1,
-  .play-split h1 {
+  .hero h1 {
     font-size: 48px;
   }
 
   .deck,
   .tagline p {
+    font-size: 30px;
+    line-height: 36px;
+  }
+
+  .pair h2 {
     font-size: 30px;
     line-height: 36px;
   }
@@ -1028,6 +1112,96 @@ details.faq p {
   .copy-hero,
   .end .solid {
     width: 100%;
+  }
+
+  .play-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .play-shell main {
+    overflow: visible;
+  }
+
+  .play-split {
+    flex: none;
+    overflow: visible;
+    grid-template-rows: auto auto;
+  }
+
+  .play-split .lead,
+  .play-split .install {
+    overflow: visible;
+  }
+
+  .play-editor {
+    flex: none;
+    height: 280px;
+    min-height: 280px;
+  }
+
+  .play-split pre {
+    flex: none;
+    min-height: 140px;
+    max-height: 240px;
+  }
+}
+
+@media (max-width: 400px) {
+  .hero .mast.right {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .floor,
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .level-table th,
+  .level-table td {
+    padding: 12px;
+  }
+}
+
+/* Home settles in once: 6px and a 2px blur. Backwards fill so the
+   finished frame does not keep a transform on hover targets. */
+@keyframes hero-rise {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-fade {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-in,
+  .settle.in .rise {
+    animation:
+      hero-rise 0.8s var(--ease-out) backwards,
+      hero-fade 0.6s var(--ease-soft) backwards;
+    animation-delay: var(--d, 0ms), var(--d, 0ms);
+  }
+
+  .settle:not(.in) .rise {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
   }
 }
 

@@ -63,7 +63,7 @@ function RootLayoutInner() {
   return (
     <div
       className={`flex flex-col bg-[var(--paper)] text-[var(--on-paper)] ${
-        isPlay ? "h-dvh overflow-hidden" : "min-h-screen"
+        isPlay ? "play-shell h-dvh overflow-hidden" : "min-h-screen"
       }`}
     >
       <a className="skip" href="#main">
@@ -82,7 +82,7 @@ function RootLayoutInner() {
 
       {isPlay ? null : (
         <footer className="site-footer">
-          <div className="grid gap-10 text-base md:grid-cols-[1.4fr_repeat(3,1fr)]">
+          <div className="grid gap-10 text-base min-[801px]:grid-cols-2 min-[1100px]:grid-cols-[1.4fr_repeat(3,1fr)]">
             <div className="max-w-xs">
               <div className="flex items-center gap-2">
                 <AmberLogo className="h-6 w-6" />
@@ -124,7 +124,7 @@ function RootLayoutInner() {
           </div>
           <section
             aria-labelledby="footer-agents"
-            className="mt-10 grid gap-6 border-t border-[var(--on-paper)] pt-8 md:grid-cols-[1.4fr_3fr]"
+            className="mt-10 grid gap-6 border-t border-[var(--on-paper)] pt-8 min-[801px]:grid-cols-[minmax(0,1.4fr)_minmax(0,3fr)]"
           >
             <div className="max-w-xs">
               <h2 id="footer-agents" className="font-semibold">
