@@ -122,7 +122,7 @@ memmap2 = "0.9"
 tiny_http = "0.12"
 
 # Embedded SQLite for amber:db
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.41", features = ["bundled"] }
 
 # System calls for zero-copy network I/O
 libc = "0.2"
@@ -197,7 +197,7 @@ opentelemetry-prometheus = { version = "0.33", optional = true }
 opentelemetry-jaeger = { version = "0.22", optional = true }
 opentelemetry-http = { version = "0.10", optional = true }
 tracing-appender = "0.2"
-tracing-opentelemetry = { version = "0.22", optional = true }
+tracing-opentelemetry = { version = "0.34", optional = true }
 uuid = { version = "1.0", features = ["v4"] }
 reqwest = { version = "0.12", features = ["json", "blocking", "gzip", "brotli", "stream", "rustls-tls"], default-features = false }
 serde_yaml = "0.9"
@@ -215,8 +215,8 @@ if-addrs = "0.15"
 encoding_rs = "0.8"
 
 # DOMParser: HTML5 parse + CSS query (scraper/html5ever); XML via roxmltree
-scraper = "0.27"
-roxmltree = "0.20"
+scraper = "0.29"
+roxmltree = "0.21"
 
 # Stage 54.2 & Task 1.1: Native Local AI Inference (Candle / GGUF / SafeTensors)
 # Keep candle-core, candle-nn, and candle-transformers on the same minor.
@@ -243,7 +243,7 @@ pyo3-build-config = { version = "0.30", features = ["resolve-config"], optional 
 # Stage 91 Phase 4.2: Enhanced REPL dependencies
 rustyline = "14.0"  # Enhanced readline with tab completion and history
 syntect = "5.0"     # Syntax highlighting for code display
-colored = "2.0"     # Terminal colors and formatting
+colored = "3.1"     # Terminal colors and formatting
 
 # Stage 83: Enterprise Kubernetes & DevOps dependencies
 # kube 0.87's default rustls-tls feature pins rustls 0.21, which has no release
