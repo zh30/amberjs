@@ -9,13 +9,34 @@ import { landingCopy } from "../lib/landing-copy";
 
 const KEYS: readonly InstallKey[] = ["unix", "windows", "source"];
 
+function withBreaks(line: string) {
+  const parts = line.split(/(\/| \| )/);
+  return parts.map((part, index) => {
+    if (part === "/") {
+      return (
+        <span key={index}>
+          /<wbr />
+        </span>
+      );
+    }
+    if (part === " | ") {
+      return (
+        <span key={index}>
+          <wbr /> |{" "}
+        </span>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
 function Lines({ lines }: { lines: readonly string[] }) {
   return (
     <>
       {lines.map((line, index) => (
         <span key={line}>
           {index > 0 ? <br /> : null}
-          {line}
+          {withBreaks(line)}
         </span>
       ))}
     </>

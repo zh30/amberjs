@@ -216,7 +216,16 @@ function BlogPostView({ post }: { post: Post }) {
             </aside>
           )}
           <div className="prose prose-amber dark:prose-invert mt-8 max-w-none prose-a:underline [&_:not(pre)>code]:bg-[var(--mark)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none [&_pre]:border [&_pre]:border-[var(--line)] [&_pre]:bg-[var(--code-bg)] [&_pre]:p-5 [&_pre_code]:text-[var(--code-fg)]">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                table: ({ node: _node, ...props }) => (
+                  <div className="max-w-full overflow-x-auto">
+                    <table {...props} />
+                  </div>
+                ),
+              }}
+            >
               {withoutLeadingTitle(post.content)}
             </ReactMarkdown>
           </div>

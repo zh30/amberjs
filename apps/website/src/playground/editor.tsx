@@ -108,6 +108,7 @@ export function PlaygroundEditor() {
       language: "typescript",
       theme: resolvedTheme === "dark" ? "vs-dark" : "vs",
       automaticLayout: true,
+      wordWrap: "on",
       minimap: { enabled: false },
       fontSize: 14,
       fontFamily: '"Geist Mono", ui-monospace, monospace',

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Check, ChevronDown, Github } from "lucide-react";
 import { AmberLogo } from "./Logo";
@@ -92,7 +92,11 @@ function LanguageSelector() {
   );
 }
 
-export function Mast({ trailing }: { trailing?: ReactNode }) {
+function motionDelay(ms: number): CSSProperties {
+  return { ["--d"]: `${ms}ms` } as CSSProperties;
+}
+
+export function Mast({ trailing, appear = false }: { trailing?: ReactNode; appear?: boolean }) {
   const { copy, lang, setLang, languages } = useLang();
   const { theme, toggleNext } = useTheme();
   const location = useLocation();
@@ -127,11 +131,11 @@ export function Mast({ trailing }: { trailing?: ReactNode }) {
   return (
     <>
       <header className="mast left">
-        <Link to="/" className="brand">
+        <Link to="/" className={appear ? "brand hero-in" : "brand"} style={appear ? motionDelay(0) : undefined}>
           <AmberLogo className="h-9 w-9" />
           <span>Amber</span>
         </Link>
-        <nav className="desk" aria-label="Primary">
+        <nav className={appear ? "desk hero-in" : "desk"} style={appear ? motionDelay(0) : undefined} aria-label="Primary">
           {NAV.map((item) => (
             <Link
               key={item.to}
@@ -142,9 +146,11 @@ export function Mast({ trailing }: { trailing?: ReactNode }) {
             </Link>
           ))}
         </nav>
+        <p className="ver ver-inline">{AMBER_VERSION}</p>
         <button
           type="button"
-          className="burger"
+          className={appear ? "burger hero-in" : "burger"}
+          style={appear ? motionDelay(0) : undefined}
           aria-label={copy.nav.menu}
           aria-expanded={open}
           aria-controls="mobile-nav"
@@ -184,8 +190,14 @@ export function Mast({ trailing }: { trailing?: ReactNode }) {
         </div>
       </header>
       <header className="mast right">
-        {trailing}
-        <div className="mast-right-end">
+        {appear ? (
+          <div className="hero-in" style={motionDelay(0)}>
+            {trailing}
+          </div>
+        ) : (
+          trailing
+        )}
+        <div className={appear ? "mast-right-end hero-in" : "mast-right-end"} style={appear ? motionDelay(0) : undefined}>
           <div className="mast-tools">
             <button
               type="button"
