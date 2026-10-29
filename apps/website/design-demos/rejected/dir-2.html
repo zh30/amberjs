@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amber，一个二进制跑 JavaScript 和 TypeScript</title>
+<meta name="description" content="给评估运行时的工程师。安装 amber，并阅读每项稳定能力的契约。">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&family=Geist+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --honey: #F0C000;
+    --ink: #18181B;
+    --paper: #F5F5F4;
+    --muted: #3F3F46;
+    --line: #E4E4E7;
+    --code: #18181B;
+    --codefg: #FAFAF9;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Noto Sans SC", "PingFang SC", sans-serif;
+    font-size: 16px; line-height: 24px; text-wrap: pretty;
+  }
+  button, input, a { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .skip { position: absolute; left: 12px; top: 8px; background: white; padding: 8px 12px; transform: translateY(-48px); }
+  .skip:focus { transform: none; }
+  header {
+    height: 64px; display: flex; align-items: center; gap: 16px;
+    padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--paper);
+    position: sticky; top: 0; z-index: 5;
+  }
+  header img { width: 32px; height: 32px; }
+  header strong { font-size: 16px; font-weight: 700; }
+  header input {
+    margin-left: auto; width: min(280px, 40vw); min-height: 44px;
+    border: 1px solid var(--line); background: white; padding: 8px 12px; border-radius: 8px;
+  }
+  .burger { display: none; min-height: 44px; padding: 8px 12px; background: var(--ink); color: white; border: 0; font-weight: 600; cursor: pointer; }
+  .shell { display: grid; grid-template-columns: 240px minmax(0, 1fr) 200px; min-height: calc(100vh - 64px); }
+  aside, .toc { padding: 24px 16px 48px; }
+  aside { border-right: 1px solid var(--line); }
+  .toc { border-left: 1px solid var(--line); }
+  .toc a, aside button {
+    display: flex; align-items: center; min-height: 44px; width: 100%;
+    background: transparent; border: 0; text-align: left; padding: 8px 12px;
+    cursor: pointer; text-decoration: none; border-radius: 8px;
+    transition: background 300ms var(--ease);
+  }
+  aside button:hover, .toc a:hover { background: white; }
+  aside button[aria-current="page"] { background: var(--honey); font-weight: 700; }
+  aside h2 { font-size: 12px; line-height: 16px; font-weight: 600; margin: 24px 0 4px; color: var(--muted); }
+  main { padding: 48px 40px 96px; max-width: 760px; }
+  h1 { font-size: 36px; line-height: 40px; font-weight: 700; margin: 0; max-width: 680px; text-wrap: balance; }
+  h2 { font-size: 24px; line-height: 32px; font-weight: 700; margin: 48px 0 0; max-width: 680px; }
+  p { margin: 16px 0 0; max-width: 680px; }
+  .term {
+    margin-top: 32px; background: var(--code); color: var(--codefg);
+    border-radius: 8px; overflow: hidden;
+  }
+  .term .tabs { display: flex; border-bottom: 1px solid #313131; }
+  .term .tabs button {
+    background: transparent; color: #D4D4D8; border: 0; min-height: 44px; padding: 12px 16px;
+    font-family: "Geist Mono", ui-monospace, monospace; font-size: 14px; cursor: pointer;
+  }
+  .term .tabs button[aria-selected="true"] { color: var(--honey); }
+  .cmdrow { display: flex; gap: 12px; padding: 16px; align-items: flex-start; }
+  pre { margin: 0; flex: 1; white-space: pre-wrap; overflow-wrap: break-word; font-family: "Geist Mono", ui-monospace, monospace; font-size: 14px; line-height: 20px; }
+  .copy, .solid {
+    background: var(--honey); color: #14120B; border: 0; font-weight: 600; cursor: pointer;
+    min-height: 44px; padding: 8px 12px; border-radius: 8px;
+    transition: transform 500ms var(--ease);
+  }
+  .copy:active, .solid:active { transform: scale(0.98); }
+  .copy.bad { background: #FCA5A5; }
+  dl { margin: 24px 0 0; max-width: 680px; }
+  dt { font-weight: 700; margin-top: 24px; }
+  dd { margin: 8px 0 0; }
+  .tagline p { font-size: 36px; line-height: 40px; font-weight: 700; max-width: 680px; }
+  .w { color: rgba(24, 24, 27, 0.32); transition: color 500ms var(--ease); }
+  .w.on { color: var(--ink); }
+  details { border-top: 1px solid var(--line); padding: 12px 0; max-width: 680px; }
+  summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+  th, td { border: 1px solid var(--line); padding: 12px; text-align: left; vertical-align: top; background: white; }
+  .posts { list-style: none; padding: 0; margin: 24px 0 0; }
+  .posts li { padding: 16px 0; border-top: 1px solid var(--line); }
+  textarea {
+    width: 100%; min-height: 220px; margin-top: 24px; padding: 16px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--code); color: var(--codefg);
+    font-family: "Geist Mono", ui-monospace, monospace; font-size: 14px; line-height: 20px;
+  }
+  .page { display: none; }
+  .page.on { display: block; }
+  .mask {
+    display: none; position: fixed; inset: 0; background: rgba(245,245,244,0.96); z-index: 20;
+    padding: 24px; overflow: auto;
+  }
+  .mask.open { display: block; }
+  footer { padding: 32px 16px 48px; border-top: 1px solid var(--line); font-size: 14px; line-height: 20px; }
+  footer a { font-weight: 600; margin-right: 16px; }
+  @media (max-width: 960px) {
+    .shell { grid-template-columns: 1fr; }
+    aside, .toc { display: none; }
+    .burger { display: inline-flex; }
+    main { padding: 32px 16px 80px; }
+    header input { display: none; }
+    h1, .tagline p { font-size: 30px; line-height: 36px; }
+    .cmdrow { flex-direction: column; }
+    .copy { align-self: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .w { color: var(--ink); transition: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳到内容</a>
+<header>
+  <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjUwJSIgY3k9IjUwJSIgcj0iNTAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZERTA0NyIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRjU5RTBCIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZhY2V0LW1haW4iIHgxPSI2NCIgeTE9IjY0IiB4Mj0iNDQ4IiB5Mj0iNDQ4IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGRUYwOEEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIzNSUiIHN0b3AtY29sb3I9IiNGNTlFMEIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI3MCUiIHN0b3AtY29sb3I9IiNEOTc3MDYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjQjQ1MzA5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJpbm5lci1nZW0iIHgxPSIxNjAiIHkxPSIxMjAiIHgyPSIzNTIiIHkyPSIzOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZGRkJFQiIgc3RvcC1vcGFjaXR5PSIwLjkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNGRUYzQzciIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzc4MzUwRiIgc3RvcC1vcGFjaXR5PSIwLjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNwYXJrbGUiIHgxPSIxMjAiIHkxPSI4MCIgeDI9IjI1NiIgeTI9IjI1NiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRkZGRkZGIiBzdG9wLW9wYWNpdHk9IjAuOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRkVGM0M3IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gQmFja2dyb3VuZCBzdWJ0bGUgd2FybSBnbG93IC0tPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMjMwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPCEtLSBPdXRlciBPY3RhZ29uIC0gQW1iZXIgQ3J5c3RhbCBTaWxob3VldHRlIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTYwLDMyIDM1MiwzMiA0ODAsMTYwIDQ4MCwzNTIgMzUyLDQ4MCAxNjAsNDgwIDMyLDM1MiAzMiwxNjAiIGZpbGw9InVybCgjZmFjZXQtbWFpbikiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDwhLS0gTWVkaXVtIEZhY2V0IExheWVyIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTkyLDk2IDMyMCw5NiA0MTYsMTkyIDQxNiwzMjAgMzIwLDQxNiAxOTIsNDE2IDk2LDMyMCA5NiwxOTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNpbm5lci1nZW0pIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBUYWJsZSAoQ2VudGVyIEZsYXQgRmFjZSkgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyMTYsMTUyIDI5NiwxNTIgMzYwLDIxNiAzNjAsMjk2IDI5NiwzNjAgMjE2LDM2MCAxNTIsMjk2IDE1MiwyMTYiIGZpbGw9IiNGRUYzQzciIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8IS0tIERpYW1vbmQgQ29ybmVyIExpbmVzIC0tPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIzMiIgeDI9IjIxNiIgeTI9IjE1MiIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzUyIiB5MT0iMzIiIHgyPSIyOTYiIHkyPSIxNTIiIHN0cm9rZT0iI0ZERTA0NyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQ4MCIgeTE9IjE2MCIgeDI9IjM2MCIgeTI9IjIxNiIgc3Ryb2tlPSIjOTI0MDBFIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDgwIiB5MT0iMzUyIiB4Mj0iMzYwIiB5Mj0iMjk2IiBzdHJva2U9IiM3ODM1MEYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSIzNTIiIHkxPSI0ODAiIHgyPSIyOTYiIHkyPSIzNjAiIHN0cm9rZT0iIzc4MzUwRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC43Ii8+CiAgPGxpbmUgeDE9IjE2MCIgeTE9IjQ4MCIgeDI9IjIxNiIgeTI9IjM2MCIgc3Ryb2tlPSIjNzgzNTBGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzIiIHkxPSIzNTIiIHgyPSIxNTIiIHkyPSIyOTYiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjMyIiB5MT0iMTYwIiB4Mj0iMTUyIiB5Mj0iMjE2IiBzdHJva2U9IiNGRkZCRUIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNyIvPgogIDwhLS0gVXBwZXIgTGVmdCBMaWdodCBSZWZsZWN0aW9uIC8gRmFjZXQgU2hpbmUgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIxNjAsMzIgMjU2LDMyIDIxNiwxNTIgMTUyLDIxNiA5NiwxOTIgMzIsMTYwIDk2LDk2IiBmaWxsPSJ1cmwoI3NwYXJrbGUpIiBvcGFjaXR5PSIwLjYiLz4KPC9zdmc+" alt="Amber 标志">
+  <strong>Amber</strong>
+  <button type="button" class="burger" id="burger">菜单</button>
+  <input id="q" type="search" placeholder="筛选页面" aria-label="筛选页面">
+</header>
+<div class="mask" id="mask"></div>
+<div class="shell">
+  <aside id="side"></aside>
+  <main id="main">
+    <div class="page on" id="page-home">
+      <h1>一个二进制，<br>跑 JavaScript 和 TypeScript。</h1>
+      <p>给正在评估运行时的工程师。脚本、测试、本地服务和 Agent 工具，从下面这条安装命令开始。每一项稳定能力都有书面契约，契约同时写明缺什么。</p>
+      <div class="term" id="install-home"></div>
+      <p>v1.17.0。MIT 许可。记分卡是回归门禁，不是 Node 替代证明。</p>
+      <h2 id="benefits">它替你做完的事</h2>
+      <dl>
+        <dt>直接跑 TypeScript</dt>
+        <dd>类型被擦掉，堆栈指回你的 .ts 行号。不做类型检查。</dd>
+        <dt>测试不用另配框架</dt>
+        <dd>写成 describe、test、expect，amber test 会发现它们。watch 是整进程重跑，不是热替换。</dd>
+        <dt>一个文件就能对外提供 HTTP</dt>
+        <dd>amber serve 用 HTTP/1.1 跑一个 fetch 处理函数。加上 https 参数就用 rustls。它不是通用 Web 服务器。</dd>
+        <dt>默认什么都不许碰</dt>
+        <dd>沙箱拒绝文件、网络、环境变量和子进程。放行要写到具体路径或主机，并留下 JSONL 审计。</dd>
+        <dt>工具清单是一份 JSON</dt>
+        <dd>export-tools 打印 schema 后退出。它不执行工具文件，也不调用模型。</dd>
+      </dl>
+      <h2 id="tag">先记住这一句</h2>
+      <div class="tagline" id="tagline">
+        <p><span class="w">跑这个文件。</span></p>
+        <p><span class="w">先读契约，</span> <span class="w">再依赖它。</span></p>
+      </div>
+      <h2 id="steps">三步用起来</h2>
+      <dl>
+        <dt>装上这个二进制</dt><dd>macOS、Linux 或 Windows。也可以从源码构建。</dd>
+        <dt>跑一个文件</dt><dd>amber run，或进入 repl。</dd>
+        <dt>再读契约</dt><dd>依赖某个模块之前，打开它写明的边界。</dd>
+      </dl>
+      <h2 id="no">先把做不到的说完</h2>
+      <dl>
+        <dt>不是 Node 的替代品</dt><dd>每个模块只承诺契约里的子集。</dd>
+        <dt>不做类型检查</dt><dd>TypeScript 只擦除类型。</dd>
+        <dt>不是 npm</dt><dd>amber install 安装 package.json 里的依赖。它不是 npm、yarn 或 pnpm。</dd>
+        <dt>不发性能结论</dt><dd>没有提交、命令、硬件和正确性校验的数字，不发布。</dd>
+        <dt>parallel 会拒绝</dt><dd>amber test 的 parallel 参数以退出码 2 结束。</dd>
+      </dl>
+      <h2 id="faq">常见问题</h2>
+      <div id="faq"></div>
+      <h2 id="again">装上 amber，跑一个文件。</h2>
+      <p>不要账号。MIT 许可。卸掉就是删掉这个二进制。</p>
+      <div class="term" id="install-end"></div>
+    </div>
+    <div class="page" id="page-docs"></div>
+    <div class="page" id="page-compat"></div>
+    <div class="page" id="page-blog"></div>
+    <div class="page" id="page-play"></div>
+    <div class="page" id="page-missing"></div>
+  </main>
+  <nav class="toc" aria-label="本页" id="toc"></nav>
+</div>
+<footer>
+  <a href="https://github.com/zh30/amberjs">GitHub</a>
+  <a href="https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md">能力边界</a>
+  <a href="https://github.com/zh30/amberjs/blob/main/tests/conformance/scorecard.md">记分卡</a>
+  <button type="button" class="copy" id="to-missing" style="background:transparent;border:1px solid #18181B">找不到的页面</button>
+</footer>
+<script>
+const PAGES = [
+  ["home", "首页", "开始"],
+  ["docs", "文档", "开始"],
+  ["compat", "兼容性", "边界"],
+  ["blog", "博客", "记录"],
+  ["play", "游乐场", "开始"]
+];
+const TOC = {
+  home: [["benefits", "好处"], ["tag", "一句"], ["steps", "三步"], ["no", "不做"], ["faq", "问题"], ["again", "再安装"]],
+  docs: [],
+  compat: [],
+  blog: [],
+  play: [],
+  missing: []
+};
+const CMDS = {
+  unix: "curl -fsSL https://get.amberjs.com/install.sh | sh",
+  win: "irm https://get.amberjs.com/install.ps1 | iex",
+  src: "git clone https://github.com/zh30/amberjs && cd amberjs && cargo build --release"
+};
+const FAQ = [
+  ["Amber 能换掉 Node 吗？", "不能。每个模块只承诺契约里写明的子集。"],
+  ["稳定是什么意思？", "有书面契约，并且有测试钉住。事实来源是 docs/CURRENT_SCOPE.md。"],
+  ["会做类型检查吗？", "不会。只擦除类型。"],
+  ["有性能数字吗？", "目前不发布。仓库里旧文章的性能标题不是当前承诺。"],
+  ["Windows 能装吗？", "能。用 install.ps1，发布页也有 zip。"],
+  ["amber install 是 npm 吗？", "不是。它安装 package.json 里的依赖。add、remove、prune、upgrade、init、x 仍是实验。"],
+  ["要注册吗？", "不要。MIT 许可。卸掉就是删掉二进制。"],
+  ["不安装能试吗？", "站点有游乐场。这个原型不执行代码。安装仍是主路径。"]
+];
+function wireInstall(id) {
+  const root = document.getElementById(id);
+  if (!root || root.dataset.ready) return;
+  root.dataset.ready = "1";
+  root.innerHTML = `<div class="tabs" role="tablist">
+      <button type="button" role="tab" data-k="unix" aria-selected="true">macOS / Linux</button>
+      <button type="button" role="tab" data-k="win">Windows</button>
+      <button type="button" role="tab" data-k="src">源码</button>
+    </div><div class="cmdrow"><pre><code></code></pre><button type="button" class="copy">复制</button></div>`;
+  const code = root.querySelector("code");
+  const copy = root.querySelector(".copy");
+  let key = "unix";
+  const show = () => { code.textContent = CMDS[key]; };
+  show();
+  root.querySelectorAll("[role=tab]").forEach((b) => b.addEventListener("click", () => {
+    key = b.dataset.k;
+    root.querySelectorAll("[role=tab]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    show();
+    copy.textContent = "复制";
+  }));
+  copy.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(CMDS[key]); copy.textContent = "已复制"; copy.classList.remove("bad"); }
+    catch (e) { copy.textContent = "请选中命令"; copy.classList.add("bad"); }
+  });
+}
+let current = "home";
+function renderSide() {
+  const q = (document.getElementById("q").value || "").trim();
+  const side = document.getElementById("side");
+  side.innerHTML = "";
+  const groups = ["开始", "边界", "记录"];
+  groups.forEach((g) => {
+    const items = PAGES.filter(([id, label, group]) => group === g && (!q || label.includes(q) || id.includes(q)));
+    if (!items.length) return;
+    const h = document.createElement("h2");
+    h.textContent = g;
+    side.appendChild(h);
+    items.forEach(([id, label]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      if (id === current) b.setAttribute("aria-current", "page");
+      b.addEventListener("click", () => go(id));
+      side.appendChild(b);
+    });
+  });
+  const mask = document.getElementById("mask");
+  mask.innerHTML = "";
+  const close = document.createElement("button");
+  close.className = "solid";
+  close.type = "button";
+  close.textContent = "关闭";
+  close.addEventListener("click", () => mask.classList.remove("open"));
+  mask.appendChild(close);
+  side.querySelectorAll("button").forEach((b, i) => {
+    const c = b.cloneNode(true);
+    c.addEventListener("click", () => go(PAGES.find((p) => p[1] === b.textContent)[0]));
+    c.style.marginTop = "8px";
+    mask.appendChild(c);
+  });
+}
+function renderToc() {
+  const toc = document.getElementById("toc");
+  toc.innerHTML = "";
+  (TOC[current] || []).forEach(([id, label]) => {
+    const a = document.createElement("a");
+    a.href = "#" + id;
+    a.textContent = label;
+    toc.appendChild(a);
+  });
+}
+function go(id) {
+  current = id;
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("on", p.id === "page-" + id));
+  renderSide();
+  renderToc();
+  document.getElementById("mask").classList.remove("open");
+  window.scrollTo(0, 0);
+}
+document.getElementById("faq").innerHTML = FAQ.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("");
+document.getElementById("page-docs").innerHTML = `
+  <h1>文档</h1>
+  <p>手册按使用顺序排。这里只列已经有契约的入口。</p>
+  <h2>开始</h2><p>介绍、安装、快速开始。</p>
+  <h2>指南</h2><p>命令行、TypeScript、测试、服务、安装依赖、打包与编译、调试。</p>
+  <h2>兼容与 Agent</h2><p>稳定级别、Node 模块子集、Web 平台子集、沙箱与 MCP、实验。</p>
+  <h2>安装</h2>
+  <div class="term" id="install-docs"></div>`;
+document.getElementById("page-compat").innerHTML = `
+  <h1>兼容性</h1>
+  <p>以 docs/CURRENT_SCOPE.md 为准。站点旧清单如果和它不一致，以该文件为准。</p>
+  <table><thead><tr><th>标签</th><th>含义</th></tr></thead><tbody>
+    <tr><td>稳定</td><td>有书面契约，并且有测试钉住。</td></tr>
+    <tr><td>预览</td><td>已在默认构建中。可以试，但还不是兼容承诺。</td></tr>
+    <tr><td>实验</td><td>代码或命令存在。未自行验证不要依赖。</td></tr>
+    <tr><td>不支持</td><td>现在明确不做。Amber 会失败，而不是给一个桩。</td></tr>
+  </tbody></table>
+  <p>记分卡 tests/conformance/scorecard.md 生成于 2026 年 9 月 24 日，56 项都是通过。这是回归门禁，不是换掉 Node 的证明。</p>`;
+document.getElementById("page-blog").innerHTML = `
+  <h1>博客</h1>
+  <p>这些是仓库里已有的中文标题。其中关于性能和「新纪元」的句子，不是当前产品承诺。</p>
+  <ul class="posts">
+    <li>Amber v0.1 公开发布范围说明</li>
+    <li>Amber v0.1.2 Agent 工具沙箱</li>
+    <li>Amber v0.4.3 发布：底层架构全面突破，登顶 Node 与 Bun 关键性能王座</li>
+    <li>Amber v1.0.0 正式发布：首个生产级版本，开启 AI-Native 边缘运行时新纪元</li>
+    <li>全站多语言上线与未来 3 年技术拓扑路线图发布</li>
+    <li>发布前的运行时代码梳理与重构</li>
+    <li>Amber v1.16.0：Wasm 2.0、打包，以及 Web 热路径</li>
+  </ul>`;
+document.getElementById("page-play").innerHTML = `
+  <h1>游乐场</h1>
+  <p>现有站点用编辑器跑示例。这个方向稿不执行代码。</p>
+  <textarea readonly aria-label="示例代码">const greet = (name) => \`hello from \${name}\`\nconsole.log(greet("Amber"))</textarea>
+  <p><button type="button" class="solid" disabled>原型不执行代码</button></p>`;
+document.getElementById("page-missing").innerHTML = `
+  <h1>没有这一页。</h1>
+  <p>地址不存在。</p>
+  <p><button type="button" class="solid" id="back">回到首页</button></p>`;
+wireInstall("install-home");
+wireInstall("install-end");
+wireInstall("install-docs");
+document.getElementById("q").addEventListener("input", renderSide);
+document.getElementById("burger").addEventListener("click", () => document.getElementById("mask").classList.add("open"));
+document.getElementById("to-missing").addEventListener("click", () => go("missing"));
+document.getElementById("back").addEventListener("click", () => go("home"));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (!reduce) {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.querySelectorAll(".w").forEach((w, i) => setTimeout(() => w.classList.add("on"), i * 80));
+      io.unobserve(entry.target);
+    });
+  }, { threshold: 0.6 });
+  io.observe(document.getElementById("tagline"));
+}
+go("home");
+</script>
+</body>
+</html>

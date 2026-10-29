@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amber，一个二进制跑 JavaScript 和 TypeScript</title>
+<meta name="description" content="给评估运行时的工程师。安装 amber，并阅读每项稳定能力的契约。">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;600;700&display=swap">
+<style>
+  :root {
+    --honey: #F0C000;
+    --ink: #14120B;
+    --paper: #F5F5F4;
+    --muted: #3F3F46;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: var(--ink); background: var(--paper);
+    font-family: Geist, "Noto Sans SC", sans-serif;
+    font-size: 16px; line-height: 24px; text-wrap: pretty;
+  }
+  button, a { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .skip { position: absolute; left: 16px; top: 8px; background: var(--honey); padding: 8px 12px; transform: translateY(-64px); z-index: 5; }
+  .skip:focus { transform: none; }
+  .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+  .left, .right { display: flex; flex-direction: column; min-height: 100vh; }
+  .right { background: var(--ink); color: var(--paper); }
+  .pad { padding: 32px 48px 24px; }
+  .right .pad { flex: 1; display: flex; flex-direction: column; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; font-size: 18px; line-height: 28px; font-weight: 600; }
+  .brand img { width: 36px; height: 36px; }
+  nav { display: flex; flex-wrap: wrap; gap: 4px; }
+  nav button, .textbtn {
+    background: transparent; border: 0; min-height: 44px; padding: 12px;
+    font-weight: 600; font-size: 14px; line-height: 20px; cursor: pointer;
+  }
+  nav button[aria-current="page"] { background: var(--honey); color: var(--ink); }
+  .burger { display: none; }
+  h1 { margin: 64px 0 0; font-size: 96px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; text-wrap: balance; }
+  .deck { margin: 16px 0 0; max-width: 520px; font-size: 36px; line-height: 40px; font-weight: 700; text-wrap: balance; }
+  .sub { margin: 24px 0 0; max-width: 480px; font-size: 16px; line-height: 24px; }
+  .levels { list-style: none; margin: auto 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--ink); border-top: 1px solid var(--ink); }
+  .levels li { background: var(--paper); padding: 24px; min-height: 128px; }
+  .levels strong { display: block; font-size: 20px; line-height: 28px; }
+  .levels span { display: block; margin-top: 8px; font-size: 14px; line-height: 20px; color: var(--muted); }
+  .tabs { display: flex; gap: 0; }
+  .tabs button {
+    background: transparent; color: #D4D4D8; border: 0; min-height: 44px; padding: 12px 16px 12px 0;
+    font-family: "Geist Mono", ui-monospace, monospace; font-size: 14px; line-height: 20px; cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] { color: var(--honey); box-shadow: inset 0 -2px 0 var(--honey); }
+  .cmdline {
+    margin: 24px 0 0; font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 24px; line-height: 32px; font-weight: 600; color: var(--paper);
+  }
+  .cmdline .narrow { display: none; }
+  .cmdline, .cmdline .wide, .cmdline .narrow { color: var(--paper); }
+  .session {
+    margin: 24px 0 0; font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 16px; line-height: 24px; color: #D4D4D8; white-space: pre-wrap;
+  }
+  .fills { list-style: none; margin: 24px 0 0; padding: 0; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .fills li { border-top: 1px solid #313131; padding-top: 8px; }
+  .fills strong { display: block; color: var(--paper); font-size: 16px; line-height: 24px; }
+  .fills span { display: block; color: #D4D4D8; font-size: 14px; line-height: 20px; }
+  .session b { color: var(--paper); font-weight: 600; }
+  .seal {
+    background: var(--honey); color: var(--ink); padding: 24px 48px;
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 24px;
+  }
+  .seal p { margin: 0; max-width: 420px; font-size: 14px; line-height: 20px; }
+  .solid, .copy {
+    background: var(--ink); color: var(--honey); border: 0; cursor: pointer;
+    font-weight: 600; font-size: 16px; line-height: 24px; padding: 12px 16px; min-height: 44px;
+    transition: transform 500ms var(--ease);
+  }
+  .seal .solid { background: var(--ink); color: var(--honey); flex: 0 0 auto; }
+  .solid:active, nav button:active { transform: scale(0.98); }
+  .solid.bad { color: #FCA5A5; }
+  .page { display: none; }
+  .page.on { display: block; }
+  .band { padding: 96px 48px; }
+  .band.ink { background: var(--ink); color: var(--paper); }
+  .tagline p { margin: 0; max-width: 880px; font-size: 60px; line-height: 1; font-weight: 700; text-wrap: balance; }
+  .tagline p + p { margin-top: 12px; }
+  .w { color: rgba(245, 245, 244, 0.32); transition: color 500ms var(--ease); }
+  .w.on { color: var(--paper); }
+  .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--ink); border-top: 1px solid var(--ink); }
+  .steps li { list-style: none; background: var(--paper); padding: 48px; min-height: 240px; }
+  .steps strong { display: block; font-size: 36px; line-height: 40px; }
+  .steps span { display: block; margin-top: 16px; max-width: 320px; }
+  .no { list-style: none; margin: 32px 0 0; padding: 0; max-width: 880px; }
+  .no li { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 24px 0; border-top: 1px solid var(--ink); }
+  details { border-top: 1px solid var(--ink); padding: 16px 0; max-width: 880px; }
+  summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+  details p { margin: 8px 0 0; }
+  .end {
+    display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center;
+    background: var(--ink); color: var(--paper); padding: 48px;
+  }
+  .end p { margin: 0; font-family: "Geist Mono", ui-monospace, monospace; font-size: 20px; line-height: 28px; font-weight: 600; }
+  .end .solid { background: var(--honey); color: var(--ink); }
+  .sheet { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+  .sheet .right { padding: 32px 48px 80px; }
+  .sheet h1 { font-size: 72px; }
+  .index { list-style: none; padding: 0; margin: 48px 0 0; }
+  .index li { padding: 20px 0; border-top: 1px solid #313131; }
+  .index strong { display: block; color: var(--paper); font-size: 20px; line-height: 28px; }
+  .index span { display: block; margin-top: 4px; color: #D4D4D8; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #313131; padding: 16px; text-align: left; vertical-align: top; }
+  textarea {
+    width: 100%; min-height: 280px; margin-top: 32px; padding: 16px;
+    background: transparent; color: var(--paper); border: 1px solid #313131;
+    font-family: "Geist Mono", ui-monospace, monospace; font-size: 14px; line-height: 20px;
+  }
+  .posts { list-style: none; padding: 0; margin: 32px 0 0; }
+  .posts li { padding: 16px 0; border-top: 1px solid #313131; }
+  footer { padding: 32px 48px 64px; display: flex; flex-wrap: wrap; gap: 16px 24px; border-top: 1px solid var(--ink); }
+  footer a, footer button { font-weight: 600; background: none; border: 0; cursor: pointer; padding: 0; min-height: 44px; }
+  .panel { display: none; position: fixed; inset: 0; background: var(--paper); z-index: 20; padding: 24px; flex-direction: column; }
+  .panel.open { display: flex; }
+  .panel button { text-align: left; }
+  @media (max-width: 800px) {
+    .hero, .sheet, .steps, .end, .no li { grid-template-columns: 1fr; }
+    .left, .right, .sheet .right { min-height: 0; }
+    .pad, .seal, .band, .end, footer { padding-left: 16px; padding-right: 16px; }
+    nav.desk { display: none; }
+    .burger { display: inline-flex; }
+    h1 { font-size: 48px; margin-top: 32px; }
+    .deck, .tagline p, .steps strong { font-size: 30px; line-height: 36px; }
+    .cmdline { font-size: 20px; line-height: 28px; }
+    .cmdline .wide { display: none; }
+    .cmdline .narrow { display: block; }
+    .seal { flex-direction: column; align-items: flex-start; }
+    .levels { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .w { color: var(--paper); transition: none; }
+    .solid, nav button { transition: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳到内容</a>
+<div class="panel" id="panel"></div>
+
+<div class="page on" id="page-home">
+  <div class="hero">
+    <div class="left">
+      <div class="pad">
+        <div class="top">
+          <div class="brand"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjUwJSIgY3k9IjUwJSIgcj0iNTAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZERTA0NyIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRjU5RTBCIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZhY2V0LW1haW4iIHgxPSI2NCIgeTE9IjY0IiB4Mj0iNDQ4IiB5Mj0iNDQ4IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGRUYwOEEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIzNSUiIHN0b3AtY29sb3I9IiNGNTlFMEIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI3MCUiIHN0b3AtY29sb3I9IiNEOTc3MDYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjQjQ1MzA5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJpbm5lci1nZW0iIHgxPSIxNjAiIHkxPSIxMjAiIHgyPSIzNTIiIHkyPSIzOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZGRkJFQiIgc3RvcC1vcGFjaXR5PSIwLjkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNGRUYzQzciIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzc4MzUwRiIgc3RvcC1vcGFjaXR5PSIwLjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNwYXJrbGUiIHgxPSIxMjAiIHkxPSI4MCIgeDI9IjI1NiIgeTI9IjI1NiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRkZGRkZGIiBzdG9wLW9wYWNpdHk9IjAuOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRkVGM0M3IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gQmFja2dyb3VuZCBzdWJ0bGUgd2FybSBnbG93IC0tPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMjMwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPCEtLSBPdXRlciBPY3RhZ29uIC0gQW1iZXIgQ3J5c3RhbCBTaWxob3VldHRlIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTYwLDMyIDM1MiwzMiA0ODAsMTYwIDQ4MCwzNTIgMzUyLDQ4MCAxNjAsNDgwIDMyLDM1MiAzMiwxNjAiIGZpbGw9InVybCgjZmFjZXQtbWFpbikiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDwhLS0gTWVkaXVtIEZhY2V0IExheWVyIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTkyLDk2IDMyMCw5NiA0MTYsMTkyIDQxNiwzMjAgMzIwLDQxNiAxOTIsNDE2IDk2LDMyMCA5NiwxOTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNpbm5lci1nZW0pIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBUYWJsZSAoQ2VudGVyIEZsYXQgRmFjZSkgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyMTYsMTUyIDI5NiwxNTIgMzYwLDIxNiAzNjAsMjk2IDI5NiwzNjAgMjE2LDM2MCAxNTIsMjk2IDE1MiwyMTYiIGZpbGw9IiNGRUYzQzciIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8IS0tIERpYW1vbmQgQ29ybmVyIExpbmVzIC0tPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIzMiIgeDI9IjIxNiIgeTI9IjE1MiIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzUyIiB5MT0iMzIiIHgyPSIyOTYiIHkyPSIxNTIiIHN0cm9rZT0iI0ZERTA0NyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQ4MCIgeTE9IjE2MCIgeDI9IjM2MCIgeTI9IjIxNiIgc3Ryb2tlPSIjOTI0MDBFIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDgwIiB5MT0iMzUyIiB4Mj0iMzYwIiB5Mj0iMjk2IiBzdHJva2U9IiM3ODM1MEYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSIzNTIiIHkxPSI0ODAiIHgyPSIyOTYiIHkyPSIzNjAiIHN0cm9rZT0iIzc4MzUwRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC43Ii8+CiAgPGxpbmUgeDE9IjE2MCIgeTE9IjQ4MCIgeDI9IjIxNiIgeTI9IjM2MCIgc3Ryb2tlPSIjNzgzNTBGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzIiIHkxPSIzNTIiIHgyPSIxNTIiIHkyPSIyOTYiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjMyIiB5MT0iMTYwIiB4Mj0iMTUyIiB5Mj0iMjE2IiBzdHJva2U9IiNGRkZCRUIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNyIvPgogIDwhLS0gVXBwZXIgTGVmdCBMaWdodCBSZWZsZWN0aW9uIC8gRmFjZXQgU2hpbmUgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIxNjAsMzIgMjU2LDMyIDIxNiwxNTIgMTUyLDIxNiA5NiwxOTIgMzIsMTYwIDk2LDk2IiBmaWxsPSJ1cmwoI3NwYXJrbGUpIiBvcGFjaXR5PSIwLjYiLz4KPC9zdmc+" alt="Amber 标志"><span>Amber</span></div>
+          <button type="button" class="burger textbtn" id="open">菜单</button>
+          <nav class="desk" aria-label="页面" id="nav-home"></nav>
+        </div>
+        <main id="main">
+          <h1>一个二进制</h1>
+          <p class="deck">跑 JavaScript 和 TypeScript。</p>
+          <p class="sub">给正在评估运行时的工程师。脚本、测试、本地服务和 Agent 工具从这条命令开始。每一项稳定能力都有书面契约，契约同时写明缺什么。</p>
+        </main>
+      </div>
+      <ul class="levels">
+        <li><strong>稳定</strong><span>有书面契约，测试钉在 CI 里，限制写在旁边。</span></li>
+        <li><strong>预览</strong><span>已在默认构建里。可以试，还不是兼容承诺。</span></li>
+        <li><strong>实验</strong><span>代码在。毕业之前，不是产品承诺。</span></li>
+        <li><strong>不支持</strong><span>明确不做。直接失败，不做桩。</span></li>
+      </ul>
+    </div>
+    <div class="right">
+      <div class="pad">
+        <div class="tabs" role="tablist" aria-label="安装方式">
+          <button type="button" role="tab" data-k="unix" aria-selected="true">macOS / Linux</button>
+          <button type="button" role="tab" data-k="win" aria-selected="false">Windows</button>
+          <button type="button" role="tab" data-k="src" aria-selected="false">源码</button>
+        </div>
+        <p class="cmdline" id="cmd"></p>
+        <p class="session">$ amber --version
+<b>v1.17.0</b>
+
+$ amber eval "1 + 1"
+<b>2</b></p>
+        <ul class="fills">
+          <li><strong>直接跑 TypeScript</strong><span>类型被擦掉，堆栈指回 .ts 行号。不做类型检查。</span></li>
+          <li><strong>测试不用另配框架</strong><span>amber test 发现 describe、test、expect。watch 是整进程重跑。</span></li>
+          <li><strong>一个文件对外提供 HTTP</strong><span>amber serve 跑一个 fetch 处理函数。https 参数用 rustls。</span></li>
+          <li><strong>默认什么都不许碰</strong><span>沙箱拒绝文件、网络、环境变量和子进程，放行要写明。</span></li>
+          <li><strong>工具清单是一份 JSON</strong><span>export-tools 打印 schema 后退出。不执行工具，也不调用模型。</span></li>
+        </ul>
+      </div>
+      <div class="seal">
+        <p>v1.17.0，MIT 许可。记分卡生成于 2026-09-24，56 项全部通过。它是回归门禁，不是 Node 替代证明。</p>
+        <button type="button" class="solid" id="copy-hero">复制安装命令</button>
+      </div>
+    </div>
+  </div>
+  <section class="band ink tagline" id="tagline">
+    <p><span class="w">跑这个文件。</span></p>
+    <p><span class="w">先读契约，</span> <span class="w">再依赖它。</span></p>
+  </section>
+  <ul class="steps">
+    <li><strong>装上</strong><span>macOS、Linux、Windows，或从源码构建。卸掉就是删掉这个二进制。</span></li>
+    <li><strong>跑起来</strong><span>amber run，或进入 repl。测试写成 describe、test、expect。</span></li>
+    <li><strong>读契约</strong><span>依赖某个模块之前，打开它写明的边界。</span></li>
+  </ul>
+  <section class="band">
+    <h2 style="margin:0;font-size:36px;line-height:40px">不做</h2>
+    <ul class="no">
+      <li><strong>不是 Node</strong><span>每个模块只承诺契约里的子集。</span></li>
+      <li><strong>不做类型检查</strong><span>TypeScript 只擦除类型。</span></li>
+      <li><strong>不是 npm</strong><span>amber install 不是 npm、yarn 或 pnpm。</span></li>
+      <li><strong>不发性能数字</strong><span>没有提交、命令、硬件和正确性校验，就不发布。</span></li>
+      <li><strong>parallel 会拒绝</strong><span>该参数以退出码 2 结束。</span></li>
+    </ul>
+    <h2 style="margin:96px 0 0;font-size:36px;line-height:40px">常见问题</h2>
+    <div id="faq" style="margin-top:32px"></div>
+  </section>
+  <div class="end">
+    <p id="end-cmd"></p>
+    <button type="button" class="solid" id="copy-end">复制安装命令</button>
+  </div>
+</div>
+
+<div class="page" id="page-docs"></div>
+<div class="page" id="page-compat"></div>
+<div class="page" id="page-blog"></div>
+<div class="page" id="page-play"></div>
+<div class="page" id="page-missing"></div>
+<footer>
+  <a href="https://github.com/zh30/amberjs">GitHub</a>
+  <a href="https://github.com/zh30/amberjs/blob/main/docs/CURRENT_SCOPE.md">能力边界</a>
+  <a href="https://github.com/zh30/amberjs/blob/main/tests/conformance/scorecard.md">记分卡</a>
+  <a href="https://github.com/zh30/amberjs/blob/main/LICENSE">MIT 许可</a>
+  <button type="button" data-go="missing">找不到的页面</button>
+</footer>
+<script>
+const CMDS = {
+  unix: {
+    copy: "curl -fsSL https://get.amberjs.com/install.sh | sh",
+    wide: "curl -fsSL<br>https://get.amberjs.com/install.sh | sh",
+    narrow: "curl -fsSL<br>https://get.amberjs.com/<br>install.sh | sh"
+  },
+  win: {
+    copy: "irm https://get.amberjs.com/install.ps1 | iex",
+    wide: "irm https://get.amberjs.com/install.ps1 | iex",
+    narrow: "irm https://get.amberjs.com/<br>install.ps1 | iex"
+  },
+  src: {
+    copy: "git clone https://github.com/zh30/amberjs && cd amberjs && cargo build --release",
+    wide: "git clone https://github.com/zh30/amberjs<br>&& cd amberjs && cargo build --release",
+    narrow: "git clone https://github.com/zh30/amberjs<br>&& cd amberjs<br>&& cargo build --release"
+  }
+};
+const PAGES = [["home","首页"],["docs","文档"],["compat","兼容性"],["blog","博客"],["play","游乐场"]];
+const FAQ = [
+  ["Amber 能换掉 Node 吗？", "不能。每个模块只承诺契约里写明的子集。"],
+  ["稳定是什么意思？", "有书面契约，并且有测试钉住。事实来源是 docs/CURRENT_SCOPE.md。"],
+  ["会做类型检查吗？", "不会。只擦除类型。"],
+  ["有性能数字吗？", "目前不发布。仓库里旧文章的性能标题不是当前承诺。"],
+  ["Windows 能装吗？", "能。用 install.ps1，发布页也有 zip。"],
+  ["amber install 是 npm 吗？", "不是。它安装 package.json 里的依赖。add、remove、prune、upgrade、init、x 仍是实验。"],
+  ["沙箱默认放开吗？", "不放开。文件、网络、环境变量和子进程都要写明才能用，并留下 JSONL 审计。"],
+  ["游乐场能跑代码吗？", "这个原型不能。本地用 amber run。"]
+];
+const POSTS = [
+  "Amber v0.1 公开发布范围说明",
+  "Amber v0.1.2 Agent 工具沙箱",
+  "Amber v0.4.3 发布：底层架构全面突破，登顶 Node 与 Bun 关键性能王座",
+  "Amber v1.0.0 正式发布：首个生产级版本，开启 AI-Native 边缘运行时新纪元",
+  "发布前的运行时代码梳理与重构",
+  "Amber v1.16.0：Wasm 2.0、打包，以及 Web 热路径",
+  "全站多语言上线与未来 3 年技术拓扑路线图发布"
+];
+let key = "unix";
+function cmdHTML(k) {
+  const c = CMDS[k];
+  return `<span class="wide">${c.wide}</span><span class="narrow">${c.narrow}</span>`;
+}
+function paintCmd() {
+  document.getElementById("cmd").innerHTML = cmdHTML(key);
+  document.getElementById("end-cmd").innerHTML = cmdHTML("unix");
+}
+function navHTML(current) {
+  return PAGES.map(([id, label]) => `<button type="button" data-go="${id}" ${id === current ? 'aria-current="page"' : ""}>${label}</button>`).join("");
+}
+function go(id) {
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("on", p.id === "page-" + id));
+  document.getElementById("nav-home").innerHTML = navHTML(id);
+  document.querySelectorAll(".sheet nav").forEach((n) => { n.innerHTML = navHTML(id); });
+  document.getElementById("panel").classList.remove("open");
+  window.scrollTo(0, 0);
+}
+document.getElementById("faq").innerHTML = FAQ.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("");
+const bar = (id) => `<div class="top pad" style="padding-bottom:0"><div class="brand"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjUwJSIgY3k9IjUwJSIgcj0iNTAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZERTA0NyIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRjU5RTBCIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZhY2V0LW1haW4iIHgxPSI2NCIgeTE9IjY0IiB4Mj0iNDQ4IiB5Mj0iNDQ4IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGRUYwOEEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIzNSUiIHN0b3AtY29sb3I9IiNGNTlFMEIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI3MCUiIHN0b3AtY29sb3I9IiNEOTc3MDYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjQjQ1MzA5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJpbm5lci1nZW0iIHgxPSIxNjAiIHkxPSIxMjAiIHgyPSIzNTIiIHkyPSIzOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZGRkJFQiIgc3RvcC1vcGFjaXR5PSIwLjkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNGRUYzQzciIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzc4MzUwRiIgc3RvcC1vcGFjaXR5PSIwLjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNwYXJrbGUiIHgxPSIxMjAiIHkxPSI4MCIgeDI9IjI1NiIgeTI9IjI1NiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRkZGRkZGIiBzdG9wLW9wYWNpdHk9IjAuOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRkVGM0M3IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gQmFja2dyb3VuZCBzdWJ0bGUgd2FybSBnbG93IC0tPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMjMwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPCEtLSBPdXRlciBPY3RhZ29uIC0gQW1iZXIgQ3J5c3RhbCBTaWxob3VldHRlIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTYwLDMyIDM1MiwzMiA0ODAsMTYwIDQ4MCwzNTIgMzUyLDQ4MCAxNjAsNDgwIDMyLDM1MiAzMiwxNjAiIGZpbGw9InVybCgjZmFjZXQtbWFpbikiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDwhLS0gTWVkaXVtIEZhY2V0IExheWVyIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTkyLDk2IDMyMCw5NiA0MTYsMTkyIDQxNiwzMjAgMzIwLDQxNiAxOTIsNDE2IDk2LDMyMCA5NiwxOTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNpbm5lci1nZW0pIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBUYWJsZSAoQ2VudGVyIEZsYXQgRmFjZSkgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyMTYsMTUyIDI5NiwxNTIgMzYwLDIxNiAzNjAsMjk2IDI5NiwzNjAgMjE2LDM2MCAxNTIsMjk2IDE1MiwyMTYiIGZpbGw9IiNGRUYzQzciIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8IS0tIERpYW1vbmQgQ29ybmVyIExpbmVzIC0tPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIzMiIgeDI9IjIxNiIgeTI9IjE1MiIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzUyIiB5MT0iMzIiIHgyPSIyOTYiIHkyPSIxNTIiIHN0cm9rZT0iI0ZERTA0NyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQ4MCIgeTE9IjE2MCIgeDI9IjM2MCIgeTI9IjIxNiIgc3Ryb2tlPSIjOTI0MDBFIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDgwIiB5MT0iMzUyIiB4Mj0iMzYwIiB5Mj0iMjk2IiBzdHJva2U9IiM3ODM1MEYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSIzNTIiIHkxPSI0ODAiIHgyPSIyOTYiIHkyPSIzNjAiIHN0cm9rZT0iIzc4MzUwRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC43Ii8+CiAgPGxpbmUgeDE9IjE2MCIgeTE9IjQ4MCIgeDI9IjIxNiIgeTI9IjM2MCIgc3Ryb2tlPSIjNzgzNTBGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzIiIHkxPSIzNTIiIHgyPSIxNTIiIHkyPSIyOTYiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjMyIiB5MT0iMTYwIiB4Mj0iMTUyIiB5Mj0iMjE2IiBzdHJva2U9IiNGRkZCRUIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNyIvPgogIDwhLS0gVXBwZXIgTGVmdCBMaWdodCBSZWZsZWN0aW9uIC8gRmFjZXQgU2hpbmUgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIxNjAsMzIgMjU2LDMyIDIxNiwxNTIgMTUyLDIxNiA5NiwxOTIgMzIsMTYwIDk2LDk2IiBmaWxsPSJ1cmwoI3NwYXJrbGUpIiBvcGFjaXR5PSIwLjYiLz4KPC9zdmc+" alt=""><span>Amber</span></div><nav aria-label="页面"></nav></div>`;
+document.getElementById("page-docs").innerHTML = `<div class="sheet"><div class="left"><div class="pad">${bar("docs")}<h1>文档</h1><p class="sub">手册按使用顺序排。这里只列已经有契约的入口。v1.17.0。</p></div></div><div class="right"><ul class="index"><li><strong>开始</strong><span>介绍、安装、快速开始。</span></li><li><strong>指南</strong><span>命令行、TypeScript、测试、服务、安装依赖、打包与编译、调试。</span></li><li><strong>兼容与 Agent</strong><span>稳定级别、Node 模块子集、Web 平台子集、沙箱与 MCP、实验。</span></li></ul></div></div>`;
+document.getElementById("page-compat").innerHTML = `<div class="sheet"><div class="left"><div class="pad">${bar("compat")}<h1>兼容性</h1><p class="sub">级别以 docs/CURRENT_SCOPE.md 为准。记分卡不是替代证明。</p></div></div><div class="right"><table><tr><th>级别</th><th>含义</th></tr><tr><td>稳定</td><td>有书面契约，测试钉在 CI 里，限制写在旁边。</td></tr><tr><td>预览</td><td>已在默认构建里。可以试，还不是兼容承诺。</td></tr><tr><td>实验</td><td>代码在。毕业之前，不是产品承诺。</td></tr><tr><td>不支持</td><td>明确不做。直接失败，不做桩。</td></tr></table><p class="session">记分卡 2026-09-24
+<b>56 / 56 通过</b></p></div></div>`;
+document.getElementById("page-blog").innerHTML = `<div class="sheet"><div class="left"><div class="pad">${bar("blog")}<h1>博客</h1><p class="sub">下面是仓库里的标题。性能和 AI-Native 的说法不是当前承诺。</p></div></div><div class="right"><ul class="posts">${POSTS.map((t) => `<li>${t}</li>`).join("")}</ul></div></div>`;
+document.getElementById("page-play").innerHTML = `<div class="sheet"><div class="left"><div class="pad">${bar("play")}<h1>游乐场</h1><p class="sub">原型不执行代码。本地用 amber run。</p></div></div><div class="right"><textarea readonly>interface Greeting { name: string }
+const greet = ({ name }: Greeting): string => \`hello from \${name}\`;
+console.log(greet({ name: "Amber" }));</textarea><button type="button" class="solid" disabled style="margin-top:16px;opacity:0.6">原型不执行代码</button></div></div>`;
+document.getElementById("page-missing").innerHTML = `<div class="sheet"><div class="left"><div class="pad">${bar("missing")}<h1>没有这一页。</h1><p class="sub">地址不对，或这一页还没写。</p><button type="button" class="solid" data-go="home" style="margin-top:32px">回首页</button></div></div><div class="right"></div></div>`;
+paintCmd();
+go("home");
+document.querySelector(".tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  key = b.dataset.k;
+  document.querySelectorAll(".tabs button").forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
+  paintCmd();
+});
+async function copy(btn) {
+  try { await navigator.clipboard.writeText(CMDS[key].copy); btn.textContent = "已复制"; btn.classList.remove("bad"); }
+  catch { btn.textContent = "请选中命令"; btn.classList.add("bad"); }
+  setTimeout(() => { btn.textContent = "复制安装命令"; }, 1600);
+}
+document.getElementById("copy-hero").onclick = (e) => copy(e.target);
+document.getElementById("copy-end").onclick = async (e) => {
+  const btn = e.target;
+  try { await navigator.clipboard.writeText(CMDS.unix.copy); btn.textContent = "已复制"; }
+  catch { btn.textContent = "请选中命令"; btn.classList.add("bad"); }
+  setTimeout(() => { btn.textContent = "复制安装命令"; btn.classList.remove("bad"); }, 1600);
+};
+document.body.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-go]");
+  if (b) go(b.dataset.go);
+});
+const panel = document.getElementById("panel");
+document.getElementById("open").onclick = () => {
+  panel.innerHTML = `<button type="button" class="textbtn" id="close">关闭</button>` + navHTML("home");
+  panel.classList.add("open");
+  panel.querySelector("#close").onclick = () => panel.classList.remove("open");
+};
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((en) => {
+    if (!en.isIntersecting) return;
+    en.target.querySelectorAll(".w").forEach((w, i) => setTimeout(() => w.classList.add("on"), i * 80));
+    io.unobserve(en.target);
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll(".tagline").forEach((el) => io.observe(el));
+</script>
+</body>
+</html>
