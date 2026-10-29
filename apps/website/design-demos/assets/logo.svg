@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FDE047" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="facet-main" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FEF08A"/>
+      <stop offset="35%" stop-color="#F59E0B"/>
+      <stop offset="70%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <linearGradient id="inner-gem" x1="160" y1="120" x2="352" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFBEB" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#FEF3C7" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#78350F" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="sparkle" x1="120" y1="80" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#FEF3C7" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Background subtle warm glow -->
+  <circle cx="256" cy="256" r="230" fill="url(#glow)"/>
+  <!-- Outer Octagon - Amber Crystal Silhouette -->
+  <polygon points="160,32 352,32 480,160 480,352 352,480 160,480 32,352 32,160" fill="url(#facet-main)" stroke="#92400E" stroke-width="16" stroke-linejoin="round"/>
+  <!-- Medium Facet Layer -->
+  <polygon points="192,96 320,96 416,192 416,320 320,416 192,416 96,320 96,192" fill="none" stroke="url(#inner-gem)" stroke-width="10" stroke-linejoin="round"/>
+  <!-- Table (Center Flat Face) -->
+  <polygon points="216,152 296,152 360,216 360,296 296,360 216,360 152,296 152,216" fill="#FEF3C7" fill-opacity="0.25" stroke="#FFFBEB" stroke-width="8" stroke-linejoin="round"/>
+  <!-- Diamond Corner Lines -->
+  <line x1="160" y1="32" x2="216" y2="152" stroke="#FFFBEB" stroke-width="6" stroke-opacity="0.7"/>
+  <line x1="352" y1="32" x2="296" y2="152" stroke="#FDE047" stroke-width="6" stroke-opacity="0.6"/>
+  <line x1="480" y1="160" x2="360" y2="216" stroke="#92400E" stroke-width="6" stroke-opacity="0.5"/>
+  <line x1="480" y1="352" x2="360" y2="296" stroke="#78350F" stroke-width="6" stroke-opacity="0.6"/>
+  <line x1="352" y1="480" x2="296" y2="360" stroke="#78350F" stroke-width="6" stroke-opacity="0.7"/>
+  <line x1="160" y1="480" x2="216" y2="360" stroke="#78350F" stroke-width="6" stroke-opacity="0.7"/>
+  <line x1="32" y1="352" x2="152" y2="296" stroke="#92400E" stroke-width="6" stroke-opacity="0.5"/>
+  <line x1="32" y1="160" x2="152" y2="216" stroke="#FFFBEB" stroke-width="6" stroke-opacity="0.7"/>
+  <!-- Upper Left Light Reflection / Facet Shine -->
+  <polygon points="160,32 256,32 216,152 152,216 96,192 32,160 96,96" fill="url(#sparkle)" opacity="0.6"/>
+</svg>
