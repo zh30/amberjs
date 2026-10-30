@@ -7,7 +7,8 @@
 # DEFAULT OFF
 #   Loaded only when AMBER_TEST262_ENGINE_ALLOWLIST=1 or --engine-allowlist.
 #   Default harness + CI smoke unchanged: allowlisted paths still FAIL the gate.
-#   Do NOT flip ON until Henry chooses allowlist and a post-stack matrix is measured.
+#   Option B (approved 2026-10-29): full-suite / scorecard evidence sets
+#   AMBER_TEST262_ENGINE_ALLOWLIST=1. Do NOT change the harness default to ON.
 #
 # NOT SKIP
 #   NEVER move these into features.json always_skip_features.

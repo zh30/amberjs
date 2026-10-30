@@ -12,7 +12,7 @@ Default discovery (no `--path`) walks the full `test/` tree: **language**, **bui
 | `run_test262.py` | Discover → run → scorecard |
 | `amber_host.js` | Minimal `$262` host (`detachArrayBuffer` → native `__amber_detachArrayBuffer`) |
 | `features.json` | Supported / always-skip feature flags |
-| `engine_fail_allowlist.txt` | Optional V8/Node FAIL catalog (seed draft; **OFF by default**) |
+| `engine_fail_allowlist.txt` | Optional V8/Node FAIL catalog (seed; harness **OFF by default**) |
 | `scorecard.md` / `scorecard.json` | Latest run summary |
 | `../../third_party/test262/` | Fetched suite (gitignored) |
 | `../../scripts/fetch_test262.sh` | Clone/checkout `PIN` |
@@ -39,24 +39,37 @@ AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --path lan
 AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --path built-ins --jobs 4
 AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --path annexB --jobs 4
 
-# full suite (language + built-ins + other roots; large; expect long wall time)
+# full suite (language + built-ins + other roots; allowlist OFF / honest FAIL; large)
 AMBER_BIN=./target/release/amber python3 tests/test262/run_test262.py --jobs 8
+
+# full suite — Option B evidence (allowlist ON via official env; default still OFF)
+AMBER_TEST262_ENGINE_ALLOWLIST=1 AMBER_BIN=./target/release/amber \
+  python3 tests/test262/run_test262.py --jobs 8
 ```
 
 Env: `AMBER_BIN`, `TEST262_ROOT`, `TEST262_TIMEOUT` (seconds per case, default 30),
 `AMBER_TEST262=1` (set automatically by the runner — enables native `$262.createRealm` / `$262.detachArrayBuffer` / `$262.agent`),
-`AMBER_TEST262_CAN_BLOCK=0|1` (set by the runner from `CanBlockIsFalse` / `CanBlockIsTrue` — V8 `AllowAtomicsWait` / AgentCanSuspend).
+`AMBER_TEST262_CAN_BLOCK=0|1` (set by the runner from `CanBlockIsFalse` / `CanBlockIsTrue` — V8 `AllowAtomicsWait` / AgentCanSuspend),
+`AMBER_TEST262_ENGINE_ALLOWLIST` (optional; see below).
 
-### Optional engine FAIL allowlist (OFF by default)
+### Engine FAIL allowlist (OFF by default; Option B env flip)
 
-Literal **0 FAIL** is blocked by shared V8/Node (and proposal-not-in-V8) gaps. The
-allowlist catalogs those honest FAILs without SKIP abuse. **Default harness and CI
-behavior is unchanged** — allowlisted paths still count as FAIL until explicitly enabled.
+Literal **0 FAIL** is blocked by shared V8/Node/ICU/SM (and proposal-not-in-V8) gaps.
+[#285](https://github.com/zh30/amberjs/pull/285) catalogs those honest FAILs without SKIP
+abuse. **Harness default stays OFF** — seed paths still count as FAIL unless the official
+ON switch is set.
 
-Enable (either form):
+**Option B (approved 2026-10-29):** treat proven engine
+gaps as cataloged `ENGINE_ALLOW` for **full-suite / scorecard evidence only** by setting:
 
 ```bash
-# env
+AMBER_TEST262_ENGINE_ALLOWLIST=1
+```
+
+(Equivalent CLI: `--engine-allowlist`. Force OFF: `--no-engine-allowlist` or unset env.)
+
+```bash
+# subset smoke with allowlist ON
 AMBER_TEST262_ENGINE_ALLOWLIST=1 AMBER_BIN=./target/release/amber \
   python3 tests/test262/run_test262.py --path language/eval-code/direct --jobs 4
 
@@ -72,13 +85,11 @@ When enabled:
 - Patterns live in `engine_fail_allowlist.txt` (exact path or directory prefix ending `/`).
 - Override file with `--engine-allowlist-file`; force off with `--no-engine-allowlist`.
 
-**Do not** move these entries into `features.json` `always_skip_features`. The seed aims to
-cover the projected post-open-stack engine residual (**≈447** FAIL after
-#274/#276/#279/#278/#281/#282/#295/#296 on measured main FAIL Σ **1300** @ `cb3c0005`:
-language ≈216, built-ins ≈94, other ≈137) and remains a **draft until measured after
-remaining open drafts land**; do **not** flip CI smoke / the default gate ON without an
-explicit product decision (gate still pending Henry). Amber-owned open-stack paths are
-intentionally **absent** from the seed so they stay honest FAIL until those PRs land.
+**Do not** move these entries into `features.json` `always_skip_features`. With the
+allowlist on, the measured full suite is **FAIL 0**, **ENGINE_ALLOW 437**,
+**unexpected SKIP 0**. None of those 437 are Amber-owned. **Do not** change the harness
+default to ON, and **do not** set the env on CI smoke. Amber-owned paths stay out of the
+seed so they remain honest FAIL.
 
 
 ## Scorecard / gate
@@ -91,9 +102,17 @@ intentionally **absent** from the seed so they stay honest FAIL until those PRs 
 
 `supported` in `features.json` is informational. Features not in that list are **run** (honest PASS/FAIL), not skipped.
 
-**Done** for this stream (default gate): full suite with **0 FAIL** and **0 unexpected SKIP**. The runner exits `1` if `FAIL>0` or `unexpected_skip>0`.
-Optional allowlist mode reframes Amber-owned residual as **0 FAIL** + cataloged `ENGINE_ALLOW`,
-but is **not** the default CI gate. Filtered runs are for iteration; they do not redefine done.
+**Done** for this stream:
+
+- **Default / CI smoke (allowlist OFF):** full suite with **0 FAIL** and **0 unexpected SKIP**
+  (literal green, or wait V8 — Option A).
+- **Option B evidence (allowlist ON via env):** full suite with **0 FAIL** and
+  **0 unexpected SKIP** after seeded engine gaps remap to `ENGINE_ALLOW`
+  (`AMBER_TEST262_ENGINE_ALLOWLIST=1`). This is the approved evidence path, not the
+  default gate.
+
+The runner exits `1` if `FAIL>0` or `unexpected_skip>0`. Filtered runs are for iteration;
+they do not redefine done.
 
 Node conformance (`./tests/conformance/run_conformance.sh`) stays ≥55/55 and is unrelated.
 
@@ -101,8 +120,8 @@ Node conformance (`./tests/conformance/run_conformance.sh`) stays ≥55/55 and i
 
 - `.github/workflows/test262.yml` runs a fail-closed **smoke** job (`--self-test` + `language/types*` paths) and uploads that run’s scorecard artifact (`test262-scorecard`). It does not run the full suite.
 - Full suite remains local/manual (`run_test262.py` without `--path`) until green; then promote a full-suite job to a required fail-closed gate.
-- **CI smoke stays honest while allowlist stays OFF:** the workflow must **not** set
-  `AMBER_TEST262_ENGINE_ALLOWLIST` and must **not** pass `--engine-allowlist`. Smoke
-  therefore still counts matching seed paths as **FAIL** (same as local default). Enabling
-  the allowlist is a separate product flip (`AMBER_TEST262_ENGINE_ALLOWLIST=1` or
-  `--engine-allowlist`), not a CI silent path.
+- **CI smoke stays OFF (honest FAIL):** the workflow must **not** set
+  `AMBER_TEST262_ENGINE_ALLOWLIST` and must **not** pass `--engine-allowlist`.
+- **Option B full-suite evidence** (approved): run locally / optionally a future
+  non-required job with `AMBER_TEST262_ENGINE_ALLOWLIST=1` only — never as a silent
+  default flip of the harness or smoke.
