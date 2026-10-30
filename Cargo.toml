@@ -149,7 +149,7 @@ tar = "0.4"
 
 # WebSocket support (with TLS)
 tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
-tungstenite = "0.21"
+tungstenite = "0.30"
 
 # Logging
 tracing = "0.1"
@@ -285,7 +285,7 @@ webpki-roots = "1.0.10"
 if-addrs = "0.15"
 tempfile = "3.0"
 futures = "0.3"
-tungstenite = "0.21"
+tungstenite = "0.30"
 
 # Async runtime
 futures-util = "0.3"
