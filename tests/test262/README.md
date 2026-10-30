@@ -59,7 +59,7 @@ Literal **0 FAIL** is blocked by shared V8/Node/ICU/SM (and proposal-not-in-V8) 
 abuse. **Harness default stays OFF** — seed paths still count as FAIL unless the official
 ON switch is set.
 
-**Option B (approved engine-gap policy — pending Henry approval):** treat proven engine
+**Option B (approved 2026-10-29):** treat proven engine
 gaps as cataloged `ENGINE_ALLOW` for **full-suite / scorecard evidence only** by setting:
 
 ```bash
@@ -85,13 +85,11 @@ When enabled:
 - Patterns live in `engine_fail_allowlist.txt` (exact path or directory prefix ending `/`).
 - Override file with `--engine-allowlist-file`; force off with `--no-engine-allowlist`.
 
-**Do not** move these entries into `features.json` `always_skip_features`. The seed aims to
-cover the projected post-open-stack engine residual (**≈447** FAIL after
-#274/#276/#279/#278/#281/#282/#295/#296 on measured main FAIL Σ **1300** @ `cb3c0005`:
-language ≈216, built-ins ≈94, other ≈137) and remains a **draft until measured after
-remaining open drafts land**. **Do not** change harness default to ON, and **do not** set
-the env on CI smoke, until Henry approves Option B. Amber-owned open-stack paths are
-intentionally **absent** from the seed so they stay honest FAIL until those PRs land.
+**Do not** move these entries into `features.json` `always_skip_features`. With the
+allowlist on, the measured full suite is **FAIL 0**, **ENGINE_ALLOW 437**,
+**unexpected SKIP 0**. None of those 437 are Amber-owned. **Do not** change the harness
+default to ON, and **do not** set the env on CI smoke. Amber-owned paths stay out of the
+seed so they remain honest FAIL.
 
 
 ## Scorecard / gate
@@ -110,8 +108,8 @@ intentionally **absent** from the seed so they stay honest FAIL until those PRs 
   (literal green, or wait V8 — Option A).
 - **Option B evidence (allowlist ON via env):** full suite with **0 FAIL** and
   **0 unexpected SKIP** after seeded engine gaps remap to `ENGINE_ALLOW`
-  (`AMBER_TEST262_ENGINE_ALLOWLIST=1`). Pending Henry approval before treating this as
-  the product gate.
+  (`AMBER_TEST262_ENGINE_ALLOWLIST=1`). This is the approved evidence path, not the
+  default gate.
 
 The runner exits `1` if `FAIL>0` or `unexpected_skip>0`. Filtered runs are for iteration;
 they do not redefine done.
@@ -124,6 +122,6 @@ Node conformance (`./tests/conformance/run_conformance.sh`) stays ≥55/55 and i
 - Full suite remains local/manual (`run_test262.py` without `--path`) until green; then promote a full-suite job to a required fail-closed gate.
 - **CI smoke stays OFF (honest FAIL):** the workflow must **not** set
   `AMBER_TEST262_ENGINE_ALLOWLIST` and must **not** pass `--engine-allowlist`.
-- **Option B full-suite evidence** (pending Henry): run locally / optionally a future
+- **Option B full-suite evidence** (approved): run locally / optionally a future
   non-required job with `AMBER_TEST262_ENGINE_ALLOWLIST=1` only — never as a silent
   default flip of the harness or smoke.

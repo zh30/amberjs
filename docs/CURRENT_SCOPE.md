@@ -331,7 +331,7 @@ v1.9.0 notes (kept for history):
 Use these files and checks as the current fact sources:
 
 - `Cargo.toml`: package version, enabled binary targets, Cargo features, and dependencies.
-- `tests/test262/`: ECMAScript north-star harness (separate from Node `tests/conformance/`). Engine FAIL allowlist stays **OFF by default**. **Option B** (approved engine-gap policy — **pending Henry approval**): full-suite / scorecard evidence only via `AMBER_TEST262_ENGINE_ALLOWLIST=1` (or `--engine-allowlist`); CI smoke must not set the env. See `tests/test262/README.md`.
+- `tests/test262/`: ECMAScript north-star harness (separate from Node `tests/conformance/`). Engine FAIL allowlist stays **OFF by default**. **Option B** (approved 2026-10-29): full-suite / scorecard evidence only via `AMBER_TEST262_ENGINE_ALLOWLIST=1` (or `--engine-allowlist`); CI smoke must not set the env. Measured with the allowlist on: FAIL 0, ENGINE_ALLOW 437, unexpected SKIP 0; none of those 437 are Amber-owned. See `tests/test262/README.md`.
 - `src/lib.rs`: the default library module surface and feature-gated modules.
 - `src/main.rs`: the active `amber` CLI entrypoint.
 - Executable tests and smoke commands run in the current checkout.

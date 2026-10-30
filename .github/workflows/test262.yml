@@ -66,7 +66,7 @@ jobs:
       - name: Build amber
         run: cargo build -q
 
-      # Option B (pending Henry): full-suite evidence uses
+      # Option B (approved 2026-10-29): full-suite evidence uses
       # AMBER_TEST262_ENGINE_ALLOWLIST=1. Do NOT set that env on smoke — harness
       # default stays OFF; smoke must remain honest FAIL for seed paths.
       - name: Smoke paths (fail-closed)
