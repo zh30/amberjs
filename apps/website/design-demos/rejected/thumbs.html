@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Amber 六个方向缩略图</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&family=Geist+Mono:wght@500;700&family=Noto+Serif+SC:wght@600&display=swap">
+<style>
+  body { margin: 0; background: #E7E5E4; font-family: "Noto Sans SC", sans-serif; color: #14120B; }
+  h1 { font-size: 20px; line-height: 28px; font-weight: 700; margin: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 480px); gap: 24px; padding: 0 24px 48px; }
+  figure { margin: 0; }
+  figcaption { font-size: 14px; line-height: 20px; margin-top: 8px; font-weight: 600; }
+  .frame { width: 480px; height: 300px; overflow: hidden; background: white; position: relative; }
+  .sato { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
+  .sato .l { background: #F0C000; display: flex; align-items: center; justify-content: center; }
+  .sato img { width: 120px; height: 120px; }
+  .sato .r { padding: 20px; }
+  .sato h2 { font-size: 22px; line-height: 1.15; margin: 28px 0 0; font-weight: 700; }
+  .sato p { font-size: 12px; line-height: 16px; margin: 8px 0 0; }
+  .sato code { display: block; margin-top: 12px; background: #14120B; color: #F0C000; font-family: "Geist Mono", monospace; font-size: 10px; padding: 8px; }
+  .docs { height: 100%; display: grid; grid-template-columns: 92px 1fr 70px; background: #F5F5F4; font-size: 12px; }
+  .docs aside, .docs nav { border-right: 1px solid #E4E4E7; padding: 12px 8px; }
+  .docs nav { border-right: 0; border-left: 1px solid #E4E4E7; }
+  .docs .on { background: #F0C000; font-weight: 700; padding: 4px; }
+  .docs article { padding: 16px; }
+  .docs h2 { font-size: 18px; line-height: 1.2; margin: 0 0 8px; }
+  .docs pre { background: #18181B; color: #FAFAF9; font-family: "Geist Mono", monospace; font-size: 10px; padding: 8px; margin: 8px 0 0; }
+  .boom { height: 100%; background: #F0C000; padding: 16px 20px; }
+  .boom .nm { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+  .boom img { width: 28px; height: 28px; }
+  .boom h2 { font-family: "Geist Mono", monospace; font-size: 26px; line-height: 1.05; font-weight: 700; margin: 36px 0 0; }
+  .boom p { font-size: 13px; margin: 12px 0 0; max-width: 420px; }
+  .bun { height: 100%; display: grid; grid-template-columns: 1.1fr 0.9fr; border: 1px solid #E4E4E7; }
+  .bun .l, .bun .r { padding: 16px; }
+  .bun h2 { font-size: 26px; line-height: 1.05; margin: 12px 0; font-weight: 700; }
+  .bun p { font-size: 12px; line-height: 16px; margin: 0; }
+  .bun code { display: block; background: #14120B; color: white; font-family: "Geist Mono", monospace; font-size: 11px; padding: 8px; margin-top: 12px; }
+  .bun .r { border-left: 1px solid #E4E4E7; }
+  .bun .box { border: 1px solid #18181B; height: 180px; padding: 10px; font-family: "Geist Mono", monospace; font-size: 12px; }
+  .deno { height: 100%; background: #F5F5F4; padding: 16px 20px; }
+  .deno h2 { font-size: 16px; margin: 0 0 12px; }
+  .deno ul { list-style: none; padding: 0; margin: 0; font-family: "Geist Mono", monospace; font-size: 16px; }
+  .deno li { padding: 6px 8px; }
+  .deno .hot { background: #F0C000; font-weight: 700; }
+  .jacket { height: 100%; background: #E6D7B8; padding: 16px; }
+  .jacket .board { height: 100%; border: 2px solid #14120B; display: grid; grid-template-columns: 36px 1fr; }
+  .jacket .spine { border-right: 1px solid #14120B; writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center; font-family: "Noto Serif SC", serif; letter-spacing: 0.2em; }
+  .jacket .face { position: relative; }
+  .jacket .slip { position: absolute; left: 28px; top: 24px; background: #F7F1E4; border: 1px solid #14120B; writing-mode: vertical-rl; padding: 12px 8px; font-family: "Noto Serif SC", serif; font-size: 28px; }
+  .jacket img { position: absolute; right: 24px; bottom: 36px; width: 88px; height: 88px; }
+  .jacket .seal { position: absolute; left: 28px; bottom: 20px; width: 14px; height: 14px; background: #9E2A2B; }
+</style>
+</head>
+<body>
+<h1>六个首屏。前三张做了完整版，后三张是备选。</h1>
+<div class="grid">
+  <figure>
+    <div class="frame boom">
+      <div class="nm"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjUwJSIgY3k9IjUwJSIgcj0iNTAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZERTA0NyIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRjU5RTBCIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZhY2V0LW1haW4iIHgxPSI2NCIgeTE9IjY0IiB4Mj0iNDQ4IiB5Mj0iNDQ4IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGRUYwOEEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIzNSUiIHN0b3AtY29sb3I9IiNGNTlFMEIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI3MCUiIHN0b3AtY29sb3I9IiNEOTc3MDYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjQjQ1MzA5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJpbm5lci1nZW0iIHgxPSIxNjAiIHkxPSIxMjAiIHgyPSIzNTIiIHkyPSIzOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZGRkJFQiIgc3RvcC1vcGFjaXR5PSIwLjkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNGRUYzQzciIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzc4MzUwRiIgc3RvcC1vcGFjaXR5PSIwLjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNwYXJrbGUiIHgxPSIxMjAiIHkxPSI4MCIgeDI9IjI1NiIgeTI9IjI1NiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRkZGRkZGIiBzdG9wLW9wYWNpdHk9IjAuOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRkVGM0M3IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gQmFja2dyb3VuZCBzdWJ0bGUgd2FybSBnbG93IC0tPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMjMwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPCEtLSBPdXRlciBPY3RhZ29uIC0gQW1iZXIgQ3J5c3RhbCBTaWxob3VldHRlIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTYwLDMyIDM1MiwzMiA0ODAsMTYwIDQ4MCwzNTIgMzUyLDQ4MCAxNjAsNDgwIDMyLDM1MiAzMiwxNjAiIGZpbGw9InVybCgjZmFjZXQtbWFpbikiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDwhLS0gTWVkaXVtIEZhY2V0IExheWVyIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTkyLDk2IDMyMCw5NiA0MTYsMTkyIDQxNiwzMjAgMzIwLDQxNiAxOTIsNDE2IDk2LDMyMCA5NiwxOTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNpbm5lci1nZW0pIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBUYWJsZSAoQ2VudGVyIEZsYXQgRmFjZSkgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyMTYsMTUyIDI5NiwxNTIgMzYwLDIxNiAzNjAsMjk2IDI5NiwzNjAgMjE2LDM2MCAxNTIsMjk2IDE1MiwyMTYiIGZpbGw9IiNGRUYzQzciIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8IS0tIERpYW1vbmQgQ29ybmVyIExpbmVzIC0tPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIzMiIgeDI9IjIxNiIgeTI9IjE1MiIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzUyIiB5MT0iMzIiIHgyPSIyOTYiIHkyPSIxNTIiIHN0cm9rZT0iI0ZERTA0NyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQ4MCIgeTE9IjE2MCIgeDI9IjM2MCIgeTI9IjIxNiIgc3Ryb2tlPSIjOTI0MDBFIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDgwIiB5MT0iMzUyIiB4Mj0iMzYwIiB5Mj0iMjk2IiBzdHJva2U9IiM3ODM1MEYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSIzNTIiIHkxPSI0ODAiIHgyPSIyOTYiIHkyPSIzNjAiIHN0cm9rZT0iIzc4MzUwRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC43Ii8+CiAgPGxpbmUgeDE9IjE2MCIgeTE9IjQ4MCIgeDI9IjIxNiIgeTI9IjM2MCIgc3Ryb2tlPSIjNzgzNTBGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzIiIHkxPSIzNTIiIHgyPSIxNTIiIHkyPSIyOTYiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjMyIiB5MT0iMTYwIiB4Mj0iMTUyIiB5Mj0iMjE2IiBzdHJva2U9IiNGRkZCRUIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNyIvPgogIDwhLS0gVXBwZXIgTGVmdCBMaWdodCBSZWZsZWN0aW9uIC8gRmFjZXQgU2hpbmUgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIxNjAsMzIgMjU2LDMyIDIxNiwxNTIgMTUyLDIxNiA5NiwxOTIgMzIsMTYwIDk2LDk2IiBmaWxsPSJ1cmwoI3NwYXJrbGUpIiBvcGFjaXR5PSIwLjYiLz4KPC9zdmc+" alt="">Amber</div>
+      <h2>curl -fsSL<br>get.amberjs.com/install.sh</h2>
+      <p>一个二进制，跑 JavaScript 和 TypeScript。</p>
+    </div>
+    <figcaption>1 书口 · 入选 · 命令比名字大</figcaption>
+  </figure>
+  <figure>
+    <div class="frame"><div class="sato">
+      <div class="l"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjUwJSIgY3k9IjUwJSIgcj0iNTAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZERTA0NyIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRjU5RTBCIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZhY2V0LW1haW4iIHgxPSI2NCIgeTE9IjY0IiB4Mj0iNDQ4IiB5Mj0iNDQ4IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGRUYwOEEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIzNSUiIHN0b3AtY29sb3I9IiNGNTlFMEIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI3MCUiIHN0b3AtY29sb3I9IiNEOTc3MDYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjQjQ1MzA5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJpbm5lci1nZW0iIHgxPSIxNjAiIHkxPSIxMjAiIHgyPSIzNTIiIHkyPSIzOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZGRkJFQiIgc3RvcC1vcGFjaXR5PSIwLjkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNGRUYzQzciIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzc4MzUwRiIgc3RvcC1vcGFjaXR5PSIwLjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNwYXJrbGUiIHgxPSIxMjAiIHkxPSI4MCIgeDI9IjI1NiIgeTI9IjI1NiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRkZGRkZGIiBzdG9wLW9wYWNpdHk9IjAuOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRkVGM0M3IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gQmFja2dyb3VuZCBzdWJ0bGUgd2FybSBnbG93IC0tPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMjMwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPCEtLSBPdXRlciBPY3RhZ29uIC0gQW1iZXIgQ3J5c3RhbCBTaWxob3VldHRlIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTYwLDMyIDM1MiwzMiA0ODAsMTYwIDQ4MCwzNTIgMzUyLDQ4MCAxNjAsNDgwIDMyLDM1MiAzMiwxNjAiIGZpbGw9InVybCgjZmFjZXQtbWFpbikiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDwhLS0gTWVkaXVtIEZhY2V0IExheWVyIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTkyLDk2IDMyMCw5NiA0MTYsMTkyIDQxNiwzMjAgMzIwLDQxNiAxOTIsNDE2IDk2LDMyMCA5NiwxOTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNpbm5lci1nZW0pIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBUYWJsZSAoQ2VudGVyIEZsYXQgRmFjZSkgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyMTYsMTUyIDI5NiwxNTIgMzYwLDIxNiAzNjAsMjk2IDI5NiwzNjAgMjE2LDM2MCAxNTIsMjk2IDE1MiwyMTYiIGZpbGw9IiNGRUYzQzciIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8IS0tIERpYW1vbmQgQ29ybmVyIExpbmVzIC0tPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIzMiIgeDI9IjIxNiIgeTI9IjE1MiIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzUyIiB5MT0iMzIiIHgyPSIyOTYiIHkyPSIxNTIiIHN0cm9rZT0iI0ZERTA0NyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQ4MCIgeTE9IjE2MCIgeDI9IjM2MCIgeTI9IjIxNiIgc3Ryb2tlPSIjOTI0MDBFIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDgwIiB5MT0iMzUyIiB4Mj0iMzYwIiB5Mj0iMjk2IiBzdHJva2U9IiM3ODM1MEYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSIzNTIiIHkxPSI0ODAiIHgyPSIyOTYiIHkyPSIzNjAiIHN0cm9rZT0iIzc4MzUwRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC43Ii8+CiAgPGxpbmUgeDE9IjE2MCIgeTE9IjQ4MCIgeDI9IjIxNiIgeTI9IjM2MCIgc3Ryb2tlPSIjNzgzNTBGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzIiIHkxPSIzNTIiIHgyPSIxNTIiIHkyPSIyOTYiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjMyIiB5MT0iMTYwIiB4Mj0iMTUyIiB5Mj0iMjE2IiBzdHJva2U9IiNGRkZCRUIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNyIvPgogIDwhLS0gVXBwZXIgTGVmdCBMaWdodCBSZWZsZWN0aW9uIC8gRmFjZXQgU2hpbmUgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIxNjAsMzIgMjU2LDMyIDIxNiwxNTIgMTUyLDIxNiA5NiwxOTIgMzIsMTYwIDk2LDk2IiBmaWxsPSJ1cmwoI3NwYXJrbGUpIiBvcGFjaXR5PSIwLjYiLz4KPC9zdmc+" alt="Amber"></div>
+      <div class="r">
+        <h2>一个二进制，跑 JavaScript 和 TypeScript。</h2>
+        <p>给正在评估运行时的工程师。</p>
+        <code>curl -fsSL get.amberjs.com/install.sh | sh</code>
+      </div>
+    </div></div>
+    <figcaption>2 半版标志 · 入选 · 宝石占一半</figcaption>
+  </figure>
+  <figure>
+    <div class="frame"><div class="docs">
+      <aside><div class="on">首页</div><div>文档</div><div>兼容性</div><div>博客</div><div>游乐场</div></aside>
+      <article>
+        <h2>一个二进制，跑 JavaScript 和 TypeScript。</h2>
+        <pre>$ curl -fsSL get.amberjs.com/install.sh | sh</pre>
+      </article>
+      <nav><div>好处</div><div>三步</div><div>问题</div></nav>
+    </div></div>
+    <figcaption>5 手册 · 入选 · 首页就是文档</figcaption>
+  </figure>
+  <figure>
+    <div class="frame"><div class="bun">
+      <div class="l">
+        <h2>一个二进制，跑 JavaScript 和 TypeScript。</h2>
+        <p>给正在评估运行时的工程师。</p>
+        <code>$ curl -fsSL get.amberjs.com/install.sh | sh</code>
+      </div>
+      <div class="r"><div class="box">amber --version<br>v1.17.0<br><br>amber eval "1 + 1"<br>2</div></div>
+    </div></div>
+    <figcaption>3 Bun 参照 · 备选 · 和现站太近</figcaption>
+  </figure>
+  <figure>
+    <div class="frame deno">
+      <h2>子命令即首页</h2>
+      <ul>
+        <li>amber run</li>
+        <li class="hot">amber test</li>
+        <li>amber serve</li>
+        <li>amber bundle</li>
+        <li>amber compile</li>
+      </ul>
+    </div>
+    <figcaption>4 Deno 参照 · 备选 · 一行填实</figcaption>
+  </figure>
+  <figure>
+    <div class="frame jacket">
+      <div class="board">
+        <div class="spine">琥珀运行时</div>
+        <div class="face">
+          <div class="slip">琥珀</div>
+          <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjUwJSIgY3k9IjUwJSIgcj0iNTAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZERTA0NyIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRjU5RTBCIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZhY2V0LW1haW4iIHgxPSI2NCIgeTE9IjY0IiB4Mj0iNDQ4IiB5Mj0iNDQ4IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNGRUYwOEEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIzNSUiIHN0b3AtY29sb3I9IiNGNTlFMEIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI3MCUiIHN0b3AtY29sb3I9IiNEOTc3MDYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjQjQ1MzA5Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJpbm5lci1nZW0iIHgxPSIxNjAiIHkxPSIxMjAiIHgyPSIzNTIiIHkyPSIzOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI0ZGRkJFQiIgc3RvcC1vcGFjaXR5PSIwLjkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiNGRUYzQzciIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzc4MzUwRiIgc3RvcC1vcGFjaXR5PSIwLjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNwYXJrbGUiIHgxPSIxMjAiIHkxPSI4MCIgeDI9IjI1NiIgeTI9IjI1NiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRkZGRkZGIiBzdG9wLW9wYWNpdHk9IjAuOTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRkVGM0M3IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gQmFja2dyb3VuZCBzdWJ0bGUgd2FybSBnbG93IC0tPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMjMwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPCEtLSBPdXRlciBPY3RhZ29uIC0gQW1iZXIgQ3J5c3RhbCBTaWxob3VldHRlIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTYwLDMyIDM1MiwzMiA0ODAsMTYwIDQ4MCwzNTIgMzUyLDQ4MCAxNjAsNDgwIDMyLDM1MiAzMiwxNjAiIGZpbGw9InVybCgjZmFjZXQtbWFpbikiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDwhLS0gTWVkaXVtIEZhY2V0IExheWVyIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMTkyLDk2IDMyMCw5NiA0MTYsMTkyIDQxNiwzMjAgMzIwLDQxNiAxOTIsNDE2IDk2LDMyMCA5NiwxOTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNpbm5lci1nZW0pIiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBUYWJsZSAoQ2VudGVyIEZsYXQgRmFjZSkgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyMTYsMTUyIDI5NiwxNTIgMzYwLDIxNiAzNjAsMjk2IDI5NiwzNjAgMjE2LDM2MCAxNTIsMjk2IDE1MiwyMTYiIGZpbGw9IiNGRUYzQzciIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8IS0tIERpYW1vbmQgQ29ybmVyIExpbmVzIC0tPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIzMiIgeDI9IjIxNiIgeTI9IjE1MiIgc3Ryb2tlPSIjRkZGQkVCIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzUyIiB5MT0iMzIiIHgyPSIyOTYiIHkyPSIxNTIiIHN0cm9rZT0iI0ZERTA0NyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQ4MCIgeTE9IjE2MCIgeDI9IjM2MCIgeTI9IjIxNiIgc3Ryb2tlPSIjOTI0MDBFIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNDgwIiB5MT0iMzUyIiB4Mj0iMzYwIiB5Mj0iMjk2IiBzdHJva2U9IiM3ODM1MEYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSIzNTIiIHkxPSI0ODAiIHgyPSIyOTYiIHkyPSIzNjAiIHN0cm9rZT0iIzc4MzUwRiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC43Ii8+CiAgPGxpbmUgeDE9IjE2MCIgeTE9IjQ4MCIgeDI9IjIxNiIgeTI9IjM2MCIgc3Ryb2tlPSIjNzgzNTBGIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1vcGFjaXR5PSIwLjciLz4KICA8bGluZSB4MT0iMzIiIHkxPSIzNTIiIHgyPSIxNTIiIHkyPSIyOTYiIHN0cm9rZT0iIzkyNDAwRSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2Utb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjMyIiB5MT0iMTYwIiB4Mj0iMTUyIiB5Mj0iMjE2IiBzdHJva2U9IiNGRkZCRUIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLW9wYWNpdHk9IjAuNyIvPgogIDwhLS0gVXBwZXIgTGVmdCBMaWdodCBSZWZsZWN0aW9uIC8gRmFjZXQgU2hpbmUgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIxNjAsMzIgMjU2LDMyIDIxNiwxNTIgMTUyLDIxNiA5NiwxOTIgMzIsMTYwIDk2LDk2IiBmaWxsPSJ1cmwoI3NwYXJrbGUpIiBvcGFjaXR5PSIwLjYiLz4KPC9zdmc+" alt="">
+          <i class="seal"></i>
+        </div>
+      </div>
+    </div>
+    <figcaption>6 民国书衣 · 备选 · 比喻过重</figcaption>
+  </figure>
+</div>
+</body>
+</html>

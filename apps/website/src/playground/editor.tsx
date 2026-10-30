@@ -108,9 +108,10 @@ export function PlaygroundEditor() {
       language: "typescript",
       theme: resolvedTheme === "dark" ? "vs-dark" : "vs",
       automaticLayout: true,
+      wordWrap: "on",
       minimap: { enabled: false },
       fontSize: 14,
-      fontFamily: "JetBrains Mono, ui-monospace, monospace",
+      fontFamily: '"Geist Mono", ui-monospace, monospace',
       tabSize: 2,
       scrollBeyondLastLine: false,
       padding: { top: 12 },
@@ -180,44 +181,35 @@ export function PlaygroundEditor() {
   }, [lang]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b border-[var(--line)] px-4 py-3">
-        <h1 className="text-lg font-semibold">{copy.playground.title}</h1>
-        <label className="ml-auto flex items-center gap-2 text-sm">
-          <span className="text-[var(--text-muted)]">
-            {copy.playground.language}
-          </span>
-          <select
-            value={lang}
-            onChange={(e) => onLang(e.target.value as LangId)}
-            className="border border-[var(--line)] bg-[var(--bg-page)] px-2 py-1"
+    <div className="play-split">
+      <div className="lead">
+        <h1>{copy.playground.title}</h1>
+        <p className="sub">{copy.playground.note}</p>
+        <div className="play-controls">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-[var(--muted)]">{copy.playground.language}</span>
+            <select
+              value={lang}
+              onChange={(e) => onLang(e.target.value as LangId)}
+            >
+              <option value="typescript">TypeScript</option>
+              <option value="javascript">JavaScript</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => void run()}
+            disabled={running || !frameReady}
+            className="solid honey"
           >
-            <option value="typescript">TypeScript</option>
-            <option value="javascript">JavaScript</option>
-          </select>
-        </label>
-        <button
-          type="button"
-          onClick={() => void run()}
-          disabled={running || !frameReady}
-          className="btn-honey disabled:opacity-60"
-        >
-          {running ? copy.playground.running : copy.playground.run}
-        </button>
-      </div>
-      <p className="border-b border-[var(--line)] px-4 py-2 text-sm text-[var(--text-muted)]">
-        {copy.playground.note}
-      </p>
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[1.4fr_0.8fr]">
-        <div ref={hostRef} className="min-h-[320px] min-w-0" />
-        <div className="flex min-h-[200px] flex-col border-t border-[var(--line)] lg:border-t-0 lg:border-l">
-          <div className="border-b border-[var(--line)] px-4 py-2 font-mono text-xs text-[var(--text-muted)]">
-            {copy.playground.output}
-          </div>
-          <pre className="min-h-0 flex-1 overflow-auto bg-[var(--code-bg)] p-4 font-mono text-[13px] leading-relaxed text-[var(--code-fg)]">
-            {lines.length === 0 ? copy.playground.empty : lines.join("\n")}
-          </pre>
+            {running ? copy.playground.running : copy.playground.run}
+          </button>
         </div>
+        <div ref={hostRef} className="play-editor" />
+      </div>
+      <div className="install">
+        <p className="out-label">{copy.playground.output}</p>
+        <pre>{lines.length === 0 ? copy.playground.empty : lines.join("\n")}</pre>
       </div>
       <iframe
         ref={iframeRef}

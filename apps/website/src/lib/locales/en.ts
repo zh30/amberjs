@@ -91,7 +91,7 @@ export const en: TranslationSchema = {
       source: "From source",
     },
     stats: {
-      contracts: "Stable contracts (G1–G69)",
+      contracts: "Stable contracts (G1–G77)",
       conformance: "Node conformance fixtures",
       binary: "binary — run, test, serve, bundle, compile",
       version: "current release",
@@ -146,7 +146,7 @@ export const en: TranslationSchema = {
     compatNode: "Node.js modules",
     compatWeb: "Web platform",
     compatRuntime: "Runtime & agents",
-    compatLink: "Browse all 69 contracts",
+    compatLink: "Browse all 77 contracts",
     conformanceTitle: "56 / 56 conformance fixtures pass",
     conformanceBody:
       "tests/conformance/ runs small Node-style scripts — fs, streams, crypto, child_process, Express, Fastify, Hono and more — on every change. CI fails if any fixture fails or skips. Passing fixtures are a regression gate, not a claim of drop-in Node compatibility.",

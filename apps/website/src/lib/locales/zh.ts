@@ -6,7 +6,7 @@ export const zh: TranslationSchema = {
     docs: "文档",
     scope: "兼容性",
     blog: "博客",
-    play: "在线体验",
+    play: "游乐场",
     github: "GitHub",
     menu: "菜单",
   },
@@ -31,15 +31,15 @@ export const zh: TranslationSchema = {
   },
   levels: {
     stable: {
-      label: "Stable",
+      label: "稳定",
       desc: "有书面契约和 CI 中的可执行测试保障，已知限制就写在 API 旁边。",
     },
     preview: {
-      label: "Preview",
+      label: "预览",
       desc: "已在默认构建中可用，但契约、诊断信息或边界情况仍在完善。",
     },
     experimental: {
-      label: "Experimental",
+      label: "实验",
       desc: "代码已存在，但在重新验证并毕业之前，不构成产品承诺。",
     },
     nongoal: {
@@ -55,7 +55,7 @@ export const zh: TranslationSchema = {
     docs: "文档",
     scope: "兼容性",
     blog: "博客",
-    play: "在线体验",
+    play: "游乐场",
     conformance: "一致性测试记分卡",
     githubRepo: "GitHub",
     issues: "问题反馈",
@@ -90,7 +90,7 @@ export const zh: TranslationSchema = {
       source: "源码构建",
     },
     stats: {
-      contracts: "项 Stable 契约（G1–G69）",
+      contracts: "项 Stable 契约（G1–G77）",
       conformance: "Node 一致性用例通过",
       binary: "个二进制：run、test、serve、bundle、compile",
       version: "当前版本",
@@ -141,7 +141,7 @@ export const zh: TranslationSchema = {
     compatNode: "Node.js 模块",
     compatWeb: "Web 平台",
     compatRuntime: "运行时与 Agent",
-    compatLink: "浏览全部 69 项契约",
+    compatLink: "浏览全部 77 项契约",
     conformanceTitle: "56 / 56 一致性用例全部通过",
     conformanceBody:
       "tests/conformance/ 在每次变更时运行一组 Node 风格的小脚本——fs、stream、crypto、child_process、Express、Fastify、Hono 等。任何用例失败或跳过，CI 都会失败。通过这些用例是回归门禁，不代表可以无缝替换 Node。",

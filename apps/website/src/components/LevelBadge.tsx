@@ -18,7 +18,7 @@ export function LevelBadge({
   const { copy } = useLang();
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 border border-[var(--line)] px-1.5 py-0.5 font-mono text-[10.5px] leading-none text-[var(--text-secondary)] ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 border border-[var(--line)] px-1.5 py-1 font-mono text-xs leading-none text-[var(--text-secondary)] ${className}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${DOT[level]}`} aria-hidden />
       {copy.levels[level].label}

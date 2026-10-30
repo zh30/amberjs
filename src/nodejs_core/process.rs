@@ -185,15 +185,40 @@ fn stdin_object_emit_args<'s>(
     let emit_val = stdin_obj.get(scope, emit_key.into())?;
     let emit_fn = v8::Local::<v8::Function>::try_from(emit_val).ok()?;
     let event_name = v8::String::new(scope, event).unwrap();
+    let owned;
     let call_args: &[v8::Local<v8::Value>] = match chunk {
         Some(bytes) => {
-            let text = stdin_bytes_to_string(bytes);
-            let chunk_val = v8::String::new(scope, &text).unwrap();
+            owned = stdin_bytes_to_string(bytes);
+            let chunk_val = v8::String::new(scope, &owned).unwrap();
             &[event_name.into(), chunk_val.into()]
         }
         None => &[event_name.into()],
     };
     let _ = emit_fn.call(scope, stdin_obj.into(), call_args);
+    Some(())
+}
+
+/// 已经解过码的 data 字符串。给 EOF 时真正剩下的不完整序列用，
+/// 不能再走 `stdin_bytes_to_string`，否则不完整字节会被重新暂存。
+fn stdin_object_emit_text<'s>(
+    scope: &mut v8::PinScope<'s, '_>,
+    context: &v8::Local<v8::Context>,
+    text: &str,
+) -> Option<()> {
+    let global = context.global(scope);
+    let process_key = v8::String::new(scope, "process").unwrap();
+    let process_val = global.get(scope, process_key.into())?;
+    let process_obj = v8::Local::<v8::Object>::try_from(process_val).ok()?;
+    let stdin_key = v8::String::new(scope, "stdin").unwrap();
+    let stdin_val = process_obj.get(scope, stdin_key.into())?;
+    let stdin_obj = v8::Local::<v8::Object>::try_from(stdin_val).ok()?;
+    let emit_key = v8::String::new(scope, "emit").unwrap();
+    let emit_val = stdin_obj.get(scope, emit_key.into())?;
+    let emit_fn = v8::Local::<v8::Function>::try_from(emit_val).ok()?;
+    let event_name = v8::String::new(scope, "data").unwrap();
+    let chunk_val = v8::String::new(scope, text).unwrap();
+    let call_args = [event_name.into(), chunk_val.into()];
+    let _ = emit_fn.call(scope, stdin_obj.into(), &call_args);
     Some(())
 }
 
@@ -214,12 +239,10 @@ pub fn pump_pending_stdin_events_in_scope(
                     }
                     StdinEvent::Eof => {
                         STDIN_EOF_PUMPED.store(true, Ordering::SeqCst);
-                        // EOF 时把暂存的 UTF-8 尾巴作为最后一段入队：
-                        // 避免未收完的多字节序列被丢弃（以 U+FFFD 交付一次）。
-                        let tail = std::mem::take(&mut *STDIN_UTF8_TAIL.lock().unwrap());
-                        if !tail.is_empty() {
-                            STDIN_QUEUE.lock().unwrap().push_back(tail);
-                        }
+                        // 不要在这里把 UTF-8 尾巴入队。尾巴是解码时才写入的，
+                        // 而解码发生在本轮把队列吐给 JS 之后。此刻取走它，
+                        // 会把「上一块留下的首字节」排到「下一块的续字节」后面，
+                        // 多字节字符被拆成 U+FFFD。真正没收完的尾巴在发 'end' 前再交。
                     }
                 }
                 drained += 1;
@@ -263,6 +286,21 @@ pub fn pump_pending_stdin_events_in_scope(
         STDIN_READABLE_SIGNALED.store(false, Ordering::SeqCst);
     }
     if end_pending {
+        // 队列已经吐完。还留在尾巴里的字节不会再有后续 chunk，按 U+FFFD 交一次。
+        if STDIN_FLOWING.load(Ordering::SeqCst) {
+            let orphan = {
+                let mut guard = STDIN_UTF8_TAIL.lock().unwrap();
+                if guard.is_empty() {
+                    None
+                } else {
+                    Some(String::from_utf8_lossy(&std::mem::take(&mut *guard)).into_owned())
+                }
+            };
+            if let Some(text) = orphan {
+                stdin_object_emit_text(scope, context, &text);
+                emitted += 1;
+            }
+        }
         STDIN_END_EMITTED.store(true, Ordering::SeqCst);
         stdin_object_emit_args(scope, context, "end", None);
         emitted += 1;

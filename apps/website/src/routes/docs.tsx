@@ -346,10 +346,10 @@ export default function DocsComponent() {
                   key={item.id}
                   to={`/docs/${item.id}`}
                   aria-current={section === item.id ? "page" : undefined}
-                  className={`flex items-center justify-between gap-2 border-l-2 px-2.5 py-1.5 text-[13px] ${
+                  className={`flex min-h-12 items-center justify-between gap-2 px-2.5 text-sm ${
                     section === item.id
-                      ? "border-[var(--honey)] bg-[var(--honey-soft)] font-semibold text-[var(--text-primary)]"
-                      : "border-transparent text-[var(--text-secondary)] hover:border-[var(--line-strong)] hover:text-[var(--text-primary)]"
+                      ? "bg-[var(--honey)] font-semibold text-[var(--honey-ink)]"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   <span className="truncate">{item.label}</span>
@@ -378,9 +378,9 @@ export default function DocsComponent() {
 
   return (
     <div className="page">
-      <div className="mx-auto max-w-[1360px] px-4 sm:px-6">
+      <div>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_220px] xl:gap-10">
-          <aside className="h-fit lg:sticky lg:top-20">
+          <aside className="h-fit lg:sticky lg:top-24">
             <button
               type="button"
               onClick={() => setNavSection(navOpen ? null : section)}
@@ -431,11 +431,7 @@ export default function DocsComponent() {
 
               {banner && (
                 <div
-                  className={`flex gap-3 border-l-4 p-4 text-sm ${
-                    level === "experimental"
-                      ? "border-sky-500 bg-sky-500/5"
-                      : "border-[var(--honey)] bg-[var(--honey-soft)]"
-                  }`}
+                  className="flex gap-3 border border-[var(--on-paper)] p-4 text-sm"
                 >
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{banner}</span>
@@ -446,7 +442,7 @@ export default function DocsComponent() {
             </div>
 
             {docData ? (
-              <div className="prose prose-amber max-w-none dark:prose-invert prose-a:underline prose-a:underline-offset-2 [&_:not(pre)>code]:rounded-sm [&_:not(pre)>code]:bg-[var(--honey-soft)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none">
+              <div className="prose prose-amber max-w-none dark:prose-invert prose-a:underline prose-a:underline-offset-2 [&_:not(pre)>code]:bg-[var(--mark)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -547,7 +543,7 @@ export default function DocsComponent() {
           </main>
 
           <aside className="hidden xl:block">
-            <div className="sticky top-20 space-y-4">
+            <div className="sticky top-24 space-y-4">
               <div>
                 <div className="meta mb-3 flex items-center gap-2 font-medium">
                   <ListTree className="h-3.5 w-3.5" />
@@ -560,12 +556,12 @@ export default function DocsComponent() {
                       <a
                         key={item.id}
                         href={`#${item.id}`}
-                        className={`-ml-px block truncate border-l py-1 ${
-                          item.level === 3 ? "pl-6 text-[11px]" : "pl-3"
+                        className={`block truncate py-1 ${
+                          item.level === 3 ? "pl-6 text-xs" : "pl-3 text-sm"
                         } ${
                           activeHeading === item.id
-                            ? "border-[var(--honey)] font-semibold text-[var(--text-primary)]"
-                            : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                            ? "font-semibold text-[var(--on-paper)]"
+                            : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                         }`}
                       >
                         {item.title}
@@ -573,7 +569,7 @@ export default function DocsComponent() {
                     ))}
                   </nav>
                 ) : (
-                  <div className="text-xs italic text-[var(--text-muted)]">
+                  <div className="text-xs text-[var(--text-muted)]">
                     {manual.noHeadings}
                   </div>
                 )}

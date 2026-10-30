@@ -1,8 +1,9 @@
-import { ArrowRight, ChevronLeft, History } from "lucide-react";
+import { ChevronLeft, History } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useLang, type Lang } from "../lib/i18n";
+import { landingCopy } from "../lib/landing-copy";
 
 interface Post {
   slug: string;
@@ -142,41 +143,23 @@ export default function BlogComponent() {
   }
 
   return (
-    <div className="page">
-      <div className="site-shell max-w-3xl">
-        <header className="mb-12">
-          <h1 className="text-3xl font-bold tracking-tight">
-            {copy.blog.title}
-          </h1>
-          <p className="mt-3 max-w-[60ch] text-[var(--text-secondary)]">
-            {copy.blog.subtitle}
-          </p>
-        </header>
-
-        <div className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
+    <div className="sheet">
+      <div className="lead">
+        <h1>{copy.blog.title}</h1>
+        <p className="sub">{landingCopy[lang].blogLead}</p>
+      </div>
+      <div className="install">
+        <ul className="posts">
           {posts.map((post) => (
-            <article key={post.slug} className="py-8">
-              <p className="meta">
-                {post.tag} · {post.date} · {post.readTime}
-                {post.historical && <> · {copy.blog.historicalBadge}</>}
-              </p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight">
-                <Link to={`/blog/${post.slug}`} className="hover:underline">
-                  {post.title}
-                </Link>
-              </h2>
-              <p className="mt-2 text-[var(--text-secondary)]">
-                {post.excerpt}
-              </p>
-              <Link
-                to={`/blog/${post.slug}`}
-                className="mt-3 inline-flex items-center gap-1 text-sm hover:underline"
-              >
-                {copy.blog.readMore} <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </article>
+            <li key={post.slug}>
+              <Link to={`/blog/${post.slug}`}>{post.title}</Link>
+              <span>
+                {post.date}
+                {post.historical ? ` · ${copy.blog.historicalBadge}` : ""}
+              </span>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   );
@@ -192,7 +175,7 @@ function BlogPostView({ post }: { post: Post }) {
 
   return (
     <div className="page">
-      <div className="site-shell max-w-3xl">
+      <div className="max-w-[720px]">
         <Link
           to="/blog"
           className="mb-8 inline-flex items-center text-sm text-[var(--text-muted)] hover:underline"
@@ -220,7 +203,7 @@ function BlogPostView({ post }: { post: Post }) {
           {post.historical && (
             <aside
               role="note"
-              className="mt-6 flex gap-3 border border-[var(--honey)] bg-[var(--honey-soft)] px-4 py-3 text-sm text-[var(--text-primary)]"
+              className="mt-6 flex gap-3 border border-[var(--on-paper)] px-4 py-3 text-sm text-[var(--text-primary)]"
             >
               <History className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
               <p className="m-0">
@@ -232,8 +215,17 @@ function BlogPostView({ post }: { post: Post }) {
               </p>
             </aside>
           )}
-          <div className="prose prose-amber dark:prose-invert mt-8 max-w-none prose-a:underline [&_:not(pre)>code]:bg-[var(--honey-soft)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none [&_pre]:border [&_pre]:border-[var(--line)] [&_pre]:bg-[var(--code-bg)] [&_pre]:p-5 [&_pre_code]:text-[var(--code-fg)]">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          <div className="prose prose-amber dark:prose-invert mt-8 max-w-none prose-a:underline [&_:not(pre)>code]:bg-[var(--mark)] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:before:content-none [&_:not(pre)>code]:after:content-none [&_pre]:border [&_pre]:border-[var(--line)] [&_pre]:bg-[var(--code-bg)] [&_pre]:p-5 [&_pre_code]:text-[var(--code-fg)]">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                table: ({ node: _node, ...props }) => (
+                  <div className="max-w-full overflow-x-auto">
+                    <table {...props} />
+                  </div>
+                ),
+              }}
+            >
               {withoutLeadingTitle(post.content)}
             </ReactMarkdown>
           </div>

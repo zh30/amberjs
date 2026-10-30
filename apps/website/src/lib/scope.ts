@@ -1,5 +1,5 @@
 /**
- * Mirror of docs/CURRENT_SCOPE.md (v1.17.0, G1–G69 on main).
+ * Mirror of docs/CURRENT_SCOPE.md (v1.17.0, G1–G77 on main).
  * Every Stable row must point at a contract that CURRENT_SCOPE names.
  * Do not add rows from stage reports or the execution checklist.
  */
@@ -246,8 +246,8 @@ export const STABLE: readonly StableItem[] = [
     api: "fs · fs/promises",
     doc: "FS_CONTRACT",
     limits: {
-      en: "Byte I/O, mkdir, stat, fds, readdir dirents, promises; no glob / cp / opendir / statfs.",
-      zh: "字节读写、mkdir、stat、文件描述符、readdir、promises；无 glob / cp / opendir / statfs。",
+      en: "Byte I/O, mkdir, stat, fds, readdir dirents, promises. No fs.glob. cp / opendir / statfs are G76; FileHandle is G77.",
+      zh: "字节读写、mkdir、stat、文件描述符、readdir、promises。无 fs.glob。cp / opendir / statfs 见 G76；FileHandle 见 G77。",
     },
   },
   {
@@ -260,6 +260,29 @@ export const STABLE: readonly StableItem[] = [
     limits: {
       en: "Real OS watcher (notify) and stat polling; no fs.promises.watch.",
       zh: "真实系统文件监听（notify）与 stat 轮询；无 fs.promises.watch。",
+    },
+  },
+  {
+    g: "G76",
+    qualifier: "tentative",
+    area: "node",
+    name: "fs.cp / opendir / statfs",
+    api: "fs.cp · fs.opendir · fs.statfs",
+    doc: "FS_CONTRACT",
+    limits: {
+      en: "Recursive cp, a Dir snapshot, and Unix statfs. No fs.glob, cp filter, or bigint statfs.",
+      zh: "递归 cp、Dir 快照、Unix statfs。无 fs.glob、cp filter 或 bigint statfs。",
+    },
+  },
+  {
+    g: "G77",
+    area: "node",
+    name: "fs.promises FileHandle",
+    api: "fs.promises.open",
+    doc: "FS_CONTRACT",
+    limits: {
+      en: "fd, read, write, readFile, writeFile, stat, truncate, chmod, close. A positioned read or write seeks.",
+      zh: "fd、read、write、readFile、writeFile、stat、truncate、chmod、close。带位置的读写会移动偏移。",
     },
   },
   {
@@ -369,8 +392,19 @@ export const STABLE: readonly StableItem[] = [
     api: "nextTick · env · cwd · stdout.write · hrtime · memoryUsage",
     doc: "PROCESS_CONTRACT",
     limits: {
-      en: "Basics only; hrtime is epoch-based, heap numbers are estimates; exit / stdin stay Preview.",
-      zh: "仅基础能力；hrtime 基于 epoch，堆数据为估算；exit / stdin 仍为 Preview。",
+      en: "Basics only; hrtime is epoch-based, heap numbers are estimates. process.exit stays Preview. stdin is G70.",
+      zh: "仅基础能力；hrtime 基于 epoch，堆数据为估算。process.exit 仍为 Preview。stdin 见 G70。",
+    },
+  },
+  {
+    g: "G70",
+    area: "node",
+    name: "process.stdin",
+    api: "process.stdin",
+    doc: "PROCESS_STDIN_CONTRACT",
+    limits: {
+      en: "UTF-8 string chunks from a host reader. No Buffer chunks or setRawMode.",
+      zh: "宿主读取线程给出的 UTF-8 字符串块。无 Buffer 块或 setRawMode。",
     },
   },
   {
@@ -396,14 +430,14 @@ export const STABLE: readonly StableItem[] = [
     },
   },
   {
-    g: "G24",
+    g: "G24 · G71",
     area: "node",
     name: "stream",
-    api: "Readable · Writable · PassThrough · pipe",
+    api: "Readable · Writable · PassThrough · Transform · pipeline",
     doc: "NODE_STREAM_CONTRACT",
     limits: {
-      en: "Flowing push / pipe; no backpressure. Transform / Duplex / pipeline stay Preview.",
-      zh: "流动模式 push / pipe；无背压。Transform / Duplex / pipeline 仍为 Preview。",
+      en: "Flowing push / pipe, Transform, and callback pipeline. No Duplex, backpressure, or stream/promises.",
+      zh: "流动模式 push / pipe、Transform，以及回调版 pipeline。无 Duplex、背压或 stream/promises。",
     },
   },
   {
@@ -472,8 +506,19 @@ export const STABLE: readonly StableItem[] = [
     api: "http.createServer · listen · req / res",
     doc: "HTTP_SERVER_CONTRACT",
     limits: {
-      en: "Buffered responses; the http client, Agent, https and http2 are not supported.",
-      zh: "响应完整缓冲；不支持 http 客户端、Agent、https 与 http2。",
+      en: "Buffered responses. The client is G72. Agent, https, and http2 are not supported.",
+      zh: "响应完整缓冲。客户端见 G72。不支持 Agent、https 与 http2。",
+    },
+  },
+  {
+    g: "G72",
+    area: "node",
+    name: "http (client)",
+    api: "http.request · http.get",
+    doc: "HTTP_CLIENT_CONTRACT",
+    limits: {
+      en: "One buffered HTTP/1.1 response over TCP. No https, Agent, or chunked streaming.",
+      zh: "经 TCP 收取一次缓冲的 HTTP/1.1 响应。无 https、Agent 或分块流。",
     },
   },
   {
@@ -565,6 +610,39 @@ export const STABLE: readonly StableItem[] = [
     limits: {
       en: "Same-context run and a fresh-context property-copy sandbox; not Contextify parity.",
       zh: "同上下文执行，以及基于属性复制的新上下文沙箱；不等同于 Contextify。",
+    },
+  },
+  {
+    g: "G73",
+    area: "node",
+    name: "vm.createContext",
+    api: "createContext · isContext · runInContext",
+    doc: "VM_NEWCONTEXT_CONTRACT",
+    limits: {
+      en: "Real _vmContext marker and runInContext. Persistent context reuse stays out.",
+      zh: "真实的 _vmContext 标记与 runInContext。持久复用上下文不在契约内。",
+    },
+  },
+  {
+    g: "G74",
+    area: "node",
+    name: "perf_hooks",
+    api: "performance · PerformanceObserver · timerify",
+    doc: "PERF_HOOKS_CONTRACT",
+    limits: {
+      en: "Module bag over global performance. No event-loop delay or histograms.",
+      zh: "模块导出全局 performance。无事件循环延迟或直方图。",
+    },
+  },
+  {
+    g: "G75",
+    area: "node",
+    name: "worker_threads",
+    api: "Worker · parentPort · workerData",
+    doc: "WORKER_THREADS_CONTRACT",
+    limits: {
+      en: "Real OS thread and JSON postMessage. No transferList, nested workers, or module workers.",
+      zh: "真实系统线程与 JSON postMessage。无 transferList、嵌套 worker 或模块 worker。",
     },
   },
   {
@@ -674,7 +752,7 @@ export const STABLE: readonly StableItem[] = [
     g: "G16",
     area: "web",
     name: "Workers",
-    api: "Worker · worker_threads · navigator.serviceWorker",
+    api: "Worker · navigator.serviceWorker",
     doc: "WORKERS_CONTRACT",
     limits: {
       en: "Dedicated workers with JSON messages; no SharedWorker or module workers.",
@@ -770,8 +848,8 @@ export const PREVIEW: readonly ScopeItem[] = [
   {
     name: "Rest of src/nodejs_core/",
     detail: {
-      en: "Node modules and methods outside the contracts above: stream Transform / Duplex / pipeline, crypto KDF / sign / KeyObject, process.exit / stdin, perf_hooks, and more.",
-      zh: "上述契约之外的 Node 模块与方法：stream Transform / Duplex / pipeline、crypto KDF / 签名 / KeyObject、process.exit / stdin、perf_hooks 等。",
+      en: "Node modules and methods outside the contracts above: Duplex, crypto KDF / sign / KeyObject, process.exit, and more.",
+      zh: "上述契约之外的 Node 模块与方法：Duplex、crypto KDF / 签名 / KeyObject、process.exit 等。",
     },
   },
   {
@@ -879,10 +957,10 @@ export const NON_GOALS: readonly ScopeItem[] = [
     },
   },
   {
-    name: "http client · Agent · https · http2",
+    name: "http.Agent · https · http2",
     detail: {
-      en: "Use the Stable Web fetch for outbound HTTP. Only the http server subset is Stable.",
-      zh: "出站 HTTP 请使用 Stable 的 Web fetch。只有 http 服务端子集是 Stable。",
+      en: "The narrow http.request / http.get client is Stable (G72). Agent, https, and http2 are not.",
+      zh: "窄的 http.request / http.get 客户端是 Stable（G72）。Agent、https 与 http2 不是。",
     },
   },
   {
@@ -900,10 +978,10 @@ export const NON_GOALS: readonly ScopeItem[] = [
     },
   },
   {
-    name: "fs.glob · fs.cp · fs.opendir · fs.statfs",
+    name: "fs.glob",
     detail: {
-      en: "Not implemented; also no fs.promises.watch.",
-      zh: "未实现；也没有 fs.promises.watch。",
+      en: "Not implemented. fs.promises.watch is also outside the G64 contract.",
+      zh: "未实现。fs.promises.watch 也不在 G64 契约内。",
     },
   },
   {
@@ -922,5 +1000,5 @@ export const NON_GOALS: readonly ScopeItem[] = [
   },
 ];
 
-/** Graduation ids G1–G69. Rows above group several ids, so do not derive this from STABLE.length. */
-export const GRADUATED_CONTRACTS = 69;
+/** Graduation ids G1–G77. Rows above group several ids, so do not derive this from STABLE.length. */
+export const GRADUATED_CONTRACTS = 77;
