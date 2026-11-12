@@ -21,7 +21,7 @@ The production bundle is written to `dist/`. The `prebuild` step copies repo-roo
 
 `get.amberjs.com` is a custom domain on the same Worker as `amberjs.com` (`apps/website/cloudflare.config.ts`). `wrangler.toml` is kept for rollback and is not read by `cf`.
 
-Production deploys run through `.github/workflows/deploy-website-cf.yml`. Pull requests run `cf build` and `cf deploy --prebuilt --mode production --dry-run` with no credentials. A push to `main` deploys that same build when `apps/website/**`, `install.sh`, `install.ps1`, or the workflow file change. The only step that receives repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` is the real deploy. `cf` is in beta.
+Production deploys run through `.github/workflows/deploy-website-cf.yml`. Pull requests run `cf build` and `cf deploy --prebuilt --mode production --dry-run` with no credentials. A `v*` tag publishes that same build. `workflow_dispatch` publishes only when the selected ref is a `v*` tag. The only step that receives repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` is the real deploy. `cf` is in beta.
 
 Local dry-run (no Cloudflare login):
 
