@@ -865,12 +865,12 @@ pub fn setup_ai_api(
             AgentPipeline,
             cosineSimilarity,
             version: '__AMBER_PKG_VERSION__',
-            get weights() { return globalThis.__amber_weights; },
-            get tools() { return globalThis.__amber_tools; },
-            get kv() { return globalThis.__amber_kv; },
-            get bus() { return globalThis.__amber_bus; },
-            get grammar() { return globalThis.__amber_grammar; },
-            get checkpoint() { return globalThis.__amber_checkpoint; }
+            get weights() { return require('amber:weights'); },
+            get tools() { return require('amber:tools'); },
+            get kv() { return require('amber:kv'); },
+            get bus() { return require('amber:bus'); },
+            get grammar() { return require('amber:grammar'); },
+            get checkpoint() { return require('amber:checkpoint'); }
         };
 
         // 绑定到全局

@@ -18,9 +18,10 @@ use reqwest;
 use rusty_v8 as v8;
 use serde_json;
 use std::borrow::Cow;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 
@@ -4449,6 +4450,130 @@ pub fn v8_exception_to_runtime_error(
     }
 }
 
+/// amber:* product surface named by a require id. Node builtins are absent.
+#[derive(Clone, Copy)]
+enum ProductSurface {
+    Ai = 0,
+    Db = 1,
+    Std = 2,
+    Mcp = 3,
+    Sandbox = 4,
+    Ffi = 5,
+    Pool = 6,
+    Replay = 7,
+    Weights = 8,
+    Security = 9,
+    Kv = 10,
+    Tools = 11,
+    Bus = 12,
+    Grammar = 13,
+    Checkpoint = 14,
+}
+
+/// Per-context record of which product surfaces have been installed.
+struct ProductInitState {
+    done: Cell<u16>,
+    busy: Cell<u16>,
+}
+
+fn product_surface(module_id: &str) -> Option<ProductSurface> {
+    let id = module_id.strip_prefix("amber:").unwrap_or(module_id);
+    match id {
+        "ai" => Some(ProductSurface::Ai),
+        "db" | "sqlite" | "vector" => Some(ProductSurface::Db),
+        "std" | "std/dotenv" | "std/cli" | "std/fs" | "std/crypto" | "std/assert" | "std:cli" => {
+            Some(ProductSurface::Std)
+        }
+        "mcp" => Some(ProductSurface::Mcp),
+        "sandbox" | "vfs" => Some(ProductSurface::Sandbox),
+        "ffi" => Some(ProductSurface::Ffi),
+        "pool" => Some(ProductSurface::Pool),
+        "replay" => Some(ProductSurface::Replay),
+        "weights" => Some(ProductSurface::Weights),
+        "security" | "permissions" => Some(ProductSurface::Security),
+        "kv" => Some(ProductSurface::Kv),
+        "tools" => Some(ProductSurface::Tools),
+        "bus" => Some(ProductSurface::Bus),
+        "grammar" => Some(ProductSurface::Grammar),
+        "checkpoint" => Some(ProductSurface::Checkpoint),
+        _ => None,
+    }
+}
+
+fn product_init_state(context: &v8::Local<v8::Context>) -> Rc<ProductInitState> {
+    if let Some(state) = context.get_slot::<ProductInitState>() {
+        return state;
+    }
+    let state = Rc::new(ProductInitState {
+        done: Cell::new(0),
+        busy: Cell::new(0),
+    });
+    context.set_slot(state.clone());
+    state
+}
+
+fn install_product_surface(
+    scope: &mut v8::ContextScope<v8::HandleScope>,
+    context: &v8::Local<v8::Context>,
+    surface: ProductSurface,
+) -> Result<()> {
+    match surface {
+        ProductSurface::Ai => crate::nodejs_core::ai::setup_ai_api(scope, context),
+        ProductSurface::Db => crate::database::setup_db_api(scope, context),
+        ProductSurface::Std => crate::std_lib::setup_std_api(scope, context),
+        ProductSurface::Mcp => crate::mcp::setup_mcp_api(scope, context),
+        ProductSurface::Sandbox => crate::sandbox::setup_sandbox_api(scope, context),
+        ProductSurface::Ffi => crate::ffi::setup_ffi_api(scope, context),
+        ProductSurface::Pool => crate::pool::setup_pool_api(scope, context),
+        ProductSurface::Replay => crate::replay::setup_replay_api(scope, context),
+        ProductSurface::Weights => crate::weights::setup_weights_api(scope, context),
+        ProductSurface::Security => crate::capability::setup_security_api(scope, context),
+        ProductSurface::Kv => crate::kv::setup_kv_api(scope, context),
+        ProductSurface::Tools => crate::tools::setup_tools_api(scope, context),
+        ProductSurface::Bus => crate::bus::setup_bus_api(scope, context),
+        ProductSurface::Grammar => crate::grammar::setup_grammar_api(scope, context),
+        ProductSurface::Checkpoint => crate::checkpoint::setup_checkpoint_api(scope, context),
+    }
+}
+
+fn ensure_product_surface(
+    scope: &mut v8::ContextScope<v8::HandleScope>,
+    context: &v8::Local<v8::Context>,
+    surface: ProductSurface,
+) -> Result<()> {
+    let state = product_init_state(context);
+    let bit = 1u16 << (surface as u16);
+    if state.done.get() & bit != 0 || state.busy.get() & bit != 0 {
+        return Ok(());
+    }
+    state.busy.set(state.busy.get() | bit);
+    let result = install_product_surface(scope, context, surface);
+    state.busy.set(state.busy.get() & !bit);
+    if result.is_ok() {
+        state.done.set(state.done.get() | bit);
+    }
+    result
+}
+
+/// Install the amber:* module for `module_id` on this context, once.
+/// Returns false after throwing into V8.
+fn ensure_product_module_for_require(scope: &mut v8::PinScope, module_id: &str) -> bool {
+    let Some(surface) = product_surface(module_id) else {
+        return true;
+    };
+    let context = scope.get_current_context();
+    let scope = &mut v8::ContextScope::new(scope, context);
+    if let Err(err) = ensure_product_surface(scope, &context, surface) {
+        let message = err.to_string();
+        let text = v8::String::new(scope, &message)
+            .unwrap_or_else(|| v8::String::new(scope, "failed to install amber module").unwrap());
+        let exception = v8::Exception::error(scope, text);
+        scope.throw_exception(exception);
+        return false;
+    }
+    true
+}
+
 /// A minimal runtime that only provides basic JavaScript execution
 /// This version avoids complex dependencies for faster startup
 /// v0.3.93: 添加 Context 存储以支持跨 Context 共享数据
@@ -8679,22 +8804,10 @@ impl MinimalRuntime {
         crate::nodejs_core::string_decoder::setup_string_decoder_api(scope, context)?;
         Self::setup_legacy_web_apis(scope, context, true)?;
         setup_crypto_api(scope, context)?;
-        crate::nodejs_core::ai::setup_ai_api(scope, context)?;
-        crate::database::setup_db_api(scope, context)?;
-        crate::std_lib::setup_std_api(scope, context)?;
-        crate::mcp::setup_mcp_api(scope, context)?;
-        crate::sandbox::setup_sandbox_api(scope, context)?;
-        crate::ffi::setup_ffi_api(scope, context)?;
-        crate::pool::setup_pool_api(scope, context)?;
+        // amber:wasm patches WebAssembly.Memory and publishes global `wasm`
+        // for scripts that never call require. The other amber:* product
+        // modules install on the first require.
         crate::wasm::setup_wasm_api(scope, context)?;
-        crate::replay::setup_replay_api(scope, context)?;
-        crate::weights::setup_weights_api(scope, context)?;
-        crate::capability::setup_security_api(scope, context)?;
-        crate::kv::setup_kv_api(scope, context)?;
-        crate::tools::setup_tools_api(scope, context)?;
-        crate::bus::setup_bus_api(scope, context)?;
-        crate::grammar::setup_grammar_api(scope, context)?;
-        crate::checkpoint::setup_checkpoint_api(scope, context)?;
         Self::setup_module_system(scope, context, main_module_dir, main_module_filename)?;
         setup_timers_api(scope, context)?;
         setup_performance_api(scope, context)?;
@@ -17538,6 +17651,9 @@ impl MinimalRuntime {
         module_id_str: &str,
         mut retval: v8::ReturnValue,
     ) {
+        if !ensure_product_module_for_require(scope, module_id_str) {
+            return;
+        }
         let result_obj = v8::Object::new(scope);
         match module_id_str {
             "buffer" => {
@@ -18756,6 +18872,9 @@ impl MinimalRuntime {
         ) {
             Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::File(path)) => path,
             Ok(crate::nodejs_core::commonjs_resolver::ResolvedModule::Builtin(name)) => {
+                if !ensure_product_module_for_require(scope, &name) {
+                    return;
+                }
                 let clean = name.strip_prefix("amber:").unwrap_or(&name);
                 for candidate in &[name.as_str(), clean] {
                     let lookup_key = v8::String::new(scope, candidate).unwrap();
