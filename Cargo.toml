@@ -51,15 +51,18 @@ oxc = { version = "0.147", default-features = false, features = [
     "ast_visit",
 ] }
 
-# WebAssembly runtime. Floor is 49.0.4.
+# WebAssembly runtime. Floor is 49.0.5.
 # RUSTSEC-2026-0314, 0316, 0321, 0322, and 0323 are fixed in 36.0.17, 48.0.4,
 # and 49.0.2 (which also includes 0325, 0326, and 0327). RUSTSEC-2026-0352
 # through 0362 are fixed in 49.0.3 (also 48.0.6 and 36.0.18).
 # RUSTSEC-2026-0378 and 0379 are fixed in 49.0.4 (also 48.0.7).
+# RUSTSEC-2026-0420 (wasmtime-wasi), 0422, 0423, and 0424 are fixed in 49.0.5
+# (also 48.0.8 and 50.0.1). 49.0.5 is the smallest release that clears them;
+# 50.x is a major bump and is not required.
 # `cache` is the only feature that pulls zstd 0.13 / zstd-safe 7.2.4
 # (RUSTSEC-2026-0396 through 0406). No crates.io wasmtime through 50.0.0
 # has moved to zstd 0.14, and Amber does not use wasmtime's module cache.
-wasmtime = { version = "49.0.4", default-features = false, features = [
+wasmtime = { version = "49.0.5", default-features = false, features = [
     "anyhow",
     "async",
     "backtrace",
@@ -86,7 +89,7 @@ wasmtime = { version = "49.0.4", default-features = false, features = [
     "compile-time-builtins",
     "wit-parser",
 ] }
-wasmtime-wasi = "49.0.4"
+wasmtime-wasi = "49.0.5"
 
 # JavaScript to WebAssembly compiler (unused, disabled to eliminate swc serde constraint)
 # javy-codegen = "1.0"
@@ -194,7 +197,12 @@ prometheus = { version = "0.14", optional = true }
 opentelemetry = { version = "0.21", optional = true }
 opentelemetry_sdk = { version = "0.21", optional = true }
 opentelemetry-prometheus = { version = "0.33", optional = true }
-opentelemetry-jaeger = { version = "0.22", optional = true }
+# opentelemetry-jaeger 0.22.0 is the final, deprecated release. It requires
+# `thrift = "0.17.0"` (`^0.17.0`), which cannot resolve the RUSTSEC-2026-0435
+# fix (thrift >= 0.23.0). No later exporter exists. Nothing in the compiled
+# graph references the crate (`src/observability` is not built; the in-tree
+# Jaeger tracer does not link it), so the optional dep is removed and thrift
+# 0.17.0 leaves the lockfile.
 opentelemetry-http = { version = "0.10", optional = true }
 tracing-appender = "0.2"
 tracing-opentelemetry = { version = "0.34", optional = true }
@@ -328,7 +336,7 @@ verbose_logging = []  # Enable verbose logging for debugging
 multilang = ["dep:pyo3", "dep:pyo3-build-config"]
 cloudnative = ["dep:kube", "dep:kube-runtime", "dep:k8s-openapi"]
 enterprise = ["dep:elasticsearch", "dep:git2", "dep:schemars"]
-observability = ["dep:prometheus", "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-prometheus", "dep:opentelemetry-jaeger", "dep:opentelemetry-http", "dep:tracing-opentelemetry"]
+observability = ["dep:prometheus", "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-prometheus", "dep:opentelemetry-http", "dep:tracing-opentelemetry"]
 ai = []
 metal = ["candle-core/metal", "candle-nn/metal", "candle-transformers/metal"]
 cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
