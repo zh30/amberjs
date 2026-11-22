@@ -303,10 +303,14 @@ jobs:
     name: Release Build (${{ matrix.os }})
     timeout-minutes: 60
     runs-on: ${{ matrix.os }}
+    # macOS was dropped from this matrix on 2026-11-10 to cut Actions cost.
+    # Linux already runs the full test suite and a release-build smoke.
+    # Official macOS binaries are produced by release-assets.yml on v* tags
+    # or workflow_dispatch.
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -337,9 +341,6 @@ jobs:
       - name: SEA compile smoke
         run: bash scripts/sea_compile_smoke.sh ./target/release/amber
 
-      - name: Library tests on macOS
-        if: runner.os == 'macOS'
-        run: cargo test --lib --tests -- --test-threads=1
 
   windows-smoke:
     name: Windows Smoke
