@@ -1,7 +1,9 @@
 # Production website deploy via the Cloudflare CLI (`cf`).
-# Pull requests build once and dry-run the same output. Only a push to main
-# publishes. `cf deploy --dry-run` does not call the API and needs no token,
-# so fork PRs (which do not receive Actions secrets) can still run this job.
+# Pull requests build once and dry-run the same output. Only a v* tag
+# publishes: a tag push, or workflow_dispatch when that tag is selected.
+# `cf deploy --dry-run` does not call the API and needs no token, so fork
+# PRs (which do not receive Actions secrets) can still run this job.
+# Tag pushes are not path-filtered; GitHub does not evaluate paths on tags.
 # https://developers.cloudflare.com/cf/ci/
 name: Deploy website (cf)
 
@@ -13,12 +15,8 @@ on:
       - "install.ps1"
       - ".github/workflows/deploy-website-cf.yml"
   push:
-    branches: [main]
-    paths:
-      - "apps/website/**"
-      - "install.sh"
-      - "install.ps1"
-      - ".github/workflows/deploy-website-cf.yml"
+    tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -77,7 +75,7 @@ jobs:
       # dry-run steps: fork pull requests do not have repository secrets.
       # Account id is a Secret (secrets.CLOUDFLARE_ACCOUNT_ID), not a variable.
       - name: Deploy to Cloudflare
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
